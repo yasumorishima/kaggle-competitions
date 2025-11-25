@@ -27,6 +27,7 @@ Initial submission scored **-0.058** (negative correlation)
 
 ### Root Cause
 **Backward-looking target calculation** instead of forward-looking:
+
 ```python
 # ❌ Wrong (Backward-looking)
 target[t] = log(price[t] / price[t-lag])
@@ -41,6 +42,7 @@ Fundamental misunderstanding of what to predict led to inverse correlation.
 ## 💡 Solution
 
 ### Simple Mean Reversion Model
+
 ```python
 def predict(target_id, historical_stats, recent_context):
     # 1. Historical mean
@@ -94,6 +96,7 @@ prediction = historical_mean + random_noise
 - **Environment:** Kaggle Notebooks
 
 ## 📁 Files
+
 ```
 mitsui-commodity-prediction/
 ├── forward-looking-fix.ipynb    # Main submission
@@ -105,7 +108,6 @@ mitsui-commodity-prediction/
 
 - **Competition:** [Kaggle Competition Page](https://www.kaggle.com/competitions/mitsui-commodity-prediction-challenge)
 - **Code:** [Forward-Looking Target Fix](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix)
-- **Blog Post:** [Learning from bugs: Forward-looking target fix](link-to-blog)
 
 ## 📝 Notes
 
