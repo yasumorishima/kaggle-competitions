@@ -18,8 +18,6 @@ Commodity futures price prediction with forward-running evaluation.
 
 **Code:** [Kaggle Notebook](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix)
 
-**Blog:** [Learning from bugs: Forward-looking target fix](link-to-your-blog)
-
 ---
 
 ### NFL Big Data Bowl 2026
