@@ -1,4 +1,0 @@
-pandas
-polars
-numpy
-kaggle-evaluation
