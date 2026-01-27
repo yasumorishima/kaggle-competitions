@@ -1,331 +1,188 @@
-Notebook
+# 特徴量エンジニアリング × Optuna × アンサンブル学習で0.78到達
 
+Kaggle Titanicコンペティションにおける特徴量エンジニアリング、Optunaによるハイパーパラメータ最適化、アンサンブル学習の実践記録。
 
+## サマリー
 
-特徴量エンジニアリング × Optuna × アンサンブル学習で0.78到達
+| 指標 | スコア |
+|------|--------|
+| CV（交差検証） | 0.8384 |
+| LB（リーダーボード） | 0.78299 |
+| 使用モデル | Random Forest + Gradient Boosting + LightGBM（ソフト投票） |
 
-初心者でも分かる！機械学習の基礎から実践まで
+**CVとLBの差（約0.05）がオーバーフィッティングの証拠。** これが本記事の最大のテーマ。
 
-🎯 この記事で学べること
+---
 
-探索的データ分析（EDA） - データの中身を理解する
+## ライブラリの準備
 
-特徴量エンジニアリング - 予測精度を上げる秘訣
-
-Optunaによる自動チューニング - ベストな設定を見つける
-
-アンサンブル学習 - 複数のモデルを組み合わせる
-
-オーバーフィッティング - 機械学習で最も重要な落とし穴
-
-📊 最終結果
-
-CV（交差検証）スコア: 0.8384
-
-LB（リーダーボード）スコア: 0.78299
-
-使用モデル: Random Forest + Gradient Boosting + LightGBM のアンサンブル
-
-重要: CVスコアとLBスコアに大きな差がある → これがオーバーフィッティング（過学習）の証拠です。この記事の最大のテーマです。
-
-1️⃣ ライブラリの準備
-
-# データ処理用
+```python
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 
-# 機械学習モデル
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from lightgbm import LGBMClassifier
-
-# 最適化ツール
 import optuna
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
-# 設定
 warnings.filterwarnings('ignore')
 sns.set_style('whitegrid')
+```
 
+## データの読み込み
 
-📘 解説
-
-各ライブラリの役割:
-
-pandas/numpy: データを扱うための基本ツール（Excelのような表計算をPythonで）
-
-matplotlib/seaborn: グラフを描くツール
-
-sklearn: 機械学習の道具箱（様々なモデルや評価方法が入っている）
-
-lightgbm: 高性能な機械学習モデルの一つ
-
-optuna: 自動で「最適な設定」を探してくれる賢いロボット
-
-2️⃣ データの読み込みと確認
-
+```python
 train_df = pd.read_csv('/kaggle/input/titanic/train.csv')
 test_df = pd.read_csv('/kaggle/input/titanic/test.csv')
 all_data = pd.concat([train_df.drop('Survived', axis=1), test_df], sort=False).reset_index(drop=True)
+```
 
-print("訓練データの形:", train_df.shape)
-print("テストデータの形:", test_df.shape)
-print("\n最初の5行:")
-train_df.head()
+- `train.csv`: 答え付き学習データ（891人）
+- `test.csv`: 予測対象データ（418人）
+- `all_data`: 特徴量作成を一括で行うために結合
 
+## EDA（探索的データ分析）
 
-📘 解説
+### 欠損値
 
-train.csv: 答え（生存したか）が付いている学習用データ（891人分）
+| カラム | 欠損数 |
+|--------|--------|
+| Age | 177 |
+| Cabin | 687 |
+| Embarked | 2 |
 
-test.csv: 答えがない予測用データ（418人分）
+### 生存率の可視化
 
-all_data: 両方を結合したデータ（特徴量作成を一括で行うため）
-
-3️⃣ EDA（探索的データ分析）
-
-欠損値の確認
-
-print("欠損値の数:")
-train_df.isnull().sum()
-
-
-結果:
-
-Age（年齢）: 177個の欠損
-
-Cabin（客室番号）: 687個の欠損（ほとんどない）
-
-Embarked（乗船港）: 2個の欠損
-
-生存率の可視化
-
+```python
 fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 
-# 生存者数
 sns.countplot(ax=axes[0, 0], x='Survived', data=train_df)
 axes[0, 0].set_title('生存者数')
 
-# 性別と生存率
 sns.countplot(ax=axes[0, 1], x='Sex', hue='Survived', data=train_df)
 axes[0, 1].set_title('性別ごとの生存率')
 
-# 客室クラスと生存率
 sns.countplot(ax=axes[1, 0], x='Pclass', hue='Survived', data=train_df)
 axes[1, 0].set_title('客室クラスごとの生存率')
 
-# 年齢と生存率
 sns.histplot(ax=axes[1, 1], data=train_df, x='Age', hue='Survived', kde=True)
 axes[1, 1].set_title('年齢ごとの生存率')
 
 plt.tight_layout()
 plt.show()
+```
 
+### EDAの知見
 
-📊 EDAから分かったこと
+- **性別**: 女性の生存率が圧倒的に高い（「女性と子供が優先」）
+- **客室クラス**: 1等客室の生存率が高い
+- **年齢**: 子供の生存率が高い傾向
 
-性別（Sex）: 女性の生存率が圧倒的に高い → 「女性と子供が優先」
+## 特徴量エンジニアリング
 
-客室クラス（Pclass）: 1等客室の生存率が高い → お金持ちが優遇された
+### A. Title（敬称）の抽出
 
-年齢（Age）: 子供の生存率が高い傾向
-
-これらの情報を元に「特徴量」を作ります！
-
-4️⃣ 特徴量エンジニアリング（予測精度の鍵）
-
-A. Title（敬称）の抽出
-
-# 名前から "Mr.", "Miss." などを抽出
+```python
 all_data['Title'] = all_data['Name'].str.extract(' ([A-Za-z]+)\.', expand=False)
 
-# 珍しい敬称をまとめる
 all_data['Title'] = all_data['Title'].replace(['Mlle', 'Ms'], 'Miss')
 all_data['Title'] = all_data['Title'].replace('Mme', 'Mrs')
 
-# 10人未満の珍しい敬称は "Rare" にまとめる
 rare_titles = all_data['Title'].value_counts()[all_data['Title'].value_counts() < 10].index
 all_data['Title'] = all_data['Title'].replace(rare_titles, 'Rare')
+```
 
+Titleは「性別」「年齢」「結婚状況」を含む強力な特徴量。例: `Mr.` = 成人男性、`Master.` = 少年。
 
-📘 解説
+### B. FamilySize（家族の人数）
 
-なぜTitleが重要？
-
-乗客の名前には以下のような「敬称」が含まれています:
-
-Mr. → 成人男性
-
-Miss. → 未婚女性
-
-Mrs. → 既婚女性
-
-Master. → 少年
-
-これは「性別」「年齢」「結婚状況」を全て含む超強力な特徴です。
-
-例: "Braund, Mr. Owen Harris" → この人は成人男性
-
-B. FamilySize（家族の人数）
-
-# SibSp（兄弟・配偶者） + Parch（親・子供） + 1（本人）
+```python
 all_data['FamilySize'] = all_data['SibSp'] + all_data['Parch'] + 1
-
-# 一人旅かどうか
 all_data['IsAlone'] = (all_data['FamilySize'] == 1).astype(int)
+```
 
+一人旅の乗客は生存率が低い傾向がある。
 
-📘 解説
+### C. Deck（デッキ階）
 
-仮説: 家族と一緒にいる人は助かりやすい？一人旅の人は不利？
-
-実際、一人旅の乗客は生存率が低いことが分かっています。家族がいると助け合えるためです。
-
-C. Deck（デッキ階）
-
-# Cabin（客室番号）の最初の文字がデッキ階を表す
-# 例: "C85" → デッキC
+```python
 all_data['Deck'] = all_data['Cabin'].apply(lambda s: s[0] if pd.notnull(s) else 'U')
+```
 
+客室番号の先頭文字（A, B, C...）が船の階層を表す。高い階ほど脱出しやすい。`U`（Unknown）は客室番号不明。
 
-📘 解説
+### D. Ticket_Frequency（同一チケット番号の人数）
 
-客室番号の最初の文字（A, B, C...）は船のどの階にいたかを表します。
-
-高い階（A, B, C）→ お金持ち → 脱出しやすい
-
-'U'（Unknown）→ 客室番号不明 → おそらく安い部屋
-
-D. Ticket_Frequency（最強の特徴！）
-
-# 同じチケット番号を持つ人の数をカウント
+```python
 ticket_counts = all_data['Ticket'].value_counts()
 all_data['Ticket_Frequency'] = all_data['Ticket'].map(ticket_counts)
+```
 
+**今回の最も効果的な特徴量。** 同じチケット番号を持つ人はグループ（家族・友人）である可能性が高く、SibSp/Parchに含まれない関係者も捕捉できる。この特徴だけでスコアが大きく向上した。
 
-📘 解説
+### E. 欠損値の補完
 
-これが今回の秘密兵器！
-
-同じチケット番号を持つ人は「家族や友人のグループ」である可能性が高いです。
-
-SibSp/Parchに含まれない親戚や友人も含まれる
-
-グループで行動 → 助け合いやすい → 生存率UP
-
-この特徴だけでスコアが大きく向上しました。
-
-E. 欠損値の補完
-
-# 年齢：同じTitle & Pclass の中央値で埋める
+```python
+# 年齢：同じTitle & Pclassの中央値で補完
 all_data['Age'] = all_data.groupby(['Title', 'Pclass'])['Age'].transform(
     lambda x: x.fillna(x.median())
 )
 
-# 料金：全体の中央値で埋める
+# 料金：全体の中央値
 all_data['Fare'] = all_data['Fare'].fillna(all_data['Fare'].median())
 
-# 乗船港：最頻値（S）で埋める
+# 乗船港：最頻値（S）
 all_data['Embarked'] = all_data['Embarked'].fillna(all_data['Embarked'].mode()[0])
+```
 
+Ageの補完にTitle+Pclassを使う理由: `Mr.`と`Master.`では年齢分布が大きく異なるため。
 
-📘 解説
+### F. Fare_log（料金の対数変換）
 
-欠損値（空白）があると機械学習モデルが動きません。そこで:
-
-Age: "Mr."と"Master."では年齢が全然違うので、同じTitle+Pclassの中央値を使う
-
-Fare: シンプルに全体の中央値
-
-Embarked: 最も多い港（S = Southampton）で埋める
-
-F. Fare_log（料金の対数変換）
-
-# 料金は偏りが大きい（数円〜数百ドル）ので対数変換
+```python
 all_data['Fare_log'] = np.log1p(all_data['Fare'])
+```
 
+料金の分布は偏りが大きい（7ドル〜500ドル）ため、対数変換で正規分布に近づける。
 
-📘 解説
+### G. ビニング（カテゴリ化）
 
-料金は「7ドル」の人もいれば「500ドル」の人もいます（偏りが激しい）。
-
-このままだと高額な料金に引っ張られてしまうので、対数変換で「差を縮める」処理をします。
-
-イメージ:
-
-変換前: 10, 100, 1000（大きな差）
-
-変換後: 1, 2, 3（なだらかな差）
-
-G. ビニング（カテゴリ化）
-
-# 年齢と料金を5段階・4段階のカテゴリに分ける
+```python
 all_data['AgeBin'] = pd.qcut(all_data['Age'], 5, labels=False, duplicates='drop')
 all_data['FareBin'] = pd.qcut(all_data['Fare_log'], 4, labels=False, duplicates='drop')
+```
 
+連続値をグループに分けることで、モデルがパターンを学習しやすくなる。
 
-📘 解説
+## データの準備
 
-ビニング = 連続的な数値を「グループ」に分けること
-
-例: 年齢
-
-22歳 と 23歳 は似ているが、機械学習では「別の値」と認識される
-
-→ 「20代前半」というグループにまとめる方が学習しやすい
-
-5️⃣ データの準備
-
-# 不要な列を削除
-drop_cols = ['PassengerId', 'Name', 'Ticket', 'Cabin', 'Age', 'Fare', 
+```python
+drop_cols = ['PassengerId', 'Name', 'Ticket', 'Cabin', 'Age', 'Fare',
              'Fare_log', 'SibSp', 'Parch', 'FamilySize']
 all_data_clean = all_data.drop(drop_cols, axis=1)
 
-# カテゴリ変数をダミー変数化（文字 → 数字）
 all_data_encoded = pd.get_dummies(
-    all_data_clean, 
-    columns=['Title', 'Deck', 'Embarked', 'Sex'], 
+    all_data_clean,
+    columns=['Title', 'Deck', 'Embarked', 'Sex'],
     drop_first=True
 )
 
-# 訓練データとテストデータに分割
 X_train = all_data_encoded[:len(train_df)]
 X_test = all_data_encoded[len(train_df):]
 y_train = train_df['Survived']
+```
 
-print("最終的な訓練データの形:", X_train.shape)
+`drop_first=True`: 冗長な列を削除（例: male=1ならfemale=0は自明）。
 
+## Optunaでハイパーパラメータ最適化
 
-📘 解説
+LightGBMのパラメータをOptunaで自動探索。50回の試行でCV Score 0.8406を達成。
 
-ダミー変数化: 機械学習モデルは「文字」を理解できません。
-
-例: Sex（性別）
-
-"male" / "female" → 1 / 0 に変換
-
-drop_first=True: 冗長な列を削除（male=1 なら female=0 は自明なので不要）
-
-6️⃣ Optunaでハイパーパラメータ最適化
-
-Optunaって何？
-
-Optuna = 「最適な設定」を自動で探してくれるツール
-
-機械学習モデルには「ハイパーパラメータ」という設定値があります:
-
-木の深さ
-
-学習率
-
-木の数
-
-これを手動で試すのは大変 → Optunaに任せる！
-
+```python
 def objective(trial):
-    # Optunaに「この範囲で試して」と指示
     params = {
         'objective': 'binary',
         'metric': 'binary_logloss',
@@ -340,199 +197,86 @@ def objective(trial):
         'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
         'random_state': 42
     }
-    
+
     model = LGBMClassifier(**params)
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     scores = cross_val_score(model, X_train, y_train, cv=cv, scoring='accuracy')
-    
-    # 平均スコアを返す（Optunaはこれを最大化しようとする）
     return scores.mean()
 
-# 最適化を実行（50回試行）
 study = optuna.create_study(direction='maximize')
 study.optimize(objective, n_trials=50)
+```
 
-print(f"\nOptunaが見つけた最高スコア: {study.best_value:.4f}")
-print(f"ベストパラメータ: {study.best_params}")
+## アンサンブル学習
 
+3つのモデルをソフト投票（確率の平均）で組み合わせる。
 
-📘 解説
-
-Optunaの動き:
-
-1回目: ランダムに設定を試す → スコア 0.81
-
-2回目: 「さっきより良さそうな設定」を試す → スコア 0.82
-
-3回目: さらに改善 → スコア 0.84
-
-...50回繰り返す
-
-結果: CV Score 0.8406 という高い精度を達成！
-
-7️⃣ アンサンブル学習（複数モデルの組み合わせ）
-
-アンサンブルとは？
-
-1つのモデルより、3人の専門家の意見を聞く方が正確
-
-例えば:
-
-専門家A: 「生存」
-
-専門家B: 「生存」
-
-専門家C: 「死亡」 → 多数決で「生存」と判定
-
-# 3つのモデルを準備
+```python
 rf = RandomForestClassifier(
-    n_estimators=200, 
-    max_depth=8, 
-    min_samples_leaf=2, 
-    random_state=42
+    n_estimators=200, max_depth=8, min_samples_leaf=2, random_state=42
 )
 
 gb = GradientBoostingClassifier(
-    n_estimators=300, 
-    learning_rate=0.01, 
-    max_depth=4, 
-    random_state=42
+    n_estimators=300, learning_rate=0.01, max_depth=4, random_state=42
 )
 
-# Optunaで最適化したLightGBM
-best_lgbm_params = study.best_params
-lgbm_best = LGBMClassifier(**best_lgbm_params, random_state=42)
+lgbm_best = LGBMClassifier(**study.best_params, random_state=42)
 
-# 3つを組み合わせる（ソフト投票 = 確率の平均）
 voting_clf = VotingClassifier(
-    estimators=[
-        ('rf', rf),
-        ('gb', gb),
-        ('lgbm', lgbm_best)
-    ],
+    estimators=[('rf', rf), ('gb', gb), ('lgbm', lgbm_best)],
     voting='soft'
 )
+```
 
+| モデル | 特徴 |
+|--------|------|
+| Random Forest | 多数の決定木で多数決。安定性が高い |
+| Gradient Boosting | 弱いモデルを逐次改善。精度が高い |
+| LightGBM | 高速・高精度。Optunaで最適化済み |
 
-📘 解説
+## 評価と予測
 
-使用する3つのモデル:
-
-Random Forest（ランダムフォレスト）:
-
-たくさんの決定木を作って多数決
-
-安定性が高い
-
-Gradient Boosting（勾配ブースティング）:
-
-弱いモデルを少しずつ改善していく
-
-精度が高い
-
-LightGBM:
-
-高速で高精度
-
-Optunaで最適化済み
-
-voting='soft': 各モデルの「確率」を平均して判定（硬い多数決より柔軟）
-
-8️⃣ 評価と予測
-
-# 交差検証でスコアを確認
+```python
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 final_cv_scores = cross_val_score(voting_clf, X_train, y_train, cv=cv, scoring='accuracy')
 
-print(f"\nアンサンブルモデルのCVスコア: {final_cv_scores.mean():.4f}")
-
-# 全訓練データで学習
 voting_clf.fit(X_train, y_train)
-
-# テストデータで予測
 predictions = voting_clf.predict(X_test)
 
-# 提出ファイル作成
 submission = pd.DataFrame({
     'PassengerId': test_df['PassengerId'],
     'Survived': predictions
 })
 submission.to_csv('submission_final.csv', index=False)
+```
 
-print("\n提出ファイル 'submission_final.csv' 完成！")
+## オーバーフィッティング分析
 
+### CVスコアとLBスコアの乖離
 
-9️⃣ 結果と最大の学び: オーバーフィッティング
+| スコア | 値 |
+|--------|-----|
+| CV | 0.8384 |
+| LB | 0.78299 |
+| **差** | **約0.05** |
 
-📊 スコアの比較
+この差はモデルが訓練データに過剰適応していることを示す。
 
-⚠️ この差が意味すること: オーバーフィッティング
+### 過学習の原因
 
-オーバーフィッティング（過学習） とは？
+1. **特徴量が多すぎた**: 20個の特徴量は891人のデータに対して多い
+2. **モデルが複雑すぎた**: 3モデルのアンサンブル + 高度なチューニング
+3. **CVスコアへの過剰最適化**: CVスコアを上げることに集中しすぎた
 
-学校の試験で例えると:
+### 対策
 
-良い勉強: 問題の「解き方」を理解する → 初めて見る問題も解ける
+- **特徴量の削減**: 重要度の低い特徴は削除
+- **正則化**: モデルの複雑さにペナルティを与える
+- **シンプルなモデル**: 複雑すぎるモデルは避ける
 
-悪い勉強: 答えを丸暗記する → 同じ問題は解けるが、少し変わると解けない
+## 学んだこと
 
-機械学習でも同じことが起きます:
-
-良いモデル: データの「パターン」を学ぶ → 新しいデータでも予測できる
-
-過学習モデル: 訓練データの「細かいノイズ」まで覚える → 新しいデータで失敗
-
-🔍 なぜ過学習が起きたか？
-
-特徴量が多すぎた: 20個の特徴量は891人のデータに対して多い
-
-モデルが複雑すぎた: 3つのモデルを組み合わせ、高度にチューニングした
-
-訓練データに過剰適応: CVスコアを上げることに集中しすぎた
-
-💡 対策方法
-
-特徴量の削減: 重要度の低い特徴は削除
-
-正則化: モデルの複雑さにペナルティを与える
-
-シンプルなモデル: 複雑すぎるモデルは避ける
-
-データの追加: より多くのデータで学習（Titanicでは無理）
-
-🎓 まとめ
-
-✅ 学んだこと
-
-特徴量エンジニアリングの重要性
-
-Ticket_Frequency が最大の武器
-
-創造的な特徴作成が精度を左右
-
-Optunaの威力
-
-手動チューニングより効率的
-
-50回の試行で最適解を発見
-
-アンサンブルの強さ
-
-複数モデルの組み合わせで安定性UP
-
-voting='soft' で柔軟な判定
-
-過学習の恐怖（最重要）
-
-CVスコアだけを信じてはいけない
-
-汎化性能（新しいデータへの対応力）が本当の実力
-
-🚀 次のステップ
-
-より多くのKaggleコンペに挑戦
-
-過学習を防ぐテクニックを学ぶ
-
-他の人のNotebookから学ぶ
-
+1. **特徴量エンジニアリング**: `Ticket_Frequency`が最大の武器。創造的な特徴作成が精度を左右する
+2. **Optuna**: 手動チューニングより効率的。50回の試行で最適解を発見
+3. **アンサンブル**: 複数モデルの組み合わせで安定性向上。`voting='soft'`で柔軟な判定
+4. **過学習（最重要）**: CVスコアだけを信じてはいけない。汎化性能が本当の実力
