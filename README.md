@@ -107,6 +107,20 @@ Advanced ensemble technique using rank-based blending.
 
 ---
 
+## 📓 Study Notes (勉強メモ)
+
+Kaggle notebooks and ML study materials. Located in [`study-notes/`](./study-notes/).
+
+| # | Topic | Notebook | Description |
+|---|-------|----------|-------------|
+| 2 | Feature Engineering | [feature-engine-optuna](./study-notes/02-feature-engine-optuna.ipynb) | Feature Engine & Optuna for hyperparameter optimization |
+| 3 | Stacking | [stacking-feature-engineering](./study-notes/03-stacking-feature-engineering.ipynb) | Stacking technique and feature engineering guide |
+| 4 | Classification | [spaceship-titanic](./study-notes/04-spaceship-titanic.ipynb) | Spaceship Titanic competition solution |
+| 5 | Target Engineering | [forward-looking-target-fix](./study-notes/05-forward-looking-target-fix.ipynb) | Forward-looking target variable correction |
+| 6 | LLM | [llm-classification](./study-notes/06-llm-classification.ipynb) | LLM-based text classification |
+
+---
+
 ## 📚 Key Learnings (主要な学び)
 
 1. **Format First** (まずフォーマット)
