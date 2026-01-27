@@ -111,30 +111,25 @@ Advanced ensemble technique using rank-based blending.
 
 Kaggle notebooks and ML study materials. Located in [`study-notes/`](./study-notes/).
 
-### 1. [Titanic - Feature Engineering × Optuna × Ensemble](./study-notes/01-feature-engine-optuna.ipynb)
-**Kaggle:** [A Journey to 0.789+ with Feature Engine & Optuna](https://www.kaggle.com/code/yasunorim/a-journey-to-0-789-with-feature-engine-optuna)
+### 1. [Titanic - Feature Engineering × Optuna × Ensemble](https://www.kaggle.com/code/yasunorim/a-journey-to-0-789-with-feature-engine-optuna)
 
-Titanic初心者向け完全ガイド。EDA、特徴量エンジニアリング（Title抽出、FamilySize、Deck、Ticket_Frequency）、Optunaによるハイパーパラメータ最適化、RF + GBM + LightGBMのアンサンブル学習。CV 0.8384、LB 0.78299。
+特徴量エンジニアリング × Optuna × アンサンブル学習で0.78到達。Titanic初心者向け完全ガイド。EDA、特徴量エンジニアリング（Title抽出、FamilySize、Deck、Ticket_Frequency）、Optunaによるハイパーパラメータ最適化、Random Forest + Gradient Boosting + LightGBMのアンサンブル学習、オーバーフィッティングの解説。CVスコア0.8384、LBスコア0.78299。
 
-### 2. [House Prices - Stacking & Feature Engineering](./study-notes/02-stacking-feature-engineering.ipynb)
-**Kaggle:** [Japanese Stacking Feature Engineering Guide](https://www.kaggle.com/code/yasunorim/japanese-stacking-feature-engineering-guide)
+### 2. [House Prices - Stacking & Feature Engineering](https://www.kaggle.com/code/yasunorim/japanese-stacking-feature-engineering-guide)
 
-住宅価格予測コンペ。外れ値検出、欠損値処理（4パターン）、20種類以上の特徴量エンジニアリング、Box-Cox変換、6モデルのスタッキング（Ridge, Lasso, ElasticNet, XGBoost, LightGBM, GradientBoosting）。
+住宅価格予測で学ぶ機械学習の基礎 - 初心者のための完全ガイド。外れ値検出・除去、欠損値処理（4パターン）、20種類以上の特徴量エンジニアリング（集約、時系列、バイナリ、交互作用、比率、カテゴリグループ化）、Box-Cox変換、特徴量選択（LightGBM重要度）、6モデルのスタッキングアンサンブル（Ridge, Lasso, ElasticNet, XGBoost, LightGBM, GradientBoosting）。
 
-### 3. [Spaceship Titanic - Group Feature Analysis](./study-notes/03-spaceship-titanic.ipynb)
-**Kaggle:** [Japanese Spaceship Titanic](https://www.kaggle.com/code/yasunorim/japanese-spaceship-titanic)
+### 3. [Spaceship Titanic - Group Feature Analysis](https://www.kaggle.com/code/yasunorim/japanese-spaceship-titanic)
 
-グループ情報の徹底活用（PassengerIdからGroupId抽出）、CryoSleepと支出の関係分析。LightGBMが最高性能（CV 0.8087）。Optunaやスタッキングは逆効果（過学習）— 「複雑さよりも本質」が最大の学び。
+Spaceship Titanicで0.805を達成。グループ情報の徹底活用（PassengerIdからGroupId抽出）、CryoSleepと支出の関係分析。LightGBMが最高性能（CVスコア0.8087）。Optunaやスタッキングは逆効果（過学習）だった教訓。「複雑さよりも本質」が最大の学び。
 
-### 4. [Commodity Prediction - Forward-Looking Target Fix](./study-notes/04-forward-looking-target-fix.ipynb)
-**Kaggle:** [Forward-Looking Target Fix](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix)
+### 4. [Commodity Prediction - Forward-Looking Target Fix](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix)
 
-三井物産コンペ。Forward-Looking Targetの時間軸誤解バグを発見・修正。Backward-looking（過去）からForward-looking（未来予測）への修正でスコアが大幅改善。金融時系列の特殊性（効率的市場仮説、平均回帰）を学んだ。
+三井物産コンペ（MITSUI&CO. Commodity Prediction Challenge）。Forward-Looking Targetの時間軸誤解バグを発見・修正。Backward-looking（過去を見る）からForward-looking（未来を予測する）への修正で、スコアが-0.058から正の値へ改善。金融時系列の特殊性（効率的市場仮説、平均回帰）を学んだ。
 
-### 5. [LLM Classification - Chatbot Arena](./study-notes/05-llm-classification.ipynb)
-**Kaggle:** [Japanese LLM Classification](https://www.kaggle.com/code/yasunorim/japanese-llm-classification)
+### 5. [LLM Classification - Chatbot Arena](https://www.kaggle.com/code/yasunorim/japanese-llm-classification)
 
-Chatbot Arenaデータで、ユーザーがどのLLMの応答を好むか予測する3クラス分類。330個の特徴量（基本統計26個 + モデル情報6個 + TF-IDF 300個）、4モデル比較。XGBoostが最良（Log Loss 1.0003）。
+LLM Classification Finetuningコンペ。Chatbot Arenaデータで、ユーザーがどのLLMの応答を好むか予測する3クラス分類。330個の特徴量（基本統計26個 + モデル情報6個 + TF-IDF 300個）、4モデル比較（XGBoostが最良: Log Loss 1.0003）。提出スコア1.05812。
 
 ---
 
