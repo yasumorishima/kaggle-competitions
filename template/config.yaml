@@ -1,0 +1,32 @@
+# Competition Configuration
+# Copy this template and fill in for each competition
+
+competition:
+  name: "competition-name"
+  metric: "rmse"  # rmse, auc, log_loss, etc.
+  direction: "minimize"  # minimize or maximize
+
+data:
+  train: "data/train.csv"
+  test: "data/test.csv"
+  submission: "data/sample_submission.csv"
+
+model:
+  type: "lightgbm"  # lightgbm, xgboost, etc.
+  params:
+    n_estimators: 1000
+    learning_rate: 0.05
+    max_depth: 6
+    num_leaves: 31
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    early_stopping_rounds: 50
+
+cv:
+  n_splits: 5
+  random_state: 42
+
+wandb:
+  project: "kaggle-competition-name"
+  tags: ["baseline"]

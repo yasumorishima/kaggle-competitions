@@ -1,0 +1,29 @@
+# Kaggle Competitions - Requirements
+# Usage: pip install -r requirements.txt
+
+# Kaggle API
+kaggle>=1.8.0
+
+# Experiment Tracking
+wandb>=0.24.0
+
+# ML Frameworks
+lightgbm>=4.0.0
+xgboost>=2.0.0
+scikit-learn>=1.4.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+polars>=0.20.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.13.0
+
+# Dashboard
+streamlit>=1.30.0
+
+# Utilities
+optuna>=3.5.0
+pyyaml>=6.0

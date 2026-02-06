@@ -88,6 +88,17 @@ target/
 *.zip
 *.tar.gz
 
+# Model artifacts
+*.joblib
+*.bin
+*.onnx
+
+# W&B
+wandb/
+
+# Submission files
+submission*.csv
+
 # Windows reserved names
 nul
 
