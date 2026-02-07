@@ -25,7 +25,6 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 
 - **LB Score:** 0.95337
 - **Approach:** LightGBM + XGBoost + CatBoost (GPU), 5-fold Stratified CV, 6 interaction features
-- **Experiment Tracking:** [W&B Dashboard](https://wandb.ai/fw_yasu11-personal/kaggle-s6e2-heart-disease)
 - **Blog:** [Zenn](https://zenn.dev/yasumorishima/articles/kaggle-s6e2-github-wandb-gpu-workflow) / [Qiita](https://qiita.com/yasumorishima/items/f35bd4fcab2e52f9d01a)
 
 **Tech Stack:** LightGBM, XGBoost, CatBoost, W&B, GPU
