@@ -1,161 +1,118 @@
 # Kaggle Competitions
 
-My Kaggle notebook contributions - 4 Bronze Medals earned with AI-assisted development.
-(Kaggleノートブック投稿 - AI支援開発で獲得した4つのブロンズメダル)
+Kaggle Notebooks Expert. 5 Bronze Notebook Medals + active competition participation.
 
-## Development Approach
-
-All notebooks were developed using **Claude Code** (AI-assisted development tool by Anthropic).
-(すべてのノートブックは **Claude Code**（Anthropic社のAI支援開発ツール）を使用して開発しました)
-
-**Important Note:** These are **Notebook Medals**, earned through community votes on shared notebooks - NOT competition ranking medals.
-(重要: これらは**ノートブックメダル**であり、共有ノートブックへのコミュニティ投票により獲得したものです。コンペティション順位によるメダルではありません)
+**Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
 ---
 
-## 🥉 Bronze Medal Notebooks (4)
+## 🏆 Competition Results
 
-### 1. NFL Big Data Bowl 2026 - Prediction
+### S6E2 - Predicting Heart Disease (Active)
+
+**Competition:** [Playground Series S6E2](https://www.kaggle.com/competitions/playground-series-s6e2) | **Deadline:** 2026-02-28
+
+Binary classification (Presence / Absence) with AUC-ROC evaluation.
+
+**Notebook:** [S6E2 Heart Disease - EDA & Ensemble](https://www.kaggle.com/code/yasunorim/s6e2-heart-disease-eda-ensemble-wandb)
+
+| Model | CV AUC |
+|---|---|
+| **Ensemble (avg)** | **0.95528** |
+| CatBoost | 0.95524 |
+| LightGBM | 0.95515 |
+| XGBoost | 0.95513 |
+
+- **LB Score:** 0.95337
+- **Approach:** LightGBM + XGBoost + CatBoost (GPU), 5-fold Stratified CV, 6 interaction features
+- **Experiment Tracking:** [W&B Dashboard](https://wandb.ai/fw_yasu11-personal/kaggle-s6e2-heart-disease)
+- **Blog:** [Zenn](https://zenn.dev/yasumorishima/articles/kaggle-s6e2-github-wandb-gpu-workflow) / [Qiita](https://qiita.com/yasumorishima/items/f35bd4fcab2e52f9d01a)
+
+**Tech Stack:** LightGBM, XGBoost, CatBoost, W&B, GPU
+
+---
+
+## 🥉 Bronze Medal Notebooks (5)
+
+### 1. CAFA 6 - Protein Function Prediction
+
+**Notebook:** [Baseline with Regularization](https://www.kaggle.com/code/yasunorim/baseline-with-regularization)
+
+Multi-label classification of protein functions using Gene Ontology (GO) terms.
+
+**Approach:**
+- TF-IDF k-mer features (3-grams) from amino acid sequences
+- MLP with regularization (Dropout 0.5, Weight Decay, Early Stopping, BatchNorm)
+- 1500 GO terms across 3 aspects (Biological Process, Molecular Function, Cellular Component)
+- GO hierarchy propagation
+
+**Tech Stack:** PyTorch, scikit-learn, pandas, numpy
+
+---
+
+### 2. NFL Big Data Bowl 2026 - Prediction
 
 **Notebook:** [Geometric Rules Baseline - 2.921 RMSE (No ML)](https://www.kaggle.com/code/yasunorim/geometric-rules-baseline-2-921-rmse-no-ml)
 
 Sports analytics using NFL player tracking data.
-(NFLプレイヤートラッキングデータを用いたスポーツ分析)
 
 **Approach:**
-- Physics-based geometric rules (物理ベースの幾何学的ルール)
+- Physics-based geometric rules (no ML)
 - Targeted receivers → direct path to ball landing point
 - Defensive coverage → distance-based offset from receivers
-- No machine learning required (機械学習不要)
 
-**Performance:**
-- **RMSE:** 2.921 yards
-- **Execution Time:** <5 seconds
+**Performance:** RMSE 2.921 yards, <5 seconds execution
 
 **Tech Stack:** Python, pandas, polars, numpy
 
-**Key Learning:** Domain knowledge and simple geometric rules can outperform complex ML models in specific contexts.
-(重要な学び: 特定の状況では、ドメイン知識とシンプルな幾何学的ルールが複雑なMLモデルを上回ることがある)
-
 ---
 
-### 2. PhysioNet - Digitization of ECG Images
+### 3. PhysioNet - Digitization of ECG Images
 
 **Notebook:** [PhysioNet ECG Baseline](https://www.kaggle.com/code/yasunorim/physionet-ecg-baseline)
 
-Complete submission format guide for ECG image digitization challenge.
-(ECG画像デジタル化チャレンジの完全な提出フォーマットガイド)
+Submission format guide for ECG image digitization challenge.
 
 **Key Contributions:**
-- Correct submission format documentation (正しい提出フォーマットの文書化)
-- Common mistakes and how to avoid them (よくあるミスとその回避方法)
-- Working baseline with verified format (検証済みフォーマットの動作するベースライン)
-
-**Format Learnings:**
-- Submission file: Must be `.csv` (NOT `.parquet`)
-- ID format: `{ecg_id}_{sample_index}_{lead}` (order matters!)
-- Column names: `['id', 'value']` (NOT 'voltage')
+- Correct submission format documentation
+- Common mistakes and how to avoid them
+- Working baseline with verified format
 
 **Tech Stack:** Python, pandas, numpy
 
-**Key Learning:** Always read sample_submission file first - format errors waste precious submission attempts.
-(重要な学び: 必ず最初にsample_submissionファイルを読む - フォーマットエラーは貴重な提出回数を無駄にする)
-
 ---
 
-### 3. Diabetes Prediction Challenge (S5E12) - EDA & Baseline
+### 4. Diabetes Prediction (S5E12) - EDA & Baseline
 
-**Notebook:** [Diabetes Prediction - EDA & Baseline (S5E12)](https://www.kaggle.com/code/yasunorim/diabetes-prediction-eda-baseline-s5e12)
+**Notebook:** [Diabetes Prediction - EDA & Baseline](https://www.kaggle.com/code/yasunorim/diabetes-prediction-eda-baseline-s5e12)
 
-Comprehensive exploratory data analysis and LightGBM baseline.
-(包括的な探索的データ分析とLightGBMベースライン)
-
-**Key Contributions:**
-- Debug-first approach with detailed data inspection (詳細なデータ検査によるデバッグファースト手法)
-- Step-by-step EDA visualization (段階的なEDA可視化)
-- Proper 5-fold cross-validation setup (適切な5-fold交差検証の設定)
-
-**Performance:**
-- **CV AUC:** 0.72687 ± 0.00082
-- **5-Fold scores:** [0.72768, 0.72542, 0.72662, 0.72711, 0.72754]
+Comprehensive EDA and LightGBM baseline. CV AUC 0.72687.
 
 **Tech Stack:** Python, pandas, LightGBM, scikit-learn, matplotlib, seaborn
 
 ---
 
-### 4. Diabetes Prediction Challenge (S5E12) - Rank-Based Ensemble
+### 5. Diabetes Prediction (S5E12) - Rank-Based Ensemble
 
 **Notebook:** [Diabetes Prediction - Rank-Based Ensemble](https://www.kaggle.com/code/yasunorim/diabetes-prediction-rank-based-ensemble)
 
-Advanced ensemble technique using rank-based blending.
-(ランクベースブレンディングを使用した高度なアンサンブル手法)
-
-**Approach:**
-- Dual LightGBM models with different random seeds (異なるランダムシードを使用した2つのLightGBMモデル)
-- Rank-based blending using `.rank(pct=True)` (`.rank(pct=True)`を使用したランクベースブレンディング)
-- Weighted averaging (main=1.0, diversity=0.5) (重み付け平均)
-
-**Key Insight:**
-- AUC is a rank-based metric (AUCはランクベースの指標)
-- Rank averaging directly optimizes ranking quality (ランク平均化はランキング品質を直接最適化)
-- Standardizes predictions across models (モデル間の予測を標準化)
-
-**Performance:**
-- **Blended OOF AUC:** 0.72716 (improvement over single model)
+Rank-based blending with dual LightGBM models. Blended OOF AUC 0.72716.
 
 **Tech Stack:** Python, pandas, LightGBM, scikit-learn
 
 ---
 
-## 📓 Study Notes (勉強メモ)
+## 📓 Study Notes
 
-Kaggle notebooks and ML study materials. Located in [`study-notes/`](./study-notes/).
+Located in [`study-notes/`](./study-notes/).
 
-### 1. Titanic - Feature Engineering × Optuna × Ensemble
-**Notebook:** [Kaggle](https://www.kaggle.com/code/yasunorim/a-journey-to-0-789-with-feature-engine-optuna) | **Blog:** [解説記事](./study-notes/01-feature-engine-optuna.md)
-
-特徴量エンジニアリング × Optuna × アンサンブル学習で0.78到達。Titanic初心者向け完全ガイド。EDA、特徴量エンジニアリング（Title抽出、FamilySize、Deck、Ticket_Frequency）、Optunaによるハイパーパラメータ最適化、Random Forest + Gradient Boosting + LightGBMのアンサンブル学習、オーバーフィッティングの解説。CVスコア0.8384、LBスコア0.78299。
-
-### 2. House Prices - Stacking & Feature Engineering
-**Notebook:** [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-stacking-feature-engineering-guide) | **Blog:** [解説記事](./study-notes/02-stacking-feature-engineering.md)
-
-住宅価格予測で学ぶ機械学習の基礎 - 初心者のための完全ガイド。外れ値検出・除去、欠損値処理（4パターン）、20種類以上の特徴量エンジニアリング（集約、時系列、バイナリ、交互作用、比率、カテゴリグループ化）、Box-Cox変換、特徴量選択（LightGBM重要度）、6モデルのスタッキングアンサンブル（Ridge, Lasso, ElasticNet, XGBoost, LightGBM, GradientBoosting）。
-
-### 3. Spaceship Titanic - Group Feature Analysis
-**Notebook:** [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-spaceship-titanic) | **Blog:** [解説記事](./study-notes/03-spaceship-titanic.md)
-
-Spaceship Titanicで0.805を達成。グループ情報の徹底活用（PassengerIdからGroupId抽出）、CryoSleepと支出の関係分析。LightGBMが最高性能（CVスコア0.8087）。Optunaやスタッキングは逆効果（過学習）だった教訓。「複雑さよりも本質」が最大の学び。
-
-### 4. Commodity Prediction - Forward-Looking Target Fix
-**Notebook:** [Kaggle](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix) | **Blog:** [解説記事](./study-notes/04-forward-looking-target-fix.md)
-
-三井物産コンペ（MITSUI&CO. Commodity Prediction Challenge）。Forward-Looking Targetの時間軸誤解バグを発見・修正。Backward-looking（過去を見る）からForward-looking（未来を予測する）への修正で、スコアが-0.058から正の値へ改善。金融時系列の特殊性（効率的市場仮説、平均回帰）を学んだ。
-
-### 5. LLM Classification - Chatbot Arena
-**Notebook:** [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-llm-classification) | **Blog:** [解説記事](./study-notes/05-llm-classification.md)
-
-LLM Classification Finetuningコンペ。Chatbot Arenaデータで、ユーザーがどのLLMの応答を好むか予測する3クラス分類。330個の特徴量（基本統計26個 + モデル情報6個 + TF-IDF 300個）、4モデル比較（XGBoostが最良: Log Loss 1.0003）。提出スコア1.05812。
-
----
-
-## 📚 Key Learnings (主要な学び)
-
-1. **Format First** (まずフォーマット)
-   - Always verify submission format before complex modeling
-   - Read sample_submission carefully
-   - Test with simple baseline first
-
-2. **Domain Knowledge Matters** (ドメイン知識が重要)
-   - Simple physics-based rules can beat ML
-   - Understanding the problem > model complexity
-
-3. **Ensemble Techniques** (アンサンブル手法)
-   - Rank-based blending for AUC optimization
-   - Diversity through different random seeds
-
-4. **AI-Assisted Development** (AI支援開発)
-   - Claude Code accelerates notebook development
-   - Focus on problem understanding, let AI handle boilerplate
+| # | Competition | Notebook | Blog |
+|---|---|---|---|
+| 1 | Titanic | [Kaggle](https://www.kaggle.com/code/yasunorim/a-journey-to-0-789-with-feature-engine-optuna) | [解説](./study-notes/01-feature-engine-optuna.md) |
+| 2 | House Prices | [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-stacking-feature-engineering-guide) | [解説](./study-notes/02-stacking-feature-engineering.md) |
+| 3 | Spaceship Titanic | [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-spaceship-titanic) | [解説](./study-notes/03-spaceship-titanic.md) |
+| 4 | Commodity Prediction | [Kaggle](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix) | [解説](./study-notes/04-forward-looking-target-fix.md) |
+| 5 | LLM Classification | [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-llm-classification) | [解説](./study-notes/05-llm-classification.md) |
 
 ---
 
@@ -163,24 +120,14 @@ LLM Classification Finetuningコンペ。Chatbot Arenaデータで、ユーザ�
 
 | Category | Technologies |
 |----------|--------------|
-| **Languages** | Python |
-| **ML Libraries** | LightGBM, scikit-learn, XGBoost |
+| **ML Libraries** | LightGBM, XGBoost, CatBoost, PyTorch, scikit-learn |
 | **Data Processing** | pandas, numpy, polars |
 | **Visualization** | matplotlib, seaborn |
+| **Experiment Tracking** | Weights & Biases |
 | **Development** | Claude Code, Jupyter Notebook |
 
 ---
 
-## 📫 Profile
-
 **Kaggle:** [@yasunorim](https://www.kaggle.com/yasunorim)
-
----
-
-> 💡 *4 Bronze Medals earned through AI-human collaboration - proving that effective tool usage is a valuable skill*
->
-> (AI×人間のコラボレーションで獲得した4つのブロンズメダル - 効果的なツール活用が価値あるスキルであることの証明)
-
----
 
 *Built with Claude Code*
