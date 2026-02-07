@@ -1,6 +1,6 @@
 # Kaggle Competitions
 
-Kaggle Notebooks Expert. 5 Bronze Notebook Medals + active competition participation.
+Kaggle Notebooks Expert. 7 Bronze Notebook Medals + active competition participation.
 
 **Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
@@ -32,7 +32,8 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 
 ---
 
-## 🥉 Bronze Medal Notebooks (5)
+<details>
+<summary><h2>🥉 Bronze Medal Notebooks (7)</h2></summary>
 
 ### 1. CAFA 6 - Protein Function Prediction
 
@@ -102,7 +103,30 @@ Rank-based blending with dual LightGBM models. Blended OOF AUC 0.72716.
 
 ---
 
-## 📓 Study Notes
+### 6. MLB Statcast - Senga's Ghost Fork (2023-2025)
+
+**Notebook:** [Senga Ghost Fork Analysis](https://www.kaggle.com/code/yasunorim/senga-ghost-fork-analysis-2023-2025)
+
+Statcast data analysis of Kodai Senga's forkball ("Ghost Fork") across 3 seasons. Movement comparison, release point analysis (FF vs FO), batter splits, and performance by batting order.
+
+**Tech Stack:** Python, pybaseball, DuckDB, matplotlib, seaborn
+
+---
+
+### 7. MLB Statcast - Kikuchi's Slider Revolution (2019-2025)
+
+**Notebook:** [Kikuchi Slider Revolution](https://www.kaggle.com/code/yasunorim/kikuchi-slider-revolution-2019-2025)
+
+Statcast data analysis of Yusei Kikuchi's pitching evolution from Mariners to Blue Jays to Astros. Pitch mix changes, slider usage trends, and movement analysis across 7 seasons.
+
+**Tech Stack:** Python, pybaseball, DuckDB, matplotlib, seaborn
+
+</details>
+
+---
+
+<details>
+<summary><h2>📓 Study Notes (5)</h2></summary>
 
 Located in [`study-notes/`](./study-notes/).
 
@@ -113,6 +137,8 @@ Located in [`study-notes/`](./study-notes/).
 | 3 | Spaceship Titanic | [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-spaceship-titanic) | [解説](./study-notes/03-spaceship-titanic.md) |
 | 4 | Commodity Prediction | [Kaggle](https://www.kaggle.com/code/yasunorim/forward-looking-target-fix) | [解説](./study-notes/04-forward-looking-target-fix.md) |
 | 5 | LLM Classification | [Kaggle](https://www.kaggle.com/code/yasunorim/japanese-llm-classification) | [解説](./study-notes/05-llm-classification.md) |
+
+</details>
 
 ---
 
