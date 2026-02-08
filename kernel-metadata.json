@@ -1,14 +1,14 @@
 {
-  "id": "yasunorim/bat-tracking-japanese-mlb-batters-2024-2025",
-  "title": "Bat Tracking: Japanese MLB Batters (2024-2025)",
-  "code_file": "kaggle-bat-tracking-japanese-batters.ipynb",
+  "id": "yasunorim/kikuchi-slider-revolution-2019-2025",
+  "title": "Kikuchi Slider Revolution 2019-2025",
+  "code_file": "kaggle-kikuchi-2019-2025.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "false",
   "enable_gpu": "false",
   "enable_tpu": "false",
   "enable_internet": "false",
-  "dataset_sources": ["yasunorim/mlb-bat-tracking-2024-2025"],
+  "dataset_sources": ["yasunorim/japan-mlb-pitchers-batters-statcast"],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []
