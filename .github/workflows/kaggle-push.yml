@@ -11,6 +11,7 @@ on:
 jobs:
   push-and-submit:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +40,29 @@ jobs:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Wait for kernel completion
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          SLUG="${{ steps.meta.outputs.kernel_slug }}"
+          echo "Waiting for $SLUG to complete..."
+          for i in $(seq 1 60); do
+            sleep 30
+            OUTPUT=$(kaggle kernels status "$SLUG" 2>&1)
+            echo "  [$i/60] $OUTPUT"
+            if echo "$OUTPUT" | grep -q "COMPLETE"; then
+              echo "Kernel completed successfully."
+              exit 0
+            fi
+            if echo "$OUTPUT" | grep -q "ERROR"; then
+              echo "Kernel failed."
+              exit 1
+            fi
+          done
+          echo "Timeout after 30 minutes."
+          exit 1
 
       - name: Submit notebook to competition
         if: steps.meta.outputs.comp_slug != ''
