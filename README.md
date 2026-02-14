@@ -6,7 +6,50 @@ Kaggle Notebooks Expert. 7 Bronze Notebook Medals + active competition participa
 
 ---
 
+## ☁️ Cloud Workflow (GitHub Actions + Kaggle API)
+
+All competition work runs **fully in the cloud** — no local GPU or large disk required.
+
+```
+Edit notebook (any device) → git push → GitHub Actions → kaggle kernels push → Submit via browser
+```
+
+### How It Works
+
+1. Edit `.ipynb` locally or on any device
+2. `git push` to this repository
+3. Trigger via GitHub Actions: `gh workflow run kaggle-push.yml -f notebook_dir=<dir>`
+4. GitHub Actions runs [`kaggle kernels push`](.github/workflows/kaggle-push.yml) to upload the notebook
+5. Submit via Kaggle browser UI ("Submit to Competition")
+
+### Key Findings
+
+- **`enable_internet: false`** is required for code competition submissions — Internet ON prevents the notebook from being eligible
+- **`competition_sources`** mounts data at `/kaggle/input/competitions/<slug>/` (not `/kaggle/input/<slug>/`)
+- **API submission (`CreateCodeSubmission`) returns 403** — `kernelSessions.get` permission is not available in public API tokens (as of Feb 2026). Manual browser submit is the only option.
+
+**Blog post:** [DEV.to](https://dev.to/yasumorishima/kaggle-code-competitions-without-a-local-gpu-github-actions-kaggle-api-cloud-workflow-m3) / [Zenn](https://zenn.dev/shogaku/articles/kaggle-cloud-workflow-github-actions)
+
+---
+
 ## 🏆 Competition Results
+
+### Deep Past Challenge - Akkadian to English Translation (Active)
+
+**Competition:** [Deep Past Initiative Machine Translation](https://www.kaggle.com/competitions/deep-past-initiative-machine-translation)
+
+Ancient cuneiform (Akkadian) transliteration → English translation task. Evaluated with BLEU + chrF++.
+
+**Notebook:** [Deep Past Cloud Workflow + TF-IDF Baseline](https://www.kaggle.com/code/yasunorim/deep-past-cloud-workflow-tfidf-baseline) *(public)*
+
+| Approach | Public Score |
+|---|---|
+| TF-IDF char n-gram nearest neighbor | 5.6 |
+
+- **Approach:** Character n-gram TF-IDF (2-5), cosine similarity nearest neighbor
+- Pushed via GitHub Actions cloud workflow (see above)
+
+---
 
 ### S6E2 - Predicting Heart Disease (Active)
 
@@ -149,6 +192,7 @@ Located in [`study-notes/`](./study-notes/).
 | **Data Processing** | pandas, numpy, polars |
 | **Visualization** | matplotlib, seaborn |
 | **Experiment Tracking** | Weights & Biases |
+| **CI/CD** | GitHub Actions, Kaggle API |
 | **Development** | Claude Code, Jupyter Notebook |
 
 ---
