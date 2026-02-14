@@ -64,21 +64,19 @@ jobs:
           echo "Timeout after 30 minutes."
           exit 1
 
-      - name: Submit notebook to competition
+      - name: Download output and submit
         if: steps.meta.outputs.comp_slug != ''
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
-          python3 -c "
-          from kaggle.api.kaggle_api_extended import KaggleApi
-          api = KaggleApi()
-          api.authenticate()
-          api.competition_submit_code(
-              file_name='submission.csv',
-              message='Auto-submit from GitHub Actions',
-              competition='${{ steps.meta.outputs.comp_slug }}',
-              kernel='${{ steps.meta.outputs.kernel_slug }}'
-          )
-          print('Submission complete.')
-          "
+          SLUG="${{ steps.meta.outputs.kernel_slug }}"
+          COMP="${{ steps.meta.outputs.comp_slug }}"
+          mkdir -p /tmp/kaggle-output
+          kaggle kernels output "$SLUG" -p /tmp/kaggle-output
+          if [ ! -f /tmp/kaggle-output/submission.csv ]; then
+            echo "submission.csv not found"
+            ls -la /tmp/kaggle-output/
+            exit 1
+          fi
+          kaggle competitions submit -c "$COMP" -f /tmp/kaggle-output/submission.csv -m "Auto-submit from GitHub Actions"
