@@ -1,0 +1,29 @@
+name: Kaggle Kernels Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      notebook_dir:
+        description: 'Notebook directory (e.g., deep-past)'
+        required: true
+        type: string
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install kaggle CLI
+        run: pip install kaggle
+
+      - name: Push notebook to Kaggle
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"

@@ -1,0 +1,45 @@
+name: SIGNATE Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_key:
+        description: 'SIGNATE task_key'
+        required: true
+        type: string
+      script_dir:
+        description: 'Script directory (e.g., signate-cup-2024)'
+        required: true
+        type: string
+      memo:
+        description: 'Submission memo'
+        required: false
+        default: 'GitHub Actions submission'
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install signate
+
+      - name: Setup SIGNATE credentials
+        run: |
+          mkdir -p ~/.signate
+          echo '${{ secrets.SIGNATE_TOKEN_B64 }}' | base64 -d > ~/.signate/signate.json
+
+      - name: Run submission script
+        working-directory: ${{ inputs.script_dir }}
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python submit.py
+
+      - name: Submit
+        working-directory: ${{ inputs.script_dir }}
+        run: signate submit submission.csv --task_key "${{ inputs.task_key }}" --memo "${{ inputs.memo }}"
