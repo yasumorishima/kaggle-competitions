@@ -11,7 +11,7 @@
 1. `deep-past/deep-past-baseline.ipynb` を編集
 2. `git add && git commit && git push`
 3. `gh workflow run kaggle-push.yml -f notebook_dir=deep-past`
-4. `kaggle kernels status yasunorim/<kernel-slug>`
+4. Kaggle上で自動実行 → 自動提出（Internet OFF + competition_sources）
 5. Kaggle Submissionsタブでスコア確認
 
 ## ディレクトリ構成（コンペごと）
@@ -41,7 +41,7 @@ kaggle-competitions/
   "is_private": "true",
   "enable_gpu": "false",
   "enable_tpu": "false",
-  "enable_internet": "true",
+  "enable_internet": "false",
   "dataset_sources": [],
   "competition_sources": ["<competition-slug>"],
   "kernel_sources": [],
@@ -50,7 +50,7 @@ kaggle-competitions/
 ```
 
 ### 注意点
-- `competition_sources` を指定すると**自動提出**（submission.csv を `/kaggle/working/submission.csv` に出力すること）
+- `competition_sources` 指定 + `enable_internet: "false"` で**Notebook提出**（実行完了→自動スコアリング）。**Internet ONだと提出扱いにならない**
 - `is_private: "true"` は提出用。メダル狙いの公開用は別Notebookを作って `"false"` にする
 - **コンペルール同意が必要**: ブラウザで https://www.kaggle.com/competitions/<slug>/rules から Accept しないとデータがマウントされない
 
@@ -117,10 +117,12 @@ kaggle kernels status yasunorim/<kernel-slug>
 API直叩きで回避：
 
 ```python
-import base64, json, urllib.request
+import base64, json, urllib.request, pathlib
 
-username = 'yasunorim'
-key = '<KAGGLE_KEY>'
+# APIキーは ~/.kaggle/kaggle.json から自動取得（聞かない）
+creds = json.loads(pathlib.Path.home().joinpath('.kaggle/kaggle.json').read_text())
+username = creds['username']
+key = creds['key']
 auth = base64.b64encode(f'{username}:{key}'.encode()).decode()
 
 url = 'https://www.kaggle.com/api/v1/kernels/output?userName=yasunorim&kernelSlug=<kernel-slug>'
