@@ -1,4 +1,4 @@
-name: Kaggle Kernels Push
+name: Kaggle Push & Submit
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         type: string
 
 jobs:
-  push:
+  push-and-submit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +22,39 @@ jobs:
       - name: Install kaggle CLI
         run: pip install kaggle
 
+      - name: Extract metadata
+        id: meta
+        run: |
+          KERNEL_SLUG=$(python3 -c "import json; print(json.load(open('${{ inputs.notebook_dir }}/kernel-metadata.json'))['id'])")
+          COMP_SLUG=$(python3 -c "
+          import json
+          sources = json.load(open('${{ inputs.notebook_dir }}/kernel-metadata.json')).get('competition_sources', [])
+          print(sources[0] if sources else '')
+          ")
+          echo "kernel_slug=$KERNEL_SLUG" >> "$GITHUB_OUTPUT"
+          echo "comp_slug=$COMP_SLUG" >> "$GITHUB_OUTPUT"
+
       - name: Push notebook to Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Submit notebook to competition
+        if: steps.meta.outputs.comp_slug != ''
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          python3 -c "
+          from kaggle.api.kaggle_api_extended import KaggleApi
+          api = KaggleApi()
+          api.authenticate()
+          api.competition_submit_code(
+              file_name='submission.csv',
+              message='Auto-submit from GitHub Actions',
+              competition='${{ steps.meta.outputs.comp_slug }}',
+              kernel='${{ steps.meta.outputs.kernel_slug }}'
+          )
+          print('Submission complete.')
+          "
