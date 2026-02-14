@@ -1,6 +1,6 @@
 # Kaggle Competitions
 
-Kaggle Notebooks Expert. 7 Bronze Notebook Medals + active competition participation.
+Kaggle Notebooks Expert. 9 Bronze Notebook Medals + active competition participation.
 
 **Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
@@ -48,7 +48,7 @@ Edit in VSCode / any editor → git push → GitHub Actions → kaggle kernels p
 
 Ancient cuneiform (Akkadian) transliteration → English translation task. Evaluated with BLEU + chrF++.
 
-**Notebook:** [Deep Past Cloud Workflow + TF-IDF Baseline](https://www.kaggle.com/code/yasunorim/deep-past-cloud-workflow-tfidf-baseline) *(public)*
+**Notebook:** [Deep Past Cloud Workflow + TF-IDF Baseline](https://www.kaggle.com/code/yasunorim/deep-past-cloud-workflow-tfidf-baseline) *(public)* 🥉
 
 | Approach | Public Score |
 |---|---|
@@ -83,7 +83,7 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 ---
 
 <details>
-<summary><h2>🥉 Bronze Medal Notebooks (7)</h2></summary>
+<summary><h2>🥉 Bronze Medal Notebooks (9)</h2></summary>
 
 ### 1. CAFA 6 - Protein Function Prediction
 
@@ -170,6 +170,30 @@ Statcast data analysis of Kodai Senga's forkball ("Ghost Fork") across 3 seasons
 Statcast data analysis of Yusei Kikuchi's pitching evolution from Mariners to Blue Jays to Astros. Pitch mix changes, slider usage trends, and movement analysis across 7 seasons.
 
 **Tech Stack:** Python, pybaseball, DuckDB, matplotlib, seaborn
+
+---
+
+### 8. MLB Bat Tracking - Japanese MLB Batters (2024-2025)
+
+**Notebook:** [Bat Tracking: Japanese MLB Batters (2024-2025)](https://www.kaggle.com/code/yasunorim/bat-tracking-japanese-mlb-batters-2024-2025)
+
+MLB bat speed and swing metrics analysis for Japanese MLB batters using Baseball Savant bat tracking data.
+
+**Tech Stack:** Python, pandas, matplotlib, seaborn
+
+---
+
+### 9. Deep Past Challenge - Cloud Workflow + TF-IDF Baseline
+
+**Notebook:** [Deep Past Cloud Workflow + TF-IDF Baseline](https://www.kaggle.com/code/yasunorim/deep-past-cloud-workflow-tfidf-baseline)
+
+Akkadian cuneiform transliteration → English translation baseline using TF-IDF character n-grams. Demonstrates GitHub Actions cloud workflow for Kaggle code competitions.
+
+**Approach:**
+- Character n-gram TF-IDF (2-5), cosine similarity nearest neighbor
+- Fully managed via GitHub Actions (`git push` → Kaggle)
+
+**Tech Stack:** Python, scikit-learn, pandas
 
 </details>
 
