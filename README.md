@@ -28,7 +28,7 @@ Edit notebook (any device) → git push → GitHub Actions → kaggle kernels pu
 - **`competition_sources`** mounts data at `/kaggle/input/competitions/<slug>/` (not `/kaggle/input/<slug>/`)
 - **API submission (`CreateCodeSubmission`) returns 403** — `kernelSessions.get` permission is not available in public API tokens (as of Feb 2026). Manual browser submit is the only option.
 
-**Blog post:** [DEV.to](https://dev.to/yasumorishima/kaggle-code-competitions-without-a-local-gpu-github-actions-kaggle-api-cloud-workflow-m3) / [Zenn](https://zenn.dev/shogaku/articles/kaggle-cloud-workflow-github-actions)
+**Blog post:** [DEV.to](https://dev.to/yasumorishima/kaggle-code-competitions-without-a-local-gpu-github-actions-kaggle-api-cloud-workflow-m3)
 
 ---
 
@@ -68,7 +68,7 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 
 - **LB Score:** 0.95337
 - **Approach:** LightGBM + XGBoost + CatBoost (GPU), 5-fold Stratified CV, 6 interaction features
-- **Blog:** [Zenn](https://zenn.dev/yasumorishima/articles/kaggle-s6e2-github-wandb-gpu-workflow) / [Qiita](https://qiita.com/yasumorishima/items/f35bd4fcab2e52f9d01a)
+- **Blog:** [Zenn](https://zenn.dev/shogaku/articles/kaggle-s6e2-github-wandb-gpu-workflow)
 
 **Tech Stack:** LightGBM, XGBoost, CatBoost, W&B, GPU
 
