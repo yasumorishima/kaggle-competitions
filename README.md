@@ -6,19 +6,27 @@ Kaggle Notebooks Expert. 7 Bronze Notebook Medals + active competition participa
 
 ---
 
-## ☁️ Cloud Workflow (GitHub Actions + Kaggle API)
+## ☁️ GitHub-Driven Workflow (GitHub Actions + Kaggle API)
 
-All competition work runs **fully in the cloud** — no local GPU or large disk required.
+Manage all notebook code in GitHub — version control, diff, CI, and auto-deploy to Kaggle via `git push`.
 
 ```
-Edit notebook (any device) → git push → GitHub Actions → kaggle kernels push → Submit via browser
+Edit in VSCode / any editor → git push → GitHub Actions → kaggle kernels push → Submit via browser
 ```
+
+### Why GitHub Instead of Kaggle's Browser Editor?
+
+- **Version control**: Full git history, branching, diff for every change
+- **Editor freedom**: Use VSCode, Vim, or any editor instead of Kaggle's browser UI
+- **CI/CD**: GitHub Actions automates deployment to Kaggle — no manual upload
+- **Secrets management**: API keys stored in GitHub Secrets, not local files
+- **Multi-device**: Push from any machine with git
 
 ### How It Works
 
-1. Edit `.ipynb` locally or on any device
+1. Edit `.ipynb` in your preferred editor
 2. `git push` to this repository
-3. Trigger via GitHub Actions: `gh workflow run kaggle-push.yml -f notebook_dir=<dir>`
+3. Trigger: `gh workflow run kaggle-push.yml -f notebook_dir=<dir>`
 4. GitHub Actions runs [`kaggle kernels push`](.github/workflows/kaggle-push.yml) to upload the notebook
 5. Submit via Kaggle browser UI ("Submit to Competition")
 
