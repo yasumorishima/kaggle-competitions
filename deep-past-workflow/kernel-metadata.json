@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/deep-past-github-actions-cloud-workflow",
-  "title": "Deep Past: GitHub Actions Cloud Workflow + TF-IDF Baseline",
+  "id": "yasunorim/deep-past-cloud-workflow-tfidf-baseline",
+  "title": "Deep Past Cloud Workflow TF-IDF Baseline",
   "code_file": "deep-past-workflow.ipynb",
   "language": "python",
   "kernel_type": "notebook",
