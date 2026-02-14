@@ -10,8 +10,9 @@
 
 1. `deep-past/deep-past-baseline.ipynb` を編集
 2. `git add && git commit && git push`
-3. `gh workflow run kaggle-push.yml -f notebook_dir=deep-past`（push + 自動提出）
-4. Kaggle Submissionsタブでスコア確認
+3. `gh workflow run kaggle-push.yml -f notebook_dir=deep-past`（Kaggleにアップロード）
+4. **ブラウザ**: Kaggle Notebook画面 →「Submit to Competition」ボタン（API提出は不可、後述）
+5. Kaggle Submissionsタブでスコア確認
 
 ## ディレクトリ構成（コンペごと）
 
@@ -50,7 +51,8 @@ kaggle-competitions/
 
 ### 注意点
 - `kaggle kernels push` はノートブックのアップロードのみ（提出はされない）
-- 提出は `competition_submit_code` APIで行う（GitHub Actionsワークフローに組み込み済み）
+- **API経由のNotebook提出（`CreateCodeSubmission`）は不可**: 公開APIトークンに`kernelSessions.get`権限がなく403になる（2026-02時点）
+- 提出はブラウザから「Submit to Competition」ボタンで行う
 - コンペ提出用は `enable_internet: "false"`（コードコンペの要件）
 - `is_private: "true"` は提出用。メダル狙いの公開用は別Notebookを作って `"false"` にする
 - **コンペルール同意が必要**: ブラウザで https://www.kaggle.com/competitions/<slug>/rules から Accept しないとデータがマウントされない
