@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/deep-past-git-driven-kaggle-workflow-tf-idf-baseline",
-  "title": "Deep Past: Git-Driven Kaggle Workflow + TF-IDF Baseline",
+  "id": "yasunorim/deep-past-git-driven-kaggle-workflow-tfidf-baseline",
+  "title": "Deep Past Git-Driven Kaggle Workflow TF-IDF Baseline",
   "code_file": "deep-past-workflow.ipynb",
   "language": "python",
   "kernel_type": "notebook",
