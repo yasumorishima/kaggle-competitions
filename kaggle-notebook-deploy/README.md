@@ -1,4 +1,4 @@
-# kaggle-deploy
+# kaggle-notebook-deploy
 
 `git push` するだけで Kaggle Notebook をデプロイする CLI ツール。
 
@@ -13,7 +13,7 @@ Kaggle Notebook のコード管理を GitHub に集約し、GitHub Actions 経�
 ## インストール
 
 ```bash
-pip install kaggle-deploy
+pip install kaggle-notebook-deploy
 ```
 
 ## クイックスタート
@@ -22,7 +22,7 @@ pip install kaggle-deploy
 
 ```bash
 # GitHub Actions ワークフローと .gitignore を生成
-kaggle-deploy init-repo
+kaggle-notebook-deploy init-repo
 ```
 
 生成されるファイル:
@@ -41,10 +41,10 @@ gh secret set KAGGLE_KEY
 
 ```bash
 # 基本
-kaggle-deploy init titanic
+kaggle-notebook-deploy init titanic
 
 # GPU有効・公開Notebook
-kaggle-deploy init deep-past-initiative-machine-translation --gpu --public
+kaggle-notebook-deploy init deep-past-initiative-machine-translation --gpu --public
 ```
 
 生成されるファイル:
@@ -58,10 +58,10 @@ kaggle-deploy init deep-past-initiative-machine-translation --gpu --public
 vim titanic/titanic-baseline.ipynb
 
 # バリデーション
-kaggle-deploy validate titanic
+kaggle-notebook-deploy validate titanic
 
 # ローカルからプッシュ
-kaggle-deploy push titanic
+kaggle-notebook-deploy push titanic
 
 # または GitHub Actions 経由
 git add titanic/ && git commit -m "Add titanic baseline" && git push
@@ -70,7 +70,7 @@ gh workflow run kaggle-push.yml -f notebook_dir=titanic
 
 ## コマンド一覧
 
-### `kaggle-deploy init <competition-slug>`
+### `kaggle-notebook-deploy init <competition-slug>`
 
 コンペ用ディレクトリを雛形から生成します。
 
@@ -82,7 +82,7 @@ gh workflow run kaggle-push.yml -f notebook_dir=titanic
 | `--internet` | インターネット有効化（コードコンペでは非推奨） |
 | `--public` | 公開 Notebook として作成 |
 
-### `kaggle-deploy init-repo`
+### `kaggle-notebook-deploy init-repo`
 
 GitHub Actions ワークフローと関連ファイルをセットアップします。
 
@@ -90,7 +90,7 @@ GitHub Actions ワークフローと関連ファイルをセットアップし�
 |---|---|
 | `-f, --force` | 既存ファイルを上書き |
 
-### `kaggle-deploy validate [directory]`
+### `kaggle-notebook-deploy validate [directory]`
 
 `kernel-metadata.json` のバリデーションを行います。
 
@@ -101,7 +101,7 @@ GitHub Actions ワークフローと関連ファイルをセットアップし�
 - `language`, `kernel_type` の有効値
 - `enable_internet` と `competition_sources` の整合性
 
-### `kaggle-deploy push [directory]`
+### `kaggle-notebook-deploy push [directory]`
 
 Kaggle に Notebook をプッシュします（内部で `kaggle kernels push` を実行）。
 

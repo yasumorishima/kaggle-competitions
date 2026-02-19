@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "kaggle-deploy"
+name = "kaggle-notebook-deploy"
 version = "0.1.0"
 description = "git pushするだけでKaggle NotebookをデプロイするCLIツール"
 readme = "README.md"
@@ -38,11 +38,11 @@ dev = [
 ]
 
 [project.scripts]
-kaggle-deploy = "kaggle_deploy.cli:main"
+kaggle-notebook-deploy = "kaggle_notebook_deploy.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yasumorishima/kaggle-competitions"
-Repository = "https://github.com/yasumorishima/kaggle-competitions"
+Homepage = "https://github.com/yasumorishima/kaggle-notebook-deploy"
+Repository = "https://github.com/yasumorishima/kaggle-notebook-deploy"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/kaggle_deploy"]
+packages = ["src/kaggle_notebook_deploy"]

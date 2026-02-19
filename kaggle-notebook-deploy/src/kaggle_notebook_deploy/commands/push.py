@@ -29,7 +29,7 @@ def push(directory, skip_validate, dry_run):
 
     # バリデーション
     if not skip_validate:
-        from kaggle_deploy.commands.validate import validate as validate_cmd
+        from kaggle_notebook_deploy.commands.validate import validate as validate_cmd
 
         ctx = click.Context(validate_cmd, info_name="validate")
         try:

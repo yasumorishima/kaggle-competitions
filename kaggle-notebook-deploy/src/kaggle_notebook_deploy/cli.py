@@ -1,12 +1,12 @@
-"""CLI entry point for kaggle-deploy."""
+"""CLI entry point for kaggle-notebook-deploy."""
 
 import click
 
-from kaggle_deploy import __version__
-from kaggle_deploy.commands.init import init
-from kaggle_deploy.commands.init_repo import init_repo
-from kaggle_deploy.commands.validate import validate
-from kaggle_deploy.commands.push import push
+from kaggle_notebook_deploy import __version__
+from kaggle_notebook_deploy.commands.init import init
+from kaggle_notebook_deploy.commands.init_repo import init_repo
+from kaggle_notebook_deploy.commands.validate import validate
+from kaggle_notebook_deploy.commands.push import push
 
 
 @click.group()
