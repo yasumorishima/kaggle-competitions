@@ -1,6 +1,6 @@
 {
   "id": "yasunorim/stanford-rna-3d-folding-2-baseline",
-  "title": "Stanford RNA 3D Folding 2 Improved v1 (Noise) | WandB Offline Sync via kaggle-wandb-sync",
+  "title": "Stanford RNA 3D Folding 2 Template Matching v1 | WandB Offline Sync via kaggle-wandb-sync",
   "code_file": "stanford-rna-3d-folding-2-baseline.ipynb",
   "language": "python",
   "kernel_type": "notebook",

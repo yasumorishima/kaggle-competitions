@@ -56,7 +56,9 @@ ID,          resname, resid, x_1,y_1,z_1, x_2,y_2,z_2, ..., x_5,y_5,z_5
 | v2 | タイトル変更（kaggle-wandb-sync明記） | - |
 | v3 | GitHub/PyPIリンク追加 | Submission Scoring Error（`all_sequences`誤検出） |
 | v4 | `sequence`列を優先選択に修正 | Submission Scoring Error（IDが`8ZNQ`のみ、行数9000） |
-| v5 | `sample_submission.csv`テンプレート方式に変更 | 確認待ち |
+| v5 | `sample_submission.csv`テンプレート方式に変更 | TM-score 0.103（baseline-v1） |
+| v6 | 5構造にσ=0.5Åのノイズ追加（improved-v1） | TM-score 0.104 |
+| v7 | **Template Matching v1**: 訓練データの3D座標をテンプレートとして使用 | 確認待ち |
 
 ## トラブルシュート記録
 
@@ -145,7 +147,35 @@ def helix_coords(seq_len, rise=2.81, radius=9.0, twist_deg=32.7):
 - **W&B run_name**: `improved-v1`
 - **比較**: W&Bで baseline-v1 vs improved-v1 を並べて比較
 
+## Template Matching v1 実装メモ（v7）
+
+### アプローチ
+- 訓練データの3D座標（train_labels.csv）をテンプレートとして使用
+- テスト配列ごとに、配列長が最も近い訓練構造を5件選出
+- 長さが異なる場合はscipy.interpolate.interp1dで線形補間してリサイズ
+- 5件のテンプレートがそのまま5構造予測になる
+
+### ヘリックスとの違い
+- ヘリックス: 全残基を1本のらせんに配置（RNAの二次構造を無視）
+- テンプレート: 実際のRNA構造のステム・ループ・ヘアピン等のパターンを保持
+
+### NaN処理
+- train_labelsの一部構造はNaN座標を含む
+- NaN率50%超 → スキップ（構造として使えない）
+- NaN率50%以下 → np.interpで欠損値を線形補間して補完
+
+### W&B config
+```python
+config = {
+    'approach': 'template_matching',
+    'n_structures': 5,
+    'n_templates': 5,
+    'interpolation': 'linear',
+    'n_train_structures': <動的>,
+}
+```
+
 ### 改善の方向性（中長期）
-1. 二次構造予測（`ViennaRNA`等）を使った構造制約
-2. 事前学習済みモデル（RhoFold+, trRosettaRNA等）をKaggle Datasetとして追加
-3. リアクティビティデータ（train_labels.csv）の活用
+1. **Nussinov二次構造予測**（v3計画済み）: Watson-Crick塩基対に基づく二次構造予測 → ステム/ループの幾何学的配置
+2. 配列類似度ベースのテンプレート選択（長さだけでなくBLAST的なアラインメント）
+3. 事前学習済みモデル（RhoFold+, trRosettaRNA等）をKaggle Datasetとして追加
