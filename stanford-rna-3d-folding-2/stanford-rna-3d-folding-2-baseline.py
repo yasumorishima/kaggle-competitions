@@ -45,9 +45,19 @@ print(f'Columns: {list(test_df.columns)}')
 
 SEQ_COL = None
 ID_COL = None
+
+for priority in ('sequence', 'seq'):
+    if priority in test_df.columns:
+        SEQ_COL = priority
+        break
+
+if SEQ_COL is None:
+    for col in test_df.columns:
+        if 'seq' in col.lower() and col.lower() != 'all_sequences':
+            SEQ_COL = col
+            break
+
 for col in test_df.columns:
-    if 'seq' in col.lower():
-        SEQ_COL = col
     if col.lower() in ('target_id', 'id', 'sequence_id'):
         ID_COL = col
 
