@@ -1,0 +1,14 @@
+{
+  "id": "yasunorim/stanford-rna-3d-folding-2-baseline",
+  "title": "Stanford RNA 3D Folding 2 Baseline with WandB Offline Sync",
+  "code_file": "stanford-rna-3d-folding-2-baseline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "competition_sources": ["stanford-rna-3d-folding-2"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
