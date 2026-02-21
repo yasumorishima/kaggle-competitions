@@ -40,33 +40,14 @@ print(f'\nDATA_DIR: {DATA_DIR}')
 
 # --- Load data ---
 test_df = pd.read_csv(DATA_DIR / 'test_sequences.csv')
-print(f'Test sequences: {len(test_df)} rows')
-print(f'Columns: {list(test_df.columns)}')
+sample_sub = pd.read_csv(DATA_DIR / 'sample_submission.csv')
+print(f'Test sequences:    {len(test_df)} rows')
+print(f'Sample submission: {len(sample_sub)} rows')
 
-SEQ_COL = None
-ID_COL = None
-
-for priority in ('sequence', 'seq'):
-    if priority in test_df.columns:
-        SEQ_COL = priority
-        break
-
-if SEQ_COL is None:
-    for col in test_df.columns:
-        if 'seq' in col.lower() and col.lower() != 'all_sequences':
-            SEQ_COL = col
-            break
-
-for col in test_df.columns:
-    if col.lower() in ('target_id', 'id', 'sequence_id'):
-        ID_COL = col
-
-if SEQ_COL is None:
-    raise ValueError(f'Could not detect sequence column. Columns: {list(test_df.columns)}')
-if ID_COL is None:
-    ID_COL = test_df.columns[0]
-
+SEQ_COL = 'sequence' if 'sequence' in test_df.columns else test_df.columns[1]
+ID_COL  = 'target_id' if 'target_id' in test_df.columns else test_df.columns[0]
 seq_lengths = test_df[SEQ_COL].str.len()
+print(f'Sequence column: {SEQ_COL}, ID column: {ID_COL}')
 
 # --- W&B init ---
 run = wandb.init(
@@ -90,6 +71,7 @@ wandb.log({
 
 
 # --- Baseline: A-form RNA helix geometry ---
+# Use sample_submission as template — guarantees correct ID format and row count
 def helix_coords(seq_len, rise=2.81, radius=9.0, twist_deg=32.7):
     twist_rad = np.radians(twist_deg)
     indices = np.arange(seq_len)
@@ -99,23 +81,21 @@ def helix_coords(seq_len, rise=2.81, radius=9.0, twist_deg=32.7):
     return np.stack([x, y, z], axis=1)
 
 
-rows = []
-for _, row in test_df.iterrows():
-    seq_id = row[ID_COL]
-    seq    = row[SEQ_COL]
-    n      = len(seq)
-    coords = helix_coords(n)
+submission = sample_sub.copy()
+submission['_target'] = submission['ID'].str.rsplit('_', n=1).str[0]
 
-    for resid, nuc in enumerate(seq, start=1):
-        entry = {'ID': seq_id, 'resname': nuc, 'resid': resid}
-        for s in range(1, 6):
-            entry[f'x_{s}'] = round(float(coords[resid - 1, 0]), 3)
-            entry[f'y_{s}'] = round(float(coords[resid - 1, 1]), 3)
-            entry[f'z_{s}'] = round(float(coords[resid - 1, 2]), 3)
-        rows.append(entry)
+for target_id, group in submission.groupby('_target', sort=False):
+    seq_len = len(group)
+    coords  = helix_coords(seq_len)
+    idx     = group.index
+    for s in range(1, 6):
+        submission.loc[idx, f'x_{s}'] = coords[:, 0].round(3)
+        submission.loc[idx, f'y_{s}'] = coords[:, 1].round(3)
+        submission.loc[idx, f'z_{s}'] = coords[:, 2].round(3)
 
-submission = pd.DataFrame(rows)
+submission = submission.drop(columns=['_target'])
 print(f'Submission shape: {submission.shape}')
+print(f'ID examples: {submission["ID"].head(3).tolist()}')
 
 # --- Save ---
 OUTPUT_PATH = Path('/kaggle/working/submission.csv')
