@@ -26,10 +26,23 @@ jobs:
       - name: Install kaggle and wandb
         run: pip install kaggle wandb
 
-      - name: Push notebook to Kaggle
+      - name: Wait if kernel is already running, then push
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+        run: |
+          KERNEL_ID="${{ inputs.kernel_id }}"
+          # Wait up to 10min if a previous run is still in progress
+          for i in $(seq 1 20); do
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1)
+            STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
+            echo "Pre-push check $i/20: $STATUS"
+            if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "complete|error|cancel"; then
+              break
+            fi
+            echo "Kernel still running, waiting 30s..."
+            sleep 30
+          done
+          kaggle kernels push -p "${{ inputs.notebook_dir }}"
 
       - name: Poll until complete (max 20 x 30s = 10min)
         env:
