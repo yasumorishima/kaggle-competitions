@@ -1,4 +1,4 @@
-# Stanford RNA 3D Folding 2 — Baseline | W&B Offline Sync via kaggle-wandb-sync
+# Stanford RNA 3D Folding 2 — Improved v1 (Noise Diversity) | W&B Offline Sync via kaggle-wandb-sync
 # https://pypi.org/project/kaggle-wandb-sync/
 
 # W&B must be set to offline BEFORE importing wandb
@@ -52,13 +52,14 @@ print(f'Sequence column: {SEQ_COL}, ID column: {ID_COL}')
 # --- W&B init ---
 run = wandb.init(
     project='stanford-rna-3d-folding-2',
-    name='baseline-v1',
+    name='improved-v1',
     config={
-        'approach': 'helical_geometry',
+        'approach': 'helical_geometry_with_noise',
         'n_structures': 5,
         'helix_rise': 2.81,
         'helix_radius': 9.0,
         'helix_twist_deg': 32.7,
+        'noise_std': 0.5,
     }
 )
 
@@ -70,8 +71,10 @@ wandb.log({
 })
 
 
-# --- Baseline: A-form RNA helix geometry ---
+# --- Improved v1: A-form RNA helix + Gaussian noise per structure ---
 # Use sample_submission as template — guarantees correct ID format and row count
+NOISE_STD = 0.5
+
 def helix_coords(seq_len, rise=2.81, radius=9.0, twist_deg=32.7):
     twist_rad = np.radians(twist_deg)
     indices = np.arange(seq_len)
@@ -84,14 +87,17 @@ def helix_coords(seq_len, rise=2.81, radius=9.0, twist_deg=32.7):
 submission = sample_sub.copy()
 submission['_target'] = submission['ID'].str.rsplit('_', n=1).str[0]
 
+rng = np.random.default_rng(seed=42)
+
 for target_id, group in submission.groupby('_target', sort=False):
     seq_len = len(group)
     coords  = helix_coords(seq_len)
     idx     = group.index
     for s in range(1, 6):
-        submission.loc[idx, f'x_{s}'] = coords[:, 0].round(3)
-        submission.loc[idx, f'y_{s}'] = coords[:, 1].round(3)
-        submission.loc[idx, f'z_{s}'] = coords[:, 2].round(3)
+        noise = rng.normal(0, NOISE_STD, (seq_len, 3))
+        submission.loc[idx, f'x_{s}'] = (coords[:, 0] + noise[:, 0]).round(3)
+        submission.loc[idx, f'y_{s}'] = (coords[:, 1] + noise[:, 1]).round(3)
+        submission.loc[idx, f'z_{s}'] = (coords[:, 2] + noise[:, 2]).round(3)
 
 submission = submission.drop(columns=['_target'])
 print(f'Submission shape: {submission.shape}')
