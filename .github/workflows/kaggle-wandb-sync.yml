@@ -33,9 +33,10 @@ jobs:
           KERNEL_ID="${{ inputs.kernel_id }}"
           # Wait up to 10min if a previous run is still in progress
           for i in $(seq 1 20); do
-            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1)
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
+            echo "Raw pre-push output: $RAW"
             STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
-            echo "Pre-push check $i/20: $STATUS"
+            echo "Pre-push check $i/20: STATUS='$STATUS'"
             if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "complete|error|cancel"; then
               break
             fi
@@ -50,7 +51,7 @@ jobs:
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
           for i in $(seq 1 20); do
-            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1)
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
             echo "Raw output: $RAW"
             STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
             echo "Attempt $i/20: $STATUS"
