@@ -1,6 +1,6 @@
 {
   "id": "yasunorim/stanford-rna-3d-folding-2-baseline",
-  "title": "Stanford RNA 3D Folding 2 Baseline with WandB Offline Sync",
+  "title": "Stanford RNA 3D Folding 2 Baseline",
   "code_file": "stanford-rna-3d-folding-2-baseline.ipynb",
   "language": "python",
   "kernel_type": "notebook",
