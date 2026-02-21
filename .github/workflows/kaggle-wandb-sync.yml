@@ -37,8 +37,9 @@ jobs:
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
           for i in $(seq 1 20); do
-            STATUS=$(kaggle kernels status "$KERNEL_ID" 2>&1 \
-              | grep -v "^ref\|^---" | tail -1 | awk '{print $(NF-1)}')
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1)
+            echo "Raw output: $RAW"
+            STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
             echo "Attempt $i/20: $STATUS"
             if [ "$STATUS" = "complete" ]; then
               echo "Kernel completed successfully."
