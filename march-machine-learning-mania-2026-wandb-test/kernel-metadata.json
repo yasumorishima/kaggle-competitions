@@ -1,0 +1,17 @@
+{
+  "id": "yasunorim/march-mania-2026-wandb-test",
+  "title": "March Mania 2026 W&B Offline Test",
+  "code_file": "march-mania-2026-wandb-test.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "competition_sources": [
+    "march-machine-learning-mania-2026"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

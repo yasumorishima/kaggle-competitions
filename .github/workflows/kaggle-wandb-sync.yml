@@ -1,0 +1,84 @@
+name: Kaggle W&B Offline Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      notebook_dir:
+        description: 'Notebook directory (e.g., march-machine-learning-mania-2026-wandb-test)'
+        required: true
+        type: string
+      kernel_id:
+        description: 'Kaggle kernel ID (e.g., yasunorim/march-mania-2026-wandb-test)'
+        required: true
+        type: string
+
+jobs:
+  wandb-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install kaggle and wandb
+        run: pip install kaggle wandb
+
+      - name: Push notebook to Kaggle
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Poll until complete (max 20 x 30s = 10min)
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          KERNEL_ID="${{ inputs.kernel_id }}"
+          for i in $(seq 1 20); do
+            STATUS=$(kaggle kernels status "$KERNEL_ID" 2>&1 \
+              | grep -v "^ref\|^---" | tail -1 | awk '{print $(NF-1)}')
+            echo "Attempt $i/20: $STATUS"
+            if [ "$STATUS" = "complete" ]; then
+              echo "Kernel completed successfully."
+              break
+            fi
+            if echo "$STATUS" | grep -qiE "error|cancel"; then
+              echo "Kernel failed with status: $STATUS"
+              exit 1
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "Timeout: kernel did not complete in time."
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Download kernel output
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          mkdir -p ./kaggle_output
+          kaggle kernels output "${{ inputs.kernel_id }}" -p ./kaggle_output
+
+      - name: Show downloaded files
+        run: find ./kaggle_output -type f || echo "(no files found)"
+
+      - name: Sync W&B offline runs to cloud
+        env:
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+        run: |
+          WANDB_DIRS=$(find ./kaggle_output -type d -name "offline-run-*" 2>/dev/null)
+          if [ -z "$WANDB_DIRS" ]; then
+            echo "No offline-run-* directories found. Trying wandb sync --sync-all..."
+            wandb sync --sync-all ./kaggle_output || echo "No wandb runs to sync."
+          else
+            echo "Found wandb run dirs:"
+            echo "$WANDB_DIRS"
+            for dir in $WANDB_DIRS; do
+              echo "Syncing: $dir"
+              wandb sync "$dir"
+            done
+          fi
+          echo "W&B sync complete."
