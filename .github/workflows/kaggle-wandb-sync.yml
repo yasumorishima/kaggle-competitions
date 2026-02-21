@@ -35,9 +35,9 @@ jobs:
           for i in $(seq 1 20); do
             RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
             echo "Raw pre-push output: $RAW"
-            STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
+            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
             echo "Pre-push check $i/20: STATUS='$STATUS'"
-            if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "complete|error|cancel"; then
+            if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "COMPLETE|ERROR|CANCEL"; then
               break
             fi
             echo "Kernel still running, waiting 30s..."
@@ -53,13 +53,13 @@ jobs:
           for i in $(seq 1 20); do
             RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
             echo "Raw output: $RAW"
-            STATUS=$(echo "$RAW" | grep "^status:" | awk '{print $2}')
+            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
             echo "Attempt $i/20: $STATUS"
-            if [ "$STATUS" = "complete" ]; then
+            if echo "$STATUS" | grep -qiE "COMPLETE"; then
               echo "Kernel completed successfully."
               break
             fi
-            if echo "$STATUS" | grep -qiE "error|cancel"; then
+            if echo "$STATUS" | grep -qiE "ERROR|CANCEL"; then
               echo "Kernel failed with status: $STATUS"
               exit 1
             fi
