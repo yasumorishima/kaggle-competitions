@@ -1,10 +1,10 @@
 {
   "id": "yasunorim/stanford-rna-3d-folding-2-baseline",
-  "title": "Stanford RNA 3D Folding 2 Template Matching v1 | WandB Offline Sync via kaggle-wandb-sync",
+  "title": "Stanford RNA 3D Folding 2 | Template Matching + W&B Offline Sync",
   "code_file": "stanford-rna-3d-folding-2-baseline.ipynb",
   "language": "python",
   "kernel_type": "notebook",
-  "is_private": "true",
+  "is_private": "false",
   "enable_gpu": "false",
   "enable_tpu": "false",
   "enable_internet": "false",
