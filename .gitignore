@@ -229,3 +229,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Session notes and workflow docs (local only)
+*_SESSION_NOTE.md
+*SESSION_NOTE.md
+S6E2_SESSION_NOTE.md
+WANDB_OFFLINE_SYNC.md
+KAGGLE_WORKFLOW.md
+*_DEV_NOTE.md
+NEXT_SESSION.md
