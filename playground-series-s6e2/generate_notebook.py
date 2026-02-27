@@ -1,7 +1,53 @@
-# Auto-extracted from playground-series-s6e2-baseline.ipynb
+"""Generate improved S6E2 notebook (.ipynb) with multi-seed ensemble + stacking.
 
-# %% Cell 2
-import os
+Improvements over baseline:
+- W&B offline mode (kaggle-wandb-sync compatible)
+- Multi-seed ensemble (3 seeds x 3 models = 9 models)
+- Enhanced feature engineering (20+ new features)
+- 10-fold CV
+- Stacking meta-learner (LogisticRegression)
+- Mentions self-made PyPI: kaggle-notebook-deploy, kaggle-wandb-sync
+"""
+
+import json
+
+cells = []
+
+
+def add_md(source):
+    lines = source.split("\n")
+    src = [l + "\n" for l in lines[:-1]] + [lines[-1]]
+    cells.append({"cell_type": "markdown", "metadata": {}, "source": src})
+
+
+def add_code(source):
+    lines = source.split("\n")
+    src = [l + "\n" for l in lines[:-1]] + [lines[-1]]
+    cells.append(
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": src,
+        }
+    )
+
+
+# ── Cell 1: Title ──
+add_md(
+    """# S6E2 Heart Disease — Multi-Seed Ensemble + Stacking
+
+**Approach**: 3 GBDT models (LightGBM / XGBoost / CatBoost) × 3 seeds, 10-fold CV, stacking meta-learner.
+
+**Deployment tools** (self-made PyPI packages):
+- [`kaggle-notebook-deploy`](https://pypi.org/project/kaggle-notebook-deploy/) — automated notebook push via GitHub Actions
+- [`kaggle-wandb-sync`](https://pypi.org/project/kaggle-wandb-sync/) — offline W&B run sync from Kaggle to cloud"""
+)
+
+# ── Cell 2: Setup ──
+add_code(
+    """import os
 os.environ['WANDB_MODE'] = 'offline'
 os.environ['WANDB_PROJECT'] = 'kaggle-s6e2-heart-disease'
 
@@ -22,10 +68,12 @@ warnings.filterwarnings('ignore')
 
 plt.style.use('seaborn-v0_8-whitegrid')
 COLORS = {'no': '#2ecc71', 'yes': '#e74c3c', 'accent': '#3498db'}
-print('All libraries loaded. W&B mode:', os.environ.get('WANDB_MODE'))
+print('All libraries loaded. W&B mode:', os.environ.get('WANDB_MODE'))"""
+)
 
-# %% Cell 3
-# W&B offline mode — logs saved to /kaggle/working/wandb/
+# ── Cell 3: W&B offline init ──
+add_code(
+    """# W&B offline mode — logs saved to /kaggle/working/wandb/
 # After notebook runs, sync with: kaggle-wandb-sync run . --kernel-id yasunorim/s6e2-heart-disease-eda-ensemble-wandb
 run = wandb.init(
     project='kaggle-s6e2-heart-disease',
@@ -33,10 +81,12 @@ run = wandb.init(
     tags=['multi-seed', 'stacking', '10fold', 'gpu'],
     config={'n_seeds': 3, 'n_splits': 10, 'models': ['lgb', 'xgb', 'cat']},
 )
-print(f'W&B run: {run.name} (mode={run.mode})')
+print(f'W&B run: {run.name} (mode={run.mode})')"""
+)
 
-# %% Cell 4
-train = pd.read_csv('/kaggle/input/playground-series-s6e2/train.csv')
+# ── Cell 4: Load data ──
+add_code(
+    """train = pd.read_csv('/kaggle/input/playground-series-s6e2/train.csv')
 test = pd.read_csv('/kaggle/input/playground-series-s6e2/test.csv')
 submission = pd.read_csv('/kaggle/input/playground-series-s6e2/sample_submission.csv')
 
@@ -44,10 +94,12 @@ TARGET = 'Heart Disease'
 ID = 'id'
 
 print(f'Train: {train.shape}, Test: {test.shape}')
-print(f'Target: {train[TARGET].value_counts().to_dict()}')
+print(f'Target: {train[TARGET].value_counts().to_dict()}')"""
+)
 
-# %% Cell 5
-target_map = {'Absence': 0, 'Presence': 1}
+# ── Cell 5: Target visualization ──
+add_code(
+    """target_map = {'Absence': 0, 'Presence': 1}
 train['target'] = train[TARGET].map(target_map)
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
@@ -63,10 +115,12 @@ axes[1].pie(props.values, labels=props.index, colors=[COLORS['no'], COLORS['yes'
 axes[1].set_title('Target Proportion')
 plt.suptitle('Target Distribution', fontsize=14, fontweight='bold', y=1.02)
 plt.tight_layout()
-plt.show()
+plt.show()"""
+)
 
-# %% Cell 6
-feature_cols = [c for c in train.columns if c not in [ID, TARGET, 'target']]
+# ── Cell 6: Feature distributions ──
+add_code(
+    """feature_cols = [c for c in train.columns if c not in [ID, TARGET, 'target']]
 n_features = len(feature_cols)
 n_rows = (n_features + 2) // 3
 
@@ -81,10 +135,12 @@ for j in range(i + 1, len(axes)):
     axes[j].set_visible(False)
 plt.suptitle('Feature Distributions by Heart Disease', fontsize=14, fontweight='bold', y=1.01)
 plt.tight_layout()
-plt.show()
+plt.show()"""
+)
 
-# %% Cell 7
-corr_df = train[feature_cols + ['target']].corr()
+# ── Cell 7: Correlation ──
+add_code(
+    """corr_df = train[feature_cols + ['target']].corr()
 fig, ax = plt.subplots(figsize=(12, 10))
 mask = np.triu(np.ones_like(corr_df, dtype=bool))
 sns.heatmap(corr_df, mask=mask, annot=True, fmt='.2f', cmap='RdBu_r', center=0,
@@ -97,10 +153,12 @@ target_corr = corr_df['target'].drop('target').abs().sort_values(ascending=False
 print('Top correlations with target (abs):')
 for feat, val in target_corr.items():
     d = '+' if corr_df.loc[feat, 'target'] > 0 else '-'
-    print(f'  {feat:30s} {d}{val:.3f}')
+    print(f'  {feat:30s} {d}{val:.3f}')"""
+)
 
-# %% Cell 8
-train_len = len(train)
+# ── Cell 8: Feature Engineering (ENHANCED) ──
+add_code(
+    """train_len = len(train)
 df = pd.concat([train.drop(['target'], axis=1), test], axis=0, ignore_index=True)
 le_target = LabelEncoder()
 df.loc[:train_len-1, 'target_encoded'] = le_target.fit_transform(df.loc[:train_len-1, TARGET])
@@ -152,11 +210,13 @@ X_test = df.iloc[train_len:][model_features].values
 print(f'Features ({len(model_features)}):')
 for f in model_features:
     print(f'  - {f}')
-print(f'\nX: {X.shape}, y: {y.shape}, X_test: {X_test.shape}')
-wandb.config.update({'n_features': len(model_features), 'features': model_features})
+print(f'\\nX: {X.shape}, y: {y.shape}, X_test: {X_test.shape}')
+wandb.config.update({'n_features': len(model_features), 'features': model_features})"""
+)
 
-# %% Cell 9
-SEEDS = [42, 123, 2024]
+# ── Cell 9: Training config ──
+add_code(
+    """SEEDS = [42, 123, 2024]
 N_SPLITS = 10
 
 lgb_params = {
@@ -185,10 +245,12 @@ cat_params = {
 }
 
 print(f'Seeds: {SEEDS}, Folds: {N_SPLITS}')
-print(f'Total models: {len(SEEDS)} seeds x 3 models x {N_SPLITS} folds = {len(SEEDS)*3*N_SPLITS}')
+print(f'Total models: {len(SEEDS)} seeds x 3 models x {N_SPLITS} folds = {len(SEEDS)*3*N_SPLITS}')"""
+)
 
-# %% Cell 10
-print('=' * 50)
+# ── Cell 10: LightGBM multi-seed ──
+add_code(
+    """print('=' * 50)
 print('  LightGBM — Multi-Seed Training')
 print('=' * 50)
 
@@ -224,10 +286,12 @@ lgb_preds = np.mean(all_lgb_preds, axis=0)
 lgb_importances = np.mean(all_lgb_importances, axis=0)
 lgb_auc = roc_auc_score(y, lgb_oof)
 print(f'  >>> LightGBM Multi-Seed CV AUC: {lgb_auc:.5f}')
-wandb.log({'lgb_cv_auc': lgb_auc})
+wandb.log({'lgb_cv_auc': lgb_auc})"""
+)
 
-# %% Cell 11
-print('=' * 50)
+# ── Cell 11: XGBoost multi-seed ──
+add_code(
+    """print('=' * 50)
 print('  XGBoost — Multi-Seed Training')
 print('=' * 50)
 
@@ -257,10 +321,12 @@ xgb_oof = np.mean(all_xgb_oof, axis=0)
 xgb_preds = np.mean(all_xgb_preds, axis=0)
 xgb_auc = roc_auc_score(y, xgb_oof)
 print(f'  >>> XGBoost Multi-Seed CV AUC: {xgb_auc:.5f}')
-wandb.log({'xgb_cv_auc': xgb_auc})
+wandb.log({'xgb_cv_auc': xgb_auc})"""
+)
 
-# %% Cell 12
-print('=' * 50)
+# ── Cell 12: CatBoost multi-seed ──
+add_code(
+    """print('=' * 50)
 print('  CatBoost — Multi-Seed Training')
 print('=' * 50)
 
@@ -289,10 +355,12 @@ cat_oof = np.mean(all_cat_oof, axis=0)
 cat_preds = np.mean(all_cat_preds, axis=0)
 cat_auc = roc_auc_score(y, cat_oof)
 print(f'  >>> CatBoost Multi-Seed CV AUC: {cat_auc:.5f}')
-wandb.log({'cat_cv_auc': cat_auc})
+wandb.log({'cat_cv_auc': cat_auc})"""
+)
 
-# %% Cell 13
-# === Simple Average Ensemble ===
+# ── Cell 13: Ensemble + Stacking ──
+add_code(
+    """# === Simple Average Ensemble ===
 avg_oof = (lgb_oof + xgb_oof + cat_oof) / 3
 avg_preds = (lgb_preds + xgb_preds + cat_preds) / 3
 avg_auc = roc_auc_score(y, avg_oof)
@@ -334,16 +402,18 @@ results = {
 }
 best_name = max(results, key=lambda k: results[k][0])
 best_auc, best_preds = results[best_name]
-print(f'\n*** Best: {best_name} (CV AUC = {best_auc:.5f}) ***')
+print(f'\\n*** Best: {best_name} (CV AUC = {best_auc:.5f}) ***')
 
 wandb.log({
     'lgb_auc': lgb_auc, 'xgb_auc': xgb_auc, 'cat_auc': cat_auc,
     'avg_auc': avg_auc, 'weighted_auc': w_auc, 'stacking_auc': stack_auc,
     'best_method': best_name, 'best_auc': best_auc,
-})
+})"""
+)
 
-# %% Cell 14
-print('=' * 50)
+# ── Cell 14: Results table ──
+add_code(
+    """print('=' * 50)
 print('      FINAL RESULTS')
 print('=' * 50)
 res_df = pd.DataFrame([
@@ -354,10 +424,12 @@ res_df = pd.DataFrame([
 for _, row in res_df.iterrows():
     marker = ' <<<' if row['Model'] == best_name else ''
     print(f"  {row['Model']:20s} AUC: {row['CV AUC']:.5f}{marker}")
-print('=' * 50)
+print('=' * 50)"""
+)
 
-# %% Cell 15
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+# ── Cell 15: ROC curves ──
+add_code(
+    """fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 for name, oof_data, color in [
     ('LightGBM', lgb_oof, '#e67e22'),
@@ -382,10 +454,12 @@ imp = pd.Series(lgb_importances, index=model_features).sort_values(ascending=Tru
 imp.plot(kind='barh', ax=axes[1], color=COLORS['accent'])
 axes[1].set_title('Top 20 Feature Importance (LGB)', fontweight='bold')
 plt.tight_layout()
-plt.show()
+plt.show()"""
+)
 
-# %% Cell 16
-fig, ax = plt.subplots(figsize=(10, 4))
+# ── Cell 16: Prediction distribution ──
+add_code(
+    """fig, ax = plt.subplots(figsize=(10, 4))
 ax.hist(best_preds, bins=50, alpha=0.7, color=COLORS['accent'], edgecolor='white', label='Test predictions')
 ax.axvline(0.5, color='black', linestyle='--', alpha=0.5)
 ax.set_xlabel('Predicted Probability')
@@ -396,16 +470,43 @@ plt.tight_layout()
 plt.show()
 
 print(f'Prediction range: [{best_preds.min():.4f}, {best_preds.max():.4f}]')
-print(f'Prediction mean:  {best_preds.mean():.4f}')
+print(f'Prediction mean:  {best_preds.mean():.4f}')"""
+)
 
-# %% Cell 17
-submission[TARGET] = best_preds
+# ── Cell 17: Submission ──
+add_code(
+    """submission[TARGET] = best_preds
 submission.to_csv('submission.csv', index=False)
 print(f'Submission saved: {submission.shape}')
 print(f'Method: {best_name} (CV AUC = {best_auc:.5f})')
-submission.head(10)
+submission.head(10)"""
+)
 
-# %% Cell 18
-wandb.log({'submission_method': best_name, 'submission_auc': best_auc})
+# ── Cell 18: W&B finish ──
+add_code(
+    """wandb.log({'submission_method': best_name, 'submission_auc': best_auc})
 wandb.finish()
-print('W&B offline run saved. Sync with: kaggle-wandb-sync run . --kernel-id yasunorim/s6e2-heart-disease-eda-ensemble-wandb')
+print('W&B offline run saved. Sync with: kaggle-wandb-sync run . --kernel-id yasunorim/s6e2-heart-disease-eda-ensemble-wandb')"""
+)
+
+
+# ── Build notebook ──
+nb = {
+    "cells": cells,
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3",
+        },
+        "language_info": {"name": "python", "version": "3.10.0"},
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5,
+}
+
+out_path = "playground-series-s6e2-baseline.ipynb"
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(nb, f, indent=1, ensure_ascii=False)
+
+print(f"Generated: {out_path} ({len(cells)} cells)")
