@@ -164,50 +164,20 @@ for feat, val in target_corr.items():
     print(f'  {feat:30s} {d}{val:.3f}')"""
 )
 
-# ── Cell 8: Feature Engineering (ENHANCED) ──
+# ── Cell 8: Feature Engineering (original 6 interactions only) ──
 add_code(
     """train_len = len(train)
 df = pd.concat([train.drop(['target'], axis=1), test], axis=0, ignore_index=True)
 le_target = LabelEncoder()
 df.loc[:train_len-1, 'target_encoded'] = le_target.fit_transform(df.loc[:train_len-1, TARGET])
 
-# === Original interactions ===
+# Interaction features (same as v10 baseline)
 df['Age_x_MaxHR'] = df['Age'] * df['Max HR']
 df['Age_x_STdep'] = df['Age'] * df['ST depression']
 df['STdep_x_Slope'] = df['ST depression'] * df['Slope of ST']
 df['BP_x_Chol'] = df['BP'] * df['Cholesterol']
 df['MaxHR_div_Age'] = df['Max HR'] / (df['Age'] + 1)
 df['Vessels_x_Thal'] = df['Number of vessels fluro'] * df['Thallium']
-
-# === NEW: Polynomial ===
-df['Age_sq'] = df['Age'] ** 2
-df['MaxHR_sq'] = df['Max HR'] ** 2
-df['STdep_sq'] = df['ST depression'] ** 2
-df['Chol_sq'] = df['Cholesterol'] ** 2
-
-# === NEW: More ratios ===
-df['Chol_div_Age'] = df['Cholesterol'] / (df['Age'] + 1)
-df['BP_div_MaxHR'] = df['BP'] / (df['Max HR'] + 1)
-df['STdep_div_MaxHR'] = df['ST depression'] / (df['Max HR'] + 1)
-
-# === NEW: More interactions ===
-df['Vessels_x_STdep'] = df['Number of vessels fluro'] * df['ST depression']
-df['Thal_x_Slope'] = df['Thallium'] * df['Slope of ST']
-df['ChestPain_x_MaxHR'] = df['Chest pain type'] * df['Max HR']
-df['ChestPain_x_Thal'] = df['Chest pain type'] * df['Thallium']
-df['Age_x_Vessels'] = df['Age'] * df['Number of vessels fluro']
-df['Age_x_Thal'] = df['Age'] * df['Thallium']
-df['BP_x_MaxHR'] = df['BP'] * df['Max HR']
-df['ECG_x_MaxHR'] = df['EKG results'] * df['Max HR']
-
-# === NEW: Log transforms ===
-df['STdep_log'] = np.log1p(df['ST depression'])
-df['Chol_log'] = np.log1p(df['Cholesterol'])
-df['Age_log'] = np.log1p(df['Age'])
-
-# === NEW: Binned features ===
-df['Age_bin'] = pd.cut(df['Age'], bins=[0, 40, 50, 60, 100], labels=[0, 1, 2, 3]).astype(float)
-df['MaxHR_bin'] = pd.cut(df['Max HR'], bins=[0, 120, 150, 180, 300], labels=[0, 1, 2, 3]).astype(float)
 
 # All model features
 model_features = [c for c in df.columns if c not in [ID, TARGET, 'target_encoded']]
@@ -225,31 +195,28 @@ wandb.config.update({'n_features': len(model_features), 'features': model_featur
 # ── Cell 9: Training config ──
 add_code(
     """SEEDS = [42, 123, 2024]
-N_SPLITS = 10
+N_SPLITS = 5
 
 lgb_params = {
     'objective': 'binary', 'metric': 'auc', 'verbosity': -1,
-    'n_estimators': 2000, 'learning_rate': 0.03, 'max_depth': 7,
-    'num_leaves': 40, 'min_child_samples': 20,
-    'subsample': 0.8, 'colsample_bytree': 0.7,
-    'reg_alpha': 0.1, 'reg_lambda': 1.0,
+    'n_estimators': 1000, 'learning_rate': 0.05, 'max_depth': 6,
+    'num_leaves': 31, 'min_child_samples': 20,
+    'subsample': 0.8, 'colsample_bytree': 0.8,
     'device': 'gpu',
 }
 
 xgb_params = {
     'objective': 'binary:logistic', 'eval_metric': 'auc',
-    'n_estimators': 2000, 'learning_rate': 0.03, 'max_depth': 7,
-    'subsample': 0.8, 'colsample_bytree': 0.7,
-    'reg_alpha': 0.1, 'reg_lambda': 1.0,
-    'verbosity': 0, 'early_stopping_rounds': 100,
+    'n_estimators': 1000, 'learning_rate': 0.05, 'max_depth': 6,
+    'subsample': 0.8, 'colsample_bytree': 0.8,
+    'verbosity': 0, 'early_stopping_rounds': 50,
     'tree_method': 'hist', 'device': 'cuda',
 }
 
 cat_params = {
-    'iterations': 2000, 'learning_rate': 0.03, 'depth': 7,
+    'iterations': 1000, 'learning_rate': 0.05, 'depth': 6,
     'eval_metric': 'AUC', 'verbose': 0,
-    'early_stopping_rounds': 100, 'task_type': 'GPU',
-    'l2_leaf_reg': 3.0,
+    'early_stopping_rounds': 50, 'task_type': 'GPU',
 }
 
 print(f'Seeds: {SEEDS}, Folds: {N_SPLITS}')
@@ -277,7 +244,7 @@ for seed in SEEDS:
         model = lgb.LGBMClassifier(**lgb_params)
         model.fit(X[tr_idx], y[tr_idx],
                   eval_set=[(X[va_idx], y[va_idx])],
-                  callbacks=[lgb.early_stopping(100), lgb.log_evaluation(0)])
+                  callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
         oof[va_idx] = model.predict_proba(X[va_idx])[:, 1]
         preds += model.predict_proba(X_test)[:, 1] / N_SPLITS
         imp += model.feature_importances_ / N_SPLITS
