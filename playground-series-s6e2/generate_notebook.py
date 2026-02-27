@@ -14,18 +14,26 @@ import json
 cells = []
 
 
+cell_counter = 0
+
+
 def add_md(source):
+    global cell_counter
+    cell_counter += 1
     lines = source.split("\n")
     src = [l + "\n" for l in lines[:-1]] + [lines[-1]]
-    cells.append({"cell_type": "markdown", "metadata": {}, "source": src})
+    cells.append({"cell_type": "markdown", "id": f"cell-{cell_counter:03d}", "metadata": {}, "source": src})
 
 
 def add_code(source):
+    global cell_counter
+    cell_counter += 1
     lines = source.split("\n")
     src = [l + "\n" for l in lines[:-1]] + [lines[-1]]
     cells.append(
         {
             "cell_type": "code",
+            "id": f"cell-{cell_counter:03d}",
             "execution_count": None,
             "metadata": {},
             "outputs": [],
@@ -81,7 +89,7 @@ run = wandb.init(
     tags=['multi-seed', 'stacking', '10fold', 'gpu'],
     config={'n_seeds': 3, 'n_splits': 10, 'models': ['lgb', 'xgb', 'cat']},
 )
-print(f'W&B run: {run.name} (mode={run.mode})')"""
+print(f'W&B run: {run.name} (offline mode)')"""
 )
 
 # ── Cell 4: Load data ──

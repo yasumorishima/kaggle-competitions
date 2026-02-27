@@ -33,7 +33,7 @@ run = wandb.init(
     tags=['multi-seed', 'stacking', '10fold', 'gpu'],
     config={'n_seeds': 3, 'n_splits': 10, 'models': ['lgb', 'xgb', 'cat']},
 )
-print(f'W&B run: {run.name} (mode={run.mode})')
+print(f'W&B run: {run.name} (offline mode)')
 
 # %% Cell 4
 train = pd.read_csv('/kaggle/input/playground-series-s6e2/train.csv')
