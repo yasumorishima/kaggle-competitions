@@ -92,7 +92,7 @@ run = wandb.init(
 print(f'W&B run: {run.name} (offline mode)')"""
 )
 
-# ── Cell 4: Load data ──
+# ── Cell 4: Load data + original UCI dataset ──
 add_code(
     """train = pd.read_csv('/kaggle/input/playground-series-s6e2/train.csv')
 test = pd.read_csv('/kaggle/input/playground-series-s6e2/test.csv')
@@ -101,7 +101,42 @@ submission = pd.read_csv('/kaggle/input/playground-series-s6e2/sample_submission
 TARGET = 'Heart Disease'
 ID = 'id'
 
-print(f'Train: {train.shape}, Test: {test.shape}')
+print(f'PGS Train: {train.shape}, Test: {test.shape}')
+
+# Load original UCI Heart Disease dataset
+import glob
+orig_files = glob.glob('/kaggle/input/heart-disease-dataset/*.csv')
+print(f'Original data files: {orig_files}')
+orig = pd.read_csv(orig_files[0])
+print(f'Original columns: {orig.columns.tolist()}')
+print(f'Original shape: {orig.shape}')
+
+# Map UCI column names to PGS column names
+col_map = {
+    'age': 'Age', 'sex': 'Sex', 'cp': 'Chest pain type',
+    'trestbps': 'BP', 'chol': 'Cholesterol', 'fbs': 'FBS over 120',
+    'restecg': 'EKG results', 'thalach': 'Max HR', 'exang': 'Exercise angina',
+    'oldpeak': 'ST depression', 'slope': 'Slope of ST',
+    'ca': 'Number of vessels fluro', 'thal': 'Thallium', 'target': TARGET
+}
+orig = orig.rename(columns=col_map)
+
+# Convert target: 0 -> 'Absence', 1 -> 'Presence'
+if orig[TARGET].dtype in ['int64', 'float64']:
+    orig[TARGET] = orig[TARGET].map({0: 'Absence', 1: 'Presence'})
+
+# Add id column and combine
+orig[ID] = range(-len(orig), 0)
+# Keep only columns that exist in train
+common_cols = [c for c in train.columns if c in orig.columns]
+orig = orig[common_cols]
+
+print(f'\\nOriginal data mapped: {orig.shape}')
+print(f'Target distribution (original): {orig[TARGET].value_counts().to_dict()}')
+
+# Combine PGS + original
+train = pd.concat([train, orig], axis=0, ignore_index=True)
+print(f'Combined train: {train.shape}')
 print(f'Target: {train[TARGET].value_counts().to_dict()}')"""
 )
 
@@ -333,21 +368,25 @@ print(f'  >>> CatBoost Multi-Seed CV AUC: {cat_auc:.5f}')
 wandb.log({'cat_cv_auc': cat_auc})"""
 )
 
-# ── Cell 13: Ensemble + Stacking ──
+# ── Cell 13: Ensemble + Rank Averaging ──
 add_code(
-    """# === Simple Average Ensemble ===
+    """from scipy.stats import rankdata
+
+# === Simple Average ===
 avg_oof = (lgb_oof + xgb_oof + cat_oof) / 3
 avg_preds = (lgb_preds + xgb_preds + cat_preds) / 3
 avg_auc = roc_auc_score(y, avg_oof)
-print(f'Simple Average Ensemble CV AUC: {avg_auc:.5f}')
+print(f'Simple Average CV AUC: {avg_auc:.5f}')
 
-# === Weighted Average (by CV AUC) ===
-weights = np.array([lgb_auc, xgb_auc, cat_auc])
-weights = weights / weights.sum()
-w_oof = lgb_oof * weights[0] + xgb_oof * weights[1] + cat_oof * weights[2]
-w_preds = lgb_preds * weights[0] + xgb_preds * weights[1] + cat_preds * weights[2]
-w_auc = roc_auc_score(y, w_oof)
-print(f'Weighted Average Ensemble CV AUC: {w_auc:.5f} (weights: LGB={weights[0]:.3f}, XGB={weights[1]:.3f}, CAT={weights[2]:.3f})')
+# === Rank Average (key technique for PGS) ===
+def rank_average(*preds_list):
+    ranks = [rankdata(p) for p in preds_list]
+    return np.mean(ranks, axis=0)
+
+rank_oof = rank_average(lgb_oof, xgb_oof, cat_oof)
+rank_preds = rank_average(lgb_preds, xgb_preds, cat_preds)
+rank_auc = roc_auc_score(y, rank_oof)
+print(f'Rank Average CV AUC: {rank_auc:.5f}')
 
 # === Stacking Meta-Learner ===
 stack_train = np.column_stack([lgb_oof, xgb_oof, cat_oof])
@@ -364,7 +403,7 @@ for fold, (tr_idx, va_idx) in enumerate(skf_meta.split(stack_train, y)):
     stack_preds += meta.predict_proba(stack_test)[:, 1] / 5
 
 stack_auc = roc_auc_score(y, stack_oof)
-print(f'Stacking (LogisticRegression) CV AUC: {stack_auc:.5f}')
+print(f'Stacking (LR) CV AUC: {stack_auc:.5f}')
 
 # === Best ensemble ===
 results = {
@@ -372,7 +411,7 @@ results = {
     'XGBoost': (xgb_auc, xgb_preds),
     'CatBoost': (cat_auc, cat_preds),
     'Simple Avg': (avg_auc, avg_preds),
-    'Weighted Avg': (w_auc, w_preds),
+    'Rank Avg': (rank_auc, rank_preds),
     'Stacking': (stack_auc, stack_preds),
 }
 best_name = max(results, key=lambda k: results[k][0])
@@ -381,7 +420,7 @@ print(f'\\n*** Best: {best_name} (CV AUC = {best_auc:.5f}) ***')
 
 wandb.log({
     'lgb_auc': lgb_auc, 'xgb_auc': xgb_auc, 'cat_auc': cat_auc,
-    'avg_auc': avg_auc, 'weighted_auc': w_auc, 'stacking_auc': stack_auc,
+    'avg_auc': avg_auc, 'rank_auc': rank_auc, 'stacking_auc': stack_auc,
     'best_method': best_name, 'best_auc': best_auc,
 })"""
 )
@@ -410,7 +449,7 @@ for name, oof_data, color in [
     ('LightGBM', lgb_oof, '#e67e22'),
     ('XGBoost', xgb_oof, '#9b59b6'),
     ('CatBoost', cat_oof, '#1abc9c'),
-    ('Simple Avg', avg_oof, '#95a5a6'),
+    ('Rank Avg', rank_oof, '#95a5a6'),
     ('Stacking', stack_oof, '#e74c3c'),
 ]:
     fpr, tpr, _ = roc_curve(y, oof_data)
