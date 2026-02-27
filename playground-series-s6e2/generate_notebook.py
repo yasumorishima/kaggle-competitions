@@ -198,7 +198,7 @@ df['ChestPain_x_Thal'] = df['Chest pain type'] * df['Thallium']
 df['Age_x_Vessels'] = df['Age'] * df['Number of vessels fluro']
 df['Age_x_Thal'] = df['Age'] * df['Thallium']
 df['BP_x_MaxHR'] = df['BP'] * df['Max HR']
-df['ECG_x_MaxHR'] = df['Resting ECG'] * df['Max HR']
+df['ECG_x_MaxHR'] = df['EKG results'] * df['Max HR']
 
 # === NEW: Log transforms ===
 df['STdep_log'] = np.log1p(df['ST depression'])
