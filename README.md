@@ -1,6 +1,6 @@
 # Kaggle Competitions
 
-Kaggle Notebooks Expert. 9 Bronze Notebook Medals + active competition participation.
+Kaggle Notebooks Expert. 11 Bronze Notebook Medals + active competition participation.
 
 **Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
@@ -83,7 +83,7 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 ---
 
 <details>
-<summary><h2>🥉 Bronze Medal Notebooks (9)</h2></summary>
+<summary><h2>🥉 Bronze Medal Notebooks (11)</h2></summary>
 
 ### 1. CAFA 6 - Protein Function Prediction
 
@@ -183,7 +183,37 @@ MLB bat speed and swing metrics analysis for Japanese MLB batters using Baseball
 
 ---
 
-### 9. Deep Past Challenge - Cloud Workflow + TF-IDF Baseline
+### 9. March Machine Learning Mania 2026 - Baseline
+
+**Notebook:** [March Machine Learning Mania 2026 Baseline](https://www.kaggle.com/code/yasunorim/march-machine-learning-mania-2026-baseline)
+
+NCAA basketball tournament prediction using historical game data.
+
+**Approach:**
+- LightGBM + Logistic Regression ensemble
+- Feature engineering from seed differences and historical win rates
+- Brier score optimization
+
+**Tech Stack:** Python, LightGBM, scikit-learn, pandas
+
+---
+
+### 10. WBC 2026 Scouting - MLB Statcast Spray Charts
+
+**Notebook:** [MLB Statcast Spray Charts for WBC 2026 Players](https://www.kaggle.com/code/yasunorim/mlb-statcast-spray-charts-for-wbc-2026-players)
+
+Spray charts and pitch zone charts for WBC 2026 players using Baseball Savant Statcast data and baseball-field-viz.
+
+**Approach:**
+- Spray charts by batter (hit direction + distance)
+- Pitch zone charts by pitcher (location heatmaps)
+- Visualization using baseball-field-viz (self-published PyPI package)
+
+**Tech Stack:** Python, pybaseball, baseball-field-viz, matplotlib
+
+---
+
+### 11. Deep Past Challenge - Cloud Workflow + TF-IDF Baseline
 
 **Notebook:** [Deep Past Cloud Workflow + TF-IDF Baseline](https://www.kaggle.com/code/yasunorim/deep-past-cloud-workflow-tfidf-baseline)
 
