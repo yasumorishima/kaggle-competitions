@@ -11,12 +11,8 @@ on:
         description: 'Kaggle kernel ID (e.g., yasunorim/march-mania-2026-elo-work)'
         required: true
         type: string
-      lb_score:
-        description: 'Kaggle public LB score to record in W&B (e.g., 0.12737). Leave empty to skip.'
-        required: false
-        type: string
-      lb_rank:
-        description: 'Leaderboard rank (optional)'
+      competition_slug:
+        description: 'Competition slug for auto score recording (e.g., march-machine-learning-mania-2026). Leave empty to skip.'
         required: false
         type: string
 
@@ -137,21 +133,52 @@ jobs:
           fi
           echo "W&B sync complete."
 
-      - name: Record LB score to W&B
-        if: inputs.lb_score != ''
+      - name: Wait for submission and record LB score to W&B
+        if: inputs.competition_slug != ''
         env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
           WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
         run: |
+          SLUG="${{ inputs.competition_slug }}"
+          echo "Waiting for a new submission to $SLUG ..."
+          echo "Please submit via browser now. This step will wait up to 2 hours."
+
+          # Count current submissions as baseline
+          BEFORE=$(kaggle competitions submissions list -c "$SLUG" --csv 2>/dev/null | tail -n +2 | wc -l)
+          echo "Current submission count: $BEFORE"
+
+          # Poll every 30s for up to 240 attempts (2 hours)
+          SCORE=""
+          for i in $(seq 1 240); do
+            sleep 30
+            CSV=$(kaggle competitions submissions list -c "$SLUG" --csv 2>/dev/null | tail -n +2)
+            AFTER=$(echo "$CSV" | wc -l)
+            if [ "$AFTER" -gt "$BEFORE" ]; then
+              # New submission found — grab latest complete one
+              SCORE=$(echo "$CSV" | awk -F',' 'tolower($4)=="complete" && $5!="None" {print $5; exit}')
+              if [ -n "$SCORE" ]; then
+                RANK=$(echo "$CSV" | awk -F',' 'tolower($4)=="complete" && $5!="None" {print NR; exit}')
+                echo "New submission detected! publicScore=$SCORE (position $RANK in list)"
+                break
+              fi
+            fi
+            echo "Attempt $i/240: waiting for submission..."
+          done
+
+          if [ -z "$SCORE" ]; then
+            echo "No new scored submission detected within 2 hours. Skipping W&B score recording."
+            exit 0
+          fi
+
+          # Record to W&B
           METADATA=$(find ./kaggle_output -name "wandb-metadata.json" | head -1)
           if [ -z "$METADATA" ]; then
-            echo "No wandb-metadata.json found, skipping score recording."
+            echo "No wandb-metadata.json found, skipping W&B recording."
             exit 0
           fi
           ENTITY=$(python3 -c "import json; d=json.load(open('$METADATA')); print(d.get('entity',''))")
           PROJECT=$(python3 -c "import json; d=json.load(open('$METADATA')); print(d.get('project',''))")
           RUN_ID=$(python3 -c "import json; d=json.load(open('$METADATA')); print(d.get('run_id',''))")
-          echo "W&B run: $ENTITY/$PROJECT/$RUN_ID"
-          ARGS="--score ${{ inputs.lb_score }}"
-          if [ -n "${{ inputs.lb_rank }}" ]; then ARGS="$ARGS --rank ${{ inputs.lb_rank }}"; fi
+          echo "Recording to W&B run: $ENTITY/$PROJECT/$RUN_ID"
           pip install -q kaggle-wandb-sync
-          kaggle-wandb-sync score "$ENTITY/$PROJECT/$RUN_ID" $ARGS
+          kaggle-wandb-sync score "$ENTITY/$PROJECT/$RUN_ID" --score "$SCORE"
