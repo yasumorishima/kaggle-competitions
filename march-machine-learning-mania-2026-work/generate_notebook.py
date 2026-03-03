@@ -66,7 +66,7 @@ import wandb
 import warnings
 warnings.filterwarnings('ignore')
 
-DATA_DIR = Path('/kaggle/input/march-machine-learning-mania-2026')
+DATA_DIR = Path('/kaggle/input/competitions/march-machine-learning-mania-2026')
 print('Libraries loaded. WANDB_MODE:', os.environ['WANDB_MODE'])""")
 
 # ── Cell 3: W&B init ──
@@ -104,19 +104,14 @@ m_seeds   = pd.read_csv(DATA_DIR / 'MNCAATourneySeeds.csv')
 m_tourney = pd.read_csv(DATA_DIR / 'MNCAATourneyCompactResults.csv')
 m_reg     = pd.read_csv(DATA_DIR / 'MRegularSeasonCompactResults.csv')
 massey    = pd.read_csv(DATA_DIR / 'MMasseyOrdinals.csv')
-w_teams   = pd.read_csv(DATA_DIR / 'WTeams.csv')
-w_seeds   = pd.read_csv(DATA_DIR / 'WNCAATourneySeeds.csv')
-w_tourney = pd.read_csv(DATA_DIR / 'WNCAATourneyCompactResults.csv')
-w_reg     = pd.read_csv(DATA_DIR / 'WRegularSeasonCompactResults.csv')
 sub       = pd.read_csv(DATA_DIR / 'SampleSubmissionStage1.csv')
 
 def parse_seed(s):
     return int(''.join(filter(str.isdigit, s)))
 
 m_seeds['SeedNum'] = m_seeds['Seed'].apply(parse_seed)
-w_seeds['SeedNum'] = w_seeds['Seed'].apply(parse_seed)
 
-print(f"M reg: {m_reg.shape}, W reg: {w_reg.shape}")
+print(f"M reg: {m_reg.shape}")
 print(f"Massey systems: {massey['SystemName'].nunique()}")
 print(f"Submission rows: {len(sub):,}")""")
 
@@ -151,10 +146,8 @@ add_code("""def compute_elo(games_df, k=32, initial=1500, carryover=0.5):
 
 
 m_elo = compute_elo(m_reg, k=32, initial=1500, carryover=0.5)
-w_elo = compute_elo(w_reg, k=32, initial=1500, carryover=0.5)
 
 print(f"M Elo range: {m_elo['Elo'].min():.0f} - {m_elo['Elo'].max():.0f}")
-print(f"W Elo range: {w_elo['Elo'].min():.0f} - {w_elo['Elo'].max():.0f}")
 m_elo.head()""")
 
 # ── Cell 6: Multi-Massey aggregation ──
@@ -218,9 +211,7 @@ def build_recent_form(reg_df, days_back=30):
 
 
 m_stats  = build_season_stats(m_reg)
-w_stats  = build_season_stats(w_reg)
 m_recent = build_recent_form(m_reg, days_back=30)
-w_recent = build_recent_form(w_reg, days_back=30)
 
 print("Season stats sample:")
 print(m_stats.head())
@@ -240,9 +231,6 @@ add_code("""def merge_team_features(stats, seeds, elo, recent, massey_multi, mas
 
 
 m_feats = merge_team_features(m_stats, m_seeds, m_elo, m_recent, massey_multi, massey_mor)
-w_feats = merge_team_features(w_stats, w_seeds, w_elo, w_recent,
-                               pd.DataFrame(columns=['Season','TeamID','AvgRank']),
-                               pd.DataFrame(columns=['Season','TeamID','MOR']))
 
 print(f"M features: {m_feats.shape}")
 print(m_feats.head())""")
@@ -299,10 +287,8 @@ def build_train_df(tourney, feats):
 
 
 m_train = build_train_df(m_tourney, m_feats)
-w_train = build_train_df(w_tourney, w_feats)
 
 print(f"M train: {m_train.shape}, label balance: {m_train['Label'].mean():.3f}")
-print(f"W train: {w_train.shape}")
 print(f"NaN ratio:\\n{m_train[FEAT_COLS].isna().mean().sort_values(ascending=False).head(10)}")""")
 
 # ── Cell 10: CV + model training ──
@@ -374,8 +360,7 @@ def train_ensemble(train_df, label_str):
     return med, lgb_ll, xgb_ll
 
 
-m_med, m_lgb_ll, m_xgb_ll = train_ensemble(m_train, 'Men')
-w_med, w_lgb_ll, w_xgb_ll = train_ensemble(w_train, 'Women')""")
+m_med, m_lgb_ll, m_xgb_ll = train_ensemble(m_train, 'Men')""")
 
 # ── Cell 11: Full training on all data + prediction ──
 add_code("""def train_full_and_predict(train_df, sub_df, feats, med, label_str):
@@ -436,21 +421,11 @@ add_code("""def train_full_and_predict(train_df, sub_df, feats, med, label_str):
     return sub_df, pred
 
 
-m_team_ids = set(m_teams['TeamID'])
-sub['Season_T1_T2'] = sub['ID'].str.split('_').apply(lambda x: (int(x[0]), int(x[1]), int(x[2])))
-m_mask = sub['Season_T1_T2'].apply(lambda x: x[1] in m_team_ids)
-sub_m = sub[m_mask].copy()
-sub_w = sub[~m_mask].copy()
-
-sub_m_out, m_pred = train_full_and_predict(m_train, sub_m, m_feats, m_med, 'Men')
-sub_w_out, w_pred = train_full_and_predict(w_train, sub_w, w_feats, w_med, 'Women')""")
+sub_out, m_pred = train_full_and_predict(m_train, sub, m_feats, m_med, 'Men')""")
 
 # ── Cell 12: Save submission ──
-add_code("""sub_m_out['Pred'] = m_pred
-sub_w_out['Pred'] = w_pred
-
-submission = pd.concat([sub_m_out[['ID','Pred']], sub_w_out[['ID','Pred']]], ignore_index=True)
-submission = submission.sort_values('ID').reset_index(drop=True)
+add_code("""sub_out['Pred'] = m_pred
+submission = sub_out[['ID','Pred']].sort_values('ID').reset_index(drop=True)
 submission.to_csv('submission.csv', index=False)
 
 print(f"submission.csv saved: {len(submission):,} rows")
