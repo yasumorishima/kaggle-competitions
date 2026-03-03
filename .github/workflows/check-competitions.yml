@@ -39,11 +39,11 @@ jobs:
               f.write("| Competition | Deadline | Category | Reward | Teams |\n")
               f.write("|---|---|---|---|---|\n")
               for c in comps:
-                  title = (c.title or "")[:50]
-                  deadline = str(c.deadline)[:10] if c.deadline else "-"
-                  category = c.category or "-"
-                  reward = c.reward or "-"
-                  teams = c.teamCount or "-"
-                  url = f"https://www.kaggle.com/competitions/{c.ref}"
+                  title = (getattr(c, "title", "") or "")[:50]
+                  deadline = str(getattr(c, "deadline", "-") or "-")[:10]
+                  category = getattr(c, "category", "-") or "-"
+                  reward = getattr(c, "reward", "-") or "-"
+                  teams = getattr(c, "team_count", None) or getattr(c, "teamCount", "-")
+                  url = f"https://www.kaggle.com/competitions/{getattr(c, 'ref', '')}"
                   f.write(f"| [{title}]({url}) | {deadline} | {category} | {reward} | {teams} |\n")
           EOF
