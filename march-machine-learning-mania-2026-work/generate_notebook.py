@@ -242,7 +242,7 @@ add_code("""FEAT_COLS = [
     'T1_Seed', 'T2_Seed',
     'T1_Elo', 'T2_Elo',
     'T1_WinRate', 'T2_WinRate',
-    'T1_Margin', 'T2_Margin',
+    'T1_AvgMargin', 'T2_AvgMargin',
     'T1_RecentWinRate', 'T2_RecentWinRate',
     'T1_AvgRank', 'T2_AvgRank',
 ]
