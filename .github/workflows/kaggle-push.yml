@@ -20,7 +20,17 @@ jobs:
           python-version: '3.12'
 
       - name: Install kaggle CLI
-        run: pip install kaggle
+        run: pip install kaggle lightgbm xgboost wandb
+
+      - name: Generate notebook (if generate_notebook.py exists)
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          if [ -f "$DIR/generate_notebook.py" ]; then
+            echo "Running generate_notebook.py in $DIR"
+            cd "$DIR" && python generate_notebook.py
+          else
+            echo "No generate_notebook.py found, skipping."
+          fi
 
       - name: Push notebook to Kaggle
         env:
