@@ -80,6 +80,40 @@ jobs:
             sleep 30
           done
 
+      - name: Show kernel diagnostics on failure
+        if: failure()
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          echo "=== Kernel ERROR: downloading diagnostics ==="
+          SLUG=$(echo "${{ inputs.kernel_id }}" | cut -d'/' -f2)
+          mkdir -p ./kernel_log_out
+          kaggle kernels output "${{ inputs.kernel_id }}" -p ./kernel_log_out || true
+          LOG_FILE="./kernel_log_out/${SLUG}.log"
+          if [ -f "$LOG_FILE" ]; then
+            echo "--- stdout ---"
+            python3 -c "
+import json
+with open('$LOG_FILE') as f:
+    entries = json.load(f)
+for e in entries:
+    if e.get('stream_name') == 'stdout':
+        print(e['data'], end='')
+" || true
+            echo ""
+            echo "--- last 30 stderr lines ---"
+            python3 -c "
+import json
+with open('$LOG_FILE') as f:
+    entries = json.load(f)
+errs = [e['data'] for e in entries if e.get('stream_name') == 'stderr']
+print(''.join(errs[-30:]), end='')
+" || true
+          else
+            echo "No log file found. Files in kernel_log_out/:"
+            ls -la ./kernel_log_out/ || true
+          fi
+
       - name: Download kernel output
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}

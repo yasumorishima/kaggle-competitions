@@ -66,7 +66,11 @@ import wandb
 import warnings
 warnings.filterwarnings('ignore')
 
-DATA_DIR = Path('/kaggle/input/competitions/march-machine-learning-mania-2026')
+import glob as _glob
+_slug = 'march-machine-learning-mania-2026'
+_matches = _glob.glob(f'/kaggle/input/**/{_slug}', recursive=True)
+DATA_DIR = Path(_matches[0]) if _matches else Path(f'/kaggle/input/{_slug}')
+print(f'DATA_DIR: {DATA_DIR}')
 print('Libraries loaded. WANDB_MODE:', os.environ['WANDB_MODE'])""")
 
 # ── Cell 3: W&B init ──
