@@ -13,7 +13,7 @@ jobs:
 
       - name: Fetch recent runs
         env:
-          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+          WANDB_API_KEY: ${{ secrets.WANDB_V1_VLF9HYYK1L8WGSQTU9WQKOA42VN }}
         run: |
           python3 - <<'EOF'
           import os
@@ -26,7 +26,7 @@ jobs:
               "heart-disease-s6e2",
           ]
 
-          api = wandb.Api(api_key=os.environ["WANDB_API_KEY"])
+          api = wandb.Api()
 
           out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
           with open(out, "a", encoding="utf-8") as f:
@@ -48,7 +48,6 @@ jobs:
                   for run in run_list:
                       name = run.name or run.id
                       state = "✅" if run.state == "finished" else ("🔄" if run.state == "running" else "❌")
-                      # 代表的なメトリクスを取得（あれば）
                       metrics = []
                       for key in ["LB", "OOF", "val_loss", "best_score", "rmse"]:
                           val = run.summary.get(key)
