@@ -18,8 +18,9 @@ jobs:
         run: |
           python3 - <<'EOF'
           import os, kaggle
-
+          from datetime import datetime, timezone
           from pathlib import Path
+
           kaggle_dir = Path.home() / ".kaggle"
           kaggle_dir.mkdir(exist_ok=True)
           (kaggle_dir / "kaggle.json").write_text(os.environ["KAGGLE_API_TOKEN"])
@@ -28,33 +29,49 @@ jobs:
           api = kaggle.KaggleApi()
           api.authenticate()
 
-          response = api.competitions_list(sort_by="earliestDeadline", page_size=20)
+          # latestDeadline ソートで現在進行中のコンペを取得
+          response = api.competitions_list(sort_by="latestDeadline", page_size=50)
           comps = response.competitions if hasattr(response, "competitions") else list(response)
 
-          # stdout にも出力（gh run view --log で取得できるように）
-          print(f"## Kaggle Active Competitions ({len(comps)} found)\n")
-          print(f"{'Deadline':<12} {'Category':<18} {'Reward':<10} {'Teams':<6} Title")
-          print("-" * 80)
+          now = datetime.now(timezone.utc)
+          active = []
           for c in comps:
-              title = (getattr(c, "title", "") or "")[:50]
-              deadline = str(getattr(c, "deadline", "-") or "-")[:10]
+              deadline = getattr(c, "deadline", None)
+              if deadline is None:
+                  continue
+              if isinstance(deadline, str):
+                  try:
+                      deadline = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+                  except Exception:
+                      continue
+              if deadline > now:
+                  active.append((deadline, c))
+
+          active.sort(key=lambda x: x[0])  # 締切が近い順
+
+          print(f"## Kaggle Active Competitions ({len(active)} active)\n")
+          print(f"{'Deadline':<12} {'Category':<18} {'Reward':<12} {'Teams':<6} Title")
+          print("-" * 85)
+          for deadline, c in active:
+              title = (getattr(c, "title", "") or "")[:45]
+              dl = str(deadline)[:10]
               category = getattr(c, "category", "-") or "-"
               reward = getattr(c, "reward", "-") or "-"
               teams = str(getattr(c, "team_count", None) or getattr(c, "teamCount", "-"))
-              print(f"{deadline:<12} {category:<18} {reward:<10} {teams:<6} {title}")
+              print(f"{dl:<12} {category:<18} {reward:<12} {teams:<6} {title}")
 
-          # GitHub Step Summary にも書く
+          # GitHub Step Summary
           out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           with open(out, "a", encoding="utf-8") as f:
-              f.write(f"## Kaggle Active Competitions ({len(comps)} found)\n\n")
+              f.write(f"## Kaggle Active Competitions ({len(active)} active)\n\n")
               f.write("| Competition | Deadline | Category | Reward | Teams |\n")
               f.write("|---|---|---|---|---|\n")
-              for c in comps:
+              for deadline, c in active:
                   title = (getattr(c, "title", "") or "")[:50]
-                  deadline = str(getattr(c, "deadline", "-") or "-")[:10]
+                  dl = str(deadline)[:10]
                   category = getattr(c, "category", "-") or "-"
                   reward = getattr(c, "reward", "-") or "-"
                   teams = str(getattr(c, "team_count", None) or getattr(c, "teamCount", "-"))
                   url = f"https://www.kaggle.com/competitions/{getattr(c, 'ref', '')}"
-                  f.write(f"| [{title}]({url}) | {deadline} | {category} | {reward} | {teams} |\n")
+                  f.write(f"| [{title}]({url}) | {dl} | {category} | {reward} | {teams} |\n")
           EOF
