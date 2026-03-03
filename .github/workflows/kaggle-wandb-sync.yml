@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       notebook_dir:
-        description: 'Notebook directory (e.g., march-machine-learning-mania-2026-wandb-test)'
+        description: 'Notebook directory (e.g., march-machine-learning-mania-2026-work)'
         required: true
         type: string
       kernel_id:
-        description: 'Kaggle kernel ID (e.g., yasunorim/march-mania-2026-wandb-test)'
+        description: 'Kaggle kernel ID (e.g., yasunorim/march-mania-2026-elo-work)'
         required: true
         type: string
 
@@ -23,8 +23,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install kaggle and wandb
-        run: pip install kaggle wandb
+      - name: Install dependencies
+        run: pip install kaggle wandb lightgbm xgboost
+
+      - name: Generate notebook (if generate_notebook.py exists)
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          if [ -f "$DIR/generate_notebook.py" ]; then
+            echo "Running generate_notebook.py in $DIR"
+            cd "$DIR" && python generate_notebook.py
+          else
+            echo "No generate_notebook.py found, skipping."
+          fi
 
       - name: Wait if kernel is already running, then push
         env:
