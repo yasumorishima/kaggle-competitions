@@ -1,0 +1,54 @@
+name: Check Competitions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kaggle:
+    name: Kaggle Active Competitions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Kaggle CLI
+        run: pip install kaggle
+
+      - name: Fetch competitions
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_API_TOKEN" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+          # 締め切りが近い順に上位20件取得
+          kaggle competitions list --sort-by deadline --csv > /tmp/comps_raw.csv
+          cat /tmp/comps_raw.csv
+
+      - name: Write summary
+        run: |
+          python3 - <<'EOF'
+          import csv, os
+
+          with open("/tmp/comps_raw.csv") as f:
+              reader = csv.DictReader(f)
+              rows = list(reader)
+
+          lines = [
+              "## Kaggle Active Competitions",
+              "",
+              "| Competition | Deadline | Category | Reward | Teams |",
+              "|-------------|----------|----------|--------|-------|",
+          ]
+          for r in rows:
+              title = r.get("title", "")[:50]
+              deadline = r.get("deadline", "")[:10]
+              category = r.get("category", "")
+              reward = r.get("reward", "")
+              teams = r.get("teamCount", "")
+              url = f"https://www.kaggle.com/competitions/{r.get('ref', '')}"
+              lines.append(f"| [{title}]({url}) | {deadline} | {category} | {reward} | {teams} |")
+
+          summary = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
+          with open(summary, "a") as f:
+              f.write("\n".join(lines) + "\n")
+          EOF
