@@ -85,7 +85,21 @@ add_code("""run = wandb.init(
 print(f'W&B run: {run.name}')""")
 
 # ── Cell 4: Load data ──
-add_code("""m_teams   = pd.read_csv(DATA_DIR / 'MTeams.csv')
+add_code("""# Diagnose what's mounted
+import os
+INPUT_ROOT = Path('/kaggle/input')
+print('=== /kaggle/input/ ===')
+if INPUT_ROOT.exists():
+    for p in sorted(INPUT_ROOT.iterdir()):
+        files = list(p.iterdir())[:5]
+        print(f'  {p.name}/  ({len(list(p.iterdir()))} files)')
+        for f in files:
+            print(f'    {f.name}')
+else:
+    print('  (not found)')
+print()
+
+m_teams   = pd.read_csv(DATA_DIR / 'MTeams.csv')
 m_seeds   = pd.read_csv(DATA_DIR / 'MNCAATourneySeeds.csv')
 m_tourney = pd.read_csv(DATA_DIR / 'MNCAATourneyCompactResults.csv')
 m_reg     = pd.read_csv(DATA_DIR / 'MRegularSeasonCompactResults.csv')
