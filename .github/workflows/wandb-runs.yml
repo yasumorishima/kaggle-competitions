@@ -1,0 +1,61 @@
+name: W&B Run Summary
+
+on:
+  workflow_dispatch:
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install wandb
+        run: pip install wandb
+
+      - name: Fetch recent runs
+        env:
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          import wandb
+
+          ENTITY = "fw_yasu11-personal"
+          PROJECTS = [
+              "nir-moisture",
+              "march-machine-learning-mania-2026",
+              "heart-disease-s6e2",
+          ]
+
+          api = wandb.Api(api_key=os.environ["WANDB_API_KEY"])
+
+          out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
+          with open(out, "a", encoding="utf-8") as f:
+              f.write("## W&B Recent Runs\n\n")
+              for project in PROJECTS:
+                  try:
+                      runs = api.runs(f"{ENTITY}/{project}", order="-created_at", per_page=10)
+                      run_list = list(runs)
+                  except Exception as e:
+                      f.write(f"### {project}\n\n_Error: {e}_\n\n")
+                      continue
+
+                  if not run_list:
+                      f.write(f"### {project}\n\n_No runs found._\n\n")
+                      continue
+
+                  f.write(f"### {project} ({len(run_list)} recent)\n\n")
+                  f.write("| Run | State | Key Metrics |\n|---|---|---|\n")
+                  for run in run_list:
+                      name = run.name or run.id
+                      state = "✅" if run.state == "finished" else ("🔄" if run.state == "running" else "❌")
+                      # 代表的なメトリクスを取得（あれば）
+                      metrics = []
+                      for key in ["LB", "OOF", "val_loss", "best_score", "rmse"]:
+                          val = run.summary.get(key)
+                          if val is not None:
+                              metrics.append(f"{key}={val:.4f}" if isinstance(val, float) else f"{key}={val}")
+                      metric_str = ", ".join(metrics) if metrics else "-"
+                      url = f"https://wandb.ai/{ENTITY}/{project}/runs/{run.id}"
+                      f.write(f"| [{name}]({url}) | {state} | {metric_str} |\n")
+                  f.write("\n")
+          EOF
