@@ -29,8 +29,9 @@ jobs:
           api = kaggle.KaggleApi()
           api.authenticate()
 
-          # 締め切りが近い順に20件
-          comps = api.competitions_list(sort_by="earliestDeadline", page_size=20)
+          # 締め切りが近い順に20件（response.competitions がリスト本体）
+          response = api.competitions_list(sort_by="earliestDeadline", page_size=20)
+          comps = response.competitions if hasattr(response, "competitions") else list(response)
 
           out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
           with open(out, "a", encoding="utf-8") as f:
