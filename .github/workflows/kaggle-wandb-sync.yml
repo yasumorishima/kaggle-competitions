@@ -84,6 +84,13 @@ jobs:
             sleep 30
           done
 
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ **ワークフロー失敗**\nKernel: \`${{ inputs.kernel_id }}\`\nhttps://github.com/yasumorishima/kaggle-competitions/actions\"}" || true
+
       - name: Show kernel diagnostics on failure
         if: failure()
         env:
@@ -132,6 +139,13 @@ jobs:
             done
           fi
           echo "W&B sync complete."
+
+      - name: Notify Discord (submit now)
+        if: inputs.competition_slug != ''
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"⚡ **W&B sync完了！ブラウザで提出してください**\nKernel: \`${{ inputs.kernel_id }}\`\nCompetition: \`${{ inputs.competition_slug }}\`\"}"
 
       - name: Wait for submission and record LB score to W&B
         if: inputs.competition_slug != ''
@@ -182,3 +196,8 @@ jobs:
           echo "Recording to W&B run: $ENTITY/$PROJECT/$RUN_ID"
           pip install -q kaggle-wandb-sync
           kaggle-wandb-sync score "$ENTITY/$PROJECT/$RUN_ID" --score "$SCORE"
+
+          # Notify Discord
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ **スコア記録完了！**\nCompetition: \`$SLUG\`\nScore: \`$SCORE\`\nW&B: https://wandb.ai/$ENTITY/$PROJECT/runs/$RUN_ID\"}"
