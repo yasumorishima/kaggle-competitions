@@ -26,36 +26,60 @@ jobs:
               "heart-disease-s6e2",
           ]
 
-          # WANDB_API_KEY env var を wandb が自動で読む（api_key= 明示渡しは厳格な長さ検証がかかる）
           api = wandb.Api()
 
-          out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
+          all_rows = {}
+          for project in PROJECTS:
+              try:
+                  runs = api.runs(f"{ENTITY}/{project}", order="-created_at", per_page=10)
+                  run_list = list(runs)
+              except Exception as e:
+                  all_rows[project] = {"error": str(e)}
+                  continue
+              rows = []
+              for run in run_list:
+                  name = run.name or run.id
+                  state = run.state
+                  metrics = []
+                  for key in ["LB", "OOF", "val_loss", "best_score", "rmse"]:
+                      val = run.summary.get(key)
+                      if val is not None:
+                          metrics.append(f"{key}={val:.4f}" if isinstance(val, float) else f"{key}={val}")
+                  metric_str = ", ".join(metrics) if metrics else "-"
+                  url = f"https://wandb.ai/{ENTITY}/{project}/runs/{run.id}"
+                  rows.append((name, state, metric_str, url))
+              all_rows[project] = rows
+
+          # stdout（gh run view --log で取得可能）
+          for project, rows in all_rows.items():
+              print(f"\n### {project}")
+              if isinstance(rows, dict):
+                  print(f"  Error: {rows['error']}")
+                  continue
+              if not rows:
+                  print("  No runs found.")
+                  continue
+              print(f"  {'Run':<30} {'State':<12} Metrics")
+              print("  " + "-" * 70)
+              for name, state, metrics, url in rows:
+                  icon = "✅" if state == "finished" else ("🔄" if state == "running" else "❌")
+                  print(f"  {icon} {name:<28} {state:<12} {metrics}")
+
+          # GitHub Step Summary
+          out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           with open(out, "a", encoding="utf-8") as f:
               f.write("## W&B Recent Runs\n\n")
-              for project in PROJECTS:
-                  try:
-                      runs = api.runs(f"{ENTITY}/{project}", order="-created_at", per_page=10)
-                      run_list = list(runs)
-                  except Exception as e:
-                      f.write(f"### {project}\n\n_Error: {e}_\n\n")
+              for project, rows in all_rows.items():
+                  if isinstance(rows, dict):
+                      f.write(f"### {project}\n\n_Error: {rows['error']}_\n\n")
                       continue
-
-                  if not run_list:
+                  if not rows:
                       f.write(f"### {project}\n\n_No runs found._\n\n")
                       continue
-
-                  f.write(f"### {project} ({len(run_list)} recent)\n\n")
+                  f.write(f"### {project} ({len(rows)} recent)\n\n")
                   f.write("| Run | State | Key Metrics |\n|---|---|---|\n")
-                  for run in run_list:
-                      name = run.name or run.id
-                      state = "✅" if run.state == "finished" else ("🔄" if run.state == "running" else "❌")
-                      metrics = []
-                      for key in ["LB", "OOF", "val_loss", "best_score", "rmse"]:
-                          val = run.summary.get(key)
-                          if val is not None:
-                              metrics.append(f"{key}={val:.4f}" if isinstance(val, float) else f"{key}={val}")
-                      metric_str = ", ".join(metrics) if metrics else "-"
-                      url = f"https://wandb.ai/{ENTITY}/{project}/runs/{run.id}"
-                      f.write(f"| [{name}]({url}) | {state} | {metric_str} |\n")
+                  for name, state, metrics, url in rows:
+                      icon = "✅" if state == "finished" else ("🔄" if state == "running" else "❌")
+                      f.write(f"| [{name}]({url}) | {icon} {state} | {metrics} |\n")
                   f.write("\n")
           EOF
