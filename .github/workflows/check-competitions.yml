@@ -18,7 +18,7 @@ jobs:
         run: |
           python3 - <<'EOF'
           import os, kaggle
-          from datetime import datetime, timezone
+          from datetime import datetime
           from pathlib import Path
 
           kaggle_dir = Path.home() / ".kaggle"
@@ -29,11 +29,10 @@ jobs:
           api = kaggle.KaggleApi()
           api.authenticate()
 
-          # latestDeadline ソートで現在進行中のコンペを取得
           response = api.competitions_list(sort_by="latestDeadline", page_size=50)
           comps = response.competitions if hasattr(response, "competitions") else list(response)
 
-          now = datetime.now(timezone.utc)
+          now = datetime.utcnow()  # naive UTC で統一
           active = []
           for c in comps:
               deadline = getattr(c, "deadline", None)
@@ -41,13 +40,16 @@ jobs:
                   continue
               if isinstance(deadline, str):
                   try:
-                      deadline = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+                      deadline = datetime.fromisoformat(deadline.replace("Z", ""))
                   except Exception:
                       continue
+              # aware datetime を naive に変換
+              if hasattr(deadline, "tzinfo") and deadline.tzinfo is not None:
+                  deadline = deadline.replace(tzinfo=None)
               if deadline > now:
                   active.append((deadline, c))
 
-          active.sort(key=lambda x: x[0])  # 締切が近い順
+          active.sort(key=lambda x: x[0])
 
           print(f"## Kaggle Active Competitions ({len(active)} active)\n")
           print(f"{'Deadline':<12} {'Category':<18} {'Reward':<12} {'Teams':<6} Title")
@@ -60,7 +62,6 @@ jobs:
               teams = str(getattr(c, "team_count", None) or getattr(c, "teamCount", "-"))
               print(f"{dl:<12} {category:<18} {reward:<12} {teams:<6} {title}")
 
-          # GitHub Step Summary
           out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           with open(out, "a", encoding="utf-8") as f:
               f.write(f"## Kaggle Active Competitions ({len(active)} active)\n\n")
