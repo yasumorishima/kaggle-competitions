@@ -7,6 +7,10 @@ on:
         description: 'Notebook directory (e.g., deep-past)'
         required: true
         type: string
+      kernel_id:
+        description: 'Kaggle kernel ID for polling (e.g., yasunorim/kernel-slug). Leave empty to skip.'
+        required: false
+        type: string
 
 jobs:
   push:
@@ -36,3 +40,49 @@ jobs:
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Poll until complete (max 20 x 30s = 10min)
+        if: ${{ inputs.kernel_id != '' }}
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          KERNEL_ID="${{ inputs.kernel_id }}"
+          for i in $(seq 1 20); do
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
+            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
+            echo "Attempt $i/20: $STATUS"
+            if echo "$STATUS" | grep -qiE "COMPLETE"; then
+              echo "Kernel completed successfully."
+              break
+            fi
+            if echo "$STATUS" | grep -qiE "ERROR|CANCEL"; then
+              echo "Kernel failed with status: $STATUS"
+              exit 1
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "Timeout: kernel did not complete in time."
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Show kernel diagnostics on failure
+        if: failure() && inputs.kernel_id != ''
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          echo "=== Kernel ERROR: downloading diagnostics ==="
+          SLUG=$(echo "${{ inputs.kernel_id }}" | cut -d'/' -f2)
+          mkdir -p ./kernel_log_out
+          kaggle kernels output "${{ inputs.kernel_id }}" -p ./kernel_log_out || true
+          LOG_FILE="./kernel_log_out/${SLUG}.log"
+          if [ -f "$LOG_FILE" ]; then
+            echo "--- stdout ---"
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); [print(e['data'],end='') for e in entries if e.get('stream_name')=='stdout']" || true
+            echo ""
+            echo "--- last 30 stderr lines ---"
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); errs=[e['data'] for e in entries if e.get('stream_name')=='stderr']; print(''.join(errs[-30:]),end='')" || true
+          else
+            echo "No log file found. Files in kernel_log_out/:"
+            ls -la ./kernel_log_out/ || true
+          fi

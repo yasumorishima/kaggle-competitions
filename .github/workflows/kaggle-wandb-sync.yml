@@ -92,23 +92,10 @@ jobs:
           LOG_FILE="./kernel_log_out/${SLUG}.log"
           if [ -f "$LOG_FILE" ]; then
             echo "--- stdout ---"
-            python3 -c "
-import json
-with open('$LOG_FILE') as f:
-    entries = json.load(f)
-for e in entries:
-    if e.get('stream_name') == 'stdout':
-        print(e['data'], end='')
-" || true
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); [print(e['data'],end='') for e in entries if e.get('stream_name')=='stdout']" || true
             echo ""
             echo "--- last 30 stderr lines ---"
-            python3 -c "
-import json
-with open('$LOG_FILE') as f:
-    entries = json.load(f)
-errs = [e['data'] for e in entries if e.get('stream_name') == 'stderr']
-print(''.join(errs[-30:]), end='')
-" || true
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); errs=[e['data'] for e in entries if e.get('stream_name')=='stderr']; print(''.join(errs[-30:]),end='')" || true
           else
             echo "No log file found. Files in kernel_log_out/:"
             ls -la ./kernel_log_out/ || true
