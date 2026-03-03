@@ -26,7 +26,8 @@ jobs:
               "heart-disease-s6e2",
           ]
 
-          api = wandb.Api(api_key=os.environ["WANDB_API_KEY"])
+          # WANDB_API_KEY env var を wandb が自動で読む（api_key= 明示渡しは厳格な長さ検証がかかる）
+          api = wandb.Api()
 
           out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
           with open(out, "a", encoding="utf-8") as f:
