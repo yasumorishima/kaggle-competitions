@@ -19,7 +19,6 @@ jobs:
           python3 - <<'EOF'
           import os, kaggle
 
-          # 認証（KAGGLE_API_TOKEN env var を kaggle.json に書き出す標準的な方法）
           from pathlib import Path
           kaggle_dir = Path.home() / ".kaggle"
           kaggle_dir.mkdir(exist_ok=True)
@@ -29,11 +28,23 @@ jobs:
           api = kaggle.KaggleApi()
           api.authenticate()
 
-          # 締め切りが近い順に20件（response.competitions がリスト本体）
           response = api.competitions_list(sort_by="earliestDeadline", page_size=20)
           comps = response.competitions if hasattr(response, "competitions") else list(response)
 
-          out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
+          # stdout にも出力（gh run view --log で取得できるように）
+          print(f"## Kaggle Active Competitions ({len(comps)} found)\n")
+          print(f"{'Deadline':<12} {'Category':<18} {'Reward':<10} {'Teams':<6} Title")
+          print("-" * 80)
+          for c in comps:
+              title = (getattr(c, "title", "") or "")[:50]
+              deadline = str(getattr(c, "deadline", "-") or "-")[:10]
+              category = getattr(c, "category", "-") or "-"
+              reward = getattr(c, "reward", "-") or "-"
+              teams = str(getattr(c, "team_count", None) or getattr(c, "teamCount", "-"))
+              print(f"{deadline:<12} {category:<18} {reward:<10} {teams:<6} {title}")
+
+          # GitHub Step Summary にも書く
+          out = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           with open(out, "a", encoding="utf-8") as f:
               f.write(f"## Kaggle Active Competitions ({len(comps)} found)\n\n")
               f.write("| Competition | Deadline | Category | Reward | Teams |\n")
@@ -43,7 +54,7 @@ jobs:
                   deadline = str(getattr(c, "deadline", "-") or "-")[:10]
                   category = getattr(c, "category", "-") or "-"
                   reward = getattr(c, "reward", "-") or "-"
-                  teams = getattr(c, "team_count", None) or getattr(c, "teamCount", "-")
+                  teams = str(getattr(c, "team_count", None) or getattr(c, "teamCount", "-"))
                   url = f"https://www.kaggle.com/competitions/{getattr(c, 'ref', '')}"
                   f.write(f"| [{title}]({url}) | {deadline} | {category} | {reward} | {teams} |\n")
           EOF
