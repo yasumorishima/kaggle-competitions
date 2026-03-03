@@ -41,16 +41,16 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
 
-      - name: Poll until complete (max 20 x 30s = 10min)
+      - name: Poll until complete (max 60 x 30s = 30min)
         if: ${{ inputs.kernel_id != '' }}
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
-          for i in $(seq 1 20); do
+          for i in $(seq 1 60); do
             RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
             STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
-            echo "Attempt $i/20: $STATUS"
+            echo "Attempt $i/60: $STATUS"
             if echo "$STATUS" | grep -qiE "COMPLETE"; then
               echo "Kernel completed successfully."
               break
@@ -59,8 +59,8 @@ jobs:
               echo "Kernel failed with status: $STATUS"
               exit 1
             fi
-            if [ "$i" -eq 20 ]; then
-              echo "Timeout: kernel did not complete in time."
+            if [ "$i" -eq 60 ]; then
+              echo "Timeout: kernel did not complete in 30 minutes."
               exit 1
             fi
             sleep 30
