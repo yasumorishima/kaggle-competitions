@@ -1,6 +1,6 @@
 # Kaggle Competitions
 
-Kaggle Notebooks Expert. 11 Bronze Notebook Medals + active competition participation.
+Kaggle Notebooks Expert. 12 Bronze Notebook Medals + active competition participation.
 
 **Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
@@ -83,7 +83,7 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 ---
 
 <details>
-<summary><h2>🥉 Bronze Medal Notebooks (11)</h2></summary>
+<summary><h2>🥉 Bronze Medal Notebooks (12)</h2></summary>
 
 ### 1. CAFA 6 - Protein Function Prediction
 
