@@ -122,6 +122,77 @@ jobs:
       - name: Show downloaded files
         run: find ./kaggle_output -type f || echo "(no files found)"
 
+      - name: Save submission as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaggle-submission-${{ github.run_number }}
+          path: ./kaggle_output/submission.csv
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Check duplicate submission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          SUB_FILE=$(find ./kaggle_output -name "submission.csv" | head -1)
+          if [ -z "$SUB_FILE" ]; then
+            echo "No submission.csv found. Skipping duplicate check."
+            exit 0
+          fi
+
+          RESULT=$(python3 <<'PYEOF'
+          import csv, os, subprocess, sys, tempfile, zipfile
+          import numpy as np
+
+          sub_file = os.environ.get("SUB_FILE", "")
+          if not sub_file or not os.path.exists(sub_file) or os.path.getsize(sub_file) < 10:
+              print("SKIP")
+              sys.exit(0)
+
+          new_vals = np.array([float(row[-1]) for row in csv.reader(open(sub_file)) if row])
+          output = subprocess.run(
+              ["gh", "api", "repos/${GITHUB_REPOSITORY}/actions/artifacts",
+               "--jq", '.artifacts[] | select(.name | startswith("kaggle-submission-")) | .id'],
+              capture_output=True, text=True
+          ).stdout.strip()
+
+          if not output:
+              print("OK")
+              sys.exit(0)
+
+          for art_id in output.splitlines()[:5]:
+              tmpdir = tempfile.mkdtemp()
+              subprocess.run(
+                  ["gh", "api", f"repos/${{GITHUB_REPOSITORY}}/actions/artifacts/{art_id}/zip",
+                   "--output", f"{tmpdir}/art.zip"], capture_output=True)
+              try:
+                  with zipfile.ZipFile(f"{tmpdir}/art.zip") as z:
+                      for name in z.namelist():
+                          if name.endswith(".csv"):
+                              with z.open(name) as f:
+                                  old_vals = np.array([float(r[-1]) for r in csv.reader(
+                                      (line.decode() for line in f)) if r])
+                              if len(old_vals) == len(new_vals):
+                                  corr = np.corrcoef(old_vals, new_vals)[0, 1]
+                                  print(f"art_{art_id}_corr_{corr:.6f}")
+                                  if corr > 0.99:
+                                      print("DUPLICATE")
+                                      sys.exit(0)
+              except:
+                  pass
+          print("OK")
+          PYEOF
+          )
+
+          echo "Duplicate check result: $RESULT"
+          if echo "$RESULT" | grep -q "DUPLICATE"; then
+            echo "⚠️ Duplicate submission detected!"
+            curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"content\": \"⚠️ **重複提出警告！提出しないでください**\nKernel: \`${{ inputs.kernel_id }}\`\n過去のsubmissionと相関0.99以上です。\"}" || true
+          fi
+
       - name: Sync W&B offline runs to cloud
         env:
           WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
