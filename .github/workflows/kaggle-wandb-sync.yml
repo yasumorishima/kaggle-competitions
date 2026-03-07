@@ -3,6 +3,10 @@ name: Kaggle W&B Offline Sync
 on:
   workflow_dispatch:
     inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
       notebook_dir:
         description: 'Notebook directory (e.g., march-machine-learning-mania-2026-work)'
         required: true
