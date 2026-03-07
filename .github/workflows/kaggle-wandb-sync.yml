@@ -156,7 +156,7 @@ jobs:
 
           new_vals = np.array([float(row[-1]) for row in csv.reader(open(sub_file)) if row])
           output = subprocess.run(
-              ["gh", "api", "repos/${GITHUB_REPOSITORY}/actions/artifacts",
+              ["gh", "api", f"repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts",
                "--jq", '.artifacts[] | select(.name | startswith("kaggle-submission-")) | .id'],
               capture_output=True, text=True
           ).stdout.strip()
@@ -168,7 +168,7 @@ jobs:
           for art_id in output.splitlines()[:5]:
               tmpdir = tempfile.mkdtemp()
               subprocess.run(
-                  ["gh", "api", f"repos/${{GITHUB_REPOSITORY}}/actions/artifacts/{art_id}/zip",
+                  ["gh", "api", f"repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts/{art_id}/zip",
                    "--output", f"{tmpdir}/art.zip"], capture_output=True)
               try:
                   with zipfile.ZipFile(f"{tmpdir}/art.zip") as z:
