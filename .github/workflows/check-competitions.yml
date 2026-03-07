@@ -2,7 +2,11 @@ name: Check Competitions
 
 on:
   workflow_dispatch:
-
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
 jobs:
   kaggle:
     name: Kaggle Active Competitions
