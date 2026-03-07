@@ -3,6 +3,10 @@ name: Kaggle Kernels Push
 on:
   workflow_dispatch:
     inputs:
+      memo:
+        description: 'この実行の意図'
+        required: false
+        type: string
       notebook_dir:
         description: 'Notebook directory (e.g., deep-past)'
         required: true
