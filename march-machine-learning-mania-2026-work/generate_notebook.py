@@ -1059,6 +1059,7 @@ cat_params = dict(
     learning_rate=0.03,
     depth=6,
     l2_leaf_reg=3,
+    bootstrap_type='Bernoulli',
     subsample=0.8,
     random_strength=1,
     task_type='GPU',
