@@ -394,12 +394,14 @@ print(f"Women Glicko-2 mu range: {w_glicko['Glicko2Mu'].min():.0f} - {w_glicko['
 # =============================================================================
 # Cell: Bradley-Terry model
 # =============================================================================
-add_code("""def compute_bradley_terry(games_df):
-    \"\"\"Compute Bradley-Terry strength via logistic regression on game outcomes.
+add_code("""def compute_bradley_terry(games_df, max_iter=200, tol=1e-8):
+    \"\"\"Compute Bradley-Terry strength via MM algorithm (Hunter 2004).
 
-    For each season, fit a logistic regression where features are indicator
-    differences (team_i - team_j) and outcome is whether team_i won.
-    Returns strength coefficient per (Season, TeamID).
+    For each season, estimate team strength parameters π_i such that
+    P(i beats j) = π_i / (π_i + π_j). Uses the iterative Minorization-
+    Maximization algorithm which is guaranteed to converge.
+
+    Returns log-strength (log π_i, zero-centered) per (Season, TeamID).
     \"\"\"
     records = []
 
@@ -412,33 +414,48 @@ add_code("""def compute_bradley_terry(games_df):
         if n_teams < 5:
             continue
 
-        # Build design matrix: each row is a game
-        # Features: indicator for team1 minus indicator for team2
-        rows_list = []
-        y_list = []
+        # Build win counts and matchup counts
+        # wins[i] = total wins for team i
+        # matchups[i][j] = number of games between i and j
+        wins = np.zeros(n_teams)
+        matchups = np.zeros((n_teams, n_teams))
+
         for _, row in season_games.iterrows():
             w_idx = team_to_idx[row['WTeamID']]
             l_idx = team_to_idx[row['LTeamID']]
+            wins[w_idx] += 1
+            matchups[w_idx][l_idx] += 1
+            matchups[l_idx][w_idx] += 1
 
-            x = np.zeros(n_teams)
-            x[w_idx] = 1
-            x[l_idx] = -1
-            rows_list.append(x)
-            y_list.append(1)
+        # MM algorithm (vectorized): π_i = w_i / Σ_j (n_ij / (π_i + π_j))
+        pi = np.ones(n_teams)
 
-        X = np.array(rows_list)
-        y_arr = np.array(y_list)
+        for iteration in range(max_iter):
+            pi_old = pi.copy()
 
-        # Fit logistic regression (no intercept, regularized)
-        lr = LogisticRegression(C=1.0, fit_intercept=False, max_iter=1000, solver='lbfgs')
-        lr.fit(X, y_arr)
+            # Broadcast: pi_sum[i,j] = pi[i] + pi[j]
+            pi_sum = pi[:, None] + pi[None, :]
+            # denom[i] = Σ_j matchups[i,j] / (pi[i] + pi[j])
+            denom = np.sum(matchups / np.where(pi_sum > 0, pi_sum, 1.0), axis=1)
 
-        # Extract coefficients as team strengths
-        strengths = lr.coef_[0]
+            # Update: teams with 0 wins get minimum strength
+            pi = np.where((denom > 0) & (wins > 0), wins / denom, 1e-10)
+
+            # Normalize so geometric mean = 1
+            pi = pi / np.exp(np.mean(np.log(np.maximum(pi, 1e-20))))
+
+            # Check convergence
+            if np.max(np.abs(np.log(np.maximum(pi, 1e-20)) - np.log(np.maximum(pi_old, 1e-20)))) < tol:
+                break
+
+        # Convert to log-strength (zero-centered)
+        log_strength = np.log(np.maximum(pi, 1e-20))
+        log_strength -= log_strength.mean()
+
         for tid, idx in team_to_idx.items():
             records.append({
                 'Season': season, 'TeamID': tid,
-                'BradleyTerry': strengths[idx]
+                'BradleyTerry': log_strength[idx]
             })
 
     return pd.DataFrame(records)
