@@ -68,6 +68,7 @@ import pandas as pd
 import torch
 import wandb
 from pathlib import Path
+from collections import Counter
 from torch.utils.data import Dataset, DataLoader
 from transformers import (
     AutoTokenizer,
@@ -77,9 +78,75 @@ from transformers import (
     DataCollatorForSeq2Seq,
     EarlyStoppingCallback,
 )
-from sacrebleu.metrics import BLEU, CHRF
+from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 import warnings
 warnings.filterwarnings('ignore')
+
+# --- chrF++ implementation (no sacrebleu dependency) ---
+def _extract_char_ngrams(text, n):
+    return Counter(text[i:i+n] for i in range(len(text) - n + 1))
+
+def _extract_word_ngrams(text, n):
+    words = text.split()
+    if len(words) < n:
+        return Counter()
+    return Counter(tuple(words[i:i+n]) for i in range(len(words) - n + 1))
+
+def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
+    if not hypothesis or not reference:
+        return 0.0
+    total_f = 0.0
+    count = 0
+    for n in range(1, char_order + 1):
+        hyp_ngrams = _extract_char_ngrams(hypothesis, n)
+        ref_ngrams = _extract_char_ngrams(reference, n)
+        common = sum((hyp_ngrams & ref_ngrams).values())
+        hyp_total = sum(hyp_ngrams.values())
+        ref_total = sum(ref_ngrams.values())
+        p = common / hyp_total if hyp_total > 0 else 0.0
+        r = common / ref_total if ref_total > 0 else 0.0
+        if p + r > 0:
+            f = (1 + beta**2) * p * r / (beta**2 * p + r)
+        else:
+            f = 0.0
+        total_f += f
+        count += 1
+    for n in range(1, word_order + 1):
+        hyp_ngrams = _extract_word_ngrams(hypothesis, n)
+        ref_ngrams = _extract_word_ngrams(reference, n)
+        common = sum((hyp_ngrams & ref_ngrams).values())
+        hyp_total = sum(hyp_ngrams.values())
+        ref_total = sum(ref_ngrams.values())
+        p = common / hyp_total if hyp_total > 0 else 0.0
+        r = common / ref_total if ref_total > 0 else 0.0
+        if p + r > 0:
+            f = (1 + beta**2) * p * r / (beta**2 * p + r)
+        else:
+            f = 0.0
+        total_f += f
+        count += 1
+    return (total_f / count * 100) if count > 0 else 0.0
+
+def chrf_corpus_score(hypotheses, references):
+    scores = [chrf_score(h, r) for h, r in zip(hypotheses, references)]
+    return sum(scores) / len(scores) if scores else 0.0
+
+class ChrFScorer:
+    def __init__(self, word_order=2):
+        self.word_order = word_order
+    def corpus_score(self, hypotheses, references_list):
+        refs = [r[0] if isinstance(r, list) else r for r in references_list]
+        score = chrf_corpus_score(hypotheses, refs)
+        return type('Score', (), {'score': score})()
+
+class BLEUScorer:
+    def corpus_score(self, hypotheses, references_list):
+        refs = [[r[0].split() if isinstance(r, list) else r.split()] for r in references_list]
+        hyps = [h.split() for h in hypotheses]
+        smooth = SmoothingFunction().method1
+        score = corpus_bleu(refs, hyps, smoothing_function=smooth) * 100
+        return type('Score', (), {'score': score})()
+# --- end chrF++ implementation ---
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY", "")
 if WANDB_API_KEY:
@@ -392,7 +459,7 @@ MBR_SAMPLES = 16
 MBR_TEMPERATURE = 0.8
 BATCH_SIZE = 8
 
-chrf_metric = CHRF(word_order=2)
+chrf_metric = ChrFScorer(word_order=2)
 
 def mbr_decode_batch(input_ids, attention_mask, n_samples=MBR_SAMPLES):
     \"\"\"Generate n_samples candidates and select by MBR criterion.\"\"\"
@@ -477,8 +544,8 @@ for batch in list(val_loader)[:20]:  # 20 batches x 8 = 160 samples
     val_preds.extend(preds)
 
 val_refs = comp_targets[-VAL_SIZE:][:len(val_preds)]
-bleu_metric = BLEU()
-chrf_eval = CHRF(word_order=2)
+bleu_metric = BLEUScorer()
+chrf_eval = ChrFScorer(word_order=2)
 val_bleu = bleu_metric.corpus_score(val_preds, [val_refs]).score
 val_chrf = chrf_eval.corpus_score(val_preds, [val_refs]).score
 val_combined = (val_bleu + val_chrf) / 2
