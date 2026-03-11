@@ -66,7 +66,6 @@ import json
 import numpy as np
 import pandas as pd
 import torch
-import wandb
 from pathlib import Path
 from collections import Counter
 from torch.utils.data import Dataset, DataLoader
@@ -147,22 +146,10 @@ class BLEUScorer:
         return type('Score', (), {'score': score})()
 # --- end chrF++ implementation ---
 
-WANDB_API_KEY = os.environ.get("WANDB_API_KEY", "")
-if WANDB_API_KEY:
-    wandb.login(key=WANDB_API_KEY)
-    run = wandb.init(project="kaggle-deep-past", name="byt5-mbr-v1", config={
-        "base_model": "mattiaangeli/byt5-akkadian-mbr-v2",
-        "extra_data": ["oracc-combined", "enriched-v4"],
-        "epochs": 3,
-        "batch_size": 8,
-        "max_source_len": 512,
-        "max_target_len": 256,
-        "context_window": 2,
-        "mbr_samples": 16,
-        "mbr_utility": "chrf",
-    })
-else:
-    os.environ["WANDB_DISABLED"] = "true"
+# Disable W&B entirely — offline mode writes GB of logs to disk
+# and causes "disk space exceeded" on Kaggle
+os.environ["WANDB_DISABLED"] = "true"
+os.environ["WANDB_MODE"] = "disabled"
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Device: {DEVICE}")
@@ -355,7 +342,9 @@ model = AutoModelForSeq2SeqLM.from_pretrained(
 )
 model = model.to(DEVICE)
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
-print(f"Model dtype: {next(model.parameters()).dtype}")""")
+print(f"Model dtype: {next(model.parameters()).dtype}")
+print("\\n--- Disk after model load ---")
+os.system("df -h /kaggle/working | tail -1")""")
 
 
 # =============================================================================
@@ -431,7 +420,7 @@ training_args = Seq2SeqTrainingArguments(
     eval_strategy="epoch",
     save_strategy="no",
     logging_steps=50,
-    report_to="wandb" if WANDB_API_KEY else "none",
+    report_to="none",
     dataloader_num_workers=0,
 )
 
@@ -445,6 +434,9 @@ trainer = Seq2SeqTrainer(
     # No callbacks — save_strategy="no" means no checkpoints written to disk
 )
 
+print("--- Disk before training ---")
+os.system("df -h /kaggle/working | tail -1")
+os.system("du -sh /kaggle/working/ 2>/dev/null || true")
 print("Starting fine-tuning...")
 try:
     trainer.train()
@@ -459,22 +451,24 @@ except RuntimeError as e:
     raise
 
 # Free disk: delete all checkpoint dirs
+# Aggressively free disk: delete entire output_dir (model is in GPU memory)
 import shutil
 ckpt_dir = "/kaggle/working/byt5-akkadian-ft"
 if os.path.exists(ckpt_dir):
-    for d in sorted(glob.glob(os.path.join(ckpt_dir, "checkpoint-*"))):
-        shutil.rmtree(d, ignore_errors=True)
-        print(f"Deleted checkpoint: {d}")
-    # Also delete optimizer states and trainer state from best model dir
-    for f in glob.glob(os.path.join(ckpt_dir, "**/*.pt"), recursive=True):
-        if "optimizer" in f or "scheduler" in f:
-            os.remove(f)
-            print(f"Deleted: {f}")
+    shutil.rmtree(ckpt_dir, ignore_errors=True)
+    print(f"Deleted entire output_dir: {ckpt_dir}")
+
+# Also delete any wandb artifacts that might have been created
+for wdir in glob.glob("/kaggle/working/wandb*"):
+    shutil.rmtree(wdir, ignore_errors=True)
+    print(f"Deleted wandb dir: {wdir}")
+
 gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
-print(f"Disk after cleanup:")
-os.system("df -h /kaggle/working | tail -1")""")
+print("--- Disk after training cleanup ---")
+os.system("df -h /kaggle/working | tail -1")
+os.system("du -sh /kaggle/working/*/ 2>/dev/null || true")""")
 
 
 # =============================================================================
@@ -538,6 +532,9 @@ def mbr_decode_batch(input_ids, attention_mask, n_samples=MBR_SAMPLES):
 
     return best_translations
 
+print("--- Disk before MBR ---")
+os.system("df -h /kaggle/working | tail -1")
+os.system("du -sh /kaggle/working/*/ 2>/dev/null || true")
 print("Running MBR decoding on test set...")
 test_loader = DataLoader(
     test_ds,
@@ -585,13 +582,6 @@ print(f"Val BLEU:     {val_bleu:.4f}")
 print(f"Val chrF++:   {val_chrf:.4f}")
 print(f"Val Combined: {val_combined:.4f}")
 
-if WANDB_API_KEY:
-    wandb.log({
-        "val_bleu": val_bleu,
-        "val_chrf": val_chrf,
-        "val_combined": val_combined,
-    })
-
 print("\\nSample predictions:")
 for i in range(min(5, len(val_preds))):
     print(f"  Ref:  {val_refs[i][:80]}")
@@ -629,9 +619,7 @@ print("\\nSaved /kaggle/working/submission.csv")""")
 # =============================================================================
 # Cell: W&B finish
 # =============================================================================
-add_code("""if WANDB_API_KEY:
-    wandb.finish()
-print("Done. submission.csv ready for Kaggle browser submission.")""")
+add_code("""print("Done. submission.csv ready for Kaggle browser submission.")""")
 
 
 # =============================================================================
