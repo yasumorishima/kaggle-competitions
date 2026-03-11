@@ -1,0 +1,17 @@
+{
+  "id": "yasunorim/s6e3-churn-optuna-stacking-work",
+  "title": "S6E3 Churn Optuna Stacking Work",
+  "code_file": "s6e3-churn-optuna-stacking-work.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "competition_sources": [
+    "playground-series-s6e3"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}
