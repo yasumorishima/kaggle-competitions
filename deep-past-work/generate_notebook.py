@@ -409,7 +409,7 @@ add_code("""data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, paddi
 
 # Memory check before training
 if torch.cuda.is_available():
-    free_mem = torch.cuda.get_device_properties(0).total_mem - torch.cuda.memory_allocated(0)
+    free_mem = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
     print(f"GPU free memory before training: {free_mem / 1e9:.2f} GB")
     print(f"GPU allocated: {torch.cuda.memory_allocated(0) / 1e9:.2f} GB")
 
