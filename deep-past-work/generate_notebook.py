@@ -76,7 +76,6 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     DataCollatorForSeq2Seq,
-    EarlyStoppingCallback,
 )
 from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 import warnings
@@ -415,7 +414,7 @@ if torch.cuda.is_available():
 
 training_args = Seq2SeqTrainingArguments(
     output_dir="/kaggle/working/byt5-akkadian-ft",
-    num_train_epochs=3,
+    num_train_epochs=2,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=2,
     gradient_accumulation_steps=32,
@@ -430,11 +429,7 @@ training_args = Seq2SeqTrainingArguments(
     generation_max_length=MAX_TARGET_LEN,
     generation_num_beams=2,
     eval_strategy="epoch",
-    save_strategy="epoch",
-    save_total_limit=1,
-    load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
-    greater_is_better=False,
+    save_strategy="no",
     logging_steps=50,
     report_to="wandb" if WANDB_API_KEY else "none",
     dataloader_num_workers=0,
@@ -447,7 +442,7 @@ trainer = Seq2SeqTrainer(
     eval_dataset=val_ds,
     processing_class=tokenizer,
     data_collator=data_collator,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+    # No callbacks — save_strategy="no" means no checkpoints written to disk
 )
 
 print("Starting fine-tuning...")
