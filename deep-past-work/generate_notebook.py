@@ -431,6 +431,7 @@ training_args = Seq2SeqTrainingArguments(
     generation_num_beams=2,
     eval_strategy="epoch",
     save_strategy="epoch",
+    save_total_limit=1,
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     greater_is_better=False,
@@ -460,7 +461,25 @@ except RuntimeError as e:
             print(f"GPU memory allocated: {torch.cuda.memory_allocated(0) / 1e9:.2f} GB")
             print(f"GPU memory reserved: {torch.cuda.memory_reserved(0) / 1e9:.2f} GB")
         raise
-    raise""")
+    raise
+
+# Free disk: delete all checkpoint dirs
+import shutil
+ckpt_dir = "/kaggle/working/byt5-akkadian-ft"
+if os.path.exists(ckpt_dir):
+    for d in sorted(glob.glob(os.path.join(ckpt_dir, "checkpoint-*"))):
+        shutil.rmtree(d, ignore_errors=True)
+        print(f"Deleted checkpoint: {d}")
+    # Also delete optimizer states and trainer state from best model dir
+    for f in glob.glob(os.path.join(ckpt_dir, "**/*.pt"), recursive=True):
+        if "optimizer" in f or "scheduler" in f:
+            os.remove(f)
+            print(f"Deleted: {f}")
+gc.collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+print(f"Disk after cleanup:")
+os.system("df -h /kaggle/working | tail -1")""")
 
 
 # =============================================================================
