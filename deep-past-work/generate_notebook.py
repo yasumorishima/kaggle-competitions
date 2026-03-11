@@ -362,8 +362,8 @@ print(f"Model dtype: {next(model.parameters()).dtype}")""")
 # =============================================================================
 # Cell: Dataset
 # =============================================================================
-add_code("""MAX_SOURCE_LEN = 512
-MAX_TARGET_LEN = 256
+add_code("""MAX_SOURCE_LEN = 384
+MAX_TARGET_LEN = 192
 
 class TranslationDataset(Dataset):
     def __init__(self, inputs, targets=None):
@@ -407,12 +407,18 @@ print(f"Train: {len(train_ds):,}, Val: {len(val_ds):,}, Test: {len(test_ds):,}")
 # =============================================================================
 add_code("""data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True)
 
+# Memory check before training
+if torch.cuda.is_available():
+    free_mem = torch.cuda.get_device_properties(0).total_mem - torch.cuda.memory_allocated(0)
+    print(f"GPU free memory before training: {free_mem / 1e9:.2f} GB")
+    print(f"GPU allocated: {torch.cuda.memory_allocated(0) / 1e9:.2f} GB")
+
 training_args = Seq2SeqTrainingArguments(
     output_dir="/kaggle/working/byt5-akkadian-ft",
     num_train_epochs=3,
-    per_device_train_batch_size=2,
-    per_device_eval_batch_size=4,
-    gradient_accumulation_steps=16,
+    per_device_train_batch_size=1,
+    per_device_eval_batch_size=2,
+    gradient_accumulation_steps=32,
     warmup_ratio=0.05,
     learning_rate=1e-4,
     lr_scheduler_type="cosine",
@@ -422,15 +428,15 @@ training_args = Seq2SeqTrainingArguments(
     gradient_checkpointing_kwargs={"use_reentrant": False},
     predict_with_generate=True,
     generation_max_length=MAX_TARGET_LEN,
-    generation_num_beams=4,
+    generation_num_beams=2,
     eval_strategy="epoch",
     save_strategy="epoch",
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     greater_is_better=False,
-    logging_steps=100,
+    logging_steps=50,
     report_to="wandb" if WANDB_API_KEY else "none",
-    dataloader_num_workers=2,
+    dataloader_num_workers=0,
 )
 
 trainer = Seq2SeqTrainer(
@@ -444,8 +450,17 @@ trainer = Seq2SeqTrainer(
 )
 
 print("Starting fine-tuning...")
-trainer.train()
-print("Fine-tuning complete.")""")
+try:
+    trainer.train()
+    print("Fine-tuning complete.")
+except RuntimeError as e:
+    if "out of memory" in str(e).lower():
+        print(f"CUDA OOM Error: {e}")
+        if torch.cuda.is_available():
+            print(f"GPU memory allocated: {torch.cuda.memory_allocated(0) / 1e9:.2f} GB")
+            print(f"GPU memory reserved: {torch.cuda.memory_reserved(0) / 1e9:.2f} GB")
+        raise
+    raise""")
 
 
 # =============================================================================
@@ -457,9 +472,9 @@ add_code("""# MBR (Minimum Bayes Risk) Decoding
 # This "consensus" translation avoids outlier candidates and is consistently
 # better than greedy / beam search for neural MT.
 
-MBR_SAMPLES = 16
+MBR_SAMPLES = 12
 MBR_TEMPERATURE = 0.8
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 chrf_metric = ChrFScorer(word_order=2)
 
