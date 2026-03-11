@@ -410,14 +410,15 @@ add_code("""data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, paddi
 training_args = Seq2SeqTrainingArguments(
     output_dir="/kaggle/working/byt5-akkadian-ft",
     num_train_epochs=3,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=16,
-    gradient_accumulation_steps=4,
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=4,
+    gradient_accumulation_steps=16,
     warmup_ratio=0.05,
     learning_rate=1e-4,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     fp16=(DEVICE == 'cuda'),
+    gradient_checkpointing=True,
     predict_with_generate=True,
     generation_max_length=MAX_TARGET_LEN,
     generation_num_beams=4,
@@ -457,7 +458,7 @@ add_code("""# MBR (Minimum Bayes Risk) Decoding
 
 MBR_SAMPLES = 16
 MBR_TEMPERATURE = 0.8
-BATCH_SIZE = 8
+BATCH_SIZE = 2
 
 chrf_metric = ChrFScorer(word_order=2)
 
