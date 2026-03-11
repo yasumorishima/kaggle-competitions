@@ -419,6 +419,7 @@ training_args = Seq2SeqTrainingArguments(
     weight_decay=0.01,
     fp16=(DEVICE == 'cuda'),
     gradient_checkpointing=True,
+    gradient_checkpointing_kwargs={"use_reentrant": False},
     predict_with_generate=True,
     generation_max_length=MAX_TARGET_LEN,
     generation_num_beams=4,
