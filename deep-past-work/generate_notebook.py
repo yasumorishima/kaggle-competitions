@@ -352,7 +352,7 @@ print(f"\\nUsing model: {model_path}")
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForSeq2SeqLM.from_pretrained(
     model_path,
-    torch_dtype=torch.float16 if DEVICE == 'cuda' else torch.float32
+    torch_dtype=torch.float32
 )
 model = model.to(DEVICE)
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
