@@ -622,8 +622,8 @@ for j, text in enumerate(val_inputs):
 val_refs = val_targets[:len(val_preds)]
 bleu_metric = BLEUScorer()
 chrf_eval = ChrFScorer(word_order=2)
-val_bleu = bleu_metric.corpus_score(val_preds, [val_refs]).score
-val_chrf = chrf_eval.corpus_score(val_preds, [val_refs]).score
+val_bleu = bleu_metric.corpus_score(val_preds, [[r] for r in val_refs]).score
+val_chrf = chrf_eval.corpus_score(val_preds, val_refs).score
 
 print(f"\\nVal BLEU:   {val_bleu:.2f}")
 print(f"Val chrF++: {val_chrf:.2f}")
