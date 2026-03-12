@@ -1,11 +1,19 @@
-"""Generate Stanford RNA 3D Folding 2 — v8 Multi-Approach Pipeline.
+"""Generate Stanford RNA 3D Folding 2 — v9 Multi-Approach Pipeline (optimized).
 
-No shortcuts. 5 structure slots filled by 5 genuinely different prediction methods:
+5 structure slots filled by 5 genuinely different prediction methods:
 1. Nussinov secondary structure → 3D geometry (stems as A-form helices, loops as arcs)
 2. MSA co-evolution contact map → distance geometry optimization (scipy minimize)
 3. 1D ResNet regression trained on train_labels (sequence → xyz)
 4. k-mer similarity template matching (not just length)
 5. Ensemble refinement: average of structures 1-4 with contact-guided energy minimization
+
+v9 optimizations vs v8 (timeout fix):
+- Nussinov DP capped at 300 residues (O(n³) → helix fallback for longer)
+- Co-evolution matrix: Python double loop → NumPy reshape+vectorize
+- Distance geometry energy: Python loops → NumPy vectorized
+- Ensemble energy: Python loops → NumPy vectorized
+- L-BFGS maxiter 500→200, ftol 1e-6→1e-5
+- ResNet epochs 30→15
 
 GPU enabled for ResNet training.
 """
@@ -43,7 +51,7 @@ def add_code(source):
 
 # ── Title ──
 add_md(
-    """# Stanford RNA 3D Folding 2 — v8 Multi-Approach Pipeline
+    """# Stanford RNA 3D Folding 2 — v9 Multi-Approach Pipeline
 
 **5 genuinely different methods, one per structure slot:**
 1. **Nussinov 2D → 3D geometry** (stems as A-form helices, loops as smooth arcs)
@@ -88,7 +96,7 @@ print(f'Device: {DEVICE}')"""
 add_code(
     """run = wandb.init(
     project='stanford-rna-3d-folding-2',
-    name='multi-approach-v8',
+    name='multi-approach-v9',
     tags=['nussinov', 'msa-coevo', 'resnet', 'kmer-template', 'ensemble', 'gpu'],
     config={
         'approach': 'multi_approach_5_slots',
@@ -238,9 +246,13 @@ print('=' * 60)
 VALID_PAIRS = {('A','U'), ('U','A'), ('G','C'), ('C','G'), ('G','U'), ('U','G')}
 MIN_LOOP_SIZE = 3
 
+NUSSINOV_MAX_LEN = 300  # O(n^3) — skip DP for longer sequences
+
 def nussinov_dp(seq):
     \"\"\"Nussinov dynamic programming for RNA secondary structure.\"\"\"
     n = len(seq)
+    if n > NUSSINOV_MAX_LEN:
+        return []  # helix fallback for long sequences
     dp = np.zeros((n, n), dtype=int)
 
     for span in range(MIN_LOOP_SIZE + 1, n):
@@ -398,14 +410,15 @@ def compute_coevolution_matrix(msa_seqs, query_len):
     flat_centered = flat - flat.mean(axis=0)
     cov = flat_centered.T @ flat_centered / max(n_seqs - 1, 1)
 
-    # Extract inter-position covariance (sum over base dimensions)
-    contact_scores = np.zeros((query_len, query_len))
-    for i in range(query_len):
-        for j in range(i + 1, query_len):
-            block = cov[i*5:(i+1)*5, j*5:(j+1)*5]
-            score = np.linalg.norm(block, 'fro')
-            contact_scores[i, j] = score
-            contact_scores[j, i] = score
+    # Extract inter-position covariance — vectorized (no Python double loop)
+    cov_reshaped = cov.reshape(query_len, 5, query_len, 5)
+    # Frobenius norm of each (5,5) block = sqrt(sum of squares)
+    contact_scores = np.sqrt((cov_reshaped ** 2).sum(axis=(1, 3)))
+    # Zero out diagonal and make symmetric
+    np.fill_diagonal(contact_scores, 0)
+    # Keep upper triangle only then mirror
+    contact_scores = np.triu(contact_scores, k=1)
+    contact_scores = contact_scores + contact_scores.T
 
     return contact_scores
 
@@ -422,23 +435,36 @@ def distance_geometry_from_contacts(seq_len, contact_map, n_contacts_ratio=1.5):
     CONTACT_DIST = 6.0
     SEQ_DIST = 3.8
 
+    contact_i = np.array([p[0] for p in contact_pairs])
+    contact_j = np.array([p[1] for p in contact_pairs])
+
     def energy(flat_coords):
         coords = flat_coords.reshape(-1, 3)
-        loss = 0.0
-        # Sequential distance constraints
-        for i in range(seq_len - 1):
-            d = np.linalg.norm(coords[i+1] - coords[i])
-            loss += (d - SEQ_DIST) ** 2
-        # Contact constraints
-        for i, j in contact_pairs:
-            d = np.linalg.norm(coords[j] - coords[i])
-            loss += 0.5 * (d - CONTACT_DIST) ** 2
-        # Repulsion (prevent collapse)
-        for i in range(0, seq_len, 3):
-            for j in range(i + 3, min(i + 15, seq_len), 3):
-                d = np.linalg.norm(coords[j] - coords[i])
-                if d < 3.0:
-                    loss += 10.0 * (3.0 - d) ** 2
+        # Sequential distance constraints — vectorized
+        diffs_seq = coords[1:] - coords[:-1]
+        dists_seq = np.sqrt((diffs_seq ** 2).sum(axis=1))
+        loss = ((dists_seq - SEQ_DIST) ** 2).sum()
+        # Contact constraints — vectorized
+        if len(contact_i) > 0:
+            diffs_c = coords[contact_j] - coords[contact_i]
+            dists_c = np.sqrt((diffs_c ** 2).sum(axis=1))
+            loss += 0.5 * ((dists_c - CONTACT_DIST) ** 2).sum()
+        # Repulsion — vectorized with subsampled pairs
+        rep_i = np.arange(0, seq_len, 3)
+        rep_pairs_i = []
+        rep_pairs_j = []
+        for ri in rep_i:
+            rj = np.arange(ri + 3, min(ri + 15, seq_len), 3)
+            rep_pairs_i.extend([ri] * len(rj))
+            rep_pairs_j.extend(rj)
+        if rep_pairs_i:
+            rpi = np.array(rep_pairs_i)
+            rpj = np.array(rep_pairs_j)
+            diffs_r = coords[rpj] - coords[rpi]
+            dists_r = np.sqrt((diffs_r ** 2).sum(axis=1))
+            mask_close = dists_r < 3.0
+            if mask_close.any():
+                loss += (10.0 * (3.0 - dists_r[mask_close]) ** 2).sum()
         return loss
 
     # Initialize with helix
@@ -450,7 +476,7 @@ def distance_geometry_from_contacts(seq_len, contact_map, n_contacts_ratio=1.5):
     init_coords[:, 2] = idx * 2.81
 
     result = minimize(energy, init_coords.flatten(), method='L-BFGS-B',
-                      options={'maxiter': 500, 'ftol': 1e-6})
+                      options={'maxiter': 200, 'ftol': 1e-5})
     return center_coords(result.x.reshape(-1, 3))
 
 # Process each test sequence
@@ -568,7 +594,7 @@ for tid in train_structures:
 print(f'ResNet training samples: {len(train_seqs)} (skipped {skipped} with len > {MAX_LEN})')
 
 # Train
-EPOCHS = 30
+EPOCHS = 15
 BATCH_SIZE = 16
 LR = 1e-3
 
@@ -728,24 +754,27 @@ def refine_ensemble(coords_list, seq, n_steps=200):
     SEQ_DIST = 3.8
     CONTACT_DIST = 8.0
 
+    # Pre-compute valid pair indices
+    pair_i = np.array([i for i, j in pairs if i < n and j < n])
+    pair_j = np.array([j for i, j in pairs if i < n and j < n])
+
     def energy(flat):
         c = flat.reshape(-1, 3)
-        loss = 0.0
-        # Sequential
-        for i in range(n - 1):
-            d = np.linalg.norm(c[i+1] - c[i])
-            loss += (d - SEQ_DIST) ** 2
-        # Contacts
-        for i, j in pairs:
-            if i < n and j < n:
-                d = np.linalg.norm(c[j] - c[i])
-                loss += 0.3 * (d - CONTACT_DIST) ** 2
+        # Sequential — vectorized
+        diffs = c[1:] - c[:-1]
+        dists = np.sqrt((diffs ** 2).sum(axis=1))
+        loss = ((dists - SEQ_DIST) ** 2).sum()
+        # Contacts — vectorized
+        if len(pair_i) > 0:
+            diffs_p = c[pair_j] - c[pair_i]
+            dists_p = np.sqrt((diffs_p ** 2).sum(axis=1))
+            loss += 0.3 * ((dists_p - CONTACT_DIST) ** 2).sum()
         # Stay close to average
         loss += 0.1 * np.sum((c - avg) ** 2)
         return loss
 
     result = minimize(energy, avg.flatten(), method='L-BFGS-B',
-                      options={'maxiter': n_steps, 'ftol': 1e-6})
+                      options={'maxiter': n_steps, 'ftol': 1e-5})
     return center_coords(result.x.reshape(-1, 3))
 
 t0 = time.time()
