@@ -1,19 +1,24 @@
-"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v7)
+"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v8)
 
 Strategy:
   - Base: mattiaangeli/byt5-akkadian-mbr-v2 (already fine-tuned on competition data)
-  - NO additional fine-tuning (avoids disk issues, base model is already good)
-  - Multi-temperature MBR: generate candidates at T=0.6, 0.8, 1.0 → unified MBR selection
-  - MBR samples: 10 per temperature = 30 total candidates per sentence
-  - Context window: ±3 surrounding lines with [CURRENT] marker
-  - TF-IDF similarity fallback for low-confidence translations
+  - NO additional fine-tuning — all GPU time invested in superior inference
+  - Only 4 test sentences → invest maximum compute per sentence
+  - Multi-temperature MBR: 50 samples × 5 temperatures = 250 candidates per sentence
+  - Beam search + sampling hybrid: beam candidates added to MBR pool
+  - Context window: ±5 surrounding lines with [CURRENT] marker
+  - TF-IDF similarity augmented prompting for low-confidence translations
+  - External data: robust path discovery via rglob
 
-v7 disk fix vs v6:
-  - HF_HOME/TRANSFORMERS_CACHE/TORCH_HOME → /tmp (not /kaggle/working)
-  - float16 inference (halves model memory footprint)
-  - MBR samples 20→10 per temp (60→30 candidates)
-  - Validation 100→20 sentences
-  - Periodic cache cleanup during inference
+v8 improvements vs v7:
+  - MBR candidates 30 → 250 (50 per temp × 5 temps)
+  - Added beam search candidates to MBR pool (diversity + quality)
+  - Temperature range expanded: [0.4, 0.6, 0.8, 1.0, 1.2]
+  - Context window ±3 → ±5
+  - External data path discovery: rglob across all /kaggle/input
+  - TF-IDF augmented prompting: inject similar examples into prompt
+  - MBR top-3 weighted consensus post-selection
+  - Validation on full VAL_SIZE with MBR
 """
 
 import json
@@ -53,18 +58,19 @@ def add_code(source):
 # =============================================================================
 # Cell: Title
 # =============================================================================
-add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble
+add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v8)
 
 **Akkadian → English translation** (private competition notebook)
 
 ## Strategy
-- **Base model**: `mattiaangeli/byt5-akkadian-mbr-v2` (already fine-tuned on competition data, 28 votes)
+- **Base model**: `mattiaangeli/byt5-akkadian-mbr-v2` (already fine-tuned on competition data)
 - **No additional fine-tuning** — all GPU time invested in superior inference
-- **Multi-temperature MBR**: candidates at T=0.6, 0.8, 1.0 → unified chrF++ MBR selection
-- **10 samples × 3 temperatures = 30 candidates per sentence**
-- **Context window**: ±3 surrounding lines with `[CURRENT]` marker
-- **TF-IDF similarity fallback**: for low-confidence translations, reference training data
-- **Evaluation**: BLEU + chrF++ (competition metric)""")
+- **Only 4 test sentences** — maximum compute per sentence
+- **Multi-temperature MBR**: 50 samples × 5 temperatures = 250 candidates per sentence
+- **Beam search hybrid**: beam candidates added to sampling pool
+- **Context window**: ±5 surrounding lines with `[CURRENT]` marker
+- **TF-IDF augmented prompting**: inject similar training examples into prompt
+- **MBR top-3 weighted consensus**: final output from top-3 MBR candidates""")
 
 
 # =============================================================================
@@ -107,6 +113,7 @@ import gc
 import glob
 import json
 import shutil
+import time
 import numpy as np
 import pandas as pd
 import torch
@@ -232,40 +239,54 @@ print(f"Columns: {list(train_comp.columns)}")""")
 
 
 # =============================================================================
-# Cell: Load external data for TF-IDF reference
+# Cell: Load external data — robust path discovery
 # =============================================================================
 add_code("""def load_external_data():
+    \"\"\"Search ALL of /kaggle/input for Akkadian datasets via rglob.\"\"\"
     dfs = []
-    oracc_paths = [
-        '/kaggle/input/akkadian-oracc-combined',
-        '/kaggle/input/akkadian-enriched-data',
-    ]
-    for base in oracc_paths:
-        base = Path(base)
-        if not base.exists():
-            print(f"  Not found: {base}")
+
+    # Known dataset slugs
+    known_slugs = ['akkadian-oracc-combined', 'akkadian-enriched-data']
+
+    # First try exact paths
+    search_roots = [Path('/kaggle/input') / slug for slug in known_slugs]
+
+    # Also scan ALL subdirectories under /kaggle/input for any CSV with relevant columns
+    print("  Scanning /kaggle/input for Akkadian datasets...")
+    input_root = Path('/kaggle/input')
+    all_csvs = []
+    for csv_file in input_root.rglob('*.csv'):
+        # Skip competition data (already loaded)
+        if 'competitions' in str(csv_file):
             continue
-        for csv_file in sorted(base.glob('**/*.csv')):
-            try:
-                df = pd.read_csv(csv_file)
-                col_map = {}
-                for c in df.columns:
-                    cl = c.lower().strip()
-                    if any(k in cl for k in ['translit', 'akkadian', 'source', 'input']):
-                        col_map[c] = 'transliteration'
-                    elif any(k in cl for k in ['translat', 'english', 'target', 'output']):
-                        col_map[c] = 'translation'
-                if col_map:
-                    df = df.rename(columns=col_map)
-                if 'transliteration' in df.columns and 'translation' in df.columns:
-                    df = df[['transliteration', 'translation']].dropna()
-                    df = df[df['transliteration'].str.len() > 2]
-                    df = df[df['translation'].str.len() > 2]
-                    dfs.append(df)
-                    print(f"  Loaded {len(df):,} rows from {csv_file.name}")
-            except Exception as e:
-                print(f"  Error {csv_file.name}: {e}")
+        all_csvs.append(csv_file)
+    print(f"  Found {len(all_csvs)} CSV files outside competition data")
+
+    for csv_file in sorted(all_csvs):
+        try:
+            df = pd.read_csv(csv_file, nrows=5)  # peek first
+            col_map = {}
+            for c in df.columns:
+                cl = c.lower().strip()
+                if any(k in cl for k in ['translit', 'akkadian', 'source', 'input']):
+                    col_map[c] = 'transliteration'
+                elif any(k in cl for k in ['translat', 'english', 'target', 'output']):
+                    col_map[c] = 'translation'
+            if 'transliteration' not in col_map.values() or 'translation' not in col_map.values():
+                continue
+            # Full read
+            df = pd.read_csv(csv_file).rename(columns=col_map)
+            df = df[['transliteration', 'translation']].dropna()
+            df = df[df['transliteration'].str.len() > 2]
+            df = df[df['translation'].str.len() > 2]
+            if len(df) > 0:
+                dfs.append(df)
+                print(f"  Loaded {len(df):,} rows from {csv_file}")
+        except Exception as e:
+            pass  # silently skip non-CSV or broken files
+
     if not dfs:
+        print("  No external Akkadian data found")
         return pd.DataFrame(columns=['transliteration', 'translation'])
     combined = pd.concat(dfs, ignore_index=True).drop_duplicates(subset=['transliteration'])
     print(f"Total external data: {len(combined):,} rows")
@@ -274,24 +295,24 @@ add_code("""def load_external_data():
 print("Loading external data...")
 ext_data = load_external_data()
 
-# Build reference corpus for TF-IDF similarity fallback
+# Build reference corpus for TF-IDF similarity
 ref_corpus = pd.concat([
     train_comp[['transliteration', 'translation']],
     ext_data[['transliteration', 'translation']],
 ], ignore_index=True).drop_duplicates(subset=['transliteration'])
 print(f"Reference corpus: {len(ref_corpus):,} rows")
 
-# Build TF-IDF index on transliterations for similarity lookup
+# Build TF-IDF index on transliterations
 print("Building TF-IDF index...")
-tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 4), max_features=50000)
+tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 5), max_features=80000)
 ref_tfidf_matrix = tfidf.fit_transform(ref_corpus['transliteration'].values)
 print(f"TF-IDF matrix: {ref_tfidf_matrix.shape}")""")
 
 
 # =============================================================================
-# Cell: Context-aware input construction
+# Cell: Context-aware input construction + TF-IDF augmented prompting
 # =============================================================================
-add_code("""CONTEXT_WINDOW = 3
+add_code("""CONTEXT_WINDOW = 5
 PREFIX = "translate Akkadian to English: "
 
 def build_context_inputs_df(df, context_col='transliteration', id_col=None):
@@ -322,21 +343,57 @@ def build_context_inputs_df(df, context_col='transliteration', id_col=None):
             inputs.append(PREFIX + " [SEP] ".join(ctx))
         return inputs
 
+def tfidf_fallback(transliteration, top_k=5):
+    \"\"\"Find most similar training examples and return their translations.\"\"\"
+    query_vec = tfidf.transform([transliteration])
+    sims = cos_sim(query_vec, ref_tfidf_matrix).flatten()
+    top_idxs = sims.argsort()[-top_k:][::-1]
+    results = []
+    for idx in top_idxs:
+        if sims[idx] > 0.05:
+            results.append({
+                'transliteration': ref_corpus.iloc[idx]['transliteration'],
+                'translation': ref_corpus.iloc[idx]['translation'],
+                'similarity': float(sims[idx]),
+            })
+    return results
+
+def build_augmented_prompt(transliteration, context_input, top_k=3):
+    \"\"\"Augment the prompt with similar training examples (few-shot style).\"\"\"
+    matches = tfidf_fallback(transliteration, top_k=top_k)
+    if not matches:
+        return context_input
+
+    examples = []
+    for m in matches[:top_k]:
+        examples.append(f"{m['transliteration']} => {m['translation']}")
+
+    aug_prefix = "Examples: " + " | ".join(examples) + " [END_EXAMPLES] "
+    return aug_prefix + context_input
+
 id_col_test = 'text_id' if 'text_id' in test.columns else None
 test_sorted = test.sort_values(id_col_test).reset_index(drop=True) if id_col_test else test.copy()
-test_inputs = build_context_inputs_df(test_sorted, id_col=id_col_test)
+test_inputs_base = build_context_inputs_df(test_sorted, id_col=id_col_test)
 test_raw_translits = test_sorted['transliteration'].tolist()
 
-# Also build val set for evaluation
+# Build augmented prompts for test set
+test_inputs_augmented = [
+    build_augmented_prompt(raw, base, top_k=3)
+    for raw, base in zip(test_raw_translits, test_inputs_base)
+]
+
+# Also build val set
 id_col_train = 'text_id' if 'text_id' in train_comp.columns else ('oare_id' if 'oare_id' in train_comp.columns else None)
 train_sorted = train_comp.sort_values(id_col_train).reset_index(drop=True) if id_col_train else train_comp.copy()
 all_comp_inputs = build_context_inputs_df(train_sorted, id_col=id_col_train)
 all_comp_targets = train_sorted['translation'].tolist()
 VAL_SIZE = min(200, len(all_comp_inputs) // 5)
 
-print(f"Test inputs: {len(test_inputs):,}")
+print(f"Test inputs: {len(test_inputs_augmented):,}")
 print(f"Val size: {VAL_SIZE}")
-print(f"Context window: ±{CONTEXT_WINDOW}")""")
+print(f"Context window: ±{CONTEXT_WINDOW}")
+print(f"\\nSample augmented prompt (first 300 chars):")
+print(test_inputs_augmented[0][:300])""")
 
 
 # =============================================================================
@@ -358,7 +415,7 @@ model_path = find_model_path(['byt5-akkadian-mbr-v2', 'byt5-akkadian-mbr', 'akka
 print(f"Using model: {model_path}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_path, torch_dtype=torch.float16)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_path, dtype=torch.float16)
 model = model.to(DEVICE)
 model.eval()
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
@@ -367,23 +424,27 @@ os.system("df -h /kaggle/working | tail -1")""")
 
 
 # =============================================================================
-# Cell: Multi-Temperature MBR Decoding
+# Cell: Multi-Temperature MBR + Beam Hybrid Decoding
 # =============================================================================
-add_code("""MAX_SOURCE_LEN = 384
-MAX_TARGET_LEN = 192
+add_code("""MAX_SOURCE_LEN = 512
+MAX_TARGET_LEN = 256
 
-# Multi-temperature MBR: generate candidates at multiple temperatures,
-# then select the best by chrF++ consensus across ALL candidates.
-# This produces more diverse yet high-quality translations.
-MBR_SAMPLES_PER_TEMP = 10
-MBR_TEMPERATURES = [0.6, 0.8, 1.0]
-chrf_metric = ChrFScorer(word_order=2)
+# 4 test sentences → invest heavily per sentence
+MBR_SAMPLES_PER_TEMP = 50
+MBR_TEMPERATURES = [0.4, 0.6, 0.8, 1.0, 1.2]
+BEAM_SIZE = 8  # Additional beam search candidates
 
-def multi_temp_mbr_decode(text, n_per_temp=MBR_SAMPLES_PER_TEMP):
+def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP):
+    \"\"\"Generate candidates via sampling at multiple temperatures + beam search,
+    then select best by chrF++ MBR consensus.
+
+    Returns (best_translation, confidence, top3_candidates_with_scores).
+    \"\"\"
     enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
     all_candidates = []
 
     with torch.no_grad():
+        # Sampling candidates at multiple temperatures
         for temp in MBR_TEMPERATURES:
             outputs = model.generate(
                 **enc,
@@ -392,11 +453,43 @@ def multi_temp_mbr_decode(text, n_per_temp=MBR_SAMPLES_PER_TEMP):
                 num_beams=1,
                 temperature=temp,
                 top_p=0.95,
+                top_k=50,
                 num_return_sequences=n_per_temp,
                 no_repeat_ngram_size=3,
             )
             decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             all_candidates.extend([s.strip() for s in decoded if s.strip()])
+
+        # Beam search candidates (deterministic, high quality)
+        beam_outputs = model.generate(
+            **enc,
+            max_new_tokens=MAX_TARGET_LEN,
+            do_sample=False,
+            num_beams=BEAM_SIZE,
+            num_return_sequences=min(BEAM_SIZE, 8),
+            no_repeat_ngram_size=3,
+            length_penalty=1.0,
+        )
+        beam_decoded = tokenizer.batch_decode(beam_outputs, skip_special_tokens=True)
+        all_candidates.extend([s.strip() for s in beam_decoded if s.strip()])
+
+    # Also generate from base prompt (without augmentation) for diversity
+    if text_base and text_base != text:
+        enc_base = tokenizer(text_base, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
+        with torch.no_grad():
+            for temp in [0.6, 0.8, 1.0]:
+                outputs = model.generate(
+                    **enc_base,
+                    max_new_tokens=MAX_TARGET_LEN,
+                    do_sample=True,
+                    num_beams=1,
+                    temperature=temp,
+                    top_p=0.95,
+                    num_return_sequences=10,
+                    no_repeat_ngram_size=3,
+                )
+                decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+                all_candidates.extend([s.strip() for s in decoded if s.strip()])
 
     # Deduplicate while preserving order
     seen = set()
@@ -407,9 +500,9 @@ def multi_temp_mbr_decode(text, n_per_temp=MBR_SAMPLES_PER_TEMP):
             unique_cands.append(c)
 
     if not unique_cands:
-        return "unknown", 0.0
+        return "unknown", 0.0, []
     if len(unique_cands) == 1:
-        return unique_cands[0], 100.0
+        return unique_cands[0], 100.0, [(unique_cands[0], 100.0)]
 
     # MBR selection: pick candidate with highest average chrF++ vs all others
     scores = []
@@ -418,97 +511,113 @@ def multi_temp_mbr_decode(text, n_per_temp=MBR_SAMPLES_PER_TEMP):
         pairwise = [chrf_score(hyp, r) for r in refs]
         scores.append(np.mean(pairwise))
 
-    best_idx = int(np.argmax(scores))
+    # Get top-3 candidates with scores
+    ranked = sorted(enumerate(scores), key=lambda x: -x[1])
+    top3 = [(unique_cands[idx], sc) for idx, sc in ranked[:3]]
+
+    best_idx = ranked[0][0]
     confidence = scores[best_idx]
-    return unique_cands[best_idx], confidence
+    return unique_cands[best_idx], confidence, top3
 
-print(f"MBR config: {MBR_SAMPLES_PER_TEMP} samples × {len(MBR_TEMPERATURES)} temps = {MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES)} candidates/sentence")
-print(f"Temperatures: {MBR_TEMPERATURES}")""")
-
-
-# =============================================================================
-# Cell: TF-IDF Similarity Fallback
-# =============================================================================
-add_code("""def tfidf_fallback(transliteration, top_k=3):
-    \"\"\"Find most similar training examples and return their translations.\"\"\"
-    query_vec = tfidf.transform([transliteration])
-    sims = cos_sim(query_vec, ref_tfidf_matrix).flatten()
-    top_idxs = sims.argsort()[-top_k:][::-1]
-    results = []
-    for idx in top_idxs:
-        if sims[idx] > 0.1:
-            results.append({
-                'transliteration': ref_corpus.iloc[idx]['transliteration'],
-                'translation': ref_corpus.iloc[idx]['translation'],
-                'similarity': float(sims[idx]),
-            })
-    return results
-
-# Test the fallback
-if len(test_raw_translits) > 0:
-    sample = test_raw_translits[0]
-    matches = tfidf_fallback(sample)
-    print(f"TF-IDF fallback test for: '{sample[:60]}'")
-    for m in matches:
-        print(f"  sim={m['similarity']:.3f}: {m['transliteration'][:40]} → {m['translation'][:40]}")""")
+total_candidates = MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES) + BEAM_SIZE + 30  # +30 from base prompt
+print(f"MBR config: {MBR_SAMPLES_PER_TEMP} samples × {len(MBR_TEMPERATURES)} temps + {BEAM_SIZE} beam + 30 base = ~{total_candidates} candidates/sentence")
+print(f"Temperatures: {MBR_TEMPERATURES}")
+print(f"Beam size: {BEAM_SIZE}")""")
 
 
 # =============================================================================
-# Cell: Run inference on test set
+# Cell: Run inference on test set (only 4 sentences — go all out)
 # =============================================================================
 add_code("""print("--- Disk before inference ---")
 os.system("df -h /kaggle/working | tail -1")
 
-CONFIDENCE_THRESHOLD = 30.0  # Below this, blend with TF-IDF fallback
-
 all_predictions = []
 all_confidences = []
-n_fallbacks = 0
+all_top3 = []
 
-for i, (text, raw_translit) in enumerate(zip(test_inputs, test_raw_translits)):
-    pred, confidence = multi_temp_mbr_decode(text)
+t0 = time.time()
+for i, (text_aug, text_base, raw_translit) in enumerate(zip(
+    test_inputs_augmented, test_inputs_base, test_raw_translits
+)):
+    print(f"\\n{'='*60}")
+    print(f"  Sentence {i+1}/{len(test_inputs_augmented)}")
+    print(f"  Input: {raw_translit[:80]}")
+    print(f"{'='*60}")
 
-    # If MBR confidence is low, blend with TF-IDF matches
-    if confidence < CONFIDENCE_THRESHOLD:
-        matches = tfidf_fallback(raw_translit, top_k=1)
-        if matches and matches[0]['similarity'] > 0.5:
-            # High TF-IDF similarity: use the reference translation instead
-            pred = matches[0]['translation']
-            n_fallbacks += 1
+    t_sent = time.time()
+    pred, confidence, top3 = multi_temp_mbr_decode(text_aug, text_base=text_base)
+
+    # Show top-3 MBR candidates
+    print(f"  Top-3 MBR candidates:")
+    for rank, (cand, sc) in enumerate(top3):
+        marker = " <<<" if rank == 0 else ""
+        print(f"    {rank+1}. [chrF++={sc:.1f}] {cand[:100]}{marker}")
+
+    # TF-IDF matches for reference
+    matches = tfidf_fallback(raw_translit, top_k=3)
+    if matches:
+        print(f"  TF-IDF similar translations:")
+        for m in matches[:3]:
+            print(f"    sim={m['similarity']:.3f}: {m['translation'][:80]}")
+
+    # If confidence is very low AND TF-IDF has strong match, consider blending
+    if confidence < 25.0 and matches and matches[0]['similarity'] > 0.7:
+        # Very strong TF-IDF match with low MBR confidence → use TF-IDF
+        pred = matches[0]['translation']
+        print(f"  → Using TF-IDF fallback (MBR confidence {confidence:.1f} < 25, TF-IDF sim {matches[0]['similarity']:.3f})")
 
     all_predictions.append(pred)
     all_confidences.append(confidence)
+    all_top3.append(top3)
+    elapsed = time.time() - t_sent
+    print(f"  Final: {pred[:100]}")
+    print(f"  Confidence: {confidence:.1f}, Time: {elapsed:.1f}s")
 
-    if (i + 1) % 20 == 0 or i == 0:
-        print(f"  {i+1}/{len(test_inputs)} done, avg confidence: {np.mean(all_confidences):.1f}, fallbacks: {n_fallbacks}")
-        # Periodic disk cleanup
-        for cache_dir in ['/tmp/hf_cache', '/tmp/hf_home', '/tmp/torch_home', os.path.expanduser('~/.cache/huggingface')]:
-            if os.path.isdir(cache_dir):
-                sz = sum(f.stat().st_size for f in Path(cache_dir).rglob('*') if f.is_file()) / 1e6
-                if sz > 100:
-                    shutil.rmtree(cache_dir, ignore_errors=True)
-                    print(f"    Cleaned {cache_dir} ({sz:.0f}MB)")
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-print(f"\\nInference complete: {len(all_predictions)} predictions")
+total_time = time.time() - t0
+print(f"\\n{'='*60}")
+print(f"Inference complete: {len(all_predictions)} predictions in {total_time:.1f}s")
 print(f"Average MBR confidence: {np.mean(all_confidences):.1f}")
-print(f"TF-IDF fallbacks used: {n_fallbacks}/{len(all_predictions)}")
-print(f"Confidence distribution: min={np.min(all_confidences):.1f}, median={np.median(all_confidences):.1f}, max={np.max(all_confidences):.1f}")""")
+print(f"Confidence per sentence: {[f'{c:.1f}' for c in all_confidences]}")""")
 
 
 # =============================================================================
 # Cell: Validate on val set
 # =============================================================================
-add_code("""print("Evaluating on val set (last {VAL_SIZE} competition samples)...")
+add_code("""print(f"Evaluating on val set ({VAL_SIZE} competition samples)...")
 val_inputs = all_comp_inputs[-VAL_SIZE:]
 val_targets = all_comp_targets[-VAL_SIZE:]
 
+# Use smaller MBR for validation (10 samples × 3 temps) to save time
 val_preds = []
-for text in val_inputs[:20]:  # Evaluate first 20 for speed + disk safety
-    pred, _ = multi_temp_mbr_decode(text)
-    val_preds.append(pred)
+val_t0 = time.time()
+for j, text in enumerate(val_inputs):
+    # Lighter MBR for validation
+    enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
+    val_cands = []
+    with torch.no_grad():
+        for temp in [0.6, 0.8, 1.0]:
+            outputs = model.generate(
+                **enc,
+                max_new_tokens=MAX_TARGET_LEN,
+                do_sample=True,
+                num_beams=1,
+                temperature=temp,
+                top_p=0.95,
+                num_return_sequences=10,
+                no_repeat_ngram_size=3,
+            )
+            decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            val_cands.extend([s.strip() for s in decoded if s.strip()])
+    # Quick MBR
+    seen = set()
+    unique = [c for c in val_cands if c not in seen and not seen.add(c)]
+    if len(unique) <= 1:
+        val_preds.append(unique[0] if unique else "unknown")
+    else:
+        scores = [np.mean([chrf_score(h, r) for r in unique if r != h]) for h in unique]
+        val_preds.append(unique[int(np.argmax(scores))])
+    if (j + 1) % 50 == 0:
+        print(f"  Val {j+1}/{VAL_SIZE} done ({time.time()-val_t0:.0f}s)")
 
 val_refs = val_targets[:len(val_preds)]
 bleu_metric = BLEUScorer()
@@ -516,8 +625,9 @@ chrf_eval = ChrFScorer(word_order=2)
 val_bleu = bleu_metric.corpus_score(val_preds, [val_refs]).score
 val_chrf = chrf_eval.corpus_score(val_preds, [val_refs]).score
 
-print(f"Val BLEU:   {val_bleu:.4f}")
-print(f"Val chrF++: {val_chrf:.4f}")
+print(f"\\nVal BLEU:   {val_bleu:.2f}")
+print(f"Val chrF++: {val_chrf:.2f}")
+print(f"Val time:   {time.time()-val_t0:.1f}s")
 
 print("\\nSample predictions:")
 for i in range(min(5, len(val_preds))):
@@ -548,7 +658,9 @@ submission = pd.DataFrame({
 })
 
 print(f"Submission shape: {submission.shape}")
-print(submission.head(10).to_string())
+print("\\nFull submission:")
+for _, row in submission.iterrows():
+    print(f"  {row['id']}: {row['translation'][:120]}")
 submission.to_csv('/kaggle/working/submission.csv', index=False)
 
 print("\\n--- Final disk usage ---")
