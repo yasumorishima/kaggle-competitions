@@ -1,13 +1,19 @@
-"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator
+"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v7)
 
 Strategy:
   - Base: mattiaangeli/byt5-akkadian-mbr-v2 (already fine-tuned on competition data)
   - NO additional fine-tuning (avoids disk issues, base model is already good)
   - Multi-temperature MBR: generate candidates at T=0.6, 0.8, 1.0 → unified MBR selection
-  - MBR samples: 20 per temperature = 60 total candidates per sentence
+  - MBR samples: 10 per temperature = 30 total candidates per sentence
   - Context window: ±3 surrounding lines with [CURRENT] marker
   - TF-IDF similarity fallback for low-confidence translations
-  - Disk usage: near-zero (inference only, no checkpoints/optimizer/W&B)
+
+v7 disk fix vs v6:
+  - HF_HOME/TRANSFORMERS_CACHE/TORCH_HOME → /tmp (not /kaggle/working)
+  - float16 inference (halves model memory footprint)
+  - MBR samples 20→10 per temp (60→30 candidates)
+  - Validation 100→20 sentences
+  - Periodic cache cleanup during inference
 """
 
 import json
@@ -55,7 +61,7 @@ add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble
 - **Base model**: `mattiaangeli/byt5-akkadian-mbr-v2` (already fine-tuned on competition data, 28 votes)
 - **No additional fine-tuning** — all GPU time invested in superior inference
 - **Multi-temperature MBR**: candidates at T=0.6, 0.8, 1.0 → unified chrF++ MBR selection
-- **20 samples × 3 temperatures = 60 candidates per sentence**
+- **10 samples × 3 temperatures = 30 candidates per sentence**
 - **Context window**: ±3 surrounding lines with `[CURRENT]` marker
 - **TF-IDF similarity fallback**: for low-confidence translations, reference training data
 - **Evaluation**: BLEU + chrF++ (competition metric)""")
@@ -68,6 +74,7 @@ add_code("""import os
 import gc
 import glob
 import json
+import shutil
 import numpy as np
 import pandas as pd
 import torch
@@ -83,6 +90,11 @@ warnings.filterwarnings('ignore')
 # Disable W&B entirely
 os.environ["WANDB_DISABLED"] = "true"
 os.environ["WANDB_MODE"] = "disabled"
+
+# Redirect HuggingFace cache to /tmp to avoid filling /kaggle/working disk
+os.environ["HF_HOME"] = "/tmp/hf_home"
+os.environ["TRANSFORMERS_CACHE"] = "/tmp/hf_cache"
+os.environ["TORCH_HOME"] = "/tmp/torch_home"
 
 # --- chrF++ implementation (no sacrebleu dependency) ---
 def _extract_char_ngrams(text, n):
@@ -314,7 +326,7 @@ model_path = find_model_path(['byt5-akkadian-mbr-v2', 'byt5-akkadian-mbr', 'akka
 print(f"Using model: {model_path}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_path, torch_dtype=torch.float32)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_path, torch_dtype=torch.float16)
 model = model.to(DEVICE)
 model.eval()
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
@@ -331,7 +343,7 @@ MAX_TARGET_LEN = 192
 # Multi-temperature MBR: generate candidates at multiple temperatures,
 # then select the best by chrF++ consensus across ALL candidates.
 # This produces more diverse yet high-quality translations.
-MBR_SAMPLES_PER_TEMP = 20
+MBR_SAMPLES_PER_TEMP = 10
 MBR_TEMPERATURES = [0.6, 0.8, 1.0]
 chrf_metric = ChrFScorer(word_order=2)
 
@@ -436,6 +448,16 @@ for i, (text, raw_translit) in enumerate(zip(test_inputs, test_raw_translits)):
 
     if (i + 1) % 20 == 0 or i == 0:
         print(f"  {i+1}/{len(test_inputs)} done, avg confidence: {np.mean(all_confidences):.1f}, fallbacks: {n_fallbacks}")
+        # Periodic disk cleanup
+        for cache_dir in ['/tmp/hf_cache', '/tmp/hf_home', '/tmp/torch_home', os.path.expanduser('~/.cache/huggingface')]:
+            if os.path.isdir(cache_dir):
+                sz = sum(f.stat().st_size for f in Path(cache_dir).rglob('*') if f.is_file()) / 1e6
+                if sz > 100:
+                    shutil.rmtree(cache_dir, ignore_errors=True)
+                    print(f"    Cleaned {cache_dir} ({sz:.0f}MB)")
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 print(f"\\nInference complete: {len(all_predictions)} predictions")
 print(f"Average MBR confidence: {np.mean(all_confidences):.1f}")
@@ -451,7 +473,7 @@ val_inputs = all_comp_inputs[-VAL_SIZE:]
 val_targets = all_comp_targets[-VAL_SIZE:]
 
 val_preds = []
-for text in val_inputs[:100]:  # Evaluate first 100 for speed
+for text in val_inputs[:20]:  # Evaluate first 20 for speed + disk safety
     pred, _ = multi_temp_mbr_decode(text)
     val_preds.append(pred)
 
