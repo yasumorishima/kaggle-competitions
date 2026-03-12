@@ -68,6 +68,38 @@ add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble
 
 
 # =============================================================================
+# Cell: Aggressive disk cleanup (must run FIRST)
+# =============================================================================
+add_code("""import os, shutil, subprocess
+
+# Clean ALL previous output and caches to reclaim disk
+for d in [
+    '/kaggle/working/wandb',
+    '/kaggle/working/.cache',
+    '/root/.cache/huggingface',
+    '/root/.cache/torch',
+    '/root/.local/share/wandb',
+    '/tmp/hf_cache', '/tmp/hf_home', '/tmp/torch_home',
+]:
+    if os.path.isdir(d):
+        shutil.rmtree(d, ignore_errors=True)
+        print(f"Cleaned: {d}")
+
+# Remove any leftover large files from previous runs
+for f in os.listdir('/kaggle/working'):
+    fpath = os.path.join('/kaggle/working', f)
+    if os.path.isfile(fpath) and f not in ('__notebook_source__.ipynb',):
+        sz = os.path.getsize(fpath) / 1e6
+        if sz > 1:
+            os.remove(fpath)
+            print(f"Removed: {f} ({sz:.0f}MB)")
+
+print("--- Disk after cleanup ---")
+os.system("df -h /kaggle/working | tail -1")
+os.system("df -h /tmp | tail -1")""")
+
+
+# =============================================================================
 # Cell: Setup & Imports
 # =============================================================================
 add_code("""import os
