@@ -215,12 +215,19 @@ jobs:
           fi
           echo "W&B sync complete."
 
-      - name: Notify Discord (submit now)
-        if: inputs.competition_slug != ''
+      - name: Notify Discord (complete)
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          COMP="${{ inputs.competition_slug }}"
+          if [ -n "$COMP" ]; then
+            MSG="⚡ **W&B sync完了！ブラウザで提出してください**\nKernel: \`${{ inputs.kernel_id }}\`\nCompetition: \`${COMP}\`"
+          else
+            MSG="✅ **Kernel完了 & W&B sync完了**\nKernel: \`${{ inputs.kernel_id }}\`\nMemo: ${{ inputs.memo }}"
+          fi
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"content\": \"⚡ **W&B sync完了！ブラウザで提出してください**\nKernel: \`${{ inputs.kernel_id }}\`\nCompetition: \`${{ inputs.competition_slug }}\`\"}"
+            -d "{\"content\": \"${MSG}\"}" || true
 
       - name: Wait for submission and record LB score to W&B
         if: inputs.competition_slug != ''
