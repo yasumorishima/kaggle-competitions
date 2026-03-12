@@ -1,3 +1,15 @@
+# # Stanford RNA 3D Folding 2 — v4 RhoFold+ Pipeline
+# 
+# **5 structure slots:**
+# 1. **RhoFold+** single-sequence inference (pre-trained on 23.7M RNA sequences)
+# 2. **NW+2D template matching** (two-stage: k-mer pre-filter → NW + secondary structure scoring)
+# 3. **Fragment-based multi-template assembly** (100-res windows, best template per window, stitched)
+# 4. **RhoFold+/template + MSA co-evolution SA refinement** (10K steps × 3 restarts)
+# 5. **TM-score weighted ensemble** with SA refinement
+# 
+# Tools: [`kaggle-wandb-sync`](https://pypi.org/project/kaggle-wandb-sync/) / [`kaggle-notebook-deploy`](https://pypi.org/project/kaggle-notebook-deploy/)
+
+# %%
 import os
 os.environ['WANDB_MODE'] = 'offline'
 os.environ['WANDB_PROJECT'] = 'stanford-rna-3d-folding-2'
@@ -25,6 +37,7 @@ print('Libraries loaded.')
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'Device: {DEVICE}')
 
+# %%
 # ── Locate RhoFold+ dataset ──
 RHOFOLD_ROOT = None
 for candidate in sorted(Path('/kaggle/input').iterdir()):
@@ -52,6 +65,7 @@ if RHOFOLD_ROOT:
         print(f'  ... and {len(file_list) - 80} more files')
     print(f'Total files: {len(file_list)}')
 
+# %%
 # ── Discover RhoFold+ weights and source code ──
 rhofold_weights = None
 rhofold_pkg_dir = None
@@ -86,9 +100,31 @@ if RHOFOLD_ROOT:
 RHOFOLD_AVAILABLE = (rhofold_weights is not None and rhofold_pkg_dir is not None)
 print(f'\nRhoFold+ available: {RHOFOLD_AVAILABLE}')
 
+# %%
 # ── Install any missing dependencies for RhoFold+ ──
 if RHOFOLD_AVAILABLE:
-    # Check what RhoFold needs: typically ml_collections, einops, dm-tree, etc.
+    # Install biopython from local dataset (offline — no internet)
+    try:
+        import Bio
+        print(f'biopython already available: {Bio.__version__}')
+    except ImportError:
+        # Find biopython wheel in /kaggle/input
+        bp_wheels = list(Path('/kaggle/input').rglob('biopython*.whl'))
+        if bp_wheels:
+            print(f'Installing biopython from: {bp_wheels[0].name}')
+            r = subprocess.run(
+                [sys.executable, '-m', 'pip', 'install', '--quiet', '--no-deps', str(bp_wheels[0])],
+                capture_output=True, text=True,
+            )
+            if r.returncode == 0:
+                import Bio
+                print(f'biopython {Bio.__version__} installed OK')
+            else:
+                print(f'biopython install failed: {r.stderr[-300:]}')
+        else:
+            print('WARNING: biopython wheel not found in /kaggle/input — RhoFold+ will fail')
+
+    # Check other RhoFold dependencies
     missing = []
     for pkg in ['ml_collections', 'einops', 'tree']:
         try:
@@ -120,6 +156,7 @@ if RHOFOLD_AVAILABLE:
             print(f'Files in rhofold/: {[p.name for p in rhofold_dir.iterdir()][:20]}')
         RHOFOLD_AVAILABLE = False
 
+# %%
 # ── Load RhoFold+ model ──
 rhofold_model = None
 
@@ -169,9 +206,10 @@ if RHOFOLD_AVAILABLE:
 if not RHOFOLD_AVAILABLE:
     print('RhoFold+ NOT available — will rely on template methods')
 
+# %%
 run = wandb.init(
     project='stanford-rna-3d-folding-2',
-    name='rhofold-v4',
+    name='rhofold-v5',
     tags=['rhofold+', 'nw-template', 'fragment-assembly', 'msa-refine', 'tm-ensemble'],
     config={
         'approach': 'rhofold_plus_v4',
@@ -185,6 +223,7 @@ run = wandb.init(
 )
 print(f'W&B run: {run.name}')
 
+# %%
 INPUT_ROOT = Path('/kaggle/input')
 DATA_DIR = None
 for p in INPUT_ROOT.rglob('test_sequences.csv'):
@@ -220,6 +259,7 @@ test_seqs = {}
 for _, row in test_df.iterrows():
     test_seqs[row[ID_COL]] = row[SEQ_COL]
 
+# %%
 # ── Parse training structures ──
 train_labels_df['_target'] = train_labels_df['ID'].str.rsplit('_', n=1).str[0]
 
@@ -248,6 +288,7 @@ for _, row in train_seq_df.iterrows():
 valid_train_ids = [tid for tid in train_structures if tid in train_seq_map]
 print(f'Training structures: {len(train_structures)}, with sequence: {len(valid_train_ids)}')
 
+# %%
 # ========================================
 # Shared utilities
 # ========================================
@@ -347,6 +388,7 @@ def sa_multi_restart(coords_init, energy_fn, n_restarts=3, n_steps=5000,
 
 print('Utilities loaded (SA with multi-restart, Kabsch, TM-score).')
 
+# %%
 # ========================================
 # Nussinov secondary structure prediction
 # ========================================
@@ -405,6 +447,7 @@ def dot_bracket_similarity(db1, db2):
 
 print('Nussinov secondary structure prediction ready.')
 
+# %%
 # ========================================
 # k-mer pre-filtering for fast template search
 # ========================================
@@ -435,6 +478,7 @@ for tid in valid_train_ids:
     train_kmer_profiles[tid] = kmer_profile(train_seq_map[tid], k=4)
 print(f'k-mer profiles computed for {len(train_kmer_profiles)} training sequences in {time.time()-t0:.1f}s')
 
+# %%
 # ========================================
 # Needleman-Wunsch alignment (numpy-optimized)
 # ========================================
@@ -543,6 +587,7 @@ def needleman_wunsch_fast(seq1, seq2, max_dp_len=1500):
 
 print('NW alignment ready (numpy-optimized).')
 
+# %%
 # ========================================
 # Two-stage template search:
 #   Stage 1: k-mer pre-filter (top-50 per test sequence)
@@ -626,6 +671,7 @@ elapsed = time.time() - t0
 print(f'Two-stage template search done in {elapsed:.1f}s')
 wandb.log({'template_search_time': elapsed})
 
+# %%
 # ========================================
 # Method 1: RhoFold+ single-sequence prediction
 # ========================================
@@ -652,46 +698,65 @@ def parse_pdb_c1prime(pdb_path):
     return np.array(coords) if coords else None
 
 if rhofold_model is not None:
-    # Method A: Use RhoFold's Python API
+    # Method A: Use RhoFold Python API (get_features → model.forward)
     tmp_dir = Path('/kaggle/working/rhofold_tmp')
     tmp_dir.mkdir(exist_ok=True)
 
-    for test_tid in test_lengths:
-        test_seq = test_seqs[test_tid]
-        test_len = test_lengths[test_tid]
+    try:
+        from rhofold.utils.alphabet import get_features
+        from rhofold.utils.converter import output_to_pdb
+        print('RhoFold get_features/output_to_pdb imported OK')
 
-        fasta_path = tmp_dir / f'{test_tid}.fasta'
-        with open(fasta_path, 'w') as f:
-            f.write(f'>{test_tid}\n{test_seq}\n')
+        for test_tid in test_lengths:
+            test_seq = test_seqs[test_tid]
+            test_len = test_lengths[test_tid]
 
-        out_sub = tmp_dir / test_tid
-        out_sub.mkdir(exist_ok=True)
+            fasta_path = tmp_dir / f'{test_tid}.fasta'
+            with open(fasta_path, 'w') as f:
+                f.write(f'>{test_tid}\n{test_seq}\n')
 
-        try:
-            with torch.no_grad():
-                # Try calling predict method
-                output = rhofold_model.predict(
-                    str(fasta_path),
-                    output_dir=str(out_sub),
-                    device=DEVICE,
-                    single_seq_pred=True,
-                )
+            try:
+                # single_seq_pred: use fasta as MSA (single sequence)
+                data_dict = get_features(str(fasta_path), str(fasta_path))
 
-            # Find PDB output
-            pdb_files = sorted(out_sub.glob('*.pdb'))
-            for pdb_path in pdb_files:
-                coords = parse_pdb_c1prime(pdb_path)
-                if coords is not None and len(coords) > 0:
-                    if len(coords) != test_len:
-                        coords = interpolate_coords(coords, test_len)
-                    rhofold_predictions[test_tid] = center_coords(coords)
-                    print(f'  {test_tid}: RhoFold+ API OK ({len(coords)} atoms)')
-                    break
-            else:
-                print(f'  {test_tid}: No valid PDB output from API')
+                with torch.no_grad():
+                    output = rhofold_model(
+                        tokens=data_dict['tokens'].to(DEVICE),
+                        rna_fm_tokens=data_dict['rna_fm_tokens'].to(DEVICE),
+                        seq=data_dict['seq'],
+                    )
 
-        except Exception as e:
-            print(f'  {test_tid}: API failed: {type(e).__name__}: {str(e)[:200]}')
+                # Extract coordinates from last recycling output
+                last_out = output[-1] if isinstance(output, list) else output
+                if 'cord_tns_pred' in last_out:
+                    # cord_tns_pred shape: [1, L, n_atoms, 3]
+                    all_coords = last_out['cord_tns_pred'].cpu().numpy()[0]
+                    # Take C1' atom (index varies, typically index 1 or use first heavy atom)
+                    # RhoFold uses atom order: P, C4', ... — try to get C1' or fallback to first
+                    if all_coords.ndim == 3:
+                        c1_coords = all_coords[:, 1, :]  # C4' position as proxy
+                    else:
+                        c1_coords = all_coords
+                    if len(c1_coords) != test_len:
+                        c1_coords = interpolate_coords(c1_coords, test_len)
+                    rhofold_predictions[test_tid] = center_coords(c1_coords)
+                    print(f'  {test_tid}: forward() OK ({len(c1_coords)} atoms)')
+                else:
+                    # Try PDB output
+                    pdb_path = tmp_dir / f'{test_tid}.pdb'
+                    output_to_pdb(output, str(pdb_path))
+                    coords = parse_pdb_c1prime(pdb_path)
+                    if coords is not None and len(coords) > 0:
+                        if len(coords) != test_len:
+                            coords = interpolate_coords(coords, test_len)
+                        rhofold_predictions[test_tid] = center_coords(coords)
+                        print(f'  {test_tid}: PDB output OK ({len(coords)} atoms)')
+
+            except Exception as e:
+                print(f'  {test_tid}: forward failed: {type(e).__name__}: {str(e)[:200]}')
+
+    except ImportError as e:
+        print(f'Method A import failed: {e} — will try subprocess')
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -719,6 +784,7 @@ if len(rhofold_predictions) == 0 and inference_script is not None and RHOFOLD_AV
                 '--output_dir', str(out_sub),
                 '--single_seq_pred', 'True',
                 '--device', DEVICE,
+                '--ckpt', str(rhofold_weights),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=600,
                                      cwd=str(inference_script.parent))
@@ -754,6 +820,7 @@ if rhofold_model is not None:
         torch.cuda.empty_cache()
     print('RhoFold+ model unloaded, GPU memory freed.')
 
+# %%
 # ========================================
 # Method 2: NW+2D Template Matching (Top-1)
 # ========================================
@@ -786,6 +853,7 @@ for test_tid in test_lengths:
 print(f'NW Template Top-1 done in {time.time()-t0:.1f}s')
 wandb.log({'nw_template_time': time.time()-t0})
 
+# %%
 # ========================================
 # Method 3: Fragment-based Multi-Template Assembly
 # ========================================
@@ -907,6 +975,7 @@ for test_tid in test_lengths:
 print(f'Fragment assembly done in {time.time()-t0:.1f}s')
 wandb.log({'fragment_assembly_time': time.time()-t0})
 
+# %%
 # ========================================
 # MSA utilities
 # ========================================
@@ -946,6 +1015,7 @@ def compute_contact_map(msa_seqs, query_len):
 
 print('MSA utilities ready.')
 
+# %%
 # ========================================
 # Method 4: Best prediction + MSA co-evolution SA refinement
 #   - 10000 SA steps × 3 restarts
@@ -1068,6 +1138,7 @@ elapsed = time.time() - t0
 print(f'MSA SA refinement done in {elapsed:.1f}s')
 wandb.log({'msa_refine_time': elapsed})
 
+# %%
 # ========================================
 # Method 5: TM-score weighted ensemble + SA refinement
 # ========================================
@@ -1179,6 +1250,7 @@ for test_tid in test_lengths:
 print(f'Ensemble done in {time.time()-t0:.1f}s')
 wandb.log({'ensemble_time': time.time()-t0})
 
+# %%
 # ========================================
 # Build submission: assign 5 methods to 5 structure slots
 # ========================================
@@ -1250,6 +1322,7 @@ wandb.log({
     'rhofold_coverage': len(rhofold_predictions) / len(test_lengths),
 })
 
+# %%
 print('\n' + '=' * 60)
 print('  SUMMARY')
 print('=' * 60)

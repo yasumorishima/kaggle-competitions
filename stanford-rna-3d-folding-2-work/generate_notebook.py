@@ -161,7 +161,28 @@ print(f'\\nRhoFold+ available: {RHOFOLD_AVAILABLE}')"""
 add_code(
     """# ── Install any missing dependencies for RhoFold+ ──
 if RHOFOLD_AVAILABLE:
-    # Check what RhoFold needs: typically ml_collections, einops, dm-tree, etc.
+    # Install biopython from local dataset (offline — no internet)
+    try:
+        import Bio
+        print(f'biopython already available: {Bio.__version__}')
+    except ImportError:
+        # Find biopython wheel in /kaggle/input
+        bp_wheels = list(Path('/kaggle/input').rglob('biopython*.whl'))
+        if bp_wheels:
+            print(f'Installing biopython from: {bp_wheels[0].name}')
+            r = subprocess.run(
+                [sys.executable, '-m', 'pip', 'install', '--quiet', '--no-deps', str(bp_wheels[0])],
+                capture_output=True, text=True,
+            )
+            if r.returncode == 0:
+                import Bio
+                print(f'biopython {Bio.__version__} installed OK')
+            else:
+                print(f'biopython install failed: {r.stderr[-300:]}')
+        else:
+            print('WARNING: biopython wheel not found in /kaggle/input — RhoFold+ will fail')
+
+    # Check other RhoFold dependencies
     missing = []
     for pkg in ['ml_collections', 'einops', 'tree']:
         try:
@@ -250,7 +271,7 @@ if not RHOFOLD_AVAILABLE:
 add_code(
     """run = wandb.init(
     project='stanford-rna-3d-folding-2',
-    name='rhofold-v4',
+    name='rhofold-v5',
     tags=['rhofold+', 'nw-template', 'fragment-assembly', 'msa-refine', 'tm-ensemble'],
     config={
         'approach': 'rhofold_plus_v4',
@@ -755,46 +776,65 @@ def parse_pdb_c1prime(pdb_path):
     return np.array(coords) if coords else None
 
 if rhofold_model is not None:
-    # Method A: Use RhoFold's Python API
+    # Method A: Use RhoFold Python API (get_features → model.forward)
     tmp_dir = Path('/kaggle/working/rhofold_tmp')
     tmp_dir.mkdir(exist_ok=True)
 
-    for test_tid in test_lengths:
-        test_seq = test_seqs[test_tid]
-        test_len = test_lengths[test_tid]
+    try:
+        from rhofold.utils.alphabet import get_features
+        from rhofold.utils.converter import output_to_pdb
+        print('RhoFold get_features/output_to_pdb imported OK')
 
-        fasta_path = tmp_dir / f'{test_tid}.fasta'
-        with open(fasta_path, 'w') as f:
-            f.write(f'>{test_tid}\\n{test_seq}\\n')
+        for test_tid in test_lengths:
+            test_seq = test_seqs[test_tid]
+            test_len = test_lengths[test_tid]
 
-        out_sub = tmp_dir / test_tid
-        out_sub.mkdir(exist_ok=True)
+            fasta_path = tmp_dir / f'{test_tid}.fasta'
+            with open(fasta_path, 'w') as f:
+                f.write(f'>{test_tid}\\n{test_seq}\\n')
 
-        try:
-            with torch.no_grad():
-                # Try calling predict method
-                output = rhofold_model.predict(
-                    str(fasta_path),
-                    output_dir=str(out_sub),
-                    device=DEVICE,
-                    single_seq_pred=True,
-                )
+            try:
+                # single_seq_pred: use fasta as MSA (single sequence)
+                data_dict = get_features(str(fasta_path), str(fasta_path))
 
-            # Find PDB output
-            pdb_files = sorted(out_sub.glob('*.pdb'))
-            for pdb_path in pdb_files:
-                coords = parse_pdb_c1prime(pdb_path)
-                if coords is not None and len(coords) > 0:
-                    if len(coords) != test_len:
-                        coords = interpolate_coords(coords, test_len)
-                    rhofold_predictions[test_tid] = center_coords(coords)
-                    print(f'  {test_tid}: RhoFold+ API OK ({len(coords)} atoms)')
-                    break
-            else:
-                print(f'  {test_tid}: No valid PDB output from API')
+                with torch.no_grad():
+                    output = rhofold_model(
+                        tokens=data_dict['tokens'].to(DEVICE),
+                        rna_fm_tokens=data_dict['rna_fm_tokens'].to(DEVICE),
+                        seq=data_dict['seq'],
+                    )
 
-        except Exception as e:
-            print(f'  {test_tid}: API failed: {type(e).__name__}: {str(e)[:200]}')
+                # Extract coordinates from last recycling output
+                last_out = output[-1] if isinstance(output, list) else output
+                if 'cord_tns_pred' in last_out:
+                    # cord_tns_pred shape: [1, L, n_atoms, 3]
+                    all_coords = last_out['cord_tns_pred'].cpu().numpy()[0]
+                    # Take C1' atom (index varies, typically index 1 or use first heavy atom)
+                    # RhoFold uses atom order: P, C4', ... — try to get C1' or fallback to first
+                    if all_coords.ndim == 3:
+                        c1_coords = all_coords[:, 1, :]  # C4' position as proxy
+                    else:
+                        c1_coords = all_coords
+                    if len(c1_coords) != test_len:
+                        c1_coords = interpolate_coords(c1_coords, test_len)
+                    rhofold_predictions[test_tid] = center_coords(c1_coords)
+                    print(f'  {test_tid}: forward() OK ({len(c1_coords)} atoms)')
+                else:
+                    # Try PDB output
+                    pdb_path = tmp_dir / f'{test_tid}.pdb'
+                    output_to_pdb(output, str(pdb_path))
+                    coords = parse_pdb_c1prime(pdb_path)
+                    if coords is not None and len(coords) > 0:
+                        if len(coords) != test_len:
+                            coords = interpolate_coords(coords, test_len)
+                        rhofold_predictions[test_tid] = center_coords(coords)
+                        print(f'  {test_tid}: PDB output OK ({len(coords)} atoms)')
+
+            except Exception as e:
+                print(f'  {test_tid}: forward failed: {type(e).__name__}: {str(e)[:200]}')
+
+    except ImportError as e:
+        print(f'Method A import failed: {e} — will try subprocess')
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -822,6 +862,7 @@ if len(rhofold_predictions) == 0 and inference_script is not None and RHOFOLD_AV
                 '--output_dir', str(out_sub),
                 '--single_seq_pred', 'True',
                 '--device', DEVICE,
+                '--ckpt', str(rhofold_weights),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=600,
                                      cwd=str(inference_script.parent))
