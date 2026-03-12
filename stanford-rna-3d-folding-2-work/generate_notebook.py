@@ -1,21 +1,18 @@
-"""Generate Stanford RNA 3D Folding 2 — v9 Multi-Approach Pipeline (optimized).
+"""Generate Stanford RNA 3D Folding 2 — v3 Multi-Approach Pipeline (major upgrade).
 
 5 structure slots filled by 5 genuinely different prediction methods:
 1. Nussinov secondary structure → 3D geometry (stems as A-form helices, loops as arcs)
-2. MSA co-evolution contact map → distance geometry optimization (scipy minimize)
-3. 1D ResNet regression trained on train_labels (sequence → xyz)
-4. k-mer similarity template matching (not just length)
-5. Ensemble refinement: average of structures 1-4 with contact-guided energy minimization
+2. MSA co-evolution contact map → distance geometry with Simulated Annealing
+3. Transformer model (multi-head self-attention, trained on train_labels with distance-based loss)
+4. k-mer similarity template matching
+5. TM-score weighted ensemble + Simulated Annealing refinement
 
-v9 optimizations vs v8 (timeout fix):
-- Nussinov DP capped at 300 residues (O(n³) → helix fallback for longer)
-- Co-evolution matrix: Python double loop → NumPy reshape+vectorize
-- Distance geometry energy: Python loops → NumPy vectorized
-- Ensemble energy: Python loops → NumPy vectorized
-- L-BFGS maxiter 500→200, ftol 1e-6→1e-5
-- ResNet epochs 30→15
-
-GPU enabled for ResNet training.
+v3 major changes vs v9:
+- ResNet → Transformer with positional encoding and self-attention
+- MSE loss → pairwise distance loss (rotation-invariant)
+- L-BFGS → Simulated Annealing for distance geometry and ensemble refinement
+- Simple average → TM-score weighted ensemble
+- Training: 30 epochs, warmup + cosine decay, batch size 8
 """
 
 import json
@@ -51,14 +48,14 @@ def add_code(source):
 
 # ── Title ──
 add_md(
-    """# Stanford RNA 3D Folding 2 — v9 Multi-Approach Pipeline
+    """# Stanford RNA 3D Folding 2 — v3 Multi-Approach Pipeline
 
 **5 genuinely different methods, one per structure slot:**
 1. **Nussinov 2D → 3D geometry** (stems as A-form helices, loops as smooth arcs)
-2. **MSA co-evolution → distance geometry** (contact map from covariance → L-BFGS optimization)
-3. **1D ResNet** (trained on competition train data, sequence features → xyz regression)
+2. **MSA co-evolution → distance geometry with Simulated Annealing** (upgraded from L-BFGS)
+3. **Transformer** (multi-head self-attention, distance-based loss, upgraded from ResNet)
 4. **k-mer template matching** (sequence similarity, not just length)
-5. **Ensemble refinement** (average + contact-guided energy minimization)
+5. **TM-score weighted ensemble + SA refinement** (upgraded from simple average)
 
 Tools: [`kaggle-wandb-sync`](https://pypi.org/project/kaggle-wandb-sync/) / [`kaggle-notebook-deploy`](https://pypi.org/project/kaggle-notebook-deploy/)"""
 )
@@ -73,9 +70,9 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from scipy.interpolate import interp1d
-from scipy.optimize import minimize
 from scipy.spatial.distance import pdist, squareform
 from collections import defaultdict
+import math
 import warnings
 warnings.filterwarnings('ignore')
 import time
@@ -83,6 +80,7 @@ import gc
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
 import wandb
@@ -96,15 +94,15 @@ print(f'Device: {DEVICE}')"""
 add_code(
     """run = wandb.init(
     project='stanford-rna-3d-folding-2',
-    name='multi-approach-v9',
-    tags=['nussinov', 'msa-coevo', 'resnet', 'kmer-template', 'ensemble', 'gpu'],
+    name='multi-approach-v3',
+    tags=['nussinov', 'msa-coevo', 'transformer', 'kmer-template', 'tm-ensemble', 'gpu', 'sa'],
     config={
-        'approach': 'multi_approach_5_slots',
+        'approach': 'multi_approach_5_slots_v3',
         'slot_1': 'nussinov_3d',
-        'slot_2': 'msa_distance_geometry',
-        'slot_3': 'resnet_regression',
+        'slot_2': 'msa_distance_geometry_sa',
+        'slot_3': 'transformer_regression',
         'slot_4': 'kmer_template_matching',
-        'slot_5': 'ensemble_refinement',
+        'slot_5': 'tm_weighted_ensemble_sa',
     },
 )
 print(f'W&B run: {run.name}')"""
@@ -150,7 +148,7 @@ for tid, tlen in list(test_lengths.items())[:5]:
 
 # ── Build train structure library ──
 add_code(
-    """# Parse training structures (for template matching + ResNet training)
+    """# Parse training structures (for template matching + Transformer training)
 train_labels_df['_target'] = train_labels_df['ID'].str.rsplit('_', n=1).str[0]
 
 train_structures = {}
@@ -231,7 +229,82 @@ def kmer_distance(seq1, seq2, k=3):
         return 1.0
     return 1.0 - dot / norm
 
-print('Utilities loaded.')"""
+def simulated_annealing(coords_init, energy_fn, n_steps=3000,
+                         T_start=100.0, T_end=0.1, perturb_scale=0.5):
+    \"\"\"Simulated annealing optimizer for 3D structure refinement.
+
+    Args:
+        coords_init: (N, 3) initial coordinates
+        energy_fn: callable(coords) -> scalar energy
+        n_steps: number of SA steps
+        T_start: initial temperature
+        T_end: final temperature
+        perturb_scale: magnitude of random perturbations
+    Returns:
+        best_coords: (N, 3) optimized coordinates
+    \"\"\"
+    coords = coords_init.copy()
+    best_coords = coords.copy()
+    current_energy = energy_fn(coords)
+    best_energy = current_energy
+
+    # Exponential cooling schedule
+    cooling_rate = (T_end / T_start) ** (1.0 / max(n_steps, 1))
+
+    T = T_start
+    for step in range(n_steps):
+        # Random perturbation: pick random residues to move
+        n = len(coords)
+        n_perturb = max(1, n // 10)
+        indices = np.random.choice(n, size=n_perturb, replace=False)
+        perturbation = np.random.randn(n_perturb, 3) * perturb_scale
+
+        new_coords = coords.copy()
+        new_coords[indices] += perturbation
+        new_energy = energy_fn(new_coords)
+
+        delta_e = new_energy - current_energy
+        # Metropolis criterion
+        if delta_e < 0 or np.random.random() < np.exp(-delta_e / max(T, 1e-10)):
+            coords = new_coords
+            current_energy = new_energy
+            if current_energy < best_energy:
+                best_energy = current_energy
+                best_coords = coords.copy()
+
+        T *= cooling_rate
+
+    return best_coords
+
+def compute_tm_score(coords1, coords2):
+    \"\"\"Compute TM-score between two structures of same length.
+
+    TM-score is length-normalized and ranges from 0 to 1.
+    \"\"\"
+    n = len(coords1)
+    if n == 0:
+        return 0.0
+
+    # Center both structures
+    c1 = coords1 - coords1.mean(axis=0)
+    c2 = coords2 - coords2.mean(axis=0)
+
+    # Optimal superposition via Kabsch algorithm
+    H = c1.T @ c2
+    U, S, Vt = np.linalg.svd(H)
+    d = np.linalg.det(Vt.T @ U.T)
+    sign_matrix = np.diag([1.0, 1.0, np.sign(d)])
+    R = Vt.T @ sign_matrix @ U.T
+    c2_aligned = (R @ c2.T).T
+
+    # TM-score formula
+    d0 = 1.24 * (max(n, 19) - 15) ** (1.0 / 3.0) - 1.8
+    d0 = max(d0, 0.5)
+    di_sq = np.sum((c1 - c2_aligned) ** 2, axis=1)
+    tm = np.sum(1.0 / (1.0 + di_sq / (d0 ** 2))) / n
+    return tm
+
+print('Utilities loaded (with SA optimizer and TM-score).')"""
 )
 
 # ── Method 1: Nussinov 2D → 3D ──
@@ -366,13 +439,13 @@ print(f'Nussinov 3D done in {time.time()-t0:.1f}s')
 wandb.log({'nussinov_time': time.time()-t0, 'nussinov_n_pairs_mean': np.mean([len(nussinov_dp(test_df[test_df[test_df.columns[0]] == tid][SEQ_COL].values[0])) for tid in list(test_lengths.keys())[:5]])})"""
 )
 
-# ── Method 2: MSA co-evolution → distance geometry ──
+# ── Method 2: MSA co-evolution → distance geometry with SA ──
 add_code(
     """# ========================================
-# Method 2: MSA co-evolution → distance geometry
+# Method 2: MSA co-evolution → distance geometry with Simulated Annealing
 # ========================================
 print('\\n' + '=' * 60)
-print('  Method 2: MSA Co-evolution → Distance Geometry')
+print('  Method 2: MSA Co-evolution → Distance Geometry (SA)')
 print('=' * 60)
 
 def parse_msa(fasta_path, max_seqs=500):
@@ -422,45 +495,43 @@ def compute_coevolution_matrix(msa_seqs, query_len):
 
     return contact_scores
 
-def distance_geometry_from_contacts(seq_len, contact_map, n_contacts_ratio=1.5):
-    \"\"\"Optimize 3D coordinates from predicted contacts using L-BFGS.\"\"\"
+def distance_geometry_sa(seq_len, contact_map, n_contacts_ratio=1.5):
+    \"\"\"Optimize 3D coordinates from predicted contacts using Simulated Annealing.\"\"\"
     # Select top contacts
     n_contacts = int(seq_len * n_contacts_ratio)
     upper_tri = np.triu_indices(seq_len, k=2)
     scores = contact_map[upper_tri]
     top_idx = np.argsort(scores)[-n_contacts:]
-    contact_pairs = [(upper_tri[0][k], upper_tri[1][k]) for k in top_idx]
+    contact_pairs_i = upper_tri[0][top_idx]
+    contact_pairs_j = upper_tri[1][top_idx]
 
-    # Target distances: contacts ~6Å, sequential ~3.8Å
+    # Target distances: contacts ~6A, sequential ~3.8A
     CONTACT_DIST = 6.0
     SEQ_DIST = 3.8
 
-    contact_i = np.array([p[0] for p in contact_pairs])
-    contact_j = np.array([p[1] for p in contact_pairs])
+    # Pre-compute repulsion pairs (subsampled)
+    rep_i_list = []
+    rep_j_list = []
+    for ri in range(0, seq_len, 3):
+        for rj in range(ri + 3, min(ri + 15, seq_len), 3):
+            rep_i_list.append(ri)
+            rep_j_list.append(rj)
+    rep_i_arr = np.array(rep_i_list) if rep_i_list else np.array([], dtype=int)
+    rep_j_arr = np.array(rep_j_list) if rep_j_list else np.array([], dtype=int)
 
-    def energy(flat_coords):
-        coords = flat_coords.reshape(-1, 3)
-        # Sequential distance constraints — vectorized
+    def energy(coords):
+        # Sequential distance constraints
         diffs_seq = coords[1:] - coords[:-1]
         dists_seq = np.sqrt((diffs_seq ** 2).sum(axis=1))
         loss = ((dists_seq - SEQ_DIST) ** 2).sum()
-        # Contact constraints — vectorized
-        if len(contact_i) > 0:
-            diffs_c = coords[contact_j] - coords[contact_i]
+        # Contact constraints
+        if len(contact_pairs_i) > 0:
+            diffs_c = coords[contact_pairs_j] - coords[contact_pairs_i]
             dists_c = np.sqrt((diffs_c ** 2).sum(axis=1))
             loss += 0.5 * ((dists_c - CONTACT_DIST) ** 2).sum()
-        # Repulsion — vectorized with subsampled pairs
-        rep_i = np.arange(0, seq_len, 3)
-        rep_pairs_i = []
-        rep_pairs_j = []
-        for ri in rep_i:
-            rj = np.arange(ri + 3, min(ri + 15, seq_len), 3)
-            rep_pairs_i.extend([ri] * len(rj))
-            rep_pairs_j.extend(rj)
-        if rep_pairs_i:
-            rpi = np.array(rep_pairs_i)
-            rpj = np.array(rep_pairs_j)
-            diffs_r = coords[rpj] - coords[rpi]
+        # Repulsion
+        if len(rep_i_arr) > 0:
+            diffs_r = coords[rep_j_arr] - coords[rep_i_arr]
             dists_r = np.sqrt((diffs_r ** 2).sum(axis=1))
             mask_close = dists_r < 3.0
             if mask_close.any():
@@ -475,9 +546,13 @@ def distance_geometry_from_contacts(seq_len, contact_map, n_contacts_ratio=1.5):
     init_coords[:, 1] = 9.0 * np.sin(idx * twist)
     init_coords[:, 2] = idx * 2.81
 
-    result = minimize(energy, init_coords.flatten(), method='L-BFGS-B',
-                      options={'maxiter': 200, 'ftol': 1e-5})
-    return center_coords(result.x.reshape(-1, 3))
+    # Simulated annealing optimization
+    sa_steps = min(3000, max(2000, seq_len * 10))
+    optimized = simulated_annealing(
+        init_coords, energy, n_steps=sa_steps,
+        T_start=100.0, T_end=0.1, perturb_scale=0.5,
+    )
+    return center_coords(optimized)
 
 # Process each test sequence
 t0 = time.time()
@@ -506,55 +581,95 @@ for tid in test_lengths:
                 contact_map[j, i] = 1.0
         print(f'  {tid}: No MSA, using {len(pairs)} Nussinov pairs as pseudo-contacts')
 
-    coords = distance_geometry_from_contacts(seq_len, contact_map)
+    coords = distance_geometry_sa(seq_len, contact_map)
     coevo_predictions[tid] = coords
 
-print(f'Distance geometry done in {time.time()-t0:.1f}s')
-wandb.log({'dg_time': time.time()-t0})"""
+print(f'Distance geometry (SA) done in {time.time()-t0:.1f}s')
+wandb.log({'dg_sa_time': time.time()-t0})"""
 )
 
-# ── Method 3: 1D ResNet regression ──
+# ── Method 3: Transformer regression ──
 add_code(
     """# ========================================
-# Method 3: 1D ResNet — sequence → xyz regression
+# Method 3: Transformer — sequence → xyz regression
 # ========================================
 print('\\n' + '=' * 60)
-print('  Method 3: 1D ResNet Regression')
+print('  Method 3: Transformer Regression')
 print('=' * 60)
 
-class ResBlock1D(nn.Module):
-    def __init__(self, channels):
+class SinusoidalPositionalEncoding(nn.Module):
+    \"\"\"Sinusoidal positional encoding for sequence positions.\"\"\"
+    def __init__(self, d_model, max_len=1024):
         super().__init__()
-        self.conv1 = nn.Conv1d(channels, channels, 3, padding=1)
-        self.bn1 = nn.BatchNorm1d(channels)
-        self.conv2 = nn.Conv1d(channels, channels, 3, padding=1)
-        self.bn2 = nn.BatchNorm1d(channels)
-        self.relu = nn.ReLU()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # (1, max_len, d_model)
+        self.register_buffer('pe', pe)
 
     def forward(self, x):
-        res = x
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.bn2(self.conv2(x))
-        return self.relu(x + res)
+        # x: (batch, seq_len, d_model)
+        return x + self.pe[:, :x.size(1), :]
 
-class RNAResNet(nn.Module):
-    def __init__(self, in_channels=5, hidden=128, n_blocks=6):
+class RNATransformer(nn.Module):
+    \"\"\"Transformer model for RNA sequence → 3D coordinate prediction.
+
+    Architecture:
+    - Input projection: 5 (one-hot) → hidden_dim
+    - Sinusoidal positional encoding
+    - N transformer encoder layers with multi-head self-attention
+    - Output projection: hidden_dim → 3 (xyz)
+    \"\"\"
+    def __init__(self, in_channels=5, hidden_dim=192, n_heads=6, n_layers=6,
+                 dropout=0.1, max_len=1024):
         super().__init__()
-        self.input_conv = nn.Sequential(
-            nn.Conv1d(in_channels, hidden, 7, padding=3),
-            nn.BatchNorm1d(hidden),
+        self.hidden_dim = hidden_dim
+
+        # Input projection
+        self.input_proj = nn.Sequential(
+            nn.Linear(in_channels, hidden_dim),
+            nn.LayerNorm(hidden_dim),
             nn.ReLU(),
+            nn.Dropout(dropout),
         )
-        self.blocks = nn.Sequential(*[ResBlock1D(hidden) for _ in range(n_blocks)])
-        self.output_conv = nn.Conv1d(hidden, 3, 1)  # predict x, y, z
 
-    def forward(self, x):
-        # x: (batch, seq_len, in_channels) → permute to (batch, in_channels, seq_len)
-        x = x.permute(0, 2, 1)
-        x = self.input_conv(x)
-        x = self.blocks(x)
-        x = self.output_conv(x)
-        return x.permute(0, 2, 1)  # (batch, seq_len, 3)
+        # Positional encoding
+        self.pos_enc = SinusoidalPositionalEncoding(hidden_dim, max_len=max_len)
+
+        # Transformer encoder layers
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            nhead=n_heads,
+            dim_feedforward=hidden_dim * 4,
+            dropout=dropout,
+            activation='gelu',
+            batch_first=True,
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+
+        # Output projection
+        self.output_proj = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, 3),
+        )
+
+    def forward(self, x, mask=None):
+        # x: (batch, seq_len, 5)
+        x = self.input_proj(x)
+        x = self.pos_enc(x)
+
+        # Create key_padding_mask if mask provided (True = ignore)
+        key_padding_mask = None
+        if mask is not None:
+            key_padding_mask = (mask == 0)  # True where padding
+
+        x = self.transformer(x, src_key_padding_mask=key_padding_mask)
+        x = self.output_proj(x)
+        return x  # (batch, seq_len, 3)
 
 class RNADataset(Dataset):
     def __init__(self, sequences, coords_list, max_len):
@@ -575,6 +690,55 @@ class RNADataset(Dataset):
         mask[:len(coords)] = 1.0
         return torch.tensor(oh), torch.tensor(c), torch.tensor(mask)
 
+def pairwise_distance_loss(pred, target, mask, n_sample_pairs=256):
+    \"\"\"Rotation-invariant pairwise distance loss.
+
+    Instead of comparing raw coordinates (MSE), compare pairwise distances
+    between residues. This is invariant to rotation and translation.
+
+    Combines:
+    1. Local distance loss: sequential neighbor distances (i, i+1)
+    2. Sampled pairwise distance loss: random pairs (i, j) with |i-j| > 1
+    \"\"\"
+    batch_size = pred.shape[0]
+    total_loss = 0.0
+
+    for b in range(batch_size):
+        m = mask[b]
+        valid_len = int(m.sum().item())
+        if valid_len < 3:
+            continue
+
+        p = pred[b, :valid_len]   # (L, 3)
+        t = target[b, :valid_len]  # (L, 3)
+
+        # 1. Local distance loss: sequential neighbors
+        pred_local_dist = torch.sqrt(((p[1:] - p[:-1]) ** 2).sum(dim=1) + 1e-8)
+        true_local_dist = torch.sqrt(((t[1:] - t[:-1]) ** 2).sum(dim=1) + 1e-8)
+        local_loss = ((pred_local_dist - true_local_dist) ** 2).mean()
+
+        # 2. Sampled pairwise distance loss
+        n_pairs = min(n_sample_pairs, valid_len * (valid_len - 1) // 2)
+        if n_pairs > 0 and valid_len > 5:
+            # Sample random pairs with |i-j| > 1
+            idx_i = torch.randint(0, valid_len, (n_pairs * 2,), device=pred.device)
+            idx_j = torch.randint(0, valid_len, (n_pairs * 2,), device=pred.device)
+            valid_mask = (idx_i != idx_j) & (torch.abs(idx_i - idx_j) > 1)
+            idx_i = idx_i[valid_mask][:n_pairs]
+            idx_j = idx_j[valid_mask][:n_pairs]
+
+            if len(idx_i) > 0:
+                pred_pair_dist = torch.sqrt(((p[idx_i] - p[idx_j]) ** 2).sum(dim=1) + 1e-8)
+                true_pair_dist = torch.sqrt(((t[idx_i] - t[idx_j]) ** 2).sum(dim=1) + 1e-8)
+                pair_loss = ((pred_pair_dist - true_pair_dist) ** 2).mean()
+                total_loss += local_loss + 0.5 * pair_loss
+            else:
+                total_loss += local_loss
+        else:
+            total_loss += local_loss
+
+    return total_loss / max(batch_size, 1)
+
 # Prepare training data
 MAX_LEN = 512  # cap for memory
 train_seqs = []
@@ -591,19 +755,35 @@ for tid in train_structures:
     train_seqs.append(seq[:min_len])
     train_coords_list.append(coords[:min_len])
 
-print(f'ResNet training samples: {len(train_seqs)} (skipped {skipped} with len > {MAX_LEN})')
+print(f'Transformer training samples: {len(train_seqs)} (skipped {skipped} with len > {MAX_LEN})')
 
 # Train
-EPOCHS = 15
-BATCH_SIZE = 16
-LR = 1e-3
+EPOCHS = 30
+BATCH_SIZE = 8
+PEAK_LR = 5e-4
+WARMUP_EPOCHS = 5
 
 dataset = RNADataset(train_seqs, train_coords_list, MAX_LEN)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
 
-model = RNAResNet(in_channels=5, hidden=128, n_blocks=6).to(DEVICE)
-optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+model = RNATransformer(
+    in_channels=5, hidden_dim=192, n_heads=6, n_layers=6,
+    dropout=0.1, max_len=MAX_LEN + 64,
+).to(DEVICE)
+
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f'Transformer parameters: {n_params:,}')
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=PEAK_LR, weight_decay=1e-4)
+
+# Warmup + Cosine decay scheduler
+def lr_lambda(epoch):
+    if epoch < WARMUP_EPOCHS:
+        return (epoch + 1) / WARMUP_EPOCHS
+    progress = (epoch - WARMUP_EPOCHS) / max(EPOCHS - WARMUP_EPOCHS, 1)
+    return 0.5 * (1.0 + math.cos(math.pi * progress))
+
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 t0 = time.time()
 for epoch in range(EPOCHS):
@@ -612,11 +792,11 @@ for epoch in range(EPOCHS):
     n_batches = 0
     for oh, coords_gt, mask in loader:
         oh, coords_gt, mask = oh.to(DEVICE), coords_gt.to(DEVICE), mask.to(DEVICE)
-        pred = model(oh)
-        # MSE loss only on valid positions
-        diff = (pred - coords_gt) ** 2
-        diff = diff * mask.unsqueeze(-1)
-        loss = diff.sum() / mask.sum() / 3
+        pred = model(oh, mask)
+
+        # Pairwise distance loss (rotation-invariant)
+        loss = pairwise_distance_loss(pred, coords_gt, mask)
+
         optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -625,19 +805,20 @@ for epoch in range(EPOCHS):
         n_batches += 1
     scheduler.step()
     avg_loss = total_loss / max(n_batches, 1)
-    if (epoch + 1) % 5 == 0:
-        print(f'  Epoch {epoch+1}/{EPOCHS}: loss={avg_loss:.4f}')
-    wandb.log({'resnet_epoch': epoch+1, 'resnet_loss': avg_loss})
+    current_lr = optimizer.param_groups[0]['lr']
+    if (epoch + 1) % 5 == 0 or epoch == 0:
+        print(f'  Epoch {epoch+1}/{EPOCHS}: loss={avg_loss:.4f}, lr={current_lr:.6f}')
+    wandb.log({'transformer_epoch': epoch+1, 'transformer_loss': avg_loss, 'transformer_lr': current_lr})
 
-print(f'ResNet trained in {time.time()-t0:.1f}s')
-wandb.log({'resnet_train_time': time.time()-t0})"""
+print(f'Transformer trained in {time.time()-t0:.1f}s')
+wandb.log({'transformer_train_time': time.time()-t0, 'transformer_params': n_params})"""
 )
 
-# ── ResNet inference ──
+# ── Transformer inference ──
 add_code(
-    """# ResNet inference on test
+    """# Transformer inference on test
 model.eval()
-resnet_predictions = {}
+transformer_predictions = {}
 
 with torch.no_grad():
     for tid in test_lengths:
@@ -646,7 +827,9 @@ with torch.no_grad():
 
         if seq_len <= MAX_LEN:
             oh = torch.tensor(seq_to_onehot(seq, MAX_LEN)).unsqueeze(0).to(DEVICE)
-            pred = model(oh).cpu().numpy()[0, :seq_len, :]
+            m = torch.zeros(1, MAX_LEN, device=DEVICE)
+            m[0, :seq_len] = 1.0
+            pred = model(oh, m).cpu().numpy()[0, :seq_len, :]
         else:
             # For sequences > MAX_LEN, predict in overlapping windows and stitch
             stride = MAX_LEN // 2
@@ -654,9 +837,12 @@ with torch.no_grad():
             counts = np.zeros(seq_len)
             for start in range(0, seq_len, stride):
                 end = min(start + MAX_LEN, seq_len)
+                chunk_len = end - start
                 chunk_seq = seq[start:end]
                 oh = torch.tensor(seq_to_onehot(chunk_seq, MAX_LEN)).unsqueeze(0).to(DEVICE)
-                chunk_pred = model(oh).cpu().numpy()[0, :len(chunk_seq), :]
+                m = torch.zeros(1, MAX_LEN, device=DEVICE)
+                m[0, :chunk_len] = 1.0
+                chunk_pred = model(oh, m).cpu().numpy()[0, :chunk_len, :]
                 # Shift z to align with position
                 chunk_pred[:, 2] += start * 2.81
                 all_preds[start:end] += chunk_pred
@@ -664,10 +850,10 @@ with torch.no_grad():
             counts = np.maximum(counts, 1)
             pred = all_preds / counts[:, None]
 
-        resnet_predictions[tid] = center_coords(pred)
+        transformer_predictions[tid] = center_coords(pred)
         print(f'  {tid}: {seq_len} res, pred range x=[{pred[:,0].min():.1f},{pred[:,0].max():.1f}]')
 
-print('ResNet inference done.')
+print('Transformer inference done.')
 del model
 gc.collect()
 if DEVICE == 'cuda':
@@ -733,49 +919,100 @@ print(f'k-mer template matching done in {time.time()-t0:.1f}s')
 wandb.log({'kmer_time': time.time()-t0})"""
 )
 
-# ── Method 5: Ensemble refinement ──
+# ── Method 5: TM-score weighted ensemble + SA refinement ──
 add_code(
     """# ========================================
-# Method 5: Ensemble refinement
+# Method 5: TM-score weighted ensemble + SA refinement
 # ========================================
 print('\\n' + '=' * 60)
-print('  Method 5: Ensemble Refinement')
+print('  Method 5: TM-score Weighted Ensemble + SA Refinement')
 print('=' * 60)
 
-def refine_ensemble(coords_list, seq, n_steps=200):
-    \"\"\"Average multiple structure predictions and refine with contact constraints.\"\"\"
-    # Average
-    avg = np.mean(coords_list, axis=0)
+def tm_weighted_ensemble_sa(coords_list, seq, n_sa_steps=2000):
+    \"\"\"Compute TM-score weighted average of structures, then refine with SA.
 
-    # Nussinov contacts for constraint
+    Steps:
+    1. Compute pairwise TM-scores between all 4 input structures
+    2. Weight each structure by its average TM-score to others
+    3. Compute weighted average
+    4. Refine with simulated annealing using distance constraints
+    \"\"\"
+    n_methods = len(coords_list)
+    n = len(coords_list[0])
+
+    # Step 1: Compute pairwise TM-scores
+    tm_matrix = np.zeros((n_methods, n_methods))
+    for i in range(n_methods):
+        for j in range(i + 1, n_methods):
+            # Ensure same length
+            ci = coords_list[i]
+            cj = coords_list[j]
+            if len(ci) != len(cj):
+                min_len = min(len(ci), len(cj))
+                ci = ci[:min_len]
+                cj = cj[:min_len]
+            tm = compute_tm_score(ci, cj)
+            tm_matrix[i, j] = tm
+            tm_matrix[j, i] = tm
+
+    # Step 2: Weight by average TM-score to other structures
+    weights = np.zeros(n_methods)
+    for i in range(n_methods):
+        # Average TM-score of structure i to all others
+        other_scores = [tm_matrix[i, j] for j in range(n_methods) if j != i]
+        weights[i] = np.mean(other_scores) if other_scores else 1.0
+
+    # Normalize weights
+    weights = weights / max(weights.sum(), 1e-10)
+    print(f'    TM-score weights: {np.round(weights, 3)}')
+
+    # Step 3: Weighted average
+    avg = np.zeros((n, 3))
+    for i in range(n_methods):
+        # Align each structure to first before averaging (Kabsch)
+        ci = coords_list[i].copy()
+        if len(ci) != n:
+            ci = interpolate_coords(ci, n)
+        ci = ci - ci.mean(axis=0)
+        if i == 0:
+            ref = ci.copy()
+        else:
+            # Align to reference
+            H = ci.T @ ref
+            U, S, Vt = np.linalg.svd(H)
+            d = np.linalg.det(Vt.T @ U.T)
+            sign_m = np.diag([1.0, 1.0, np.sign(d)])
+            R = Vt.T @ sign_m @ U.T
+            ci = (R @ ci.T).T
+        avg += weights[i] * ci
+
+    # Step 4: SA refinement with distance constraints
     pairs = nussinov_dp(seq)
-    n = len(avg)
-
     SEQ_DIST = 3.8
     CONTACT_DIST = 8.0
 
-    # Pre-compute valid pair indices
-    pair_i = np.array([i for i, j in pairs if i < n and j < n])
-    pair_j = np.array([j for i, j in pairs if i < n and j < n])
+    pair_i = np.array([pi for pi, pj in pairs if pi < n and pj < n])
+    pair_j = np.array([pj for pi, pj in pairs if pi < n and pj < n])
 
-    def energy(flat):
-        c = flat.reshape(-1, 3)
-        # Sequential — vectorized
-        diffs = c[1:] - c[:-1]
+    def energy(coords):
+        # Sequential distance
+        diffs = coords[1:] - coords[:-1]
         dists = np.sqrt((diffs ** 2).sum(axis=1))
         loss = ((dists - SEQ_DIST) ** 2).sum()
-        # Contacts — vectorized
+        # Contact constraints
         if len(pair_i) > 0:
-            diffs_p = c[pair_j] - c[pair_i]
+            diffs_p = coords[pair_j] - coords[pair_i]
             dists_p = np.sqrt((diffs_p ** 2).sum(axis=1))
             loss += 0.3 * ((dists_p - CONTACT_DIST) ** 2).sum()
-        # Stay close to average
-        loss += 0.1 * np.sum((c - avg) ** 2)
+        # Stay close to weighted average (but allow movement)
+        loss += 0.05 * np.sum((coords - avg) ** 2)
         return loss
 
-    result = minimize(energy, avg.flatten(), method='L-BFGS-B',
-                      options={'maxiter': n_steps, 'ftol': 1e-5})
-    return center_coords(result.x.reshape(-1, 3))
+    refined = simulated_annealing(
+        avg, energy, n_steps=n_sa_steps,
+        T_start=50.0, T_end=0.05, perturb_scale=0.3,
+    )
+    return center_coords(refined)
 
 t0 = time.time()
 ensemble_predictions = {}
@@ -785,14 +1022,15 @@ for tid in test_lengths:
     method_coords = [
         nussinov_predictions[tid],
         coevo_predictions[tid],
-        resnet_predictions[tid],
+        transformer_predictions[tid],
         kmer_predictions[tid],
     ]
-    refined = refine_ensemble(method_coords, seq)
+    refined = tm_weighted_ensemble_sa(method_coords, seq)
     ensemble_predictions[tid] = refined
+    print(f'  {tid}: ensemble refined ({test_lengths[tid]} res)')
 
-print(f'Ensemble refinement done in {time.time()-t0:.1f}s')
-wandb.log({'ensemble_refine_time': time.time()-t0})"""
+print(f'TM-score ensemble + SA refinement done in {time.time()-t0:.1f}s')
+wandb.log({'tm_ensemble_sa_time': time.time()-t0})"""
 )
 
 # ── Build submission ──
@@ -806,10 +1044,10 @@ print('=' * 60)
 
 all_methods = {
     1: ('Nussinov 3D', nussinov_predictions),
-    2: ('MSA Distance Geometry', coevo_predictions),
-    3: ('ResNet', resnet_predictions),
+    2: ('MSA Distance Geometry (SA)', coevo_predictions),
+    3: ('Transformer', transformer_predictions),
     4: ('k-mer Template', kmer_predictions),
-    5: ('Ensemble Refined', ensemble_predictions),
+    5: ('TM-score Ensemble + SA', ensemble_predictions),
 }
 
 submission = sample_sub.copy()
@@ -856,7 +1094,7 @@ print(f'5 structure prediction methods:')
 for slot, (name, preds) in all_methods.items():
     sizes = [len(preds[tid]) for tid in preds]
     print(f'  Slot {slot}: {name} (avg size: {np.mean(sizes):.0f})')
-print(f'\\nSubmission: {submission.shape[0]} rows × {submission.shape[1]} columns')
+print(f'\\nSubmission: {submission.shape[0]} rows x {submission.shape[1]} columns')
 print(f'All structures centered (mean=0) and NaN-free.')
 
 wandb.finish()
