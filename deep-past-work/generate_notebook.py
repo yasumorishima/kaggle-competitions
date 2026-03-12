@@ -389,6 +389,7 @@ def multi_temp_mbr_decode(text, n_per_temp=MBR_SAMPLES_PER_TEMP):
                 **enc,
                 max_new_tokens=MAX_TARGET_LEN,
                 do_sample=True,
+                num_beams=1,
                 temperature=temp,
                 top_p=0.95,
                 num_return_sequences=n_per_temp,
