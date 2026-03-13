@@ -44,49 +44,121 @@ jobs:
             echo "No generate_notebook.py found, skipping."
           fi
 
-      - name: Wait if kernel is already running, then push
+      - name: Push and poll with GPU→CPU fallback
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
-          # Wait up to 10min if a previous run is still in progress
-          for i in $(seq 1 20); do
-            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
-            echo "Raw pre-push output: $RAW"
-            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
-            echo "Pre-push check $i/20: STATUS='$STATUS'"
-            if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "COMPLETE|ERROR|CANCEL"; then
-              break
-            fi
-            echo "Kernel still running, waiting 30s..."
-            sleep 30
-          done
-          kaggle kernels push -p "${{ inputs.notebook_dir }}"
+          NB_DIR="${{ inputs.notebook_dir }}"
+          METADATA="$NB_DIR/kernel-metadata.json"
 
-      - name: Poll until complete (max 180 x 30s = 90min)
-        env:
-          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          wait_for_idle() {
+            for i in $(seq 1 20); do
+              RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
+              echo "Pre-push check $i/20: $RAW"
+              STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
+              if [ -z "$STATUS" ] || echo "$STATUS" | grep -qiE "COMPLETE|ERROR|CANCEL"; then
+                return 0
+              fi
+              echo "Kernel still running, waiting 30s..."
+              sleep 30
+            done
+          }
+
+          poll_until_done() {
+            for i in $(seq 1 180); do
+              RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
+              STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
+              echo "Attempt $i/180: $STATUS"
+              if echo "$STATUS" | grep -qiE "COMPLETE"; then
+                echo "Kernel completed successfully."
+                echo "RESULT=complete" >> "$GITHUB_ENV"
+                return 0
+              fi
+              if echo "$STATUS" | grep -qiE "ERROR|CANCEL"; then
+                FAILURE_MSG=$(kaggle kernels status "$KERNEL_ID" 2>&1 || true)
+                echo "Kernel failed: $FAILURE_MSG"
+                echo "FAILURE_MSG=$FAILURE_MSG" >> "$GITHUB_ENV"
+                return 1
+              fi
+              if [ "$i" -eq 180 ]; then
+                echo "Timeout: kernel did not complete in 90 minutes."
+                return 1
+              fi
+              sleep 30
+            done
+          }
+
+          # Record original GPU setting for restoration
+          ORIG_GPU=$(python3 -c "import json; print(json.load(open('$METADATA')).get('enable_gpu','false'))")
+          echo "ORIG_GPU=$ORIG_GPU" >> "$GITHUB_ENV"
+          echo "Original enable_gpu: $ORIG_GPU"
+
+          # --- Attempt 1: push as-is (GPU if configured) ---
+          wait_for_idle
+          echo "=== Attempt 1: pushing with enable_gpu=$ORIG_GPU ==="
+          kaggle kernels push -p "$NB_DIR"
+
+          if poll_until_done; then
+            echo "Success on first attempt."
+            exit 0
+          fi
+
+          # --- Check if failure is GPU-quota related ---
+          if [ "$ORIG_GPU" != "true" ]; then
+            echo "GPU was not enabled; no fallback to try."
+            exit 1
+          fi
+
+          # Check failure message for quota/duration keywords
+          if ! echo "$FAILURE_MSG" | grep -qiE "exceeded|quota|accelerator|duration"; then
+            echo "Failure is not GPU-quota related. Not retrying."
+            exit 1
+          fi
+
+          # --- Attempt 2: fallback to CPU ---
+          echo "=== GPU quota exhausted. Falling back to CPU... ==="
+          python3 -c "
+          import json
+          with open('$METADATA') as f:
+              meta = json.load(f)
+          meta['enable_gpu'] = 'false'
+          with open('$METADATA', 'w') as f:
+              json.dump(meta, f, indent=2)
+          print('Switched enable_gpu to false')
+          "
+
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"content": "⚠️ **GPUクォータ切れ → CPUフォールバック**\nKernel: `'"$KERNEL_ID"'`\nCPUで再実行します。"}' || true
+
+          wait_for_idle
+          kaggle kernels push -p "$NB_DIR"
+
+          if poll_until_done; then
+            echo "Success on CPU fallback."
+          else
+            echo "CPU fallback also failed."
+            exit 1
+          fi
+
+      - name: Restore original GPU setting in metadata
+        if: always()
         run: |
-          KERNEL_ID="${{ inputs.kernel_id }}"
-          for i in $(seq 1 180); do
-            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
-            echo "Raw output: $RAW"
-            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
-            echo "Attempt $i/180: $STATUS"
-            if echo "$STATUS" | grep -qiE "COMPLETE"; then
-              echo "Kernel completed successfully."
-              break
-            fi
-            if echo "$STATUS" | grep -qiE "ERROR|CANCEL"; then
-              echo "Kernel failed with status: $STATUS"
-              exit 1
-            fi
-            if [ "$i" -eq 180 ]; then
-              echo "Timeout: kernel did not complete in 90 minutes."
-              exit 1
-            fi
-            sleep 30
-          done
+          METADATA="${{ inputs.notebook_dir }}/kernel-metadata.json"
+          ORIG_GPU="${{ env.ORIG_GPU }}"
+          if [ -n "$ORIG_GPU" ]; then
+            python3 -c "
+          import json
+          with open('$METADATA') as f:
+              meta = json.load(f)
+          meta['enable_gpu'] = '$ORIG_GPU'
+          with open('$METADATA', 'w') as f:
+              json.dump(meta, f, indent=2)
+          print('Restored enable_gpu to $ORIG_GPU')
+          "
+          fi
 
       - name: Notify Discord on failure
         if: failure()
