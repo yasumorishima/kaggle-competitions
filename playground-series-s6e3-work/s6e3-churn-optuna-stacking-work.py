@@ -85,6 +85,17 @@ import time
 import gc
 
 plt.style.use('seaborn-v0_8-whitegrid')
+
+# Auto-detect GPU availability
+import subprocess
+try:
+    subprocess.run(['nvidia-smi'], capture_output=True, check=True)
+    DEVICE = 'gpu'
+    CATBOOST_TASK = 'GPU'
+except Exception:
+    DEVICE = 'cpu'
+    CATBOOST_TASK = 'CPU'
+print(f'Device: {DEVICE}')
 print('All libraries loaded.')"""
 )
 
@@ -565,7 +576,7 @@ skf_adv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 for fold, (tr_idx, va_idx) in enumerate(skf_adv.split(adv_X, adv_y)):
     adv_model = lgb.LGBMClassifier(
         n_estimators=500, learning_rate=0.05, max_depth=5, num_leaves=31,
-        subsample=0.8, colsample_bytree=0.8, verbosity=-1, device='gpu',
+        subsample=0.8, colsample_bytree=0.8, verbosity=-1, device=DEVICE,
     )
     adv_model.fit(
         adv_X[tr_idx], adv_y[tr_idx],
@@ -633,7 +644,7 @@ def lgb_objective(trial):
         'reg_alpha': trial.suggest_float('reg_alpha', 1e-8, 10.0, log=True),
         'reg_lambda': trial.suggest_float('reg_lambda', 1e-8, 10.0, log=True),
         'min_split_gain': trial.suggest_float('min_split_gain', 0.0, 1.0),
-        'device': 'gpu',
+        'device': DEVICE,
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
@@ -700,7 +711,7 @@ add_code(
     """def cat_objective(trial):
     params = {
         'iterations': 2000, 'eval_metric': 'Logloss', 'verbose': 0,
-        'early_stopping_rounds': 50, 'task_type': 'GPU',
+        'early_stopping_rounds': 50, 'task_type': CATBOOST_TASK,
         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
         'depth': trial.suggest_int('depth', 3, 10),
         'l2_leaf_reg': trial.suggest_float('l2_leaf_reg', 1e-8, 10.0, log=True),
@@ -828,7 +839,7 @@ def train_model_multiseed(model_type, best_params, seeds, n_splits, use_weights=
             if model_type == 'lgb':
                 params = {
                     'objective': 'binary', 'metric': 'auc', 'verbosity': -1,
-                    'n_estimators': 3000, 'device': 'gpu', 'random_state': seed,
+                    'n_estimators': 3000, 'device': DEVICE, 'random_state': seed,
                     **best_params,
                 }
                 model = lgb.LGBMClassifier(**params)
@@ -852,7 +863,7 @@ def train_model_multiseed(model_type, best_params, seeds, n_splits, use_weights=
             elif model_type == 'cat':
                 params = {
                     'iterations': 3000, 'eval_metric': 'Logloss', 'verbose': 0,
-                    'early_stopping_rounds': 100, 'task_type': 'GPU',
+                    'early_stopping_rounds': 100, 'task_type': CATBOOST_TASK,
                     'random_seed': seed, **best_params,
                 }
                 model = CatBoostClassifier(**params)
@@ -1003,7 +1014,7 @@ if n_pseudo >= 50:
                 if model_type == 'lgb':
                     params = {
                         'objective': 'binary', 'metric': 'auc', 'verbosity': -1,
-                        'n_estimators': 3000, 'device': 'gpu', 'random_state': seed,
+                        'n_estimators': 3000, 'device': DEVICE, 'random_state': seed,
                         **best_params,
                     }
                     model = lgb.LGBMClassifier(**params)
@@ -1027,7 +1038,7 @@ if n_pseudo >= 50:
                 elif model_type == 'cat':
                     params = {
                         'iterations': 3000, 'eval_metric': 'Logloss', 'verbose': 0,
-                        'early_stopping_rounds': 100, 'task_type': 'GPU',
+                        'early_stopping_rounds': 100, 'task_type': CATBOOST_TASK,
                         'random_seed': seed, **best_params,
                     }
                     model = CatBoostClassifier(**params)
@@ -1083,7 +1094,7 @@ t0 = time.time()
 # Train a quick LGB model for permutation importance
 quick_lgb = lgb.LGBMClassifier(
     objective='binary', metric='auc', verbosity=-1,
-    n_estimators=500, learning_rate=0.05, device='gpu',
+    n_estimators=500, learning_rate=0.05, device=DEVICE,
     **{k: v for k, v in lgb_best.items() if k != 'learning_rate'},
 )
 skf_pi = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -1253,7 +1264,7 @@ for tr_idx, va_idx in skf_meta.split(stack_train, y):
         objective='binary', metric='auc', verbosity=-1,
         n_estimators=500, learning_rate=0.05,
         num_leaves=7, max_depth=3, subsample=0.8, colsample_bytree=0.8,
-        device='gpu',
+        device=DEVICE,
     )
     meta.fit(stack_train[tr_idx], y[tr_idx],
              eval_set=[(stack_train[va_idx], y[va_idx])],
