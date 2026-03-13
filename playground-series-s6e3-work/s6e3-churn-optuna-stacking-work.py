@@ -626,8 +626,21 @@ add_code(
     """# ========================================
 # Optuna Hyperparameter Optimization
 # ========================================
-N_OPTUNA_TRIALS_GBDT = 100
-N_OPTUNA_TRIALS_SKLEARN = 50
+# ── Time budget: adapt to hardware ──
+# GPU: generous timeouts, CPU: allocate 9h budget across all phases
+if DEVICE == 'gpu':
+    HPO_TIMEOUT_GBDT = 1200    # 20min per GBDT model (plenty on GPU)
+    HPO_TIMEOUT_SKLEARN = 600  # 10min per sklearn model
+    HPO_MAX_TRIALS_GBDT = 200
+    HPO_MAX_TRIALS_SKLEARN = 100
+else:
+    # CPU total budget: 9h = 32400s
+    # HPO: 5 models ~60%, Train: ~25%, PseudoLabel+Stacking: ~15%
+    HPO_TIMEOUT_GBDT = 3000    # 50min per GBDT (x3 = 2.5h)
+    HPO_TIMEOUT_SKLEARN = 1200 # 20min per sklearn (x2 = 40min)
+    HPO_MAX_TRIALS_GBDT = 200  # upper cap — timeout will hit first on CPU
+    HPO_MAX_TRIALS_SKLEARN = 100
+
 N_HPO_FOLDS = 5
 HPO_SEED = 42
 
@@ -648,19 +661,26 @@ def lgb_objective(trial):
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
-    for tr_idx, va_idx in skf.split(X, y):
+    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         model = lgb.LGBMClassifier(**params)
         model.fit(X[tr_idx], y[tr_idx], eval_set=[(X[va_idx], y[va_idx])],
                   sample_weight=sample_weights[tr_idx],
                   callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        # Report intermediate score for pruning after each fold
+        trial.report(np.mean(scores), fold_i)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
-print('Optimizing LightGBM (100 trials)...')
+print(f'Optimizing LightGBM (max {HPO_MAX_TRIALS_GBDT} trials, timeout {HPO_TIMEOUT_GBDT}s)...')
 t0 = time.time()
-lgb_study = optuna.create_study(direction='maximize', study_name='lgb')
-lgb_study.optimize(lgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+lgb_study = optuna.create_study(
+    direction='maximize', study_name='lgb',
+    pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+)
+lgb_study.optimize(lgb_objective, n_trials=HPO_MAX_TRIALS_GBDT, timeout=HPO_TIMEOUT_GBDT, show_progress_bar=False)
 lgb_best = lgb_study.best_params
 lgb_best_score = lgb_study.best_value
 print(f'LGB best AUC: {lgb_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -683,22 +703,28 @@ add_code(
         'min_child_weight': trial.suggest_int('min_child_weight', 1, 20),
         'gamma': trial.suggest_float('gamma', 0.0, 5.0),
         'verbosity': 0,
-        'tree_method': 'hist', 'device': 'cuda',
+        'tree_method': 'hist', 'device': 'cuda' if DEVICE == 'gpu' else 'cpu',
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
-    for tr_idx, va_idx in skf.split(X, y):
+    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         model = xgb.XGBClassifier(**params)
         model.fit(X[tr_idx], y[tr_idx], eval_set=[(X[va_idx], y[va_idx])],
                   sample_weight=sample_weights[tr_idx], verbose=False)
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), fold_i)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
-print('Optimizing XGBoost (100 trials)...')
+print(f'Optimizing XGBoost (max {HPO_MAX_TRIALS_GBDT} trials, timeout {HPO_TIMEOUT_GBDT}s)...')
 t0 = time.time()
-xgb_study = optuna.create_study(direction='maximize', study_name='xgb')
-xgb_study.optimize(xgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+xgb_study = optuna.create_study(
+    direction='maximize', study_name='xgb',
+    pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+)
+xgb_study.optimize(xgb_objective, n_trials=HPO_MAX_TRIALS_GBDT, timeout=HPO_TIMEOUT_GBDT, show_progress_bar=False)
 xgb_best = xgb_study.best_params
 xgb_best_score = xgb_study.best_value
 print(f'XGB best AUC: {xgb_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -722,18 +748,24 @@ add_code(
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
-    for tr_idx, va_idx in skf.split(X, y):
+    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         model = CatBoostClassifier(**params)
         model.fit(X[tr_idx], y[tr_idx], eval_set=(X[va_idx], y[va_idx]),
                   sample_weight=sample_weights[tr_idx])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), fold_i)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
-print('Optimizing CatBoost (100 trials)...')
+print(f'Optimizing CatBoost (max {HPO_MAX_TRIALS_GBDT} trials, timeout {HPO_TIMEOUT_GBDT}s)...')
 t0 = time.time()
-cat_study = optuna.create_study(direction='maximize', study_name='cat')
-cat_study.optimize(cat_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+cat_study = optuna.create_study(
+    direction='maximize', study_name='cat',
+    pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+)
+cat_study.optimize(cat_objective, n_trials=HPO_MAX_TRIALS_GBDT, timeout=HPO_TIMEOUT_GBDT, show_progress_bar=False)
 cat_best = cat_study.best_params
 cat_best_score = cat_study.best_value
 print(f'CAT best AUC: {cat_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -754,17 +786,23 @@ add_code(
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
-    for tr_idx, va_idx in skf.split(X, y):
+    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         model = ExtraTreesClassifier(**params)
         model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), fold_i)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
-print('Optimizing ExtraTrees (50 trials)...')
+print(f'Optimizing ExtraTrees (max {HPO_MAX_TRIALS_SKLEARN} trials, timeout {HPO_TIMEOUT_SKLEARN}s)...')
 t0 = time.time()
-et_study = optuna.create_study(direction='maximize', study_name='et')
-et_study.optimize(et_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN, show_progress_bar=False)
+et_study = optuna.create_study(
+    direction='maximize', study_name='et',
+    pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+)
+et_study.optimize(et_objective, n_trials=HPO_MAX_TRIALS_SKLEARN, timeout=HPO_TIMEOUT_SKLEARN, show_progress_bar=False)
 et_best = et_study.best_params
 et_best_score = et_study.best_value
 print(f'ET best AUC: {et_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -789,17 +827,23 @@ add_code(
     }
     skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
     scores = []
-    for tr_idx, va_idx in skf.split(X, y):
+    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         model = HistGradientBoostingClassifier(**params)
         model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), fold_i)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
-print('Optimizing HistGradientBoosting (50 trials)...')
+print(f'Optimizing HistGradientBoosting (max {HPO_MAX_TRIALS_SKLEARN} trials, timeout {HPO_TIMEOUT_SKLEARN}s)...')
 t0 = time.time()
-hgbc_study = optuna.create_study(direction='maximize', study_name='hgbc')
-hgbc_study.optimize(hgbc_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN, show_progress_bar=False)
+hgbc_study = optuna.create_study(
+    direction='maximize', study_name='hgbc',
+    pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+)
+hgbc_study.optimize(hgbc_objective, n_trials=HPO_MAX_TRIALS_SKLEARN, timeout=HPO_TIMEOUT_SKLEARN, show_progress_bar=False)
 hgbc_best = hgbc_study.best_params
 hgbc_best_score = hgbc_study.best_value
 print(f'HGBC best AUC: {hgbc_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -807,11 +851,13 @@ print(f'Best params: {hgbc_best}')
 wandb.log({'hgbc_optuna_best_auc': hgbc_best_score, 'hgbc_optuna_params': hgbc_best})
 
 print('\\n=== Optuna Summary ===')
-print(f'LGB:  {lgb_best_score:.5f}')
-print(f'XGB:  {xgb_best_score:.5f}')
-print(f'CAT:  {cat_best_score:.5f}')
-print(f'ET:   {et_best_score:.5f}')
-print(f'HGBC: {hgbc_best_score:.5f}')"""
+for name, study, score in [('LGB', lgb_study, lgb_best_score), ('XGB', xgb_study, xgb_best_score),
+                            ('CAT', cat_study, cat_best_score), ('ET', et_study, et_best_score),
+                            ('HGBC', hgbc_study, hgbc_best_score)]:
+    n_complete = len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])
+    n_pruned = len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])
+    print(f'{name:5s}: {score:.5f} (trials: {n_complete} complete, {n_pruned} pruned)')
+    wandb.log({f'{name.lower()}_trials_complete': n_complete, f'{name.lower()}_trials_pruned': n_pruned})"""
 )
 
 # ── Multi-seed training with tuned params ──
@@ -852,7 +898,7 @@ def train_model_multiseed(model_type, best_params, seeds, n_splits, use_weights=
                 params = {
                     'objective': 'binary:logistic', 'eval_metric': 'auc',
                     'n_estimators': 3000, 'early_stopping_rounds': 100,
-                    'verbosity': 0, 'tree_method': 'hist', 'device': 'cuda',
+                    'verbosity': 0, 'tree_method': 'hist', 'device': 'cuda' if DEVICE == 'gpu' else 'cpu',
                     'random_state': seed, **best_params,
                 }
                 model = xgb.XGBClassifier(**params)
@@ -1027,7 +1073,7 @@ if n_pseudo >= 50:
                     params = {
                         'objective': 'binary:logistic', 'eval_metric': 'auc',
                         'n_estimators': 3000, 'early_stopping_rounds': 100,
-                        'verbosity': 0, 'tree_method': 'hist', 'device': 'cuda',
+                        'verbosity': 0, 'tree_method': 'hist', 'device': 'cuda' if DEVICE == 'gpu' else 'cpu',
                         'random_state': seed, **best_params,
                     }
                     model = xgb.XGBClassifier(**params)
