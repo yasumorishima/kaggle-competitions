@@ -98,11 +98,21 @@ jobs:
           # --- Attempt 1: push as-is (GPU if configured) ---
           wait_for_idle
           echo "=== Attempt 1: pushing with enable_gpu=$ORIG_GPU ==="
-          kaggle kernels push -p "$NB_DIR"
+          PUSH_OUTPUT=$(kaggle kernels push -p "$NB_DIR" 2>&1) || true
+          echo "Push output: $PUSH_OUTPUT"
 
-          if poll_until_done; then
-            echo "Success on first attempt."
-            exit 0
+          # Check if push itself was rejected due to GPU quota
+          GPU_QUOTA_HIT=false
+          if echo "$PUSH_OUTPUT" | grep -qiE "quota.*reached|GPU quota"; then
+            echo "GPU push rejected: quota reached."
+            GPU_QUOTA_HIT=true
+          fi
+
+          if [ "$GPU_QUOTA_HIT" = "false" ]; then
+            if poll_until_done; then
+              echo "Success on first attempt."
+              exit 0
+            fi
           fi
 
           # --- Check if failure is GPU-quota related ---
@@ -111,8 +121,9 @@ jobs:
             exit 1
           fi
 
-          # Check failure message for quota/duration keywords
-          if ! echo "$FAILURE_MSG" | grep -qiE "exceeded|quota|accelerator|duration"; then
+          # Check push output OR poll failure message for quota/duration keywords
+          ALL_MSGS="$PUSH_OUTPUT $FAILURE_MSG"
+          if ! echo "$ALL_MSGS" | grep -qiE "exceeded|quota|accelerator|duration"; then
             echo "Failure is not GPU-quota related. Not retrying."
             exit 1
           fi
