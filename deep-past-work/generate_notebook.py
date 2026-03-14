@@ -545,7 +545,9 @@ for i, (text_aug, text_base, raw_translit) in enumerate(zip(
     print(f"{'='*60}")
 
     t_sent = time.time()
-    pred, confidence, top3 = multi_temp_mbr_decode(text_aug, text_base=text_base)
+    # Also generate with individual transliteration (no context) for diversity
+    text_individual = PREFIX + raw_translit
+    pred, confidence, top3 = multi_temp_mbr_decode(text_aug, text_base=text_individual)
 
     # Show top-3 MBR candidates
     print(f"  Top-3 MBR candidates:")
@@ -639,8 +641,29 @@ for i in range(min(5, len(val_preds))):
 # =============================================================================
 # Cell: Submission
 # =============================================================================
-add_code("""def postprocess(text):
+add_code("""import re as _re
+import unicodedata as _ud
+
+def postprocess(text):
     text = text.strip()
+    if not text:
+        return "unknown"
+    # Remove emoji and non-Latin/non-diacritics characters that cause scoring issues
+    # Keep: ASCII, Latin Extended (diacritics like ā, š, etc.), basic punctuation
+    cleaned = []
+    for ch in text:
+        cat = _ud.category(ch)
+        # Keep letters, numbers, punctuation, spaces, symbols like brackets
+        if cat.startswith(('L', 'N', 'P', 'Z', 'S')) and cat not in ('So',):
+            cleaned.append(ch)
+        elif cat == 'So':
+            # Skip symbols like emoji
+            pass
+        else:
+            cleaned.append(ch)
+    text = ''.join(cleaned)
+    # Remove any remaining control characters
+    text = _re.sub(r'[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f-\\x9f]', '', text)
     return ' '.join(text.split()) if text else "unknown"
 
 all_predictions = [postprocess(p) for p in all_predictions]
