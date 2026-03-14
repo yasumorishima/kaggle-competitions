@@ -103,7 +103,7 @@ jobs:
 
           # Check if push itself was rejected due to GPU quota
           GPU_QUOTA_HIT=false
-          if echo "$PUSH_OUTPUT" | grep -qiE "quota.*reached|GPU quota"; then
+          if echo "$PUSH_OUTPUT" | grep -qiE "quota.*reached|GPU quota|session count.*reached"; then
             echo "GPU push rejected: quota reached."
             GPU_QUOTA_HIT=true
           fi
@@ -123,7 +123,7 @@ jobs:
 
           # Check push output OR poll failure message for quota/duration keywords
           ALL_MSGS="$PUSH_OUTPUT $FAILURE_MSG"
-          if ! echo "$ALL_MSGS" | grep -qiE "exceeded|quota|accelerator|duration"; then
+          if ! echo "$ALL_MSGS" | grep -qiE "exceeded|quota|accelerator|duration|session count"; then
             echo "Failure is not GPU-quota related. Not retrying."
             exit 1
           fi
