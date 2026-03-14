@@ -101,10 +101,15 @@ jobs:
           PUSH_OUTPUT=$(kaggle kernels push -p "$NB_DIR" 2>&1) || true
           echo "Push output: $PUSH_OUTPUT"
 
-          # Check if push itself was rejected due to GPU quota
+          # Check if push itself was rejected due to GPU quota/session limit
           GPU_QUOTA_HIT=false
-          if echo "$PUSH_OUTPUT" | grep -qiE "quota.*reached|GPU quota|session count.*reached"; then
-            echo "GPU push rejected: quota reached."
+          SESSION_LIMIT_HIT=false
+          if echo "$PUSH_OUTPUT" | grep -qiE "session count.*reached"; then
+            echo "GPU push rejected: concurrent session limit."
+            SESSION_LIMIT_HIT=true
+            GPU_QUOTA_HIT=true
+          elif echo "$PUSH_OUTPUT" | grep -qiE "quota.*reached|GPU quota"; then
+            echo "GPU push rejected: weekly quota exhausted."
             GPU_QUOTA_HIT=true
           fi
 
@@ -113,6 +118,34 @@ jobs:
               echo "Success on first attempt."
               exit 0
             fi
+          fi
+
+          # --- Session limit: wait and retry GPU (other kernels may finish) ---
+          if [ "$SESSION_LIMIT_HIT" = "true" ]; then
+            echo "=== GPU session limit — waiting for other kernels to finish ==="
+            curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d '{"content": "⏳ **GPUセッション上限 → 空き待ちリトライ**\nKernel: `'"$KERNEL_ID"'`\n5分間隔で最大12回リトライします。"}' || true
+
+            for retry in $(seq 1 12); do
+              echo "GPU retry $retry/12: waiting 5 minutes..."
+              sleep 300
+              wait_for_idle
+              PUSH_OUTPUT=$(kaggle kernels push -p "$NB_DIR" 2>&1) || true
+              echo "Retry $retry push output: $PUSH_OUTPUT"
+              if ! echo "$PUSH_OUTPUT" | grep -qiE "session count.*reached|quota.*reached|GPU quota"; then
+                echo "GPU push accepted on retry $retry."
+                if poll_until_done; then
+                  echo "Success on GPU retry."
+                  exit 0
+                else
+                  echo "Kernel failed after GPU retry."
+                  exit 1
+                fi
+              fi
+              echo "Still blocked, retrying..."
+            done
+            echo "All 12 GPU retries exhausted. Falling back to CPU."
           fi
 
           # --- Check if failure is GPU-quota related ---
