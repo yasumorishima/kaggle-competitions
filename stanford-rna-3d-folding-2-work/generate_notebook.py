@@ -162,25 +162,32 @@ add_code(
     """# ── Install any missing dependencies for RhoFold+ ──
 if RHOFOLD_AVAILABLE:
     # Install biopython from local dataset (offline — no internet)
-    try:
-        import Bio
-        print(f'biopython already available: {Bio.__version__}')
-    except ImportError:
-        # Find biopython wheel in /kaggle/input
-        bp_wheels = list(Path('/kaggle/input').rglob('biopython*.whl'))
-        if bp_wheels:
-            print(f'Installing biopython from: {bp_wheels[0].name}')
-            r = subprocess.run(
-                [sys.executable, '-m', 'pip', 'install', '--quiet', '--no-deps', str(bp_wheels[0])],
-                capture_output=True, text=True,
-            )
-            if r.returncode == 0:
-                import Bio
-                print(f'biopython {Bio.__version__} installed OK')
-            else:
-                print(f'biopython install failed: {r.stderr[-300:]}')
+    # Always try to install from wheel first, even if Bio exists (version mismatch possible)
+    bp_wheels = sorted(Path('/kaggle/input').rglob('biopython*.whl'))
+    print(f'biopython wheels found: {[w.name for w in bp_wheels]}')
+    if bp_wheels:
+        print(f'Installing biopython from: {bp_wheels[0].name}')
+        r = subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--quiet', '--no-deps', str(bp_wheels[0])],
+            capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            # Force reimport
+            for mod_name in list(sys.modules.keys()):
+                if mod_name == 'Bio' or mod_name.startswith('Bio.'):
+                    del sys.modules[mod_name]
+            import Bio
+            print(f'biopython {Bio.__version__} installed OK')
         else:
-            print('WARNING: biopython wheel not found in /kaggle/input — RhoFold+ will fail')
+            print(f'biopython install failed: {r.stderr[-300:]}')
+    else:
+        # No wheel — check if system biopython works
+        try:
+            import Bio.SeqIO
+            print(f'System biopython OK: {Bio.__version__}')
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f'WARNING: No biopython wheel and system Bio broken: {e}')
+            print('RhoFold+ will fail without biopython')
 
     # Check other RhoFold dependencies
     missing = []
