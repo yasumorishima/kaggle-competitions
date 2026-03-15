@@ -11,7 +11,7 @@ Kaggle Notebooks Expert. 12 Bronze Notebook Medals + active competition particip
 Manage all notebook code in GitHub — version control, diff, CI, and auto-deploy to Kaggle via `git push`.
 
 ```
-Edit in VSCode / any editor → git push → GitHub Actions → kaggle kernels push → Submit via browser
+Edit in VSCode / any editor → git push → GitHub Actions / RPi5 → kaggle kernels push → Auto-submit via API
 ```
 
 ### Why GitHub Instead of Kaggle's Browser Editor?
@@ -28,13 +28,21 @@ Edit in VSCode / any editor → git push → GitHub Actions → kaggle kernels p
 2. `git push` to this repository
 3. Trigger: `gh workflow run kaggle-push.yml -f notebook_dir=<dir>`
 4. GitHub Actions runs [`kaggle kernels push`](.github/workflows/kaggle-push.yml) to upload the notebook
-5. Submit via Kaggle browser UI ("Submit to Competition")
+5. Auto-submit via Kaggle API (`competition_submit` with kernel output download)
+
+### RPi5 Self-Hosted Runner
+
+For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs `kaggle-submit.sh` with:
+- No timeout limit (6h polling)
+- GPU → CPU auto-fallback
+- Auto-submission via `kaggle.api.competition_submit()` (download output CSV → submit)
+- Score polling → W&B recording → Discord notification
 
 ### Key Findings
 
 - **`enable_internet: false`** is required for code competition submissions — Internet ON prevents the notebook from being eligible
 - **`competition_sources`** mounts data at `/kaggle/input/competitions/<slug>/` (not `/kaggle/input/<slug>/`)
-- **API submission (`CreateCodeSubmission`) returns 403** — `kernelSessions.get` permission is not available in public API tokens (as of Feb 2026). Manual browser submit is the only option.
+- **`CreateCodeSubmission` API returns 403** — but file-based submission (`competition_submit` with output CSV download) works as a reliable alternative
 
 **Blog post:** [DEV.to](https://dev.to/yasumorishima/kaggle-code-competitions-without-a-local-gpu-github-actions-kaggle-api-cloud-workflow-m3)
 
