@@ -363,10 +363,11 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           COMP="${{ inputs.competition_slug }}"
+          KAGGLE_URL="https://www.kaggle.com/code/${{ inputs.kernel_id }}"
           if [ -n "$COMP" ]; then
-            MSG="⚡ **W&B sync完了！ブラウザで提出してください**\nKernel: \`${{ inputs.kernel_id }}\`\nCompetition: \`${COMP}\`"
+            MSG="✅ **Kernel完了 & W&B sync完了**\nKernel: \`${{ inputs.kernel_id }}\`\nCompetition: \`${COMP}\`\n\n👉 **提出はこちら**: ${KAGGLE_URL}"
           else
-            MSG="✅ **Kernel完了 & W&B sync完了**\nKernel: \`${{ inputs.kernel_id }}\`\nMemo: ${{ inputs.memo }}"
+            MSG="✅ **Kernel完了 & W&B sync完了**\nKernel: \`${{ inputs.kernel_id }}\`\nMemo: ${{ inputs.memo }}\n\n👉 ${KAGGLE_URL}"
           fi
           curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
