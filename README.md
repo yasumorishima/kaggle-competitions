@@ -34,7 +34,7 @@ Edit in VSCode / any editor → git push → GitHub Actions / RPi5 → kaggle ke
 
 For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs `kaggle-submit.sh` with:
 - No timeout limit (6h polling)
-- GPU → CPU auto-fallback
+- GPU → CPU auto-fallback (any GPU failure triggers CPU retry, not just quota errors)
 - Auto-submission via `kaggle.api.competition_submit()` (download output CSV → submit)
 - Score polling → W&B recording → Discord notification
 
