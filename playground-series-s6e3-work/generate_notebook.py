@@ -114,9 +114,9 @@ add_code(
     tags=['optuna', 'stacking', 'multi-seed', '10fold', 'gpu', 'v2',
           'original-data', 'adversarial', 'pseudo-label', '5-model'],
     config={
-        'n_seeds': 5, 'n_splits': 10,
+        'n_seeds': 2, 'n_splits': 5,
         'models': ['lgb', 'xgb', 'cat', 'et', 'hgbc'],
-        'optuna_trials_gbdt': 100, 'optuna_trials_sklearn': 50,
+        'optuna_trials_gbdt': 20, 'optuna_trials_sklearn': 10,
         'strategy': 'original_data + adversarial_val + pseudo_label + 5model_stacking',
     },
 )
@@ -633,8 +633,8 @@ add_code(
     """# ========================================
 # Optuna Hyperparameter Optimization
 # ========================================
-N_OPTUNA_TRIALS_GBDT = 100
-N_OPTUNA_TRIALS_SKLEARN = 50
+N_OPTUNA_TRIALS_GBDT = 20
+N_OPTUNA_TRIALS_SKLEARN = 10
 N_HPO_FOLDS = 5
 HPO_SEED = 42
 
@@ -826,8 +826,8 @@ add_code(
     """# ========================================
 # Multi-Seed Training with Optuna-Tuned Params
 # ========================================
-SEEDS = [42, 123, 2024, 7, 999]
-N_SPLITS = 10
+SEEDS = [42, 123]
+N_SPLITS = 5
 
 def train_model_multiseed(model_type, best_params, seeds, n_splits, use_weights=True):
     all_oof = []
@@ -1211,7 +1211,7 @@ def weight_objective(trial):
 print('\\nOptuna weight search...')
 t0 = time.time()
 weight_study = optuna.create_study(direction='maximize', study_name='weights')
-weight_study.optimize(weight_objective, n_trials=500, show_progress_bar=False)
+weight_study.optimize(weight_objective, n_trials=100, show_progress_bar=False)
 opt_weights = np.array([weight_study.best_params[f'w_{name}'] for name in model_names])
 opt_weights = opt_weights / opt_weights.sum()
 
