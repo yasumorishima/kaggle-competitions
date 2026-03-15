@@ -45,23 +45,53 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
 
-      - name: Poll until complete (max 180 x 30s = 90min)
+      - name: Poll until complete (max 90min)
         if: ${{ inputs.kernel_id != '' }}
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
+
+          # Wait for kernel to register on Kaggle (stale status防止)
+          echo "Waiting 60s for Kaggle to register push..."
+          sleep 60
+          echo "Waiting for kernel to start..."
+          STARTED=false
+          for i in $(seq 1 30); do
+            RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
+            STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
+            if [ $((i % 5)) -eq 0 ]; then
+              echo "Startup check $i/30: $STATUS"
+            fi
+            if echo "$STATUS" | grep -qiE "RUNNING|QUEUED"; then
+              echo "Kernel is now running: $STATUS"
+              STARTED=true
+              break
+            fi
+            if [ "$STATUS" = "complete" ]; then
+              echo "Kernel completed successfully."
+              exit 0
+            fi
+            sleep 30
+          done
+          if [ "$STARTED" = "false" ]; then
+            echo "Kernel never started (stuck at stale status). Last: $STATUS"
+            exit 1
+          fi
+
+          # Poll for completion
           for i in $(seq 1 180); do
             RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
             STATUS=$(echo "$RAW" | sed 's/.*has status "\([^"]*\)".*/\1/')
             echo "Attempt $i/180: $STATUS"
+            # COMPLETE_EMPTY = no output (error) — check before COMPLETE
+            if echo "$STATUS" | grep -qiE "complete_empty|ERROR|CANCEL"; then
+              echo "Kernel failed with status: $STATUS"
+              exit 1
+            fi
             if echo "$STATUS" | grep -qiE "COMPLETE"; then
               echo "Kernel completed successfully."
               break
-            fi
-            if echo "$STATUS" | grep -qiE "ERROR|CANCEL"; then
-              echo "Kernel failed with status: $STATUS"
-              exit 1
             fi
             if [ "$i" -eq 180 ]; then
               echo "Timeout: kernel did not complete in 90 minutes."
