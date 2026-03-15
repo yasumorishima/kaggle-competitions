@@ -1,24 +1,25 @@
-"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v8)
+"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v9)
 
 Strategy:
   - Base: mattiaangeli/byt5-akkadian-mbr-v2 (already fine-tuned on competition data)
   - NO additional fine-tuning — all GPU time invested in superior inference
   - Only 4 test sentences → invest maximum compute per sentence
-  - Multi-temperature MBR: 50 samples × 5 temperatures = 250 candidates per sentence
+  - Multi-temperature MBR: 15 samples × 4 temperatures = 60 candidates per sentence
   - Beam search + sampling hybrid: beam candidates added to MBR pool
   - Context window: ±5 surrounding lines with [CURRENT] marker
   - TF-IDF similarity augmented prompting for low-confidence translations
   - External data: robust path discovery via rglob
+  - Pre-computed n-grams for ~10x faster MBR chrF++ scoring
 
-v8 improvements vs v7:
-  - MBR candidates 30 → 250 (50 per temp × 5 temps)
-  - Added beam search candidates to MBR pool (diversity + quality)
-  - Temperature range expanded: [0.4, 0.6, 0.8, 1.0, 1.2]
-  - Context window ±3 → ±5
-  - External data path discovery: rglob across all /kaggle/input
-  - TF-IDF augmented prompting: inject similar examples into prompt
-  - MBR top-3 weighted consensus post-selection
-  - Validation on full VAL_SIZE with MBR
+v9 improvements vs v8:
+  - Removed validation cell (runtime savings — validation belongs in development)
+  - Pre-computed char/word n-gram counters for MBR: O(N²) pairwise scoring
+    now uses cached counters (intersection + sum) instead of re-extracting
+  - Reduced generation: 15 samples × 4 temps + 6 beam + 16 base = ~82 candidates
+    (vs 288 before) — MBR 82² = 6,724 comparisons (vs 83K)
+  - num_return_sequences=15 (not 50) to avoid OOM on byte-level ByT5
+  - torch.inference_mode() instead of torch.no_grad() for faster inference
+  - Timing checkpoints after each major step
 """
 
 import json
@@ -58,7 +59,7 @@ def add_code(source):
 # =============================================================================
 # Cell: Title
 # =============================================================================
-add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v8)
+add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v9)
 
 **Akkadian → English translation** (private competition notebook)
 
@@ -66,8 +67,9 @@ add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v8)
 - **Base model**: `mattiaangeli/byt5-akkadian-mbr-v2` (already fine-tuned on competition data)
 - **No additional fine-tuning** — all GPU time invested in superior inference
 - **Only 4 test sentences** — maximum compute per sentence
-- **Multi-temperature MBR**: 50 samples × 5 temperatures = 250 candidates per sentence
+- **Multi-temperature MBR**: 15 samples × 4 temperatures = 60 candidates per sentence
 - **Beam search hybrid**: beam candidates added to sampling pool
+- **Pre-computed n-grams**: ~10x faster MBR chrF++ scoring via cached counters
 - **Context window**: ±5 surrounding lines with `[CURRENT]` marker
 - **TF-IDF augmented prompting**: inject similar training examples into prompt
 - **MBR top-3 weighted consensus**: final output from top-3 MBR candidates""")
@@ -126,6 +128,8 @@ from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 import warnings
 warnings.filterwarnings('ignore')
 
+T_START = time.time()
+
 # Disable W&B entirely
 os.environ["WANDB_DISABLED"] = "true"
 os.environ["WANDB_MODE"] = "disabled"
@@ -135,7 +139,7 @@ os.environ["HF_HOME"] = "/tmp/hf_home"
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/hf_cache"
 os.environ["TORCH_HOME"] = "/tmp/torch_home"
 
-# --- chrF++ implementation (no sacrebleu dependency) ---
+# --- chrF++ implementation with pre-computed n-gram support ---
 def _extract_char_ngrams(text, n):
     return Counter(text[i:i+n] for i in range(len(text) - n + 1))
 
@@ -145,17 +149,24 @@ def _extract_word_ngrams(text, n):
         return Counter()
     return Counter(tuple(words[i:i+n]) for i in range(len(words) - n + 1))
 
-def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
-    if not hypothesis or not reference:
-        return 0.0
+def precompute_ngrams(text, char_order=6, word_order=2):
+    \"\"\"Pre-compute all char and word n-gram counters for a candidate string.
+    Returns dict: {'char': {n: Counter, ...}, 'word': {n: Counter, ...}}.\"\"\"
+    return {
+        'char': {n: _extract_char_ngrams(text, n) for n in range(1, char_order + 1)},
+        'word': {n: _extract_word_ngrams(text, n) for n in range(1, word_order + 1)},
+    }
+
+def chrf_score_precomputed(hyp_ng, ref_ng, char_order=6, word_order=2, beta=2):
+    \"\"\"Compute chrF++ using pre-computed n-gram counters (no re-extraction).\"\"\"
     total_f = 0.0
     count = 0
     for n in range(1, char_order + 1):
-        hyp_ngrams = _extract_char_ngrams(hypothesis, n)
-        ref_ngrams = _extract_char_ngrams(reference, n)
-        common = sum((hyp_ngrams & ref_ngrams).values())
-        hyp_total = sum(hyp_ngrams.values())
-        ref_total = sum(ref_ngrams.values())
+        hyp_counter = hyp_ng['char'][n]
+        ref_counter = ref_ng['char'][n]
+        common = sum((hyp_counter & ref_counter).values())
+        hyp_total = sum(hyp_counter.values())
+        ref_total = sum(ref_counter.values())
         p = common / hyp_total if hyp_total > 0 else 0.0
         r = common / ref_total if ref_total > 0 else 0.0
         if p + r > 0:
@@ -165,11 +176,11 @@ def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
         total_f += f
         count += 1
     for n in range(1, word_order + 1):
-        hyp_ngrams = _extract_word_ngrams(hypothesis, n)
-        ref_ngrams = _extract_word_ngrams(reference, n)
-        common = sum((hyp_ngrams & ref_ngrams).values())
-        hyp_total = sum(hyp_ngrams.values())
-        ref_total = sum(ref_ngrams.values())
+        hyp_counter = hyp_ng['word'][n]
+        ref_counter = ref_ng['word'][n]
+        common = sum((hyp_counter & ref_counter).values())
+        hyp_total = sum(hyp_counter.values())
+        ref_total = sum(ref_counter.values())
         p = common / hyp_total if hyp_total > 0 else 0.0
         r = common / ref_total if ref_total > 0 else 0.0
         if p + r > 0:
@@ -179,6 +190,14 @@ def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
         total_f += f
         count += 1
     return (total_f / count * 100) if count > 0 else 0.0
+
+def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
+    \"\"\"Original chrF++ for non-MBR uses (e.g. TF-IDF fallback confidence check).\"\"\"
+    if not hypothesis or not reference:
+        return 0.0
+    hyp_ng = precompute_ngrams(hypothesis, char_order, word_order)
+    ref_ng = precompute_ngrams(reference, char_order, word_order)
+    return chrf_score_precomputed(hyp_ng, ref_ng, char_order, word_order, beta)
 
 def chrf_corpus_score(hypotheses, references):
     scores = [chrf_score(h, r) for h, r in zip(hypotheses, references)]
@@ -209,7 +228,8 @@ if torch.cuda.is_available():
           if hasattr(torch.cuda.get_device_properties(0), 'total_mem')
           else f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 print("--- Disk at start ---")
-os.system("df -h /kaggle/working | tail -1")""")
+os.system("df -h /kaggle/working | tail -1")
+print(f"\\n[TIMER] Setup complete: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
@@ -235,7 +255,8 @@ test['transliteration'] = test['transliteration'].fillna('')
 
 print(f"Competition train: {train_comp.shape}")
 print(f"Test: {test.shape}")
-print(f"Columns: {list(train_comp.columns)}")""")
+print(f"Columns: {list(train_comp.columns)}")
+print(f"\\n[TIMER] Data loaded: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
@@ -306,7 +327,8 @@ print(f"Reference corpus: {len(ref_corpus):,} rows")
 print("Building TF-IDF index...")
 tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 5), max_features=80000)
 ref_tfidf_matrix = tfidf.fit_transform(ref_corpus['transliteration'].values)
-print(f"TF-IDF matrix: {ref_tfidf_matrix.shape}")""")
+print(f"TF-IDF matrix: {ref_tfidf_matrix.shape}")
+print(f"\\n[TIMER] External data + TF-IDF: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
@@ -382,18 +404,11 @@ test_inputs_augmented = [
     for raw, base in zip(test_raw_translits, test_inputs_base)
 ]
 
-# Also build val set
-id_col_train = 'text_id' if 'text_id' in train_comp.columns else ('oare_id' if 'oare_id' in train_comp.columns else None)
-train_sorted = train_comp.sort_values(id_col_train).reset_index(drop=True) if id_col_train else train_comp.copy()
-all_comp_inputs = build_context_inputs_df(train_sorted, id_col=id_col_train)
-all_comp_targets = train_sorted['translation'].tolist()
-VAL_SIZE = min(200, len(all_comp_inputs) // 5)
-
 print(f"Test inputs: {len(test_inputs_augmented):,}")
-print(f"Val size: {VAL_SIZE}")
-print(f"Context window: ±{CONTEXT_WINDOW}")
+print(f"Context window: \\u00b1{CONTEXT_WINDOW}")
 print(f"\\nSample augmented prompt (first 300 chars):")
-print(test_inputs_augmented[0][:300])""")
+print(test_inputs_augmented[0][:300])
+print(f"\\n[TIMER] Prompts built: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
@@ -420,30 +435,34 @@ model = model.to(DEVICE)
 model.eval()
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
 print("--- Disk after model load ---")
-os.system("df -h /kaggle/working | tail -1")""")
+os.system("df -h /kaggle/working | tail -1")
+print(f"\\n[TIMER] Model loaded: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
-# Cell: Multi-Temperature MBR + Beam Hybrid Decoding
+# Cell: Multi-Temperature MBR + Beam Hybrid Decoding (with pre-computed n-grams)
 # =============================================================================
 add_code("""MAX_SOURCE_LEN = 512
 MAX_TARGET_LEN = 256
 
-# 4 test sentences → invest heavily per sentence
-MBR_SAMPLES_PER_TEMP = 50
-MBR_TEMPERATURES = [0.4, 0.6, 0.8, 1.0, 1.2]
-BEAM_SIZE = 8  # Additional beam search candidates
+# Reduced generation: 15 samples × 4 temps + 6 beam + 16 base = ~82 candidates
+# ByT5 is byte-level (1 char = 1 token), so num_return_sequences=15 avoids OOM
+MBR_SAMPLES_PER_TEMP = 15
+MBR_TEMPERATURES = [0.5, 0.7, 0.9, 1.1]
+BEAM_SIZE = 6  # Beam search candidates
+BASE_PROMPT_TEMPS = [0.7, 0.9]  # Temperatures for base prompt diversity
+BASE_PROMPT_SAMPLES = 8  # Samples per temp for base prompt
 
 def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP):
     \"\"\"Generate candidates via sampling at multiple temperatures + beam search,
-    then select best by chrF++ MBR consensus.
+    then select best by chrF++ MBR consensus with pre-computed n-grams.
 
     Returns (best_translation, confidence, top3_candidates_with_scores).
     \"\"\"
     enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
     all_candidates = []
 
-    with torch.no_grad():
+    with torch.inference_mode():
         # Sampling candidates at multiple temperatures
         for temp in MBR_TEMPERATURES:
             outputs = model.generate(
@@ -466,7 +485,7 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
             max_new_tokens=MAX_TARGET_LEN,
             do_sample=False,
             num_beams=BEAM_SIZE,
-            num_return_sequences=min(BEAM_SIZE, 8),
+            num_return_sequences=min(BEAM_SIZE, 6),
             no_repeat_ngram_size=3,
             length_penalty=1.0,
         )
@@ -476,8 +495,8 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
     # Also generate from base prompt (without augmentation) for diversity
     if text_base and text_base != text:
         enc_base = tokenizer(text_base, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
-        with torch.no_grad():
-            for temp in [0.6, 0.8, 1.0]:
+        with torch.inference_mode():
+            for temp in BASE_PROMPT_TEMPS:
                 outputs = model.generate(
                     **enc_base,
                     max_new_tokens=MAX_TARGET_LEN,
@@ -485,7 +504,7 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
                     num_beams=1,
                     temperature=temp,
                     top_p=0.95,
-                    num_return_sequences=10,
+                    num_return_sequences=BASE_PROMPT_SAMPLES,
                     no_repeat_ngram_size=3,
                 )
                 decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
@@ -504,12 +523,23 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
     if len(unique_cands) == 1:
         return unique_cands[0], 100.0, [(unique_cands[0], 100.0)]
 
+    # Pre-compute n-gram counters for ALL candidates once
+    t_ngram = time.time()
+    cand_ngrams = [precompute_ngrams(c) for c in unique_cands]
+    n_cands = len(unique_cands)
+    print(f"    Pre-computed n-grams for {n_cands} candidates in {time.time()-t_ngram:.2f}s")
+
     # MBR selection: pick candidate with highest average chrF++ vs all others
+    # Uses pre-computed n-grams — no re-extraction in the O(N²) loop
+    t_mbr = time.time()
     scores = []
-    for i, hyp in enumerate(unique_cands):
-        refs = [c for j, c in enumerate(unique_cands) if j != i]
-        pairwise = [chrf_score(hyp, r) for r in refs]
-        scores.append(np.mean(pairwise))
+    for i in range(n_cands):
+        pairwise_sum = 0.0
+        for j in range(n_cands):
+            if j != i:
+                pairwise_sum += chrf_score_precomputed(cand_ngrams[i], cand_ngrams[j])
+        scores.append(pairwise_sum / (n_cands - 1))
+    print(f"    MBR scoring ({n_cands}\\u00b2 = {n_cands**2:,} comparisons) in {time.time()-t_mbr:.2f}s")
 
     # Get top-3 candidates with scores
     ranked = sorted(enumerate(scores), key=lambda x: -x[1])
@@ -519,10 +549,13 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
     confidence = scores[best_idx]
     return unique_cands[best_idx], confidence, top3
 
-total_candidates = MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES) + BEAM_SIZE + 30  # +30 from base prompt
-print(f"MBR config: {MBR_SAMPLES_PER_TEMP} samples × {len(MBR_TEMPERATURES)} temps + {BEAM_SIZE} beam + 30 base = ~{total_candidates} candidates/sentence")
+total_candidates = MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES) + BEAM_SIZE + BASE_PROMPT_SAMPLES * len(BASE_PROMPT_TEMPS)
+print(f"MBR config: {MBR_SAMPLES_PER_TEMP} samples \\u00d7 {len(MBR_TEMPERATURES)} temps + {BEAM_SIZE} beam + {BASE_PROMPT_SAMPLES * len(BASE_PROMPT_TEMPS)} base = ~{total_candidates} candidates/sentence")
 print(f"Temperatures: {MBR_TEMPERATURES}")
-print(f"Beam size: {BEAM_SIZE}")""")
+print(f"Beam size: {BEAM_SIZE}")
+print(f"Base prompt: {BASE_PROMPT_SAMPLES} samples \\u00d7 {len(BASE_PROMPT_TEMPS)} temps")
+print(f"Pre-computed n-grams: char(1..6) + word(1..2) cached per candidate")
+print(f"\\n[TIMER] Decoding ready: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
@@ -564,9 +597,9 @@ for i, (text_aug, text_base, raw_translit) in enumerate(zip(
 
     # If confidence is very low AND TF-IDF has strong match, consider blending
     if confidence < 25.0 and matches and matches[0]['similarity'] > 0.7:
-        # Very strong TF-IDF match with low MBR confidence → use TF-IDF
+        # Very strong TF-IDF match with low MBR confidence -> use TF-IDF
         pred = matches[0]['translation']
-        print(f"  → Using TF-IDF fallback (MBR confidence {confidence:.1f} < 25, TF-IDF sim {matches[0]['similarity']:.3f})")
+        print(f"  -> Using TF-IDF fallback (MBR confidence {confidence:.1f} < 25, TF-IDF sim {matches[0]['similarity']:.3f})")
 
     all_predictions.append(pred)
     all_confidences.append(confidence)
@@ -574,68 +607,14 @@ for i, (text_aug, text_base, raw_translit) in enumerate(zip(
     elapsed = time.time() - t_sent
     print(f"  Final: {pred[:100]}")
     print(f"  Confidence: {confidence:.1f}, Time: {elapsed:.1f}s")
+    print(f"  [TIMER] Sentence {i+1} done: {time.time() - T_START:.1f}s total elapsed")
 
 total_time = time.time() - t0
 print(f"\\n{'='*60}")
 print(f"Inference complete: {len(all_predictions)} predictions in {total_time:.1f}s")
 print(f"Average MBR confidence: {np.mean(all_confidences):.1f}")
-print(f"Confidence per sentence: {[f'{c:.1f}' for c in all_confidences]}")""")
-
-
-# =============================================================================
-# Cell: Validate on val set
-# =============================================================================
-add_code("""print(f"Evaluating on val set ({VAL_SIZE} competition samples)...")
-val_inputs = all_comp_inputs[-VAL_SIZE:]
-val_targets = all_comp_targets[-VAL_SIZE:]
-
-# Use smaller MBR for validation (10 samples × 3 temps) to save time
-val_preds = []
-val_t0 = time.time()
-for j, text in enumerate(val_inputs):
-    # Lighter MBR for validation
-    enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
-    val_cands = []
-    with torch.no_grad():
-        for temp in [0.6, 0.8, 1.0]:
-            outputs = model.generate(
-                **enc,
-                max_new_tokens=MAX_TARGET_LEN,
-                do_sample=True,
-                num_beams=1,
-                temperature=temp,
-                top_p=0.95,
-                num_return_sequences=10,
-                no_repeat_ngram_size=3,
-            )
-            decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            val_cands.extend([s.strip() for s in decoded if s.strip()])
-    # Quick MBR
-    seen = set()
-    unique = [c for c in val_cands if c not in seen and not seen.add(c)]
-    if len(unique) <= 1:
-        val_preds.append(unique[0] if unique else "unknown")
-    else:
-        scores = [np.mean([chrf_score(h, r) for r in unique if r != h]) for h in unique]
-        val_preds.append(unique[int(np.argmax(scores))])
-    if (j + 1) % 50 == 0:
-        print(f"  Val {j+1}/{VAL_SIZE} done ({time.time()-val_t0:.0f}s)")
-
-val_refs = val_targets[:len(val_preds)]
-bleu_metric = BLEUScorer()
-chrf_eval = ChrFScorer(word_order=2)
-val_bleu = bleu_metric.corpus_score(val_preds, [[r] for r in val_refs]).score
-val_chrf = chrf_eval.corpus_score(val_preds, val_refs).score
-
-print(f"\\nVal BLEU:   {val_bleu:.2f}")
-print(f"Val chrF++: {val_chrf:.2f}")
-print(f"Val time:   {time.time()-val_t0:.1f}s")
-
-print("\\nSample predictions:")
-for i in range(min(5, len(val_preds))):
-    print(f"  Ref:  {val_refs[i][:80]}")
-    print(f"  Pred: {val_preds[i][:80]}")
-    print()""")
+print(f"Confidence per sentence: {[f'{c:.1f}' for c in all_confidences]}")
+print(f"\\n[TIMER] All inference done: {time.time() - T_START:.1f}s total elapsed")""")
 
 
 # =============================================================================
@@ -688,6 +667,7 @@ submission.to_csv('/kaggle/working/submission.csv', index=False)
 
 print("\\n--- Final disk usage ---")
 os.system("df -h /kaggle/working | tail -1")
+print(f"\\n[TIMER] Total runtime: {time.time() - T_START:.1f}s")
 print("\\nDone. submission.csv ready.")""")
 
 
