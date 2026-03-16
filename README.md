@@ -50,7 +50,23 @@ For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs
 
 ## 🔬 Experiment Management (EXP + child-exp)
 
-EXP + child-exp experiment management is inspired by [chimanさんの記事](https://zenn.dev/chiman/articles/b233cc808d6af3) (Kaggle gold medal with Claude Code/Codex). The architecture (RPi5 Colab keepalive, Google Drive sync, file monitor automation) is our own design for a GPU-less local environment.
+### Credit & Origin
+
+The experiment management methodology (EXP + child-exp structure, role division, EXP_SUMMARY.md, CLAUDE_COMP.md) is inspired by [chimanさんの記事](https://zenn.dev/chiman/articles/b233cc808d6af3) — a write-up on winning a Kaggle gold medal using Claude Code / Codex.
+
+The following parts are our own design, built to work in a GPU-less local environment (Celeron N4500 / 4GB RAM):
+
+| Component | Origin |
+|---|---|
+| EXP + child-exp directory structure | chimanさんの記事 |
+| Role division (ideas = human, implementation = AI) | chimanさんの記事 |
+| EXP_SUMMARY.md (experiment history as AI guardrail) | chimanさんの記事 |
+| CLAUDE_COMP.md (competition-specific AI guardrails) | chimanさんの記事 |
+| RPi5 Chromium + wtype session keepalive | 独自設計 |
+| Google Drive for Desktop ↔ Colab sync | 独自設計 |
+| Colab file monitor notebook (auto-detect & run) | 独自設計 |
+| `hdmi_force_hotplug` for headless RPi5 operation | 独自設計 |
+| systemd colab-keepalive service | 独自設計 |
 
 ### Architecture
 
