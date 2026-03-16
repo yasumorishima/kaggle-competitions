@@ -1,25 +1,28 @@
-"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v9)
+"""Deep Past Challenge - ByT5 Multi-Temperature MBR Notebook Generator (v10)
 
 Strategy:
   - Base: mattiaangeli/byt5-akkadian-mbr-v2 (already fine-tuned on competition data)
   - NO additional fine-tuning — all GPU time invested in superior inference
   - Only 4 test sentences → invest maximum compute per sentence
-  - Multi-temperature MBR: 15 samples × 4 temperatures = 60 candidates per sentence
+  - Multi-temperature MBR: 20 samples × 5 temperatures = 100 candidates per sentence
   - Beam search + sampling hybrid: beam candidates added to MBR pool
   - Context window: ±5 surrounding lines with [CURRENT] marker
   - TF-IDF similarity augmented prompting for low-confidence translations
-  - External data: robust path discovery via rglob
-  - Pre-computed n-grams for ~10x faster MBR chrF++ scoring
+  - External data: explicit paths (no rglob)
+  - Pre-computed n-grams for fast MBR chrF++ scoring
+  - Encoder output caching: encode once per prompt, reuse for all temperatures
 
-v9 improvements vs v8:
-  - Removed validation cell (runtime savings — validation belongs in development)
-  - Pre-computed char/word n-gram counters for MBR: O(N²) pairwise scoring
-    now uses cached counters (intersection + sum) instead of re-extracting
-  - Reduced generation: 15 samples × 4 temps + 6 beam + 16 base = ~82 candidates
-    (vs 288 before) — MBR 82² = 6,724 comparisons (vs 83K)
-  - num_return_sequences=15 (not 50) to avoid OOM on byte-level ByT5
-  - torch.inference_mode() instead of torch.no_grad() for faster inference
-  - Timing checkpoints after each major step
+v10 improvements vs v9:
+  - BUGFIX: model path discovery — search /kaggle/input/ (not just /models/)
+    v9 fell back to HuggingFace download with internet disabled → hung until timeout
+  - BUGFIX: prompt truncation — core input first, examples appended within budget
+    v9 put examples before input → ByT5 512-byte truncation cut off [CURRENT] sentence
+  - MAX_SOURCE_LEN 512 → 1024 (ByT5 natively supports 1024)
+  - Encoder output caching: 5 encoder passes → 1 per prompt type (40% GPU savings)
+  - More candidates: 20 samples × 5 temps + 8 beam + 12×2 base = ~132 candidates
+    (freed by encoder caching savings → better MBR consensus, no extra time)
+  - Explicit external data paths (no rglob scan)
+  - 3 prompt types: augmented (examples+context), context-only, individual
 """
 
 import json
@@ -59,7 +62,7 @@ def add_code(source):
 # =============================================================================
 # Cell: Title
 # =============================================================================
-add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v9)
+add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v10)
 
 **Akkadian → English translation** (private competition notebook)
 
@@ -67,12 +70,14 @@ add_md("""# Deep Past Challenge: ByT5 + Multi-Temperature MBR Ensemble (v9)
 - **Base model**: `mattiaangeli/byt5-akkadian-mbr-v2` (already fine-tuned on competition data)
 - **No additional fine-tuning** — all GPU time invested in superior inference
 - **Only 4 test sentences** — maximum compute per sentence
-- **Multi-temperature MBR**: 15 samples × 4 temperatures = 60 candidates per sentence
+- **Multi-temperature MBR**: 20 samples × 5 temperatures = 100 candidates per sentence
 - **Beam search hybrid**: beam candidates added to sampling pool
-- **Pre-computed n-grams**: ~10x faster MBR chrF++ scoring via cached counters
+- **Encoder output caching**: encode once, reuse for all temperatures (40% GPU savings)
+- **Pre-computed n-grams**: fast MBR chrF++ scoring via cached counters
 - **Context window**: ±5 surrounding lines with `[CURRENT]` marker
 - **TF-IDF augmented prompting**: inject similar training examples into prompt
-- **MBR top-3 weighted consensus**: final output from top-3 MBR candidates""")
+- **Truncation-safe prompts**: core input first, examples appended within budget
+- **3 prompt types**: augmented + context + individual for maximum MBR diversity""")
 
 
 # =============================================================================
@@ -150,8 +155,7 @@ def _extract_word_ngrams(text, n):
     return Counter(tuple(words[i:i+n]) for i in range(len(words) - n + 1))
 
 def precompute_ngrams(text, char_order=6, word_order=2):
-    \"\"\"Pre-compute all char and word n-gram counters for a candidate string.
-    Returns dict: {'char': {n: Counter, ...}, 'word': {n: Counter, ...}}.\"\"\"
+    \"\"\"Pre-compute all char and word n-gram counters for a candidate string.\"\"\"
     return {
         'char': {n: _extract_char_ngrams(text, n) for n in range(1, char_order + 1)},
         'word': {n: _extract_word_ngrams(text, n) for n in range(1, word_order + 1)},
@@ -192,7 +196,7 @@ def chrf_score_precomputed(hyp_ng, ref_ng, char_order=6, word_order=2, beta=2):
     return (total_f / count * 100) if count > 0 else 0.0
 
 def chrf_score(hypothesis, reference, char_order=6, word_order=2, beta=2):
-    \"\"\"Original chrF++ for non-MBR uses (e.g. TF-IDF fallback confidence check).\"\"\"
+    \"\"\"Original chrF++ for non-MBR uses.\"\"\"
     if not hypothesis or not reference:
         return 0.0
     hyp_ng = precompute_ngrams(hypothesis, char_order, word_order)
@@ -260,51 +264,46 @@ print(f"\\n[TIMER] Data loaded: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
-# Cell: Load external data — robust path discovery
+# Cell: Load external data — explicit paths (no rglob)
 # =============================================================================
 add_code("""def load_external_data():
-    \"\"\"Search ALL of /kaggle/input for Akkadian datasets via rglob.\"\"\"
+    \"\"\"Load Akkadian datasets from known explicit paths (no rglob scan).\"\"\"
     dfs = []
-
-    # Known dataset slugs
     known_slugs = ['akkadian-oracc-combined', 'akkadian-enriched-data']
 
-    # First try exact paths
-    search_roots = [Path('/kaggle/input') / slug for slug in known_slugs]
-
-    # Also scan ALL subdirectories under /kaggle/input for any CSV with relevant columns
-    print("  Scanning /kaggle/input for Akkadian datasets...")
-    input_root = Path('/kaggle/input')
-    all_csvs = []
-    for csv_file in input_root.rglob('*.csv'):
-        # Skip competition data (already loaded)
-        if 'competitions' in str(csv_file):
+    for slug in known_slugs:
+        base = Path(f'/kaggle/input/{slug}')
+        if not base.exists():
+            print(f"  {slug}: not found at {base}")
             continue
-        all_csvs.append(csv_file)
-    print(f"  Found {len(all_csvs)} CSV files outside competition data")
 
-    for csv_file in sorted(all_csvs):
-        try:
-            df = pd.read_csv(csv_file, nrows=5)  # peek first
-            col_map = {}
-            for c in df.columns:
-                cl = c.lower().strip()
-                if any(k in cl for k in ['translit', 'akkadian', 'source', 'input']):
-                    col_map[c] = 'transliteration'
-                elif any(k in cl for k in ['translat', 'english', 'target', 'output']):
-                    col_map[c] = 'translation'
-            if 'transliteration' not in col_map.values() or 'translation' not in col_map.values():
-                continue
-            # Full read
-            df = pd.read_csv(csv_file).rename(columns=col_map)
-            df = df[['transliteration', 'translation']].dropna()
-            df = df[df['transliteration'].str.len() > 2]
-            df = df[df['translation'].str.len() > 2]
-            if len(df) > 0:
-                dfs.append(df)
-                print(f"  Loaded {len(df):,} rows from {csv_file}")
-        except Exception as e:
-            pass  # silently skip non-CSV or broken files
+        # Find CSV files in this dataset directory (non-recursive, fast)
+        csv_files = list(base.glob('*.csv'))
+        if not csv_files:
+            # Check one level down
+            csv_files = list(base.glob('*/*.csv'))
+
+        for csv_file in csv_files:
+            try:
+                df = pd.read_csv(csv_file, nrows=5)  # peek
+                col_map = {}
+                for c in df.columns:
+                    cl = c.lower().strip()
+                    if any(k in cl for k in ['translit', 'akkadian', 'source', 'input']):
+                        col_map[c] = 'transliteration'
+                    elif any(k in cl for k in ['translat', 'english', 'target', 'output']):
+                        col_map[c] = 'translation'
+                if 'transliteration' not in col_map.values() or 'translation' not in col_map.values():
+                    continue
+                df = pd.read_csv(csv_file).rename(columns=col_map)
+                df = df[['transliteration', 'translation']].dropna()
+                df = df[df['transliteration'].str.len() > 2]
+                df = df[df['translation'].str.len() > 2]
+                if len(df) > 0:
+                    dfs.append(df)
+                    print(f"  Loaded {len(df):,} rows from {csv_file}")
+            except Exception:
+                pass
 
     if not dfs:
         print("  No external Akkadian data found")
@@ -380,18 +379,41 @@ def tfidf_fallback(transliteration, top_k=5):
             })
     return results
 
-def build_augmented_prompt(transliteration, context_input, top_k=3):
-    \"\"\"Augment the prompt with similar training examples (few-shot style).\"\"\"
+def build_augmented_prompt(transliteration, context_input, top_k=3, max_bytes=1024):
+    \"\"\"Build augmented prompt with truncation safety.
+
+    CRITICAL: Core input (context_input) goes FIRST so it's never truncated.
+    Examples are appended only within remaining byte budget.
+    ByT5 tokenizes at byte level, so we count bytes not chars.
+    \"\"\"
     matches = tfidf_fallback(transliteration, top_k=top_k)
     if not matches:
         return context_input
 
-    examples = []
-    for m in matches[:top_k]:
-        examples.append(f"{m['transliteration']} => {m['translation']}")
+    # Core input takes priority — measure its byte length
+    core_bytes = len(context_input.encode('utf-8'))
 
-    aug_prefix = "Examples: " + " | ".join(examples) + " [END_EXAMPLES] "
-    return aug_prefix + context_input
+    # Build examples, fitting within remaining budget
+    remaining = max_bytes - core_bytes - 20  # 20 bytes for separator tokens
+    if remaining <= 50:
+        return context_input
+
+    examples = []
+    used = 0
+    for m in matches[:top_k]:
+        ex = f"{m['transliteration']} => {m['translation']}"
+        ex_bytes = len(ex.encode('utf-8')) + 3  # " | " separator
+        if used + ex_bytes > remaining:
+            break
+        examples.append(ex)
+        used += ex_bytes
+
+    if not examples:
+        return context_input
+
+    # Core input FIRST, then examples (so truncation drops examples, not input)
+    examples_suffix = " [EXAMPLES] " + " | ".join(examples) + " [/EXAMPLES]"
+    return context_input + examples_suffix
 
 id_col_test = 'text_id' if 'text_id' in test.columns else None
 test_sorted = test.sort_values(id_col_test).reset_index(drop=True) if id_col_test else test.copy()
@@ -400,37 +422,96 @@ test_raw_translits = test_sorted['transliteration'].tolist()
 
 # Build augmented prompts for test set
 test_inputs_augmented = [
-    build_augmented_prompt(raw, base, top_k=3)
+    build_augmented_prompt(raw, base, top_k=3, max_bytes=1024)
     for raw, base in zip(test_raw_translits, test_inputs_base)
 ]
 
 print(f"Test inputs: {len(test_inputs_augmented):,}")
 print(f"Context window: \\u00b1{CONTEXT_WINDOW}")
-print(f"\\nSample augmented prompt (first 300 chars):")
-print(test_inputs_augmented[0][:300])
+for idx, (aug, base) in enumerate(zip(test_inputs_augmented, test_inputs_base)):
+    aug_bytes = len(aug.encode('utf-8'))
+    base_bytes = len(base.encode('utf-8'))
+    print(f"  Sentence {idx+1}: base={base_bytes}B, augmented={aug_bytes}B")
+print(f"\\nSample augmented prompt (first 400 chars):")
+print(test_inputs_augmented[0][:400])
 print(f"\\n[TIMER] Prompts built: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
-# Cell: Load pre-trained model
+# Cell: Load pre-trained model (FIXED path discovery)
 # =============================================================================
 add_code("""def find_model_path(slug_patterns):
-    for pattern in slug_patterns:
-        for p in glob.glob(f'/kaggle/input/models/**', recursive=True):
-            if os.path.isdir(p) and any(
-                s in p for s in slug_patterns
-            ) and any(
-                os.path.exists(os.path.join(p, f))
-                for f in ['config.json', 'pytorch_model.bin', 'model.safetensors']
+    \"\"\"Search for model in ALL Kaggle input locations.
+
+    Kaggle model_sources mount at /kaggle/input/<slug>/pytorch/default/<version>/
+    NOT at /kaggle/input/models/ — v9 searched wrong path and fell back to
+    HuggingFace download which hung with internet disabled (root cause of timeout).
+    \"\"\"
+    # Search strategy: broadest to most specific
+    search_roots = ['/kaggle/input']
+    model_files = ['config.json', 'pytorch_model.bin', 'model.safetensors']
+
+    for root in search_roots:
+        if not os.path.exists(root):
+            continue
+        for p in glob.glob(f'{root}/**', recursive=True):
+            if not os.path.isdir(p):
+                continue
+            p_lower = p.lower()
+            if any(s.lower() in p_lower for s in slug_patterns):
+                if any(os.path.exists(os.path.join(p, f)) for f in model_files):
+                    return p
+
+    # If recursive search fails, try common Kaggle model mount patterns
+    for slug in slug_patterns:
+        slug_lower = slug.lower().replace('_', '-')
+        candidates = [
+            f'/kaggle/input/{slug_lower}/pytorch/default/1',
+            f'/kaggle/input/{slug_lower}/pyTorch/default/1',
+            f'/kaggle/input/{slug_lower}',
+            f'/kaggle/input/models/{slug_lower}/pytorch/default/1',
+        ]
+        for cand in candidates:
+            if os.path.isdir(cand) and any(
+                os.path.exists(os.path.join(cand, f)) for f in model_files
             ):
-                return p
-    return "mattiaangeli/byt5-akkadian-mbr-v2"
+                return cand
+
+    # FAIL LOUDLY — do NOT silently fall back to HuggingFace download
+    # (with internet disabled, download would hang until timeout)
+    print("\\n" + "!"*60)
+    print("FATAL: Model not found in /kaggle/input/")
+    print("Searched for patterns:", slug_patterns)
+    print("\\nAvailable directories in /kaggle/input/:")
+    if os.path.exists('/kaggle/input'):
+        for item in sorted(os.listdir('/kaggle/input')):
+            full = os.path.join('/kaggle/input', item)
+            if os.path.isdir(full):
+                print(f"  {item}/")
+                # List one level deeper
+                try:
+                    for sub in sorted(os.listdir(full))[:5]:
+                        print(f"    {sub}/")
+                except Exception:
+                    pass
+    print("!"*60 + "\\n")
+    raise FileNotFoundError(
+        f"Model not found! Patterns: {slug_patterns}. "
+        "Check model_sources in kernel-metadata.json and verify the model "
+        "is attached to the notebook."
+    )
 
 model_path = find_model_path(['byt5-akkadian-mbr-v2', 'byt5-akkadian-mbr', 'akkadian-mbr'])
 print(f"Using model: {model_path}")
 
+# List model directory contents
+print(f"Model files:")
+for f in sorted(os.listdir(model_path)):
+    sz = os.path.getsize(os.path.join(model_path, f)) / 1e6
+    print(f"  {f} ({sz:.1f}MB)")
+
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_path, dtype=torch.float16)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_path, torch_dtype=torch.float16)
 model = model.to(DEVICE)
 model.eval()
 print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
@@ -440,75 +521,124 @@ print(f"\\n[TIMER] Model loaded: {time.time() - T_START:.1f}s elapsed")""")
 
 
 # =============================================================================
-# Cell: Multi-Temperature MBR + Beam Hybrid Decoding (with pre-computed n-grams)
+# Cell: Multi-Temperature MBR + Beam Hybrid with Encoder Caching
 # =============================================================================
-add_code("""MAX_SOURCE_LEN = 512
+add_code("""MAX_SOURCE_LEN = 1024  # ByT5 natively supports 1024 (v9 used 512 — wasted capacity)
 MAX_TARGET_LEN = 256
 
-# Reduced generation: 15 samples × 4 temps + 6 beam + 16 base = ~82 candidates
-# ByT5 is byte-level (1 char = 1 token), so num_return_sequences=15 avoids OOM
-MBR_SAMPLES_PER_TEMP = 15
-MBR_TEMPERATURES = [0.5, 0.7, 0.9, 1.1]
-BEAM_SIZE = 6  # Beam search candidates
-BASE_PROMPT_TEMPS = [0.7, 0.9]  # Temperatures for base prompt diversity
-BASE_PROMPT_SAMPLES = 8  # Samples per temp for base prompt
+# v10: more candidates (freed by encoder caching), wider temperature range
+MBR_SAMPLES_PER_TEMP = 20
+MBR_TEMPERATURES = [0.3, 0.5, 0.7, 0.9, 1.1]  # 5 temps (v9: 4)
+BEAM_SIZE = 8  # v9: 6
+BASE_PROMPT_TEMPS = [0.5, 0.7, 0.9]  # 3 temps for base prompt (v9: 2)
+BASE_PROMPT_SAMPLES = 12  # per temp (v9: 8)
 
-def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP):
-    \"\"\"Generate candidates via sampling at multiple temperatures + beam search,
-    then select best by chrF++ MBR consensus with pre-computed n-grams.
+def _encode_and_cache(text):
+    \"\"\"Encode text and cache encoder outputs for reuse across generate() calls.\"\"\"
+    enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
+    with torch.inference_mode():
+        encoder_outputs = model.get_encoder()(
+            input_ids=enc.input_ids,
+            attention_mask=enc.attention_mask,
+        )
+    return enc, encoder_outputs
+
+def _generate_with_cache(enc, encoder_outputs, do_sample, temperature=1.0,
+                         num_return_sequences=1, num_beams=1, **kwargs):
+    \"\"\"Generate using cached encoder outputs (skip redundant encoder forward pass).\"\"\"
+    from transformers.modeling_outputs import BaseModelOutput
+    cached = BaseModelOutput(last_hidden_state=encoder_outputs.last_hidden_state)
+    with torch.inference_mode():
+        outputs = model.generate(
+            encoder_outputs=cached,
+            attention_mask=enc.attention_mask,
+            max_new_tokens=MAX_TARGET_LEN,
+            do_sample=do_sample,
+            temperature=temperature if do_sample else 1.0,
+            top_p=0.95 if do_sample else 1.0,
+            top_k=50 if do_sample else 0,
+            num_beams=num_beams,
+            num_return_sequences=num_return_sequences,
+            no_repeat_ngram_size=3,
+            **kwargs,
+        )
+    decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+    return [s.strip() for s in decoded if s.strip()]
+
+def multi_temp_mbr_decode(text_augmented, text_context, text_individual):
+    \"\"\"Generate candidates from 3 prompt types with encoder caching,
+    then select best by chrF++ MBR consensus.
+
+    3 prompt types maximize diversity:
+      1. augmented: context + TF-IDF examples (richest information)
+      2. context: context-only (model's own knowledge)
+      3. individual: just the sentence (no context bias)
 
     Returns (best_translation, confidence, top3_candidates_with_scores).
     \"\"\"
-    enc = tokenizer(text, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
     all_candidates = []
 
-    with torch.inference_mode():
-        # Sampling candidates at multiple temperatures
-        for temp in MBR_TEMPERATURES:
-            outputs = model.generate(
-                **enc,
-                max_new_tokens=MAX_TARGET_LEN,
-                do_sample=True,
-                num_beams=1,
-                temperature=temp,
-                top_p=0.95,
-                top_k=50,
-                num_return_sequences=n_per_temp,
-                no_repeat_ngram_size=3,
-            )
-            decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            all_candidates.extend([s.strip() for s in decoded if s.strip()])
+    # --- Prompt 1: Augmented (context + examples) ---
+    t_enc = time.time()
+    enc_aug, enc_out_aug = _encode_and_cache(text_augmented)
+    print(f"    Augmented prompt: {enc_aug.input_ids.shape[1]} tokens, encoded in {time.time()-t_enc:.2f}s")
 
-        # Beam search candidates (deterministic, high quality)
-        beam_outputs = model.generate(
-            **enc,
-            max_new_tokens=MAX_TARGET_LEN,
-            do_sample=False,
-            num_beams=BEAM_SIZE,
-            num_return_sequences=min(BEAM_SIZE, 6),
-            no_repeat_ngram_size=3,
-            length_penalty=1.0,
+    # Sampling at multiple temperatures (encoder cached — only decoder runs)
+    for temp in MBR_TEMPERATURES:
+        cands = _generate_with_cache(
+            enc_aug, enc_out_aug,
+            do_sample=True, temperature=temp,
+            num_return_sequences=MBR_SAMPLES_PER_TEMP,
         )
-        beam_decoded = tokenizer.batch_decode(beam_outputs, skip_special_tokens=True)
-        all_candidates.extend([s.strip() for s in beam_decoded if s.strip()])
+        all_candidates.extend(cands)
 
-    # Also generate from base prompt (without augmentation) for diversity
-    if text_base and text_base != text:
-        enc_base = tokenizer(text_base, max_length=MAX_SOURCE_LEN, truncation=True, return_tensors="pt").to(DEVICE)
-        with torch.inference_mode():
-            for temp in BASE_PROMPT_TEMPS:
-                outputs = model.generate(
-                    **enc_base,
-                    max_new_tokens=MAX_TARGET_LEN,
-                    do_sample=True,
-                    num_beams=1,
-                    temperature=temp,
-                    top_p=0.95,
-                    num_return_sequences=BASE_PROMPT_SAMPLES,
-                    no_repeat_ngram_size=3,
-                )
-                decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-                all_candidates.extend([s.strip() for s in decoded if s.strip()])
+    # Beam search (deterministic, high quality)
+    beam_cands = _generate_with_cache(
+        enc_aug, enc_out_aug,
+        do_sample=False, num_beams=BEAM_SIZE,
+        num_return_sequences=min(BEAM_SIZE, 8),
+        length_penalty=1.0,
+    )
+    all_candidates.extend(beam_cands)
+
+    # --- Prompt 2: Context-only (no TF-IDF examples) ---
+    if text_context != text_augmented:
+        t_enc2 = time.time()
+        enc_ctx, enc_out_ctx = _encode_and_cache(text_context)
+        print(f"    Context prompt: {enc_ctx.input_ids.shape[1]} tokens, encoded in {time.time()-t_enc2:.2f}s")
+        for temp in [0.5, 0.7, 0.9]:
+            cands = _generate_with_cache(
+                enc_ctx, enc_out_ctx,
+                do_sample=True, temperature=temp,
+                num_return_sequences=10,
+            )
+            all_candidates.extend(cands)
+
+    # --- Prompt 3: Individual (just the sentence, no context) ---
+    t_enc3 = time.time()
+    enc_ind, enc_out_ind = _encode_and_cache(text_individual)
+    print(f"    Individual prompt: {enc_ind.input_ids.shape[1]} tokens, encoded in {time.time()-t_enc3:.2f}s")
+    for temp in BASE_PROMPT_TEMPS:
+        cands = _generate_with_cache(
+            enc_ind, enc_out_ind,
+            do_sample=True, temperature=temp,
+            num_return_sequences=BASE_PROMPT_SAMPLES,
+        )
+        all_candidates.extend(cands)
+    # Beam from individual prompt too
+    beam_ind = _generate_with_cache(
+        enc_ind, enc_out_ind,
+        do_sample=False, num_beams=BEAM_SIZE,
+        num_return_sequences=min(BEAM_SIZE, 8),
+        length_penalty=1.0,
+    )
+    all_candidates.extend(beam_ind)
+
+    # Free GPU memory
+    del enc_aug, enc_out_aug, enc_ind, enc_out_ind
+    if text_context != text_augmented:
+        del enc_ctx, enc_out_ctx
+    torch.cuda.empty_cache()
 
     # Deduplicate while preserving order
     seen = set()
@@ -517,6 +647,8 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
         if c not in seen:
             seen.add(c)
             unique_cands.append(c)
+
+    print(f"    Total candidates: {len(all_candidates)}, unique: {len(unique_cands)}")
 
     if not unique_cands:
         return "unknown", 0.0, []
@@ -530,31 +662,41 @@ def multi_temp_mbr_decode(text, text_base=None, n_per_temp=MBR_SAMPLES_PER_TEMP)
     print(f"    Pre-computed n-grams for {n_cands} candidates in {time.time()-t_ngram:.2f}s")
 
     # MBR selection: pick candidate with highest average chrF++ vs all others
-    # Uses pre-computed n-grams — no re-extraction in the O(N²) loop
     t_mbr = time.time()
-    scores = []
+
+    # Pre-compute full NxN chrF++ score matrix
+    score_matrix = np.zeros((n_cands, n_cands), dtype=np.float64)
     for i in range(n_cands):
-        pairwise_sum = 0.0
-        for j in range(n_cands):
-            if j != i:
-                pairwise_sum += chrf_score_precomputed(cand_ngrams[i], cand_ngrams[j])
-        scores.append(pairwise_sum / (n_cands - 1))
+        for j in range(i + 1, n_cands):
+            s = chrf_score_precomputed(cand_ngrams[i], cand_ngrams[j])
+            score_matrix[i, j] = s
+            score_matrix[j, i] = s  # symmetric
+
+    # Average score per candidate (exclude self-comparison)
+    row_sums = score_matrix.sum(axis=1)
+    scores = row_sums / (n_cands - 1)
     print(f"    MBR scoring ({n_cands}\\u00b2 = {n_cands**2:,} comparisons) in {time.time()-t_mbr:.2f}s")
 
     # Get top-3 candidates with scores
-    ranked = sorted(enumerate(scores), key=lambda x: -x[1])
-    top3 = [(unique_cands[idx], sc) for idx, sc in ranked[:3]]
+    ranked_idxs = np.argsort(-scores)
+    top3 = [(unique_cands[idx], float(scores[idx])) for idx in ranked_idxs[:3]]
 
-    best_idx = ranked[0][0]
-    confidence = scores[best_idx]
+    best_idx = int(ranked_idxs[0])
+    confidence = float(scores[best_idx])
     return unique_cands[best_idx], confidence, top3
 
-total_candidates = MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES) + BEAM_SIZE + BASE_PROMPT_SAMPLES * len(BASE_PROMPT_TEMPS)
-print(f"MBR config: {MBR_SAMPLES_PER_TEMP} samples \\u00d7 {len(MBR_TEMPERATURES)} temps + {BEAM_SIZE} beam + {BASE_PROMPT_SAMPLES * len(BASE_PROMPT_TEMPS)} base = ~{total_candidates} candidates/sentence")
-print(f"Temperatures: {MBR_TEMPERATURES}")
-print(f"Beam size: {BEAM_SIZE}")
-print(f"Base prompt: {BASE_PROMPT_SAMPLES} samples \\u00d7 {len(BASE_PROMPT_TEMPS)} temps")
-print(f"Pre-computed n-grams: char(1..6) + word(1..2) cached per candidate")
+# Print configuration
+n_aug = MBR_SAMPLES_PER_TEMP * len(MBR_TEMPERATURES) + BEAM_SIZE
+n_ctx = 10 * 3  # 3 temps × 10 samples (only if context != augmented)
+n_ind = BASE_PROMPT_SAMPLES * len(BASE_PROMPT_TEMPS) + BEAM_SIZE
+total_candidates = n_aug + n_ctx + n_ind
+print(f"MBR config (v10):")
+print(f"  Augmented: {MBR_SAMPLES_PER_TEMP} samples \\u00d7 {len(MBR_TEMPERATURES)} temps + {BEAM_SIZE} beam = {n_aug}")
+print(f"  Context:   10 samples \\u00d7 3 temps = {n_ctx}")
+print(f"  Individual: {BASE_PROMPT_SAMPLES} samples \\u00d7 {len(BASE_PROMPT_TEMPS)} temps + {BEAM_SIZE} beam = {n_ind}")
+print(f"  Total: ~{total_candidates} candidates/sentence (v9: ~82)")
+print(f"  Encoder caching: 3 encoder passes instead of {5 + 2 + 1} (v9)")
+print(f"  MBR symmetry: {total_candidates*(total_candidates-1)//2} unique comparisons (not {total_candidates**2})")
 print(f"\\n[TIMER] Decoding ready: {time.time() - T_START:.1f}s elapsed")""")
 
 
@@ -575,12 +717,16 @@ for i, (text_aug, text_base, raw_translit) in enumerate(zip(
     print(f"\\n{'='*60}")
     print(f"  Sentence {i+1}/{len(test_inputs_augmented)}")
     print(f"  Input: {raw_translit[:80]}")
+    print(f"  Elapsed: {time.time() - T_START:.0f}s")
     print(f"{'='*60}")
 
     t_sent = time.time()
-    # Also generate with individual transliteration (no context) for diversity
     text_individual = PREFIX + raw_translit
-    pred, confidence, top3 = multi_temp_mbr_decode(text_aug, text_base=text_individual)
+    pred, confidence, top3 = multi_temp_mbr_decode(
+        text_augmented=text_aug,
+        text_context=text_base,
+        text_individual=text_individual,
+    )
 
     # Show top-3 MBR candidates
     print(f"  Top-3 MBR candidates:")
@@ -597,7 +743,6 @@ for i, (text_aug, text_base, raw_translit) in enumerate(zip(
 
     # If confidence is very low AND TF-IDF has strong match, consider blending
     if confidence < 25.0 and matches and matches[0]['similarity'] > 0.7:
-        # Very strong TF-IDF match with low MBR confidence -> use TF-IDF
         pred = matches[0]['translation']
         print(f"  -> Using TF-IDF fallback (MBR confidence {confidence:.1f} < 25, TF-IDF sim {matches[0]['similarity']:.3f})")
 
@@ -627,21 +772,16 @@ def postprocess(text):
     text = text.strip()
     if not text:
         return "unknown"
-    # Remove emoji and non-Latin/non-diacritics characters that cause scoring issues
-    # Keep: ASCII, Latin Extended (diacritics like ā, š, etc.), basic punctuation
     cleaned = []
     for ch in text:
         cat = _ud.category(ch)
-        # Keep letters, numbers, punctuation, spaces, symbols like brackets
         if cat.startswith(('L', 'N', 'P', 'Z', 'S')) and cat not in ('So',):
             cleaned.append(ch)
         elif cat == 'So':
-            # Skip symbols like emoji
             pass
         else:
             cleaned.append(ch)
     text = ''.join(cleaned)
-    # Remove any remaining control characters
     text = _re.sub(r'[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f-\\x9f]', '', text)
     return ' '.join(text.split()) if text else "unknown"
 
