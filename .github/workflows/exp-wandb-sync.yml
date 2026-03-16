@@ -1,0 +1,131 @@
+name: EXP W&B Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      comp:
+        description: 'Competition slug (e.g., s6e3-churn, deep-past, pasketti, signate-nir-moisture)'
+        required: true
+        type: string
+      exp:
+        description: 'EXP number'
+        required: false
+        default: 'EXP001'
+        type: string
+      child:
+        description: 'Specific child-exp (e.g., child-exp005). Leave empty to sync all.'
+        required: false
+        type: string
+      wandb_project:
+        description: 'W&B project name (defaults to comp slug)'
+        required: false
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install wandb google-api-python-client google-auth pyyaml
+
+      - name: Fetch experiments from Google Drive
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          DRIVE_SHARED_FOLDER_ID: ${{ secrets.DRIVE_SHARED_FOLDER_ID }}
+        run: |
+          COMP="${{ inputs.comp }}"
+          EXP="${{ inputs.exp }}"
+          CHILD="${{ inputs.child }}"
+
+          if [ -n "$CHILD" ]; then
+            python scripts/drive_sync.py --comp "$COMP" --exp "$EXP" --child "$CHILD"
+          else
+            echo "Syncing all completed experiments..."
+            python scripts/drive_sync.py --comp "$COMP" --exp "$EXP"
+          fi
+
+      - name: Record to W&B
+        env:
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+        run: |
+          COMP="${{ inputs.comp }}"
+          EXP="${{ inputs.exp }}"
+          PROJECT="${{ inputs.wandb_project }}"
+          [ -z "$PROJECT" ] && PROJECT="$COMP"
+
+          python - <<'PYEOF'
+          import json, os, sys
+          from pathlib import Path
+          import wandb
+
+          comp = os.environ.get("COMP", "${{ inputs.comp }}")
+          exp = os.environ.get("EXP", "${{ inputs.exp }}")
+          project = "$PROJECT"
+          base = Path(f"exp-results/{comp}/{exp}")
+
+          if not base.exists():
+              print(f"No results found at {base}")
+              sys.exit(0)
+
+          for child_dir in sorted(base.iterdir()):
+              result_file = child_dir / "result.json"
+              if not result_file.exists():
+                  continue
+
+              result = json.loads(result_file.read_text())
+              child_name = child_dir.name
+
+              # Check config
+              config = result.get("config", "")
+              config_data = {}
+              config_path = child_dir.parent.parent.parent / "config" / f"{child_name}.yaml"
+              # Config might be in the result or we read it from the path noted in result
+              config_data = {k: v for k, v in result.items() if k != "config"}
+
+              print(f"\n=== {child_name} ===")
+              print(f"  cv_score: {result.get('cv_score')}")
+
+              run = wandb.init(
+                  project=project,
+                  name=f"{exp}/{child_name}",
+                  config=config_data,
+                  tags=[exp, child_name, comp],
+                  reinit=True,
+              )
+              wandb.log({
+                  "cv_score": result.get("cv_score"),
+                  "elapsed_seconds": result.get("elapsed_seconds"),
+              })
+
+              # Log OOF if exists
+              oof_path = child_dir / "oof.csv"
+              if oof_path.exists():
+                  wandb.save(str(oof_path))
+
+              run.finish()
+              print(f"  Logged to W&B: {project}/{exp}/{child_name}")
+
+          print("\nAll experiments synced to W&B.")
+          PYEOF
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"content\": \"📊 **EXP W&B Sync**: ${{ inputs.comp }}/${{ inputs.exp }}\nMemo: ${{ inputs.memo }}\nStatus: $STATUS\"
+            }" || true

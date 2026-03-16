@@ -1,0 +1,130 @@
+name: EXP to Kaggle Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      comp:
+        description: 'Competition slug (e.g., s6e3-churn, deep-past, rna-3d-folding)'
+        required: true
+        type: string
+      exp:
+        description: 'EXP number (e.g., EXP001)'
+        required: false
+        default: 'EXP001'
+        type: string
+      child:
+        description: 'Best child-exp to submit (e.g., child-exp005). Leave empty to auto-select best.'
+        required: false
+        type: string
+      notebook_dir:
+        description: 'Kaggle notebook directory for submission (e.g., playground-series-s6e3-work)'
+        required: true
+        type: string
+      kernel_id:
+        description: 'Kaggle kernel ID (e.g., yasunorim/s6e3-churn-optuna-stacking-work)'
+        required: true
+        type: string
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install kaggle wandb google-api-python-client google-auth
+
+      - name: Fetch best experiment from Google Drive
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          DRIVE_SHARED_FOLDER_ID: ${{ secrets.DRIVE_SHARED_FOLDER_ID }}
+        run: |
+          COMP="${{ inputs.comp }}"
+          EXP="${{ inputs.exp }}"
+          CHILD="${{ inputs.child }}"
+
+          if [ -z "$CHILD" ]; then
+            echo "Auto-selecting best child-exp..."
+            CHILD=$(python scripts/drive_sync.py --comp "$COMP" --exp "$EXP" --list | \
+              tail -1 | tr -d ' ')
+            echo "Selected: $CHILD"
+          fi
+
+          python scripts/drive_sync.py --comp "$COMP" --exp "$EXP" --child "$CHILD"
+
+          # Display result
+          RESULT="exp-results/$COMP/$EXP/$CHILD/result.json"
+          if [ -f "$RESULT" ]; then
+            echo "=== Experiment Result ==="
+            cat "$RESULT"
+            echo ""
+            CV=$(python -c "import json; print(json.load(open('$RESULT')).get('cv_score', 'N/A'))")
+            echo "cv_score=$CV" >> $GITHUB_ENV
+            echo "best_child=$CHILD" >> $GITHUB_ENV
+          else
+            echo "ERROR: result.json not found"
+            exit 1
+          fi
+
+      - name: Generate notebook (if generate_notebook.py exists)
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          if [ -f "$DIR/generate_notebook.py" ]; then
+            cd "$DIR" && python generate_notebook.py
+          fi
+
+      - name: Push notebook to Kaggle
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Poll until complete (max 6h)
+        if: ${{ inputs.kernel_id != '' }}
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          echo "Polling ${{ inputs.kernel_id }}..."
+          sleep 120
+          for i in $(seq 1 180); do
+            STATUS=$(python -c "
+          from kaggle.api.kaggle_api_extended import KaggleApi
+          api = KaggleApi(); api.authenticate()
+          s = api.kernels_status('${{ inputs.kernel_id }}')
+          print(s.get('status', s) if isinstance(s, dict) else s)
+          " 2>/dev/null || echo "error")
+            echo "[$i/180] Status: $STATUS"
+            if echo "$STATUS" | grep -qi "complete"; then
+              echo "Kernel completed!"
+              break
+            fi
+            if echo "$STATUS" | grep -qi "error\|cancel"; then
+              echo "Kernel failed: $STATUS"
+              exit 1
+            fi
+            sleep 120
+          done
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"EXP → Kaggle: ${{ inputs.comp }}\",
+                \"description\": \"${{ inputs.memo }}\\nChild: ${{ env.best_child }}\\nCV: ${{ env.cv_score }}\\nStatus: $STATUS\",
+                \"color\": $COLOR
+              }]
+            }"
