@@ -139,7 +139,45 @@ ssh yasu@100.77.198.48 "DISPLAY=:0 WAYLAND_DISPLAY=wayland-1 \
 - Google login cookies persist in Chromium profile — no re-login needed
 - `colab-keepalive.service` (wtype) auto-starts on boot
 - `hdmi_force_hotplug=1` in `/boot/firmware/config.txt` enables display output without a monitor
-- Keyring dialog may appear on first launch — requires Enter on RPi5 monitor (or disable keyring)
+- Keyring dialog may appear on first launch — use `--password-store=basic` flag to bypass
+
+### Google Drive ↔ GitHub Actions Integration
+
+Experiment results on Google Drive are synced to GitHub Actions for W&B recording and Kaggle/SIGNATE/DrivenData submission.
+
+```
+Google Drive (EXP results)
+  ↓ Google Drive API (Service Account)
+GitHub Actions
+  ├── EXP W&B Sync      → Record cv_score, config to W&B
+  └── EXP to Kaggle     → Fetch best model → Push to Kaggle kernel
+```
+
+#### Setup (for your own fork)
+
+1. Create a Google Cloud project (free) and enable the **Google Drive API**
+2. Create a **Service Account** → download JSON key
+3. Share your Drive experiment folder with the service account email (Viewer permission)
+4. Add GitHub Secrets to your repository:
+   - `GOOGLE_SERVICE_ACCOUNT_KEY`: Service account JSON key contents
+   - `DRIVE_SHARED_FOLDER_ID`: Google Drive folder ID (from the folder URL)
+
+No billing required — Google Drive API is free within standard quotas.
+
+#### Usage
+
+```bash
+# Sync experiment results to W&B
+gh workflow run "EXP W&B Sync" \
+  -f comp=s6e3-churn -f exp=EXP001 -f memo="sync all results"
+
+# Submit best experiment to Kaggle
+gh workflow run "EXP to Kaggle Submit" \
+  -f comp=s6e3-churn -f exp=EXP001 -f child=child-exp005 \
+  -f notebook_dir=playground-series-s6e3-work \
+  -f kernel_id=yasunorim/s6e3-churn-optuna-stacking-work \
+  -f memo="best config submit"
+```
 
 ---
 
