@@ -48,6 +48,85 @@ For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs
 
 ---
 
+## 🔬 Experiment Management (EXP + child-exp)
+
+Inspired by a [gold medal write-up](https://note.com/) — fast iteration via structured experiments, clear role division between human and AI.
+
+### Architecture
+
+```
+[Local PC]                  [RPi5]                     [Google Colab (Free)]
+Claude Code                 Chromium + wtype keepalive  File Monitor Notebook
+  ↓ Write config/code        ↓ Session keepalive         ↓ Auto-run train.py
+  ↓                          ↓ 30min Page Down/Up        ↓
+Google Drive (for Desktop) ←――――――――――――――――――→ Google Drive (mount)
+  EXP/config/child-exp005.yaml                          Detect new config → execute
+  EXP/output/child-exp005/result.json                   Save results to Drive
+```
+
+- **RPi5 Chromium + wtype** keeps free Colab sessions alive (prevents 90-min idle timeout via systemd service)
+- **Claude Code** writes experiment configs to Google Drive
+- **Colab** auto-detects new configs and runs `train.py`
+- **Kaggle kernels** used only for final submission
+
+### Directory Structure
+
+```
+<comp-slug>/
+├── CLAUDE_COMP.md              # Competition-specific guardrails for AI
+├── EXP_SUMMARY.md              # Experiment history (AI memory)
+├── docs/Idea_Research/         # Hypothesis memos, Deep Research results
+├── EXP/
+│   ├── EXP001/
+│   │   ├── train.py
+│   │   ├── config/
+│   │   │   ├── child-exp000.yaml  # Baseline
+│   │   │   ├── child-exp001.yaml  # + feature engineering
+│   │   │   └── child-exp002.yaml  # + loss change
+│   │   └── output/
+│   │       ├── child-exp000/
+│   │       │   ├── oof.csv
+│   │       │   └── result.json
+│   │       └── ...
+│   └── EXP002/                 # New EXP when pipeline changes significantly
+└── submit/                     # Final Kaggle kernel for submission
+```
+
+### Role Division
+
+| Human | AI (Claude Code) |
+|---|---|
+| Hypotheses & ideas | Implementation (train.py, features) |
+| CV design decisions | OOF error analysis & visualization |
+| Interpret results → next action | Config generation & experiment tracking |
+| Domain knowledge | Notebook/Discussion summarization |
+
+### Key Principles
+
+- **Never ask AI "improve the score"** — provide specific hypotheses
+- **EXP_SUMMARY.md is a guardrail**, not a strategy generator
+- **1 competition, 50+ experiments** — depth over breadth
+- **OOF analysis by AI, next action by human**
+
+### RPi5 Colab Session Recovery
+
+After RPi5 reboot, restore the Colab session via SSH:
+
+```bash
+ssh yasu@100.77.198.48 "DISPLAY=:0 WAYLAND_DISPLAY=wayland-1 \
+  XDG_RUNTIME_DIR=/run/user/\$(id -u) \
+  chromium-browser --disable-gpu --disable-software-rasterizer \
+  --disable-extensions --disable-dev-shm-usage \
+  'https://colab.research.google.com/drive/11whi9Hyc7JPdWDolkQRHdQNLyXIkqnXi' &"
+```
+
+- Google login cookies persist in Chromium profile — no re-login needed
+- `colab-keepalive.service` (wtype) auto-starts on boot
+- `hdmi_force_hotplug=1` in `/boot/firmware/config.txt` enables display output without a monitor
+- Keyring dialog may appear on first launch — requires Enter on RPi5 monitor (or disable keyring)
+
+---
+
 ## 🏆 Competition Results
 
 ### Deep Past Challenge - Akkadian to English Translation (Active)
