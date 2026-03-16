@@ -50,7 +50,7 @@ For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs
 
 ## 🔬 Experiment Management (EXP + child-exp)
 
-Inspired by a [gold medal write-up](https://note.com/) — fast iteration via structured experiments, clear role division between human and AI.
+EXP + child-exp experiment management is inspired by [chimanさんの記事](https://zenn.dev/chiman/articles/b233cc808d6af3) (Kaggle gold medal with Claude Code/Codex). The architecture (RPi5 Colab keepalive, Google Drive sync, file monitor automation) is our own design for a GPU-less local environment.
 
 ### Architecture
 
