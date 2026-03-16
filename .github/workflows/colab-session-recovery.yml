@@ -1,0 +1,50 @@
+name: Colab Session Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図'
+        required: false
+        default: 'RPi5 reboot recovery'
+        type: string
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recover Colab session on RPi5
+        env:
+          RPI5_SSH_KEY: ${{ secrets.RPI5_SSH_KEY }}
+          COLAB_PW: ${{ secrets.COLAB_PW }}
+          RPI5_HOST: ${{ secrets.RPI5_HOST }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$RPI5_SSH_KEY" > ~/.ssh/rpi5_key
+          chmod 600 ~/.ssh/rpi5_key
+          echo "StrictHostKeyChecking no" >> ~/.ssh/ssh_config
+
+          # Kill existing Chromium and clear crash state
+          ssh -i ~/.ssh/rpi5_key -o ConnectTimeout=10 yasu@$RPI5_HOST "
+            pkill chromium 2>/dev/null
+            sleep 2
+            sed -i 's/\"exited_cleanly\":false/\"exited_cleanly\":true/' ~/.config/chromium/Default/Preferences 2>/dev/null
+            sed -i 's/\"exit_type\":\"Crashed\"/\"exit_type\":\"Normal\"/' ~/.config/chromium/Default/Preferences 2>/dev/null
+          "
+
+          # Launch Chromium + CDP auto-login
+          ssh -i ~/.ssh/rpi5_key -o ConnectTimeout=10 yasu@$RPI5_HOST "
+            COLAB_PW='$COLAB_PW' ~/colab-keepalive/colab_auto_login.sh
+          "
+          echo "Colab session recovery complete"
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"🔄 **Colab Session Recovery**: $STATUS\nMemo: ${{ inputs.memo }}\"}" || true
