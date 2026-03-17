@@ -62,25 +62,23 @@ The following parts are our own design, built to work in a GPU-less local enviro
 | Role division (ideas = human, implementation = AI) | chimanさんの記事 |
 | EXP_SUMMARY.md (experiment history as AI guardrail) | chimanさんの記事 |
 | CLAUDE_COMP.md (competition-specific AI guardrails) | chimanさんの記事 |
-| RPi5 Chromium + wtype session keepalive | 独自設計 |
+| RPi5 xrdp remote desktop (session persists on disconnect) | 独自設計 |
 | Google Drive for Desktop ↔ Colab sync | 独自設計 |
 | Colab file monitor notebook (auto-detect & run) | 独自設計 |
-| `hdmi_force_hotplug` for headless RPi5 operation | 独自設計 |
-| systemd colab-keepalive service | 独自設計 |
 
 ### Architecture
 
 ```
-[Local PC]                  [RPi5]                     [Google Colab (Free)]
-Claude Code                 Chromium + wtype keepalive  File Monitor Notebook
-  ↓ Write config/code        ↓ Session keepalive         ↓ Auto-run train.py
-  ↓                          ↓ 30min Page Down/Up        ↓
+[Local PC]                  [RPi5 (xrdp)]               [Google Colab (Free)]
+Claude Code                 Remote Desktop session       Experiment Runner v4
+  ↓ Write config/code        ↓ RDP for Colab setup        ↓ Auto-run train.py
+  ↓                          ↓ Session persists on DC      ↓
 Google Drive (for Desktop) ←――――――――――――――――――→ Google Drive (mount)
   EXP/config/child-exp005.yaml                          Detect new config → execute
   EXP/output/child-exp005/result.json                   Save results to Drive
 ```
 
-- **RPi5 Chromium + wtype** keeps free Colab sessions alive (prevents 90-min idle timeout via systemd service)
+- **RPi5 xrdp** provides remote desktop for Colab setup; session persists after disconnect
 - **Claude Code** writes experiment configs to Google Drive
 - **Colab** auto-detects new configs and runs `train.py`
 - **Kaggle kernels** used only for final submission
@@ -123,61 +121,6 @@ Google Drive (for Desktop) ←――――――――――――――――�
 - **EXP_SUMMARY.md is a guardrail**, not a strategy generator
 - **1 competition, 50+ experiments** — depth over breadth
 - **OOF analysis by AI, next action by human**
-
-### RPi5 Colab Session Recovery (CDP Auto-Login)
-
-After RPi5 reboot, restore the Colab session with one command:
-
-```bash
-# From local PC (password is passed via env var, never stored on RPi5)
-ssh <RPI5_HOST> "COLAB_PW=\$(cat ~/.colab_pw) ~/colab-keepalive/colab_auto_login.sh"
-```
-
-This script automates the full recovery:
-1. Launches Chromium in X11 mode with CDP (Chrome DevTools Protocol) enabled
-2. `cdp_login.py` connects to `localhost:9222` via WebSocket
-3. Clicks Google account (`[data-identifier]` selector)
-4. Enters password via `Input.insertText` (React-compatible, no duplication)
-5. Clicks "Next" button (via `<span>` text match)
-6. Navigates to the Colab notebook
-
-#### Required Chromium flags
-
-| Flag | Purpose |
-|---|---|
-| `--ozone-platform=x11` | Run as X11 app under XWayland |
-| `--password-store=basic` | Plaintext cookie storage (no gnome-keyring) |
-| `--disable-features=ThirdPartyCookieBlocking` | Allow Google login cookies |
-| `--remote-debugging-port=9222` | Enable CDP |
-| `--remote-allow-origins=*` | Allow local CDP WebSocket |
-
-#### Pre-requisites on RPi5
-
-```bash
-# 1. gnome-keyring must be removed (prevents blocking dialog)
-sudo apt-get remove -y gnome-keyring
-
-# 2. hdmi_force_hotplug for headless display
-echo 'hdmi_force_hotplug=1' | sudo tee -a /boot/firmware/config.txt
-
-# 3. Clear Chromium crash state (prevents restore dialog)
-sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' ~/.config/chromium/Default/Preferences
-sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' ~/.config/chromium/Default/Preferences
-
-# 4. Python dependencies
-pip3 install websocket-client
-
-# 5. Password stored ONLY on local PC
-echo 'YOUR_GOOGLE_PASSWORD' > ~/.colab_pw
-```
-
-#### Key learnings
-
-- Google blocks Playwright/Selenium login (automation detection)
-- `xdotool`/`wtype` can't reach Wayland-native or XWayland windows reliably
-- CDP `Input.insertText` works for React forms (Google login)
-- CDP `Input.dispatchKeyEvent` with `char` event causes double input — use `insertText` instead
-- Chromium crash restore dialog blocks CDP DOM operations — must clear crash state before launch
 
 ### Google Drive ↔ GitHub Actions Integration
 
