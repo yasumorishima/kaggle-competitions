@@ -1,6 +1,6 @@
 # Kaggle Competitions
 
-Kaggle Notebooks Expert. 13 Bronze Notebook Medals + active competition participation.
+Kaggle Notebooks Expert. 14 Bronze Notebook Medals + active competition participation.
 
 **Note:** Notebook Medals are earned through community votes on shared notebooks - NOT competition ranking medals.
 
@@ -207,7 +207,7 @@ Binary classification (Presence / Absence) with AUC-ROC evaluation.
 ---
 
 <details>
-<summary><h2>🥉 Bronze Medal Notebooks (13)</h2></summary>
+<summary><h2>🥉 Bronze Medal Notebooks (14)</h2></summary>
 
 ### 1. CAFA 6 - Protein Function Prediction
 
@@ -358,6 +358,16 @@ Akkadian cuneiform transliteration → English translation baseline using TF-IDF
 Titanic survival prediction with Optuna hyperparameter optimization. Japanese-language notebook demonstrating automated tuning workflow.
 
 **Tech Stack:** Python, Optuna, LightGBM, scikit-learn, pandas
+
+---
+
+### 13. Matplotlib & Seaborn 日本語化テンプレート
+
+**Notebook:** [【日本語化】Matplotlib & Seaborn 文字化け解消テンプレート](https://www.kaggle.com/code/yasunorim/matplotlib-seaborn)
+
+Kaggle環境でMatplotlibとSeabornの日本語フォント文字化けを解消するテンプレートノートブック。
+
+**Tech Stack:** Python, matplotlib, seaborn
 
 </details>
 
