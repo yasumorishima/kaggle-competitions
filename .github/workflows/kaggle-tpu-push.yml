@@ -1,0 +1,280 @@
+name: Kaggle TPU Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      notebook_dir:
+        description: 'Notebook directory (e.g., deep-past)'
+        required: true
+        type: string
+      kernel_id:
+        description: 'Kaggle kernel ID for polling (e.g., yasunorim/kernel-slug). Leave empty to skip.'
+        required: false
+        type: string
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install kaggle CLI
+        run: pip install kaggle
+
+      - name: Generate notebook (if generate_notebook.py exists)
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          if [ -f "$DIR/generate_notebook.py" ]; then
+            echo "Running generate_notebook.py in $DIR"
+            cd "$DIR" && python generate_notebook.py
+          else
+            echo "No generate_notebook.py found, skipping."
+          fi
+
+      - name: Switch kernel to TPU mode
+        run: |
+          METADATA="${{ inputs.notebook_dir }}/kernel-metadata.json"
+          python3 -c "
+          import json
+          with open('$METADATA') as f:
+              meta = json.load(f)
+          meta['enable_gpu'] = 'false'
+          meta['enable_tpu'] = 'true'
+          with open('$METADATA', 'w') as f:
+              json.dump(meta, f, indent=2)
+          print('Switched to TPU: enable_gpu=false, enable_tpu=true')
+          "
+
+      - name: Inject TPU compatibility cells into notebook
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          # Find the notebook file from kernel-metadata.json
+          NB_FILE=$(python3 -c "import json; print(json.load(open('$DIR/kernel-metadata.json'))['code_file'])")
+          NB_PATH="$DIR/$NB_FILE"
+
+          python3 << PYEOF
+          import json
+
+          with open("$NB_PATH") as f:
+              nb = json.load(f)
+
+          # TPU setup cell — lessons learned from drivendata-comp v5-v23:
+          # 1. Do NOT pip install torch_xla — Kaggle has it pre-installed
+          # 2. Pin transformers==4.51.3 + tokenizers==0.21.0 with --no-deps
+          # 3. Upgrade datasets>=3.0 (pyarrow 18+ compat)
+          # 4. Set PJRT_DEVICE=TPU
+          tpu_cell = {
+              "cell_type": "code",
+              "metadata": {},
+              "source": [
+                  "# TPU Setup\n",
+                  "import subprocess, sys, os, importlib\n",
+                  "\n",
+                  "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q',\n",
+                  "    'transformers==4.51.3', 'accelerate==1.6.0', 'tokenizers==0.21.0',\n",
+                  "    '--force-reinstall', '--no-deps'],\n",
+                  "    check=True)\n",
+                  "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q',\n",
+                  "    'datasets>=3.0'],\n",
+                  "    check=True)\n",
+                  "\n",
+                  "mods_to_clear = [k for k in sys.modules if k.startswith('transformers')]\n",
+                  "for m in mods_to_clear:\n",
+                  "    del sys.modules[m]\n",
+                  "importlib.invalidate_caches()\n",
+                  "\n",
+                  "import torch, torch_xla, torch_xla.core.xla_model as xm\n",
+                  "print(f'torch: {torch.__version__}, torch_xla: {torch_xla.__version__}')\n",
+                  "print(f'TPU device: {xm.xla_device()}')\n",
+                  "os.environ['XLA_USE_BF16'] = '1'\n",
+                  "os.environ['PJRT_DEVICE'] = 'TPU'\n",
+                  "print('TPU configured')\n",
+              ],
+              "execution_count": None,
+              "outputs": [],
+          }
+
+          # Auto-disable gradient checkpointing on TPU
+          # torch.utils.checkpoint uses getattr(torch, 'xla') which crashes on TPU
+          gc_patch_cell = {
+              "cell_type": "code",
+              "metadata": {},
+              "source": [
+                  "# TPU fix: auto-disable gradient checkpointing\n",
+                  "import torch\n",
+                  "_orig_to = torch.nn.Module.to\n",
+                  "def _patched_to(self, *args, **kwargs):\n",
+                  "    result = _orig_to(self, *args, **kwargs)\n",
+                  "    if hasattr(result, 'gradient_checkpointing_disable'):\n",
+                  "        result.gradient_checkpointing_disable()\n",
+                  "    return result\n",
+                  "torch.nn.Module.to = _patched_to\n",
+                  "print('TPU: auto gradient_checkpointing_disable() patch applied')\n",
+              ],
+              "execution_count": None,
+              "outputs": [],
+          }
+
+          # Strip transformers from existing pip install cells
+          for i, cell in enumerate(nb["cells"]):
+              if cell["cell_type"] == "code":
+                  src = "".join(cell["source"]) if isinstance(cell["source"], list) else cell["source"]
+                  if "transformers" in src and "pip install" in src:
+                      new_src = src.replace("transformers[torch] ", "").replace("transformers ", "")
+                      cell["source"] = [new_src]
+                      print(f"Stripped transformers from pip install cell {i}")
+                      break
+
+          # Insert after 2nd code cell (after pip install)
+          code_count = 0
+          insert_idx = 1
+          for i, cell in enumerate(nb["cells"]):
+              if cell["cell_type"] == "code":
+                  code_count += 1
+                  if code_count == 2:
+                      insert_idx = i + 1
+                      break
+
+          nb["cells"].insert(insert_idx, tpu_cell)
+          nb["cells"].insert(insert_idx + 1, gc_patch_cell)
+
+          with open("$NB_PATH", "w") as f:
+              json.dump(nb, f, indent=1, ensure_ascii=False)
+
+          print(f"Injected TPU cells at position {insert_idx}")
+          PYEOF
+
+      - name: Setup Kaggle credentials
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: Push notebook to Kaggle
+        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+
+      - name: Poll until complete (max 6h)
+        if: ${{ inputs.kernel_id != '' }}
+        run: |
+          KERNEL_ID="${{ inputs.kernel_id }}"
+
+          check_status() {
+            python3 -c "
+          from kaggle.api.kaggle_api_extended import KaggleApi
+          api = KaggleApi()
+          api.authenticate()
+          try:
+              result = api.kernels_status('$KERNEL_ID')
+              if hasattr(result, 'status'):
+                  print(result.status)
+              else:
+                  print('UNKNOWN')
+          except Exception as e:
+              print(f'CHECK_ERROR: {e}')
+          " 2>&1
+          }
+
+          echo "Waiting 120s for Kaggle to initialize..."
+          sleep 120
+
+          STARTED=false
+          for i in $(seq 1 60); do
+            RAW=$(check_status)
+            if [ $((i % 5)) -eq 0 ]; then
+              echo "Startup check $i/60: $RAW"
+            fi
+            if echo "$RAW" | grep -qiE "RUNNING|QUEUED"; then
+              echo "Kernel started: $RAW"
+              STARTED=true
+              break
+            fi
+            if echo "$RAW" | grep -q "^COMPLETE$"; then
+              echo "Kernel completed."
+              STARTED=true
+              break
+            fi
+            sleep 30
+          done
+
+          if [ "$STARTED" = "false" ]; then
+            echo "Kernel never started."
+            exit 1
+          fi
+
+          for i in $(seq 1 720); do
+            RAW=$(check_status)
+            if [ $((i % 10)) -eq 0 ]; then
+              echo "Poll $i/720: $RAW"
+            fi
+            if echo "$RAW" | grep -qiE "COMPLETE_EMPTY|ERROR|CANCEL"; then
+              echo "Kernel failed: $RAW"
+              exit 1
+            fi
+            if echo "$RAW" | grep -qiE "COMPLETE"; then
+              echo "Kernel completed successfully."
+              break
+            fi
+            sleep 30
+          done
+
+      - name: Restore kernel settings
+        if: always()
+        run: |
+          METADATA="${{ inputs.notebook_dir }}/kernel-metadata.json"
+          python3 -c "
+          import json
+          with open('$METADATA') as f:
+              meta = json.load(f)
+          meta['enable_gpu'] = 'true'
+          meta['enable_tpu'] = 'false'
+          with open('$METADATA', 'w') as f:
+              json.dump(meta, f, indent=2)
+          "
+
+      - name: Show kernel diagnostics on failure
+        if: failure() && inputs.kernel_id != ''
+        run: |
+          SLUG=$(echo "${{ inputs.kernel_id }}" | cut -d'/' -f2)
+          mkdir -p ./kernel_log_out
+          kaggle kernels output "${{ inputs.kernel_id }}" -p ./kernel_log_out || true
+          LOG_FILE="./kernel_log_out/${SLUG}.log"
+          if [ -f "$LOG_FILE" ]; then
+            echo "--- stdout (last 50 lines) ---"
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); lines=[e['data'] for e in entries if e.get('stream_name')=='stdout']; print(''.join(lines[-50:]),end='')" || true
+            echo ""
+            echo "--- stderr (last 80 lines) ---"
+            python3 -c "import json; entries=json.load(open('$LOG_FILE')); errs=[e['data'] for e in entries if e.get('stream_name')=='stderr']; print(''.join(errs[-80:]),end='')" || true
+          else
+            echo "No log file found."
+          fi
+
+      - name: Notify Discord (success)
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ **Kaggle TPU完了**\nDir: \`${{ inputs.notebook_dir }}\`\nMemo: ${{ inputs.memo }}\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" || true
+
+      - name: Notify Discord (failure)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ **Kaggle TPU失敗**\nDir: \`${{ inputs.notebook_dir }}\`\nMemo: ${{ inputs.memo }}\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" || true
