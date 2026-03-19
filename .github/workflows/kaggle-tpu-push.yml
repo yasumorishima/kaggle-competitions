@@ -31,6 +31,23 @@ jobs:
       - name: Install kaggle CLI
         run: pip install kaggle
 
+      - name: Syntax check (pre-push validation)
+        run: |
+          DIR="${{ inputs.notebook_dir }}"
+          # Check .py files for syntax errors
+          for f in "$DIR"/*.py; do
+            [ -f "$f" ] || continue
+            echo "Checking syntax: $f"
+            python3 -c "import py_compile; py_compile.compile('$f', doraise=True)"
+          done
+          # Check notebook JSON is valid
+          for f in "$DIR"/*.ipynb; do
+            [ -f "$f" ] || continue
+            echo "Checking notebook JSON: $f"
+            python3 -c "import json; json.load(open('$f'))"
+          done
+          echo "All syntax checks passed"
+
       - name: Generate notebook (if generate_notebook.py exists)
         run: |
           DIR="${{ inputs.notebook_dir }}"
