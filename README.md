@@ -83,6 +83,7 @@ Google Drive (for Desktop) ←――――――――――――――――�
 - **xdotool keepalive** (systemd service) sends keystrokes every 30 min to prevent Colab idle timeout
 - **Claude Code** writes experiment configs to Google Drive
 - **Colab** auto-detects new configs and runs `train.py`
+- **[colab-mcp](https://github.com/googlecolab/colab-mcp)** enables direct Colab GPU interaction from Claude Code via MCP, allowing experiment iteration without manual Colab setup
 - **Kaggle kernels** used only for final submission
 
 ### Directory Structure
