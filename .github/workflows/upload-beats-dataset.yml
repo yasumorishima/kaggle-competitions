@@ -17,6 +17,9 @@ jobs:
       - name: "Memo: ${{ github.event.inputs.memo }}"
         run: echo "${{ github.event.inputs.memo }}"
 
+      - name: Install Kaggle CLI
+        run: pip install -q kaggle
+
       - name: Setup Kaggle credentials
         run: |
           mkdir -p ~/.kaggle
