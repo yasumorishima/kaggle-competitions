@@ -167,6 +167,24 @@ gh workflow run "EXP to Kaggle Submit" \
 
 ## 🏆 Competition Results
 
+### BirdCLEF+ 2026 - Acoustic Species Identification (Active)
+
+**Competition:** [BirdCLEF+ 2026](https://www.kaggle.com/competitions/birdclef-2026) | **Deadline:** 2026-06-03
+
+Identify 234 species (birds, insects, amphibians, reptiles) from audio recordings in the Pantanal, Brazil. Evaluated with macro ROC AUC.
+
+| Approach | CV AUC | LB |
+|---|---|---|
+| BEATs-SED + Attention Pooling | — | — |
+
+- **Architecture:** 2-notebook GPU-efficient pipeline
+  1. `birdclef-2026-embed` (CPU): BEATs iter3+ AS2M embedding extraction (zero GPU cost)
+  2. `birdclef-2026-work` (GPU, ~5-10min): Attention SED head with focal loss
+- **Differentiators:** BEATs (AudioSet 2M pretrained) instead of Perch v2, per-class attention pooling for sound event detection, metadata-aware classification
+- **Dataset:** [`yasunorim/beats-pretrained`](https://www.kaggle.com/datasets/yasunorim/beats-pretrained) — BEATs checkpoint uploaded via GitHub Actions
+
+---
+
 ### Deep Past Challenge - Akkadian to English Translation (Active)
 
 **Competition:** [Deep Past Initiative Machine Translation](https://www.kaggle.com/competitions/deep-past-initiative-machine-translation)
