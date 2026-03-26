@@ -1,0 +1,59 @@
+# child-exp000: BEATs embedding extraction (CPU) + Attention SED head (GPU lightweight)
+# 2段階設計: embedding事前計算 → 軽量head学習
+
+# === Stage 1: Embedding Extraction (CPU, GPU不使用) ===
+embedding:
+  backbone: "beats_iter3"
+  pretrained_path: "/kaggle/input/beats-pretrained/BEATs_iter3_plus_AS2M.pt"
+  embed_dim: 768
+  sample_rate: 16000
+  chunk_duration: 5  # seconds
+  batch_size: 32  # CPU batch (larger OK since no gradient)
+  output_file: "embeddings.npz"  # save to disk
+
+# === Stage 2: SED Head Training (GPU, lightweight) ===
+model:
+  num_classes: 234
+  pooling: "attention"  # attention pooling for SED
+  dropout: 0.3
+  hidden_dim: 512  # projection before attention
+  use_pca: true
+  pca_dim: 256  # 768 -> 256 for efficiency
+  use_metadata: true  # hour + site features
+
+training:
+  epochs: 50  # lightweight head = fast, can afford more epochs
+  batch_size: 256  # embeddings are small, large batch OK
+  optimizer: "adamw"
+  lr: 3.0e-3
+  weight_decay: 0.01
+  scheduler: "cosine_warmup"
+  warmup_epochs: 5
+  loss: "focal"
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  label_smoothing: 0.05
+  early_stopping_patience: 10
+
+cv:
+  n_folds: 5
+  fold: 0
+  split_method: "stratified_kfold"
+  stratify_col: "primary_label"
+
+augmentation:
+  # Applied to embeddings (not audio - audio augmentation would require re-extraction)
+  mixup_alpha: 0.4
+  mixup_prob: 0.5
+  embedding_dropout: 0.1  # randomly zero out embedding dimensions
+  gaussian_noise_std: 0.01  # small noise on embeddings
+
+# === Stage 3 (optional): BEATs fine-tune (GPU, minimal) ===
+finetune:
+  enabled: false  # Phase 1bの結果を見てからONにする
+  epochs: 3
+  batch_size: 8
+  backbone_lr: 5.0e-6
+  head_lr: 1.0e-4
+  freeze_layers: 10  # 12層中10層凍結、上位2層のみ
+  max_gpu_hours: 2.0  # 2時間で強制停止

@@ -1,0 +1,95 @@
+name: Upload BEATs Pretrained to Kaggle
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: "Memo: ${{ github.event.inputs.memo }}"
+        run: echo "${{ github.event.inputs.memo }}"
+
+      - name: Setup Kaggle credentials
+        run: |
+          mkdir -p ~/.kaggle
+          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: Download BEATs checkpoint + code
+        run: |
+          mkdir -p beats-pretrained
+          cd beats-pretrained
+
+          # BEATs iter3+ AS2M fine-tuned cpt2 from HuggingFace (~370MB)
+          # Fine-tuned on AudioSet = better embeddings for sound classification
+          echo "Downloading BEATs checkpoint from HuggingFace..."
+          wget -q "https://huggingface.co/camenduru/beats/resolve/main/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt" \
+            -O BEATs_iter3_plus_AS2M.pt
+
+          # BEATs source code from Microsoft unilm repo
+          echo "Downloading BEATs source code..."
+          for f in BEATs.py backbone.py modules.py quantizer.py Tokenizers.py; do
+            wget -q "https://raw.githubusercontent.com/microsoft/unilm/master/beats/$f" -O "$f" || \
+            wget -q "https://raw.githubusercontent.com/nicojm/unilm/refs/heads/master/beats/$f" -O "$f"
+          done
+
+          ls -lh
+          echo "Download complete"
+
+      - name: Verify checkpoint
+        run: |
+          cd beats-pretrained
+          # Check file size (should be ~370MB)
+          SIZE=$(stat -c%s BEATs_iter3_plus_AS2M.pt)
+          echo "Checkpoint size: $SIZE bytes"
+          if [ "$SIZE" -lt 100000000 ]; then
+            echo "ERROR: Checkpoint too small, download may have failed"
+            exit 1
+          fi
+          # Verify it's a valid PyTorch file
+          python3 -c "
+          import torch
+          ckpt = torch.load('BEATs_iter3_plus_AS2M.pt', map_location='cpu', weights_only=False)
+          print('Keys:', list(ckpt.keys()))
+          print('Config keys:', list(ckpt['cfg'].keys()) if 'cfg' in ckpt else 'no cfg')
+          print('Checkpoint verified OK')
+          "
+
+      - name: Create Kaggle dataset metadata
+        run: |
+          cd beats-pretrained
+          cat > dataset-metadata.json << 'METADATA'
+          {
+            "title": "BEATs iter3+ AS2M Pretrained",
+            "id": "yasunorim/beats-pretrained",
+            "licenses": [
+              {"name": "MIT"}
+            ]
+          }
+          METADATA
+
+      - name: Upload to Kaggle
+        run: |
+          cd beats-pretrained
+          # Check if dataset already exists
+          if kaggle datasets status yasunorim/beats-pretrained 2>/dev/null; then
+            echo "Dataset exists, creating new version..."
+            kaggle datasets version -p . -m "BEATs iter3+ AS2M checkpoint + source code" --quiet
+          else
+            echo "Creating new dataset..."
+            kaggle datasets create -p . --public --quiet
+          fi
+          echo "Upload complete"
+
+      - name: Verify dataset on Kaggle
+        run: |
+          sleep 10
+          kaggle datasets files yasunorim/beats-pretrained

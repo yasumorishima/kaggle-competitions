@@ -1,0 +1,15 @@
+{
+  "id": "yasunorim/birdclef-2026-beats-sed-work",
+  "title": "birdclef-2026-beats-sed-work",
+  "code_file": "birdclef-2026-beats-sed-work.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "competition_sources": ["birdclef-2026"],
+  "dataset_sources": [],
+  "kernel_sources": ["yasunorim/birdclef-2026-beats-embed"],
+  "model_sources": []
+}

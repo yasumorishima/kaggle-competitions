@@ -1,0 +1,15 @@
+{
+  "id": "yasunorim/birdclef-2026-beats-embed",
+  "title": "birdclef-2026-beats-embed",
+  "code_file": "birdclef-2026-beats-embed.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "competition_sources": ["birdclef-2026"],
+  "dataset_sources": ["yasunorim/beats-pretrained", "hubfor/microsoft-beats-model"],
+  "kernel_sources": [],
+  "model_sources": []
+}
