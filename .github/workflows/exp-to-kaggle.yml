@@ -32,6 +32,7 @@ on:
 jobs:
   submit:
     runs-on: ubuntu-latest
+    timeout-minutes: 420
     steps:
       - uses: actions/checkout@v4
 
