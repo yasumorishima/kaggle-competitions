@@ -37,11 +37,25 @@ jobs:
           wget -q "https://huggingface.co/camenduru/beats/resolve/main/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt" \
             -O BEATs_iter3_plus_AS2M.pt
 
-          # BEATs source code from Microsoft unilm repo
+          # BEATs source code — try multiple sources
           echo "Downloading BEATs source code..."
+          BASE_URLS=(
+            "https://raw.githubusercontent.com/microsoft/unilm/master/beats"
+            "https://raw.githubusercontent.com/microsoft/unilm/refs/heads/master/beats"
+            "https://huggingface.co/hubfor/microsoft-beats-model/resolve/main"
+          )
           for f in BEATs.py backbone.py modules.py quantizer.py Tokenizers.py; do
-            wget -q "https://raw.githubusercontent.com/microsoft/unilm/master/beats/$f" -O "$f" || \
-            wget -q "https://raw.githubusercontent.com/nicojm/unilm/refs/heads/master/beats/$f" -O "$f"
+            DOWNLOADED=false
+            for base in "${BASE_URLS[@]}"; do
+              if wget -q "$base/$f" -O "$f" 2>/dev/null && [ -s "$f" ]; then
+                echo "  $f from $base"
+                DOWNLOADED=true
+                break
+              fi
+            done
+            if [ "$DOWNLOADED" = false ]; then
+              echo "WARNING: Failed to download $f from any source"
+            fi
           done
 
           ls -lh
