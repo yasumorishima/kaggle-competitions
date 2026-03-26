@@ -121,3 +121,21 @@ jobs:
             echo "No log file found. Files in kernel_log_out/:"
             ls -la ./kernel_log_out/ || true
           fi
+
+      - name: Notify Discord (success)
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ **Kaggle Kernel完了**\nDir: \`${{ inputs.notebook_dir }}\`\nKernel: \`${{ inputs.kernel_id }}\`\nMemo: ${{ inputs.memo }}\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" || true
+
+      - name: Notify Discord (failure)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ **Kaggle Kernel失敗**\nDir: \`${{ inputs.notebook_dir }}\`\nKernel: \`${{ inputs.kernel_id }}\`\nMemo: ${{ inputs.memo }}\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" || true

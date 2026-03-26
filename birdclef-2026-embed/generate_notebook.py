@@ -66,28 +66,49 @@ print(f"Audio dir exists: {AUDIO_DIR.exists()}")
 
     # ── Load BEATs ──
     cells.append(make_cell("""
-# BEATs model loading
-# Priority: yasunorim/beats-pretrained (checkpoint + code)
-# Fallback: hubfor/microsoft-beats-model (code only — would need checkpoint elsewhere)
+# BEATs model loading — robust path discovery
 BEATS_CKPT = None
 BEATS_CODE = None
 
-# Check yasunorim dataset (has both checkpoint + code)
-p1 = Path("/kaggle/input/beats-pretrained")
-if (p1 / "BEATs_iter3_plus_AS2M.pt").exists():
-    BEATS_CKPT = p1 / "BEATs_iter3_plus_AS2M.pt"
-    BEATS_CODE = p1
-    print(f"Checkpoint: {BEATS_CKPT} ({BEATS_CKPT.stat().st_size/1024/1024:.0f}MB)")
+# Debug: show all mounted datasets
+input_dir = Path("/kaggle/input")
+if input_dir.exists():
+    print(f"Mounted datasets: {sorted(d.name for d in input_dir.iterdir() if d.is_dir())}")
+else:
+    print("WARNING: /kaggle/input does not exist")
 
-# Check hubfor dataset (code only)
-p2 = Path("/kaggle/input/microsoft-beats-model")
-if BEATS_CODE is None and (p2 / "BEATs.py").exists():
-    BEATS_CODE = p2
-    print(f"Code from hubfor dataset")
+# Search for checkpoint across all mounted datasets
+CKPT_NAME = "BEATs_iter3_plus_AS2M.pt"
+for d in sorted(input_dir.iterdir()) if input_dir.exists() else []:
+    if not d.is_dir():
+        continue
+    ckpt = d / CKPT_NAME
+    if ckpt.exists():
+        BEATS_CKPT = ckpt
+        BEATS_CODE = d
+        print(f"Checkpoint: {BEATS_CKPT} ({BEATS_CKPT.stat().st_size/1024/1024:.0f}MB)")
+        break
+    # Also check subdirectories (some datasets have nested structure)
+    for sub_ckpt in d.rglob(CKPT_NAME):
+        BEATS_CKPT = sub_ckpt
+        BEATS_CODE = sub_ckpt.parent
+        print(f"Checkpoint (nested): {BEATS_CKPT} ({BEATS_CKPT.stat().st_size/1024/1024:.0f}MB)")
+        break
+    if BEATS_CKPT:
+        break
+
+# Fallback: find BEATs.py for code if not found with checkpoint
+if BEATS_CODE is None:
+    for d in sorted(input_dir.iterdir()) if input_dir.exists() else []:
+        if (d / "BEATs.py").exists():
+            BEATS_CODE = d
+            print(f"Code from: {d}")
+            break
 
 if BEATS_CKPT is None:
     raise RuntimeError(
         "BEATs checkpoint not found! "
+        f"Searched /kaggle/input/*/{CKPT_NAME}. "
         "Add 'yasunorim/beats-pretrained' to dataset_sources."
     )
 
