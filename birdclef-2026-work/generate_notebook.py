@@ -65,9 +65,7 @@ from sklearn.metrics import roc_auc_score
 
 os.environ["WANDB_MODE"] = "offline"
 os.environ["WANDB_SILENT"] = "true"
-import subprocess
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "wandb"], check=True)
-import wandb
+import wandb  # pre-installed in Kaggle image; internet disabled blocks pip install
 
 warnings.filterwarnings("ignore")
 print(f"PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}")
