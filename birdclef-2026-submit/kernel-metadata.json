@@ -1,0 +1,19 @@
+{
+  "id": "yasunorim/birdclef-2026-beats-sed-submit",
+  "title": "birdclef-2026-beats-sed-submit",
+  "code_file": "birdclef-2026-beats-sed-submit.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "competition_sources": ["birdclef-2026"],
+  "dataset_sources": [
+    "yasunorim/beats-pretrained",
+    "hubfor/microsoft-beats-model",
+    "yasunorim/birdclef-2026-sed-heads-5fold"
+  ],
+  "kernel_sources": ["yasunorim/birdclef-2026-beats-embed"],
+  "model_sources": []
+}

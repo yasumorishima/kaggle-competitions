@@ -1,0 +1,287 @@
+#!/usr/bin/env python3
+"""
+BirdCLEF+ 2026 — 5fold Ensemble Submission (GPU)
+================================================
+Loads BEATs + 5 trained SED heads, emits submission.csv.
+"""
+
+import json
+from pathlib import Path
+
+
+def cell(src, t="code"):
+    return {
+        "cell_type": t,
+        "metadata": {"trusted": True},
+        "source": src.strip().split("\n") if isinstance(src, str) else src,
+        "outputs": [],
+        **({"execution_count": None} if t == "code" else {}),
+    }
+
+
+def generate():
+    cells = []
+
+    cells.append(cell(
+        "# BirdCLEF+ 2026 — 5fold Ensemble Submission\n\n"
+        "BEATs frame embeddings -> scaler+PCA(768->256) -> 5x AttentionSEDHead -> mean -> sigmoid\n\n"
+        "CV: 0.9117 ± 0.0024", "markdown"))
+
+    cells.append(cell("""
+import os, sys, json, time, math, gc
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchaudio
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+SEED = 42
+torch.manual_seed(SEED); np.random.seed(SEED)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Device: {device}, PyTorch: {torch.__version__}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name()}, {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f}GB")
+
+DATA_DIR = Path("/kaggle/input/birdclef-2026")
+EMB_DIR = Path("/kaggle/input/birdclef-2026-beats-embed")
+HEADS_DIR = Path("/kaggle/input/birdclef-2026-sed-heads-5fold")
+SR = 16000
+CHUNK = SR * 5
+N_FRAMES_OUT = 8
+NUM_CLASSES = 234
+PCA_DIM = 256
+HIDDEN_DIM = 512
+"""))
+
+    # BEATs loader (mirrors embed kernel)
+    cells.append(cell("""
+# BEATs loading
+CKPT_NAME = "BEATs_iter3_plus_AS2M.pt"
+beats_ckpt = None
+beats_code = None
+for root in ["/kaggle/input/beats-pretrained", "/kaggle/input/microsoft-beats-model"]:
+    for p in Path(root).rglob("*"):
+        if p.name == CKPT_NAME:
+            beats_ckpt = p
+        if p.name == "BEATs.py":
+            beats_code = p.parent
+if beats_ckpt is None: raise FileNotFoundError("BEATs checkpoint not found")
+if beats_code is None: raise FileNotFoundError("BEATs.py not found")
+
+sys.path.insert(0, str(beats_code))
+from BEATs import BEATs, BEATsConfig
+
+raw = torch.load(beats_ckpt, map_location="cpu", weights_only=False)
+cfg_dict = raw["cfg"]
+model_state = raw["model"]
+beats_cfg = BEATsConfig(cfg_dict)
+beats_model = BEATs(beats_cfg)
+beats_model.load_state_dict(model_state, strict=False)
+beats_model.eval().to(device)
+EMBED_DIM = beats_cfg.encoder_embed_dim
+print(f"BEATs loaded: embed_dim={EMBED_DIM}")
+"""))
+
+    # Re-fit scaler + PCA from training embeddings (reproduce training)
+    cells.append(cell("""
+# Re-fit scaler + PCA (SEED=42 reproduces training)
+npz_path = EMB_DIR / "embeddings.npz"
+npz = np.load(npz_path)
+train_frame_emb = npz["frame_embeddings"]  # [N, 8, 768]
+N, T, D = train_frame_emb.shape
+print(f"Train frame emb: {train_frame_emb.shape}")
+
+n_fit = min(50000, N * T)
+flat_all = train_frame_emb.reshape(-1, D)
+rng = np.random.RandomState(SEED)
+fit_idx = rng.choice(flat_all.shape[0], n_fit, replace=False)
+
+scaler = StandardScaler()
+scaler.fit(flat_all[fit_idx])
+
+pca = PCA(n_components=PCA_DIM)
+pca.fit(scaler.transform(flat_all[fit_idx]))
+print(f"PCA explained variance: {pca.explained_variance_ratio_.sum():.3f}")
+del train_frame_emb, flat_all
+gc.collect()
+"""))
+
+    # SED head model definition
+    cells.append(cell("""
+class AttentionSEDHead(nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_classes, dropout=0.3, use_metadata=False):
+        super().__init__()
+        self.use_metadata = use_metadata
+        self.proj = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim),
+            nn.GELU(), nn.Dropout(dropout))
+        self.attention = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim), nn.Tanh(),
+            nn.Dropout(dropout * 0.5),
+            nn.Linear(hidden_dim, num_classes))
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2), nn.GELU(),
+            nn.Dropout(dropout * 0.5),
+            nn.Linear(hidden_dim // 2, num_classes))
+        if use_metadata:
+            self.hour_embed = nn.Embedding(24, 32)
+            self.meta_proj = nn.Linear(32, hidden_dim)
+        self.mean_classifier = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2), nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, num_classes))
+        self.gate = nn.Parameter(torch.tensor(0.5))
+
+    def forward(self, frame_emb, hour=None):
+        x = self.proj(frame_emb)
+        if self.use_metadata and hour is not None:
+            h = self.meta_proj(self.hour_embed(hour))
+            x = x + h.unsqueeze(1)
+        att = F.softmax(self.attention(x), dim=1)
+        frame_pred = self.classifier(x)
+        sed_logits = (att * frame_pred).sum(dim=1)
+        mean_x = x.mean(dim=1)
+        mean_logits = self.mean_classifier(mean_x)
+        g = torch.sigmoid(self.gate)
+        return g * sed_logits + (1 - g) * mean_logits
+
+# Load 5 fold heads
+heads = []
+for i in range(5):
+    m = AttentionSEDHead(PCA_DIM, HIDDEN_DIM, NUM_CLASSES, dropout=0.3, use_metadata=True)
+    state = torch.load(HEADS_DIR / f"fold{i}.pth", map_location=device, weights_only=False)
+    m.load_state_dict(state)
+    m.eval().to(device)
+    heads.append(m)
+print(f"Loaded {len(heads)} fold heads")
+"""))
+
+    # Taxonomy + column order
+    cells.append(cell("""
+taxonomy = pd.read_csv(DATA_DIR / "taxonomy.csv")
+labels = sorted(taxonomy["primary_label"].astype(str).unique().tolist())
+assert len(labels) == NUM_CLASSES, f"expected {NUM_CLASSES}, got {len(labels)}"
+
+sample = pd.read_csv(DATA_DIR / "sample_submission.csv")
+sub_cols = list(sample.columns[1:])
+# Verify same columns
+assert set(sub_cols) == set(labels), "class sets differ"
+# Column order mapping: sample order -> training order
+sample_to_train = [labels.index(c) for c in sub_cols]
+print(f"Classes: {len(labels)}, sample matches training (reordered)")
+"""))
+
+    # Filename hour parser
+    cells.append(cell(r"""
+import re
+def parse_hour(stem):
+    # BC2026_Test_0001_S05_20250227_010002 -> hour=01
+    m = re.search(r"_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})", stem)
+    if m:
+        return int(m.group(4))
+    return 12  # default noon
+"""))
+
+    # Inference loop
+    cells.append(cell("""
+test_dir = DATA_DIR / "test_soundscapes"
+test_files = sorted(test_dir.glob("*.ogg"))
+print(f"Test soundscapes: {len(test_files)}")
+
+rows = []
+t0 = time.time()
+with torch.no_grad():
+    for fi, fp in enumerate(test_files):
+        stem = fp.stem
+        hour = parse_hour(stem)
+        try:
+            wav, orig_sr = torchaudio.load(fp)
+            if wav.shape[0] > 1:
+                wav = wav.mean(dim=0, keepdim=True)
+            wav = wav.squeeze(0)
+            if orig_sr != SR:
+                wav = torchaudio.functional.resample(wav, orig_sr, SR)
+        except Exception as e:
+            print(f"Load error {fp.name}: {e}")
+            continue
+
+        total_samples = wav.shape[0]
+        total_chunks = math.ceil(total_samples / CHUNK)  # typically 12 for 60s
+        # Build batch of all chunks in this file
+        chunks = []
+        for ci in range(total_chunks):
+            s = ci * CHUNK
+            e = s + CHUNK
+            c = wav[s:e]
+            if c.shape[0] < CHUNK:
+                c = F.pad(c, (0, CHUNK - c.shape[0]))
+            chunks.append(c)
+        batch = torch.stack(chunks).to(device)
+        pad_mask = torch.zeros(batch.shape, dtype=torch.bool, device=device)
+
+        feats = beats_model.extract_features(batch, padding_mask=pad_mask)[0]
+        # feats: [C, N_FRAMES_RAW, 768]
+        indices = np.linspace(0, feats.shape[1] - 1, N_FRAMES_OUT, dtype=int)
+        feats = feats[:, indices, :].cpu().numpy()  # [C, 8, 768]
+
+        # scaler + PCA
+        flat = feats.reshape(-1, EMBED_DIM)
+        flat = scaler.transform(flat)
+        flat = pca.transform(flat)
+        frame_emb = flat.reshape(total_chunks, N_FRAMES_OUT, PCA_DIM).astype(np.float32)
+        frame_emb_t = torch.from_numpy(frame_emb).to(device)
+        hour_t = torch.full((total_chunks,), hour, dtype=torch.long, device=device)
+
+        # Ensemble
+        probs_sum = torch.zeros(total_chunks, NUM_CLASSES, device=device)
+        for m in heads:
+            logits = m(frame_emb_t, hour=hour_t)
+            probs_sum += torch.sigmoid(logits)
+        probs = (probs_sum / len(heads)).cpu().numpy()
+
+        for ci in range(total_chunks):
+            end_sec = (ci + 1) * 5
+            row_id = f"{stem}_{end_sec}"
+            rows.append((row_id, probs[ci]))
+
+        if fi % 10 == 0:
+            el = time.time() - t0
+            print(f"[{fi+1}/{len(test_files)}] {el:.0f}s, {fi+1 and el/(fi+1):.2f}s/file")
+
+print(f"Total inference: {time.time()-t0:.0f}s, {len(rows)} rows")
+"""))
+
+    # Build submission DataFrame with correct column order
+    cells.append(cell("""
+row_ids = [r[0] for r in rows]
+probs_arr = np.stack([r[1] for r in rows])  # [N, 234] in TRAINING order
+# Reorder to sample_submission column order
+probs_sample_order = probs_arr[:, sample_to_train]
+
+sub = pd.DataFrame(probs_sample_order, columns=sub_cols)
+sub.insert(0, "row_id", row_ids)
+sub.to_csv("submission.csv", index=False)
+print(f"submission.csv: {sub.shape}")
+print(sub.head(2))
+"""))
+
+    nb = {
+        "cells": cells,
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "language_info": {"name": "python", "version": "3.12"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    out = Path(__file__).parent / "birdclef-2026-beats-sed-submit.ipynb"
+    out.write_text(json.dumps(nb, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(f"Generated: {out}")
+
+
+if __name__ == "__main__":
+    generate()
