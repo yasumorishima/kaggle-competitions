@@ -37,7 +37,7 @@ training:
 
 cv:
   n_folds: 5
-  fold: 2
+  fold: 3
   split_method: "stratified_kfold"
   stratify_col: "primary_label"
 

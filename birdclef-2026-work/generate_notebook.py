@@ -70,7 +70,7 @@ import wandb  # pre-installed in Kaggle image; internet disabled blocks pip inst
 warnings.filterwarnings("ignore")
 print(f"PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name()}, Memory: {torch.cuda.get_device_properties(0).total_mem/1024**3:.1f}GB")
+    print(f"GPU: {torch.cuda.get_device_name()}, Memory: {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f}GB")
 """))
 
     # ── Load embeddings ──
