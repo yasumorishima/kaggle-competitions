@@ -13,7 +13,7 @@ def cell(src, t="code"):
     return {
         "cell_type": t,
         "metadata": {"trusted": True},
-        "source": src.strip().split("\n") if isinstance(src, str) else src,
+        "source": [l + "\n" for l in src.strip().split("\n")] if isinstance(src, str) else src,
         "outputs": [],
         **({"execution_count": None} if t == "code" else {}),
     }
@@ -41,14 +41,44 @@ from sklearn.decomposition import PCA
 
 SEED = 42
 torch.manual_seed(SEED); np.random.seed(SEED)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Device: {device}, PyTorch: {torch.__version__}")
-if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name()}, {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f}GB")
 
-DATA_DIR = Path("/kaggle/input/birdclef-2026")
-EMB_DIR = Path("/kaggle/input/birdclef-2026-beats-embed")
-HEADS_DIR = Path("/kaggle/input/birdclef-2026-sed-heads-5fold")
+# Probe GPU — Kaggle sometimes assigns Tesla P100 (SM 6.0) which PyTorch 2.10+cu128 can't use
+device = torch.device("cpu")
+if torch.cuda.is_available():
+    try:
+        gpu_name = torch.cuda.get_device_name()
+        gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        t = torch.zeros(16, device="cuda")
+        (t + 1).cpu()  # force sync to catch kernel-image errors
+        device = torch.device("cuda")
+        print(f"GPU OK: {gpu_name}, {gpu_mem:.1f}GB")
+    except Exception as e:
+        print(f"GPU probe FAIL ({type(e).__name__}: {str(e)[:120]}) — falling back to CPU")
+print(f"Device: {device}, PyTorch: {torch.__version__}")
+
+def find_file(name):
+    for p in Path("/kaggle/input").rglob(name):
+        return p
+    return None
+
+def find_dir(name):
+    for p in Path("/kaggle/input").rglob(name):
+        if p.is_dir(): return p
+    return None
+
+DATA_DIR = find_dir("birdclef-2026") or Path("/kaggle/input/birdclef-2026")
+# Normalize: if rglob picked competition root itself
+if not (DATA_DIR / "taxonomy.csv").exists():
+    for p in Path("/kaggle/input").rglob("taxonomy.csv"):
+        DATA_DIR = p.parent; break
+NPZ_PATH = find_file("embeddings.npz")
+HEADS_DIR = find_file("fold0.pth").parent if find_file("fold0.pth") else None
+print(f"DATA_DIR: {DATA_DIR}")
+print(f"NPZ_PATH: {NPZ_PATH}")
+print(f"HEADS_DIR: {HEADS_DIR}")
+assert (DATA_DIR / "taxonomy.csv").exists(), "taxonomy.csv not found"
+assert NPZ_PATH and NPZ_PATH.exists(), "embeddings.npz not found"
+assert HEADS_DIR and HEADS_DIR.exists(), "fold heads not found"
 SR = 16000
 CHUNK = SR * 5
 N_FRAMES_OUT = 8
@@ -59,16 +89,39 @@ HIDDEN_DIM = 512
 
     # BEATs loader (mirrors embed kernel)
     cells.append(cell("""
-# BEATs loading
+# BEATs loading — robust discovery across all /kaggle/input/*
 CKPT_NAME = "BEATs_iter3_plus_AS2M.pt"
 beats_ckpt = None
 beats_code = None
-for root in ["/kaggle/input/beats-pretrained", "/kaggle/input/microsoft-beats-model"]:
-    for p in Path(root).rglob("*"):
-        if p.name == CKPT_NAME:
-            beats_ckpt = p
-        if p.name == "BEATs.py":
-            beats_code = p.parent
+input_dir = Path("/kaggle/input")
+print(f"Mounted: {sorted(d.name for d in input_dir.iterdir() if d.is_dir())}")
+for d in sorted(input_dir.iterdir()):
+    if not d.is_dir(): continue
+    for p in d.rglob(CKPT_NAME):
+        beats_ckpt = p; break
+    if beats_ckpt: break
+# Prefer BEATs.py from the same dataset as the checkpoint (avoids hubfor/ variant
+# that returns 527-dim AudioSet logits instead of frame embeddings)
+if beats_ckpt:
+    for p in beats_ckpt.parent.rglob("BEATs.py"):
+        beats_code = p.parent; break
+    if not beats_code:
+        # Walk up to dataset root and search siblings
+        root = beats_ckpt
+        for _ in range(6):
+            root = root.parent
+            if root == input_dir or root == root.parent: break
+            for p in root.rglob("BEATs.py"):
+                beats_code = p.parent; break
+            if beats_code: break
+if not beats_code:
+    for d in sorted(input_dir.iterdir()):
+        if not d.is_dir(): continue
+        for p in d.rglob("BEATs.py"):
+            beats_code = p.parent; break
+        if beats_code: break
+print(f"BEATs ckpt: {beats_ckpt}")
+print(f"BEATs code: {beats_code}")
 if beats_ckpt is None: raise FileNotFoundError("BEATs checkpoint not found")
 if beats_code is None: raise FileNotFoundError("BEATs.py not found")
 
@@ -81,6 +134,11 @@ model_state = raw["model"]
 beats_cfg = BEATsConfig(cfg_dict)
 beats_model = BEATs(beats_cfg)
 beats_model.load_state_dict(model_state, strict=False)
+# CRITICAL: remove predictor so extract_features returns (B, T, 768) embeddings
+# instead of AudioSet classification logits (B, 527)
+if hasattr(beats_model, "predictor"):
+    beats_model.predictor = None
+    print("predictor removed: extract_features will return (B, T, 768) embeddings")
 beats_model.eval().to(device)
 EMBED_DIM = beats_cfg.encoder_embed_dim
 print(f"BEATs loaded: embed_dim={EMBED_DIM}")
@@ -89,8 +147,7 @@ print(f"BEATs loaded: embed_dim={EMBED_DIM}")
     # Re-fit scaler + PCA from training embeddings (reproduce training)
     cells.append(cell("""
 # Re-fit scaler + PCA (SEED=42 reproduces training)
-npz_path = EMB_DIR / "embeddings.npz"
-npz = np.load(npz_path)
+npz = np.load(NPZ_PATH)
 train_frame_emb = npz["frame_embeddings"]  # [N, 8, 768]
 N, T, D = train_frame_emb.shape
 print(f"Train frame emb: {train_frame_emb.shape}")
@@ -192,9 +249,69 @@ test_dir = DATA_DIR / "test_soundscapes"
 test_files = sorted(test_dir.glob("*.ogg"))
 print(f"Test soundscapes: {len(test_files)}")
 
+# Sanity test: if no real test files, run pipeline on 1 train file to verify inference works
+SANITY_TEST_FILE = None
+if len(test_files) == 0:
+    train_dir = DATA_DIR / "train_audio"
+    for p in train_dir.rglob("*.ogg"):
+        SANITY_TEST_FILE = p; break
+    if SANITY_TEST_FILE:
+        print(f"SANITY mode: inferring on {SANITY_TEST_FILE.name} to verify pipeline")
+
 rows = []
 t0 = time.time()
 with torch.no_grad():
+    # SANITY test: run pipeline once on a train file (60s: pad or repeat if shorter)
+    if SANITY_TEST_FILE is not None:
+        try:
+            wav, orig_sr = torchaudio.load(SANITY_TEST_FILE)
+            if wav.shape[0] > 1:
+                wav = wav.mean(dim=0, keepdim=True)
+            wav = wav.squeeze(0)
+            if orig_sr != SR:
+                wav = torchaudio.functional.resample(wav, orig_sr, SR)
+            target_len = SR * 60
+            if wav.shape[0] < target_len:
+                reps = math.ceil(target_len / wav.shape[0])
+                wav = wav.repeat(reps)[:target_len]
+            else:
+                wav = wav[:target_len]
+            chunks = [wav[i*CHUNK:(i+1)*CHUNK] for i in range(12)]
+            batch = torch.stack(chunks).to(device)
+            pad_mask = torch.zeros(batch.shape, dtype=torch.bool, device=device)
+            raw_out = beats_model.extract_features(batch, padding_mask=pad_mask)
+            print(f"raw_out type={type(raw_out).__name__}, len={len(raw_out) if hasattr(raw_out,'__len__') else 'n/a'}")
+            if isinstance(raw_out, tuple):
+                for j, o in enumerate(raw_out):
+                    print(f"  [{j}] shape={getattr(o,'shape','n/a')}")
+            feats = raw_out[0] if isinstance(raw_out, tuple) else raw_out
+            print(f"feats.shape = {feats.shape}")
+            if feats.ndim == 2:
+                # [B*N_FRAMES, 768] flattened — reshape assuming same frames per batch
+                total_elems = feats.shape[0]
+                assert total_elems % batch.shape[0] == 0, f"cannot infer N_FRAMES: {total_elems} / {batch.shape[0]}"
+                n_frames = total_elems // batch.shape[0]
+                feats = feats.view(batch.shape[0], n_frames, feats.shape[-1])
+                print(f"reshaped feats: {feats.shape}")
+            indices = np.linspace(0, feats.shape[1] - 1, N_FRAMES_OUT, dtype=int)
+            feats = feats[:, indices, :].cpu().numpy()
+            flat = feats.reshape(-1, EMBED_DIM)
+            flat = scaler.transform(flat)
+            flat = pca.transform(flat)
+            frame_emb = flat.reshape(12, N_FRAMES_OUT, PCA_DIM).astype(np.float32)
+            frame_emb_t = torch.from_numpy(frame_emb).to(device)
+            hour_t = torch.full((12,), 12, dtype=torch.long, device=device)
+            probs_sum = torch.zeros(12, NUM_CLASSES, device=device)
+            for m in heads:
+                logits = m(frame_emb_t, hour=hour_t)
+                probs_sum += torch.sigmoid(logits)
+            probs = (probs_sum / len(heads)).cpu().numpy()
+            print(f"SANITY OK: probs shape={probs.shape}, min={probs.min():.4f}, max={probs.max():.4f}, mean={probs.mean():.4f}")
+            print(f"SANITY top-3 idx of chunk 0: {probs[0].argsort()[-3:][::-1].tolist()}")
+        except Exception as e:
+            print(f"SANITY FAIL: {type(e).__name__}: {e}")
+            raise  # kernel should fail so we know before LB submit
+
     for fi, fp in enumerate(test_files):
         stem = fp.stem
         hour = parse_hour(stem)
@@ -257,16 +374,30 @@ print(f"Total inference: {time.time()-t0:.0f}s, {len(rows)} rows")
 
     # Build submission DataFrame with correct column order
     cells.append(cell("""
-row_ids = [r[0] for r in rows]
-probs_arr = np.stack([r[1] for r in rows])  # [N, 234] in TRAINING order
-# Reorder to sample_submission column order
-probs_sample_order = probs_arr[:, sample_to_train]
-
-sub = pd.DataFrame(probs_sample_order, columns=sub_cols)
-sub.insert(0, "row_id", row_ids)
-sub.to_csv("submission.csv", index=False)
-print(f"submission.csv: {sub.shape}")
-print(sub.head(2))
+if len(rows) == 0:
+    # Hidden test not revealed (private run) — emit sample_submission as fallback
+    # At LB time Kaggle replaces test_soundscapes with real files; the kernel re-runs
+    print("No test files — emitting sample_submission.csv as fallback")
+    sample.to_csv("submission.csv", index=False)
+else:
+    row_ids = [r[0] for r in rows]
+    probs_arr = np.stack([r[1] for r in rows])
+    probs_sample_order = probs_arr[:, sample_to_train]
+    sub = pd.DataFrame(probs_sample_order, columns=sub_cols)
+    sub.insert(0, "row_id", row_ids)
+    # Ensure all sample row_ids covered; fill missing with uniform
+    pred_ids = set(row_ids)
+    missing = sample[~sample["row_id"].isin(pred_ids)]
+    if len(missing) > 0:
+        print(f"Filling {len(missing)} missing rows with sample defaults")
+        sub = pd.concat([sub, missing], ignore_index=True)
+    # Reorder to sample order
+    sub = sub.set_index("row_id").reindex(sample["row_id"]).reset_index()
+    sub.to_csv("submission.csv", index=False)
+print(f"submission.csv written")
+out = pd.read_csv("submission.csv")
+print(f"Shape: {out.shape}")
+print(out.head(2))
 """))
 
     nb = {
