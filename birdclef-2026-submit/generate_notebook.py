@@ -234,13 +234,10 @@ print(f"Classes: {len(labels)}, sample matches training (reordered)")
 
     # Filename hour parser
     cells.append(cell(r"""
-import re
+# Training used hour=12 hardcoded for ALL samples (train.py: "hours = np.full(N, 12)").
+# Only hour_embed[12] was trained; using any other index breaks inference.
 def parse_hour(stem):
-    # BC2026_Test_0001_S05_20250227_010002 -> hour=01
-    m = re.search(r"_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})", stem)
-    if m:
-        return int(m.group(4))
-    return 12  # default noon
+    return 12
 """))
 
     # Inference loop
