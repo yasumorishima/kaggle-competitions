@@ -31,10 +31,15 @@ def _ensure_gpu_compat():
             print(f"SM {cap} < 7.0 — reinstalling PyTorch with cu121...")
             subprocess.run([
                 sys.executable, '-m', 'pip', 'install', '-q',
+                '--force-reinstall', '--no-cache-dir',
                 'torch', 'torchvision', 'torchaudio',
                 '--index-url', 'https://download.pytorch.org/whl/cu121',
-            ], check=True)
-            print("PyTorch cu121 installed.")
+            ], check=True, timeout=600)
+            # Verify cu121 was actually installed
+            ver_check = subprocess.run(
+                [sys.executable, '-c', 'import torch; print(torch.__version__, torch.version.cuda)'],
+                capture_output=True, text=True, timeout=30)
+            print(f"PyTorch cu121 installed: {ver_check.stdout.strip()}")
         else:
             print(f"SM {cap} >= 7.0 — no reinstall needed")
     except Exception as e:
