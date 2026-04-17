@@ -35,6 +35,11 @@ def _ensure_gpu_compat():
                 'torch', 'torchaudio',
                 '--index-url', 'https://download.pytorch.org/whl/cu121',
             ], check=True, timeout=600)
+            # Remove cu128 torchvision — incompatible with cu121 torch,
+            # and timm handles missing torchvision via try/except ImportError
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'uninstall', '-y', 'torchvision',
+            ], capture_output=True, timeout=60)
             # Verify cu121 was actually installed
             ver_check = subprocess.run(
                 [sys.executable, '-c', 'import torch; print(torch.__version__, torch.version.cuda)'],
