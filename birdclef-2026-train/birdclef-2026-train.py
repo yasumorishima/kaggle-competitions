@@ -95,10 +95,22 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = True
 
 seed_everything(cfg.seed)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Device: {device}")
+
+# GPU compatibility check: PyTorch 2.10+cu128 requires SM >= 7.0 (T4/L4/A100)
+# P100 (SM 6.0) will cause cudaErrorNoKernelImageForDevice
 if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name()}")
+    cap = torch.cuda.get_device_capability()
+    gpu_name = torch.cuda.get_device_name()
+    print(f"GPU: {gpu_name}, SM {cap[0]}.{cap[1]}")
+    if cap[0] < 7:
+        raise RuntimeError(
+            f"GPU {gpu_name} (SM {cap[0]}.{cap[1]}) is not supported by this PyTorch build. "
+            f"Need SM >= 7.0 (T4/L4/A100). Got P100-class GPU. Please re-run to get a T4."
+        )
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+print(f"Device: {device}")
 
 # %%
 # ══════════════════════════════════════════════════════════════
