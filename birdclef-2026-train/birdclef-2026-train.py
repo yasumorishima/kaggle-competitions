@@ -9,6 +9,36 @@
 # - **Output**: fold別 best checkpoint → Kaggle dataset化 → submit kernel で mount
 
 # %%
+# P100 (SM 6.0) compatibility: PyTorch cu128 dropped SM 6.0 support.
+# Reinstall cu121 build which supports SM 5.0+.
+import subprocess, sys
+def _ensure_gpu_compat():
+    try:
+        import torch as _t
+        if _t.cuda.is_available():
+            cap = _t.cuda.get_device_capability()
+            name = _t.cuda.get_device_name()
+            print(f"GPU: {name}, SM {cap[0]}.{cap[1]}")
+            if cap[0] < 7:
+                print(f"SM {cap[0]}.{cap[1]} < 7.0 — reinstalling PyTorch with cu121...")
+                subprocess.run([
+                    sys.executable, '-m', 'pip', 'install', '-q',
+                    'torch', 'torchvision', 'torchaudio',
+                    '--index-url', 'https://download.pytorch.org/whl/cu121',
+                ], check=True)
+                print("PyTorch cu121 installed. Reloading...")
+                # Force reimport
+                for mod_name in list(sys.modules.keys()):
+                    if mod_name.startswith(('torch', 'torchvision', 'torchaudio')):
+                        del sys.modules[mod_name]
+            else:
+                print(f"SM {cap[0]}.{cap[1]} >= 7.0 — no reinstall needed")
+    except ImportError:
+        pass
+_ensure_gpu_compat()
+del _ensure_gpu_compat
+
+# %%
 import numpy as np
 import pandas as pd
 import os, sys, time, gc, json, random, warnings
@@ -31,6 +61,7 @@ import librosa
 
 warnings.filterwarnings("ignore")
 START = time.time()
+print(f"PyTorch {torch.__version__}, CUDA {torch.version.cuda}")
 
 # %%
 # ══════════════════════════════════════════════════════════════
@@ -96,21 +127,10 @@ def seed_everything(seed):
 
 seed_everything(cfg.seed)
 
-# GPU compatibility check: PyTorch 2.10+cu128 requires SM >= 7.0 (T4/L4/A100)
-# P100 (SM 6.0) will cause cudaErrorNoKernelImageForDevice
-if torch.cuda.is_available():
-    cap = torch.cuda.get_device_capability()
-    gpu_name = torch.cuda.get_device_name()
-    print(f"GPU: {gpu_name}, SM {cap[0]}.{cap[1]}")
-    if cap[0] < 7:
-        raise RuntimeError(
-            f"GPU {gpu_name} (SM {cap[0]}.{cap[1]}) is not supported by this PyTorch build. "
-            f"Need SM >= 7.0 (T4/L4/A100). Got P100-class GPU. Please re-run to get a T4."
-        )
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name()}, SM {torch.cuda.get_device_capability()}")
 
 # %%
 # ══════════════════════════════════════════════════════════════
