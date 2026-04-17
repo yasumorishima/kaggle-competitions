@@ -32,14 +32,14 @@ def _ensure_gpu_compat():
             subprocess.run([
                 sys.executable, '-m', 'pip', 'install', '-q',
                 '--force-reinstall', '--no-cache-dir',
-                'torch', 'torchaudio',
+                'torch', 'torchvision', 'torchaudio',
                 '--index-url', 'https://download.pytorch.org/whl/cu121',
             ], check=True, timeout=600)
-            # Remove cu128 torchvision — incompatible with cu121 torch,
-            # and timm handles missing torchvision via try/except ImportError
+            # torchvision cu121 needs pillow<12 (Kaggle has 12.1.1)
             subprocess.run([
-                sys.executable, '-m', 'pip', 'uninstall', '-y', 'torchvision',
-            ], capture_output=True, timeout=60)
+                sys.executable, '-m', 'pip', 'install', '-q',
+                'pillow>=8,<12',
+            ], check=True, timeout=60)
             # Verify cu121 was actually installed
             ver_check = subprocess.run(
                 [sys.executable, '-c', 'import torch; print(torch.__version__, torch.version.cuda)'],
