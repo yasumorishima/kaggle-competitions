@@ -18,7 +18,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.transforms as T
-import torchvision.transforms as TV
 import timm
 import librosa
 
@@ -167,12 +166,12 @@ class MelTransform(nn.Module):
             power=cfg.power,
         )
         self.db = T.AmplitudeToDB(stype="power", top_db=cfg.top_db)
-        self.resize = TV.Resize(cfg.target_size, antialias=True)
+        self.target_size = cfg.target_size
 
     @torch.no_grad()
     def forward(self, waveforms):
         mel = self.db(self.mel(waveforms))
-        mel = self.resize(mel)
+        mel = F.interpolate(mel, size=self.target_size, mode='bilinear', align_corners=False)
         B = mel.shape[0]
         mel_flat = mel.reshape(B, -1)
         mel_min = mel_flat.min(dim=1, keepdim=True)[0].unsqueeze(-1)

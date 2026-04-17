@@ -32,7 +32,7 @@ def _ensure_gpu_compat():
             subprocess.run([
                 sys.executable, '-m', 'pip', 'install', '-q',
                 '--force-reinstall', '--no-cache-dir',
-                'torch', 'torchvision', 'torchaudio',
+                'torch', 'torchaudio',
                 '--index-url', 'https://download.pytorch.org/whl/cu121',
             ], check=True, timeout=600)
             # Verify cu121 was actually installed
@@ -60,7 +60,6 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch.amp import autocast, GradScaler
 import torchaudio.transforms as T
-import torchvision.transforms as TV
 import timm
 
 from sklearn.model_selection import StratifiedGroupKFold
@@ -197,7 +196,7 @@ class BirdCLEFDataset(Dataset):
             power=cfg.power,
         )
         self.db = T.AmplitudeToDB(stype="power", top_db=cfg.top_db)
-        self.resize = TV.Resize(cfg.target_size, antialias=True)
+        self.target_size = cfg.target_size
         if is_train:
             self.freq_mask = T.FrequencyMasking(freq_mask_param=cfg.freq_mask_param)
             self.time_mask = T.TimeMasking(time_mask_param=cfg.time_mask_param)
@@ -235,7 +234,7 @@ class BirdCLEFDataset(Dataset):
 
         # Mel spectrogram
         mel = self.db(self.mel_spec(waveform.unsqueeze(0)))  # (1, n_mels, T)
-        mel = self.resize(mel)  # (1, 224, 224)
+        mel = F.interpolate(mel.unsqueeze(0), size=self.target_size, mode='bilinear', align_corners=False).squeeze(0)  # (1, 224, 224)
 
         # Normalize to [0, 1]
         mel_min = mel.min()
