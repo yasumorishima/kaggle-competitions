@@ -11,30 +11,34 @@
 # %%
 # P100 (SM 6.0) compatibility: PyTorch cu128 dropped SM 6.0 support.
 # Reinstall cu121 build which supports SM 5.0+.
+# IMPORTANT: Do NOT import torch here — C extensions can't be unloaded,
+# causing "already has a docstring" RuntimeError in the next cell.
 import subprocess, sys
 def _ensure_gpu_compat():
     try:
-        import torch as _t
-        if _t.cuda.is_available():
-            cap = _t.cuda.get_device_capability()
-            name = _t.cuda.get_device_name()
-            print(f"GPU: {name}, SM {cap[0]}.{cap[1]}")
-            if cap[0] < 7:
-                print(f"SM {cap[0]}.{cap[1]} < 7.0 — reinstalling PyTorch with cu121...")
-                subprocess.run([
-                    sys.executable, '-m', 'pip', 'install', '-q',
-                    'torch', 'torchvision', 'torchaudio',
-                    '--index-url', 'https://download.pytorch.org/whl/cu121',
-                ], check=True)
-                print("PyTorch cu121 installed. Reloading...")
-                # Force reimport
-                for mod_name in list(sys.modules.keys()):
-                    if mod_name.startswith(('torch', 'torchvision', 'torchaudio')):
-                        del sys.modules[mod_name]
-            else:
-                print(f"SM {cap[0]}.{cap[1]} >= 7.0 — no reinstall needed")
-    except ImportError:
-        pass
+        result = subprocess.run(
+            ['nvidia-smi', '--query-gpu=gpu_name,compute_cap', '--format=csv,noheader'],
+            capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            print("nvidia-smi failed — skipping GPU compat check")
+            return
+        line = result.stdout.strip().split('\n')[0]
+        name, cap = line.rsplit(',', 1)
+        name, cap = name.strip(), cap.strip()
+        major = int(cap.split('.')[0])
+        print(f"GPU: {name}, SM {cap}")
+        if major < 7:
+            print(f"SM {cap} < 7.0 — reinstalling PyTorch with cu121...")
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'install', '-q',
+                'torch', 'torchvision', 'torchaudio',
+                '--index-url', 'https://download.pytorch.org/whl/cu121',
+            ], check=True)
+            print("PyTorch cu121 installed.")
+        else:
+            print(f"SM {cap} >= 7.0 — no reinstall needed")
+    except Exception as e:
+        print(f"GPU compat check failed: {e}")
 _ensure_gpu_compat()
 del _ensure_gpu_compat
 
