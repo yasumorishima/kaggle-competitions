@@ -29,17 +29,17 @@ def _ensure_gpu_compat():
         print(f"GPU: {name}, SM {cap}")
         if major < 7:
             print(f"SM {cap} < 7.0 — reinstalling PyTorch with cu121...")
+            # Uninstall cu128 builds first, then install cu121.
+            # Do NOT use --force-reinstall: it cascades into numpy/scipy breakage.
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'uninstall', '-y',
+                'torch', 'torchvision', 'torchaudio',
+            ], capture_output=True, timeout=60)
             subprocess.run([
                 sys.executable, '-m', 'pip', 'install', '-q',
-                '--force-reinstall', '--no-cache-dir',
                 'torch', 'torchvision', 'torchaudio',
                 '--index-url', 'https://download.pytorch.org/whl/cu121',
             ], check=True, timeout=600)
-            # torchvision cu121 needs pillow<12 (Kaggle has 12.1.1)
-            subprocess.run([
-                sys.executable, '-m', 'pip', 'install', '-q',
-                'pillow>=8,<12',
-            ], check=True, timeout=60)
             # Verify cu121 was actually installed
             ver_check = subprocess.run(
                 [sys.executable, '-c', 'import torch; print(torch.__version__, torch.version.cuda)'],
