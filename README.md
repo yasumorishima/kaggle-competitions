@@ -173,19 +173,22 @@ gh workflow run "EXP to Kaggle Submit" \
 
 Identify 234 species (birds, insects, amphibians, reptiles) from audio recordings in the Pantanal, Brazil. Evaluated with macro ROC AUC.
 
-| Approach | CV AUC | LB |
-|---|---|---|
-| BEATs-SED + Attention Pooling | — | — |
+| Approach | LB |
+|---|---|
+| Perch v2 + Bayesian prior + LogReg probe (fork) | **0.908** |
+| eca_nfnet_l0 mel baseline (training) | — |
+| BEATs-SED + Attention Pooling (archived) | 0.745 |
 
-- **Architecture:** 2-notebook GPU-efficient pipeline
-  1. `birdclef-2026-embed` (CPU): BEATs iter3+ AS2M embedding extraction (zero GPU cost)
-  2. `birdclef-2026-work` (GPU, ~5-10min): Attention SED head with focal loss
-- **Differentiators:** BEATs (AudioSet 2M pretrained) instead of Perch v2, per-class attention pooling for sound event detection, metadata-aware classification
-- **Dataset:** [`yasunorim/beats-pretrained`](https://www.kaggle.com/datasets/yasunorim/beats-pretrained) — BEATs checkpoint uploaded via GitHub Actions
+- **Current strategy:** Perch v2 (LB 0.908) as anchor + eca_nfnet_l0 self-trained model for ensemble diversity, followed by iterative pseudo-labeling (Noisy Student)
+- **Notebooks:**
+  - `birdclef-2026-perch-v2-repro` (CPU): Perch v2 fork — LB 0.908
+  - `birdclef-2026-train` (GPU): eca_nfnet_l0 + focal loss + StratifiedGroupKFold(author) + Mixup + SpecAugment
+  - `birdclef-2026-nfnet-submit` (CPU): Inference kernel for trained model
+- **Archived:** BEATs pipeline (0.745) — no BirdCLEF winners in 2024/2025 used BEATs; EfficientNet/NFNet + pseudo-label is the proven path
 
 ---
 
-### Deep Past Challenge - Akkadian to English Translation (Active)
+### Deep Past Challenge - Akkadian to English Translation (Ended)
 
 **Competition:** [Deep Past Initiative Machine Translation](https://www.kaggle.com/competitions/deep-past-initiative-machine-translation)
 
@@ -202,7 +205,7 @@ Ancient cuneiform (Akkadian) transliteration → English translation task. Evalu
 
 ---
 
-### S6E2 - Predicting Heart Disease (Active)
+### S6E2 - Predicting Heart Disease (Ended)
 
 **Competition:** [Playground Series S6E2](https://www.kaggle.com/competitions/playground-series-s6e2) | **Deadline:** 2026-02-28
 
