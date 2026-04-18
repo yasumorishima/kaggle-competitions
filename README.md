@@ -175,16 +175,19 @@ Identify 234 species (birds, insects, amphibians, reptiles) from audio recording
 
 | Approach | LB |
 |---|---|
-| Perch v2 + Bayesian prior + LogReg probe (fork) | **0.908** |
-| eca_nfnet_l0 mel baseline (training) | — |
+| improved-ensemble fork (Perch v2 + ProtoSSM v5 + ResidualSSM + TTA + rank-aware + delta smooth) | **0.926** |
+| Perch v2 + Bayesian prior + LogReg probe (fork) | 0.908 |
+| public-blend-v6 fork (lb862 + lb872 blend) | 0.890 |
+| eca_nfnet_l0 mel baseline (single fold0, CV 0.969) | 0.768 |
 | BEATs-SED + Attention Pooling (archived) | 0.745 |
 
-- **Current strategy:** Perch v2 (LB 0.908) as anchor + eca_nfnet_l0 self-trained model for ensemble diversity, followed by iterative pseudo-labeling (Noisy Student)
+- **Current strategy (2026-04-19):** Reproduction base reached (0.926 ≒ public max 0.929 claimed). Moving to **proven-stacking phase**: pseudo-label distillation on unlabeled soundscapes, external Xeno-Canto data, multi-backbone (CNN/SED) ensemble, class balancing — all recurrent techniques across BirdCLEF 2024/2025 top solutions.
+- **Prior-years solution survey:** [PRIOR_YEARS_SOLUTION_SURVEY.md](birdclef-2026-work/docs/PRIOR_YEARS_SOLUTION_SURVEY.md) — 2024 3rd (jfpuget/TheoViel) + 2025 2nd (VSydorskyy) + 2025 5th (myso1987) writeups distilled into actionable gap list.
 - **Notebooks:**
+  - `birdclef-2026-improved-ensemble-fork` (CPU): yuriygreben claimed LB 0.929 fork — LB **0.926** (current best, reproducibility variance -0.003)
   - `birdclef-2026-perch-v2-repro` (CPU): Perch v2 fork — LB 0.908
-  - `birdclef-2026-train` (GPU): eca_nfnet_l0 + focal loss + StratifiedGroupKFold(author) + Mixup + SpecAugment
-  - `birdclef-2026-nfnet-submit` (CPU): Inference kernel for trained model
-- **Archived:** BEATs pipeline (0.745) — no BirdCLEF winners in 2024/2025 used BEATs; EfficientNet/NFNet + pseudo-label is the proven path
+  - `birdclef-2026-public-blend-v6-fork` (CPU): public blend reproduction — LB 0.890 (below our base, archived)
+- **Archived:** BEATs (0.745), nfnet_l0 from-scratch (0.768) — ruled out before reproduction base was reached; from-scratch architectures stay blocked, proven-stacking techniques are active.
 
 ---
 
