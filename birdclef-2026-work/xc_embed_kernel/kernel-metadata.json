@@ -1,0 +1,13 @@
+{
+  "id": "yasunorim/xc-perch-v2-embed-birdclef-2026",
+  "title": "xc-perch-v2-embed-birdclef-2026",
+  "code_file": "xc_embed.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "dataset_sources": ["yasunorim/xc-birdclef-2026-target-urls"],
+  "competition_sources": [],
+  "model_sources": ["google/bird-vocalization-classifier/TensorFlow2/perch_v2_cpu/1"]
+}

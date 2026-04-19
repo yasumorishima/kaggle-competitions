@@ -1,0 +1,8 @@
+{
+  "title": "XC BirdCLEF 2026 Target Recordings (URLs)",
+  "id": "yasunorim/xc-birdclef-2026-target-urls",
+  "licenses": [{"name": "CC0-1.0"}],
+  "subtitle": "XC URL list Q A|B non-ND, 159 Aves species",
+  "description": "Metadata CSV (URL list + per-recording fields: xc_id, file_url, quality, length_sec, country, license, etc.) for downloading Xeno-Canto audio as external training data for BirdCLEF+ 2026. Raw audio NOT included (license/size). This CSV is derivative metadata only; actual audio remains on xeno-canto.org under original CC licenses.",
+  "keywords": ["birdclef", "xeno-canto", "external-data", "audio-metadata"]
+}
