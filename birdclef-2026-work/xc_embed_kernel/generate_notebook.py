@@ -242,6 +242,6 @@ nb = {
     "nbformat_minor": 5
 }
 
-out = Path("C:/Users/fw_ya/Desktop/Claude_code/kaggle-competitions/birdclef-2026-work/xc_embed_kernel/xc_embed.ipynb")
+out = Path(__file__).parent / "xc_embed.ipynb"
 out.write_text(json.dumps(nb, indent=1), encoding="utf-8")
 print(f"Wrote {out} ({out.stat().st_size} bytes, {len(cells)} cells)")
