@@ -8,6 +8,8 @@
   "enable_gpu": "true",
   "enable_internet": "true",
   "dataset_sources": ["yasunorim/xc-birdclef-2026-target-urls"],
+  "kernel_sources": ["ashok205/tf-wheels"],
   "competition_sources": [],
-  "model_sources": ["google/bird-vocalization-classifier/TensorFlow2/perch_v2_cpu/1"]
+  "model_sources": ["google/bird-vocalization-classifier/TensorFlow2/perch_v2_cpu/1"],
+  "docker_image": "gcr.io/kaggle-images/python@sha256:c370a5ff133d162d17c2dca332b50f3e85c0b0ed1471ee18e98e3009eee80b08"
 }

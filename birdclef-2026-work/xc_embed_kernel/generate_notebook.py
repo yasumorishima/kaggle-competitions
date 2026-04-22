@@ -23,8 +23,19 @@ md([
 ])
 
 code([
+    "# Cell 0 — TF 2.20 install (Perch v2 StableHLO compatibility)\n",
+    "# 0.926 fork と同じ ashok205/tf-wheels から tensorboard + tensorflow 2.20 を --no-deps で入れる\n",
+    "# 既定 Kaggle image の古い StableHLO runtime は Perch v2 の vhlo.cosine_v2 を認識できない\n",
+    "!pip install -q --no-deps /kaggle/input/notebooks/ashok205/tf-wheels/tf_wheels/tensorboard-2.20.0-py3-none-any.whl\n",
+    "!pip install -q --no-deps /kaggle/input/notebooks/ashok205/tf-wheels/tf_wheels/tensorflow-2.20.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\n"
+])
+
+code([
     "# Cell 1 — imports & config\n",
     "import os, gc, time, json\n",
+    "# Perch v2 is a CPU-only SavedModel; must disable GPU before TF import to avoid InvalidArgumentError\n",
+    "os.environ['CUDA_VISIBLE_DEVICES'] = ''\n",
+    "os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'\n",
     "from pathlib import Path\n",
     "import numpy as np\n",
     "import pandas as pd\n",
@@ -32,8 +43,6 @@ code([
     "import requests\n",
     "import tensorflow as tf\n",
     "from tqdm.auto import tqdm\n",
-    "\n",
-    "os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'\n",
     "\n",
     "# Kaggle mount 構造: /kaggle/input/{competitions,datasets,notebooks,models}/{owner}/{slug}/...\n",
     "# path hardcode せず rglob で探索\n",
@@ -74,7 +83,6 @@ code([
 
 code([
     "# Cell 3 — Perch v2 model load\n",
-    "import tensorflow_hub as hub\n",
     "# Perch v2 exports a SavedModel; signature returns dict with 'embedding' (1536) and 'label' (logits)\n",
     "perch = tf.saved_model.load(str(PERCH_DIR))\n",
     "sig = perch.signatures['serving_default']\n",
