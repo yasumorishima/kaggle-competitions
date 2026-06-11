@@ -8,7 +8,9 @@
   "enable_gpu": "false",
   "enable_tpu": "false",
   "enable_internet": "false",
-  "dataset_sources": [],
+  "dataset_sources": [
+    "fedesoriano/stellar-classification-dataset-sdss17"
+  ],
   "competition_sources": [
     "playground-series-s6e6"
   ],
