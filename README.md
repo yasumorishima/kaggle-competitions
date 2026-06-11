@@ -185,7 +185,7 @@ gh workflow run "EXP to Kaggle Submit" \
 - **External-data lesson:** appending the original SDSS17 dataset to the training side of each fold RAISED OOF (+0.0002, near-duplicates of validation rows leak in) but DROPPED LB (-0.0014). OOF deltas only predict LB deltas while the training distribution stays unchanged.
 - **Current lever:** pseudo-label distillation - test rows predicted with 0.995-plus confidence join the fold-train side in a second stage (A/B smoke first, same protocol).
 
-- **Pipeline:** `playground-series-s6e6/generate_notebook.py` → `kaggle-push.yml` (GitHub Actions) → Kaggle kernel. A `SMOKE` flag validates the plumbing (LGB-only, 3-fold) before the full multi-seed ensemble.
+- **Pipeline:** `playground-series-s6e6/generate_notebook.py` → `kaggle-push.yml` (GitHub Actions) → Kaggle kernel. A `SMOKE` flag validates the plumbing (LGB-only, 3-fold) before the full ensemble (1 seed x 5 folds).
 - **Gotcha confirmed:** `competition_sources` mounts data at `/kaggle/input/competitions/<slug>/` (the notebook auto-discovers the dir via `os.walk`).
 
 ---
