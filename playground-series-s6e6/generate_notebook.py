@@ -19,7 +19,17 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 
 SMOKE = __SMOKE__
-IN = "/kaggle/input/playground-series-s6e6"
+
+# Locate competition data: walk /kaggle/input so this works regardless of
+# the exact mount directory name (also doubles as a mount diagnostic).
+IN = None
+for root, dirs, files in os.walk("/kaggle/input"):
+    print("input dir:", root, "| files:", files[:6])
+    if "train.csv" in files and "sample_submission.csv" in files:
+        IN = root
+if IN is None:
+    raise SystemExit("train.csv not found under /kaggle/input — competition data not mounted")
+print("Using data dir:", IN)
 
 train = pd.read_csv(IN + "/train.csv")
 test = pd.read_csv(IN + "/test.csv")
