@@ -173,9 +173,17 @@ gh workflow run "EXP to Kaggle Submit" \
 
 3-class classification of astronomical objects (GALAXY 65% / QSO 20% / STAR 14%, SDSS-style). 577k train rows, 10 features (2 categorical). Label submission (`[id, class]`).
 
-| Approach | Status |
+| Approach | Public LB |
 |---|---|
-| LightGBM + XGBoost + CatBoost multiclass ensemble (StratifiedKFold, probability-averaged argmax) | baseline in progress |
+| **Full ensemble (LGB + XGB + CatBoost, 5-fold ES) + pairwise-diff features + per-class probability weights** | **0.95884** |
+| Full ensemble + per-class probability weights (no diff features) | 0.95866 |
+| + original SDSS17 dataset in fold-train (external data) | 0.95741 (rejected) |
+| LGB-only 3-fold smoke baseline | 0.95466 |
+
+- **Metric finding:** the LB metric is macro-F1 and OOF macro-F1 matches it within ~0.001, so per-class probability weights tuned on OOF by coordinate ascent are a proven lever (+0.004 LB over plain argmax; balanced class weights alone hurt argmax but win after weight tuning).
+- **Feature lever:** pairwise differences of all numeric columns (generalized color indices), validated by an A/B smoke (+0.00093 OOF) before spending a full run (+0.0002 LB).
+- **External-data lesson:** appending the original SDSS17 dataset to the training side of each fold RAISED OOF (+0.0002, near-duplicates of validation rows leak in) but DROPPED LB (-0.0014). OOF deltas only predict LB deltas while the training distribution stays unchanged.
+- **Current lever:** pseudo-label distillation - test rows predicted with 0.995-plus confidence join the fold-train side in a second stage (A/B smoke first, same protocol).
 
 - **Pipeline:** `playground-series-s6e6/generate_notebook.py` → `kaggle-push.yml` (GitHub Actions) → Kaggle kernel. A `SMOKE` flag validates the plumbing (LGB-only, 3-fold) before the full multi-seed ensemble.
 - **Gotcha confirmed:** `competition_sources` mounts data at `/kaggle/input/competitions/<slug>/` (the notebook auto-discovers the dir via `os.walk`).
