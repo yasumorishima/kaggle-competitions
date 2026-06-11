@@ -167,11 +167,26 @@ gh workflow run "EXP to Kaggle Submit" \
 
 ## 🏆 Competition Results
 
-### BirdCLEF+ 2026 - Acoustic Species Identification (Active)
+### Playground Series S6E6 - Stellar Classification (Active)
 
-**Competition:** [BirdCLEF+ 2026](https://www.kaggle.com/competitions/birdclef-2026) | **Deadline:** 2026-06-03
+**Competition:** [Playground Series S6E6](https://www.kaggle.com/competitions/playground-series-s6e6) | **Deadline:** 2026-06-30
 
-Identify 234 species (birds, insects, amphibians, reptiles) from audio recordings in the Pantanal, Brazil. Evaluated with macro ROC AUC.
+3-class classification of astronomical objects (GALAXY 65% / QSO 20% / STAR 14%, SDSS-style). 577k train rows, 10 features (2 categorical). Label submission (`[id, class]`).
+
+| Approach | Status |
+|---|---|
+| LightGBM + XGBoost + CatBoost multiclass ensemble (StratifiedKFold, probability-averaged argmax) | baseline in progress |
+
+- **Pipeline:** `playground-series-s6e6/generate_notebook.py` → `kaggle-push.yml` (GitHub Actions) → Kaggle kernel. A `SMOKE` flag validates the plumbing (LGB-only, 3-fold) before the full multi-seed ensemble.
+- **Gotcha confirmed:** `competition_sources` mounts data at `/kaggle/input/competitions/<slug>/` (the notebook auto-discovers the dir via `os.walk`).
+
+---
+
+### BirdCLEF+ 2026 - Acoustic Species Identification (Ended)
+
+**Competition:** [BirdCLEF+ 2026](https://www.kaggle.com/competitions/birdclef-2026) | **Deadline:** 2026-06-03 (ended)
+
+Identify 234 species (birds, insects, amphibians, reptiles) from audio recordings in the Pantanal, Brazil. Evaluated with macro ROC AUC. **Final: private 0.92187 / public 0.92685** (improved-ensemble fork, 2026-04-18); no further submissions after 2026-04-23.
 
 | Approach | LB |
 |---|---|
