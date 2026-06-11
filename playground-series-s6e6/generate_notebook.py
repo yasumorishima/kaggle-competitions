@@ -33,7 +33,7 @@ from stage 2.
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
