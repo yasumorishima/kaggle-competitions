@@ -18,18 +18,19 @@ import os, time, numpy as np, pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 
-SMOKE = {smoke}
+SMOKE = __SMOKE__
 IN = "/kaggle/input/playground-series-s6e6"
 
-train = pd.read_csv(f"{{IN}}/train.csv")
-test = pd.read_csv(f"{{IN}}/test.csv")
-sub = pd.read_csv(f"{{IN}}/sample_submission.csv")
+train = pd.read_csv(IN + "/train.csv")
+test = pd.read_csv(IN + "/test.csv")
+sub = pd.read_csv(IN + "/sample_submission.csv")
 
 id_col = sub.columns[0]
 target = sub.columns[1]
 print("id_col:", id_col, "| target:", target)
 print("train:", train.shape, "| test:", test.shape)
-print("target balance:\n", train[target].value_counts(normalize=True))
+print("target balance:")
+print(train[target].value_counts(normalize=True))
 
 features = [c for c in train.columns if c not in (id_col, target)]
 cat_cols = [c for c in features if str(train[c].dtype) in ("object", "category")]
@@ -80,9 +81,9 @@ for seed in SEEDS:
             subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
             random_state=seed, n_jobs=-1, verbose=-1)
         m.fit(Xtr, ytr)
-        p_va = rank01(m.predict_proba(Xva)[:, 1])
-        p_te = rank01(m.predict_proba(Xtest)[:, 1])
-        oof[va] += p_va; pred += p_te; n_oof[va] += 1; n_pred += 1
+        oof[va] += rank01(m.predict_proba(Xva)[:, 1])
+        pred += rank01(m.predict_proba(Xtest)[:, 1])
+        n_oof[va] += 1; n_pred += 1
 
         # --- XGBoost ---
         if use_xgb:
@@ -107,11 +108,11 @@ for seed in SEEDS:
             pred += rank01(mc.predict_proba(Xtest)[:, 1])
             n_oof[va] += 1; n_pred += 1
 
-        print(f"seed={{seed}} fold={{fold}} done ({{time.time()-t0:.0f}}s)")
+        print("seed", seed, "fold", fold, "done", round(time.time() - t0), "s")
 
 oof /= np.maximum(n_oof, 1)
 pred /= max(n_pred, 1)
-print("\\nOOF AUC:", round(roc_auc_score(y, oof), 5))
+print("OOF AUC:", round(roc_auc_score(y, oof), 5))
 
 sub[target] = pred
 sub.to_csv("submission.csv", index=False)
@@ -119,7 +120,7 @@ print("saved submission.csv", sub.shape)
 print(sub.head())
 '''
 
-code = CODE.replace("{smoke}", "True" if SMOKE else "False")
+code = CODE.replace("__SMOKE__", "True" if SMOKE else "False")
 
 title = (
     "# Playground Series S6E6 — GBDT Ensemble (AUC)\n\n"
