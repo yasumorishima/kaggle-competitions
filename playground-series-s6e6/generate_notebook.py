@@ -25,7 +25,7 @@ early stopping, cap 4000 trees) on base+diff+original.
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
