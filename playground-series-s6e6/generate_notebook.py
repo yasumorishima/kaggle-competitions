@@ -2,22 +2,26 @@
 
 Playground Series S6E6 = 3-class classification (GALAXY / QSO / STAR,
 SDSS-style stellar object classification). Submission is the predicted
-class LABEL ([id, class]) -> accuracy-style metric. Target/id columns and
-the class set are auto-detected, so this is robust to the exact schema.
+class LABEL ([id, class]). LB metric is macro-F1 (proven 2026-06-11:
+OOF macro-F1 0.95494 vs LB 0.95466), so the pipeline optimizes macro-F1
+directly: balanced class weights during training + per-class probability
+weights tuned on OOF by coordinate ascent before argmax.
 
 SMOKE=True runs a fast pipeline (LightGBM only, 3-fold, few trees) to
 validate the Kaggle-side plumbing + submission.csv output before the full
-LGB/XGB/CatBoost multi-seed ensemble. Flip SMOKE to False for the full run.
+LGB/XGB/CatBoost ensemble. Flip SMOKE to False for the full run.
+Full run: 1 seed x 5 folds x 3 models, early stopping (cap 4000 trees).
 """
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.utils.class_weight import compute_sample_weight, compute_class_weight
 
 SMOKE = __SMOKE__
 
@@ -58,11 +62,13 @@ X = train[features]
 y = train[target].astype(str).map(cls2idx).values
 Xtest = test[features]
 
-N_SPLITS = 3 if SMOKE else 10
-SEEDS = [42] if SMOKE else [42, 1, 2025]
-LGB_EST = 400 if SMOKE else 4000
-XGB_EST = 400 if SMOKE else 4000
-CAT_EST = 400 if SMOKE else 4000
+N_SPLITS = 3 if SMOKE else 5
+SEEDS = [42]
+MAX_EST = 400 if SMOKE else 4000
+ES_ROUNDS = 50 if SMOKE else 200
+
+cls_w = compute_class_weight("balanced", classes=np.arange(n_class), y=y)
+print("balanced class weights:", dict(zip(classes, np.round(cls_w, 3))))
 
 oof = np.zeros((len(train), n_class))
 pred = np.zeros((len(test), n_class))
@@ -81,38 +87,48 @@ t0 = time.time()
 for seed in SEEDS:
     skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=seed)
     for fold, (tr, va) in enumerate(skf.split(X, y)):
-        Xtr, Xva, ytr = X.iloc[tr], X.iloc[va], y[tr]
+        Xtr, Xva, ytr, yva = X.iloc[tr], X.iloc[va], y[tr], y[va]
+        wtr = compute_sample_weight("balanced", ytr)
 
         m = lgb.LGBMClassifier(
             objective="multiclass", num_class=n_class,
-            n_estimators=LGB_EST, learning_rate=0.03, num_leaves=63,
+            n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
             subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+            class_weight="balanced",
             random_state=seed, n_jobs=-1, verbose=-1)
-        m.fit(Xtr, ytr)
+        m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
+              callbacks=[lgb.early_stopping(ES_ROUNDS, verbose=False)])
         oof[va] += m.predict_proba(Xva)
         pred += m.predict_proba(Xtest)
         n_oof[va] += 1; n_pred += 1
+        print("  lgb best_iter:", m.best_iteration_)
 
         if use_xgb:
             mx = xgb.XGBClassifier(
                 objective="multi:softprob", num_class=n_class,
-                n_estimators=XGB_EST, learning_rate=0.03, max_depth=6,
+                n_estimators=MAX_EST, learning_rate=0.03, max_depth=6,
                 subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+                early_stopping_rounds=ES_ROUNDS,
                 random_state=seed, n_jobs=-1, tree_method="hist")
-            mx.fit(Xtr, ytr)
+            mx.fit(Xtr, ytr, sample_weight=wtr,
+                   eval_set=[(Xva, yva)], verbose=False)
             oof[va] += mx.predict_proba(Xva)
             pred += mx.predict_proba(Xtest)
             n_oof[va] += 1; n_pred += 1
+            print("  xgb best_iter:", mx.best_iteration)
 
         if use_cat:
             mc = CatBoostClassifier(
                 loss_function="MultiClass", classes_count=n_class,
-                iterations=CAT_EST, learning_rate=0.03, depth=6,
-                l2_leaf_reg=3.0, random_seed=seed, verbose=0)
-            mc.fit(Xtr, ytr)
+                iterations=MAX_EST, learning_rate=0.03, depth=6,
+                l2_leaf_reg=3.0, class_weights=list(cls_w),
+                random_seed=seed, verbose=0)
+            mc.fit(Xtr, ytr, eval_set=(Xva, yva),
+                   early_stopping_rounds=ES_ROUNDS, use_best_model=True)
             oof[va] += mc.predict_proba(Xva)
             pred += mc.predict_proba(Xtest)
             n_oof[va] += 1; n_pred += 1
+            print("  cat best_iter:", mc.get_best_iteration())
 
         print("seed", seed, "fold", fold, "done", round(time.time() - t0), "s")
 
@@ -120,9 +136,28 @@ oof /= np.maximum(n_oof, 1)[:, None]
 pred /= max(n_pred, 1)
 oof_pred = oof.argmax(1)
 print("OOF accuracy:", round(accuracy_score(y, oof_pred), 5))
-print("OOF macro-F1:", round(f1_score(y, oof_pred, average="macro"), 5))
+print("OOF macro-F1 (argmax):", round(f1_score(y, oof_pred, average="macro"), 5))
 
-test_pred = pred.argmax(1)
+# Per-class probability weights tuned on OOF (coordinate ascent on macro-F1).
+def mf1(w):
+    return f1_score(y, (oof * w[None, :]).argmax(1), average="macro")
+
+best_w = np.ones(n_class)
+best_f1 = mf1(best_w)
+for it in range(3):
+    improved = False
+    for c in range(n_class):
+        for v in np.linspace(0.6, 1.6, 21):
+            w = best_w.copy(); w[c] = v
+            f = mf1(w)
+            if f > best_f1 + 1e-6:
+                best_f1, best_w, improved = f, w, True
+    if not improved:
+        break
+print("best per-class weights:", dict(zip(classes, np.round(best_w, 3))))
+print("OOF macro-F1 (weighted):", round(best_f1, 5))
+
+test_pred = (pred * best_w[None, :]).argmax(1)
 sub[target] = [idx2cls[i] for i in test_pred]
 sub.to_csv("submission.csv", index=False)
 print("saved submission.csv", sub.shape)
@@ -136,8 +171,11 @@ title = (
     "# Playground Series S6E6 — Stellar Classification (GALAXY / QSO / STAR)\n\n"
     "3-class classification, label submission. LightGBM"
     + ("" if SMOKE else " + XGBoost + CatBoost")
-    + " multiclass, StratifiedKFold, probability-averaged ensemble (argmax).\n\n"
-    + ("**SMOKE run** (LGB-only, 3-fold)." if SMOKE else "Full multi-seed ensemble.")
+    + " multiclass, StratifiedKFold, probability-averaged ensemble.\n"
+    "Macro-F1 optimized: balanced class weights + per-class probability "
+    "weights tuned on OOF before argmax.\n\n"
+    + ("**SMOKE run** (LGB-only, 3-fold)." if SMOKE else
+       "Full ensemble: 1 seed x 5 folds x 3 models, early stopping.")
 )
 
 nb = {
