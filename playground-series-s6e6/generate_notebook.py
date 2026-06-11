@@ -11,21 +11,29 @@ tuned on OOF by coordinate ascent before argmax.
 Feature engineering: pairwise differences of all numeric columns
 (generalized color indices; A/B validated +0.00093 OOF macro-F1).
 
-External data: the original SDSS17 dataset (fedesoriano, 100k rows,
-star_classification.csv via dataset_sources) is appended to the
-TRAINING part of each fold only (never to validation), the standard
-playground-series technique. Missing synthetic categoricals are set
-to code -1; -9999 sentinel rows are dropped.
+External-data lever REJECTED (2026-06-12): appending original SDSS17
+rows to fold-train raised OOF (+0.00022; near-duplicates of validation
+rows leak) but dropped LB 0.95884 -> 0.95741. OOF deltas only predict
+LB deltas for same-train-distribution changes.
 
-SMOKE=True runs an A/B test (LightGBM only, 3-fold, early stopping):
-base+diff vs base+diff+original on identical folds.
-SMOKE=False runs the full LGB/XGB/CatBoost ensemble (1 seed x 5 folds,
-early stopping, cap 4000 trees) on base+diff+original.
+Current lever: pseudo-label distillation. Stage 1 trains on train only
+and predicts test; test rows whose max averaged probability >=
+PSEUDO_CONF are added to the TRAINING part of each fold only (never to
+validation) in stage 2. Pseudo rows come from the test distribution
+itself, so the distribution-shift failure mode of the external-data
+lever does not apply; the honest check is still the LB.
+
+SMOKE=True runs an A/B test (LightGBM only, 3-fold, early stopping)
+on identical folds: DIFF vs DIFF+PSEUDO (stage 1 = the A run itself,
+reusing its averaged test predictions).
+SMOKE=False runs the two-stage full LGB/XGB/CatBoost ensemble
+(1 seed x 5 folds, early stopping, cap 4000 trees); submission comes
+from stage 2.
 """
 
 import json
 
-SMOKE = False
+SMOKE = True
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
@@ -34,19 +42,17 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.utils.class_weight import compute_sample_weight, compute_class_weight
 
 SMOKE = __SMOKE__
+PSEUDO_CONF = 0.995
 
 # Locate competition data: competition_sources mounts at
 # /kaggle/input/competitions/<slug>/, so walk to be robust.
 IN = None
-ORIG_PATH = None
 for root, dirs, files in os.walk("/kaggle/input"):
     if "train.csv" in files and "sample_submission.csv" in files:
         IN = root
-    if "star_classification.csv" in files:
-        ORIG_PATH = root + "/star_classification.csv"
 if IN is None:
     raise SystemExit("train.csv not found under /kaggle/input")
-print("Using data dir:", IN, "| original:", ORIG_PATH)
+print("Using data dir:", IN)
 
 train = pd.read_csv(IN + "/train.csv")
 test = pd.read_csv(IN + "/test.csv")
@@ -69,25 +75,6 @@ for c in cat_cols:
     train[c] = pd.Categorical(train[c], categories=cats).codes
     test[c] = pd.Categorical(test[c], categories=cats).codes
 
-# Original SDSS17 dataset: numeric columns shared with the playground
-# schema; synthetic categoricals absent -> code -1 (the NaN code).
-orig = None
-if ORIG_PATH is not None:
-    o = pd.read_csv(ORIG_PATH)
-    shared = [c for c in num_cols if c in o.columns]
-    o = o[shared + ["class"]].copy()
-    n0 = len(o)
-    o = o[o[shared].min(axis=1) > -1000]  # drop -9999 sentinel rows
-    o = o[o["class"].astype(str).isin(classes)]
-    for c in cat_cols:
-        o[c] = -1
-    missing_num = [c for c in num_cols if c not in shared]
-    for c in missing_num:
-        o[c] = np.nan
-    orig = o
-    print("original rows:", len(o), "(dropped", n0 - len(o), ")",
-          "| shared numeric:", shared, "| missing numeric:", missing_num)
-
 # Pairwise differences of numeric columns (generalized color indices).
 diff_cols = []
 for i in range(len(num_cols)):
@@ -96,14 +83,11 @@ for i in range(len(num_cols)):
         name = "d_" + a + "_" + b
         train[name] = train[a] - train[b]
         test[name] = test[a] - test[b]
-        if orig is not None:
-            orig[name] = orig[a] - orig[b]
         diff_cols.append(name)
 print("n_diff_features:", len(diff_cols))
 
 FEATS = features + diff_cols
 y = train[target].astype(str).map(cls2idx).values
-y_orig = orig["class"].astype(str).map(cls2idx).values if orig is not None else None
 cls_w = compute_class_weight("balanced", classes=np.arange(n_class), y=y)
 print("balanced class weights:", dict(zip(classes, np.round(cls_w, 3))))
 
@@ -132,21 +116,35 @@ def tune_weights(oof, y):
             break
     return best_w, best_f1
 
-def fold_train_data(tr, use_orig):
-    """Training matrix for one fold; original rows go to train side only."""
+def build_pseudo(pred):
+    """Confident test rows (raw averaged probs) -> pseudo training rows."""
+    conf = pred.max(1)
+    keep = conf >= PSEUDO_CONF
+    Xp = test.loc[keep, FEATS].reset_index(drop=True)
+    yp = pred[keep].argmax(1)
+    uniq, cnt = np.unique(yp, return_counts=True)
+    print("pseudo rows:", int(keep.sum()), "/", len(test),
+          "| class counts:", {idx2cls[int(u)]: int(c) for u, c in zip(uniq, cnt)})
+    return Xp, yp
+
+def fold_train_data(tr, pseudo):
+    """Training matrix for one fold; pseudo rows go to train side only."""
     Xtr, ytr = train[FEATS].iloc[tr], y[tr]
-    if use_orig and orig is not None:
-        Xtr = pd.concat([Xtr, orig[FEATS]], axis=0, ignore_index=True)
-        ytr = np.concatenate([ytr, y_orig])
+    if pseudo is not None:
+        Xp, yp = pseudo
+        Xtr = pd.concat([Xtr, Xp], axis=0, ignore_index=True)
+        ytr = np.concatenate([ytr, yp])
     return Xtr, ytr
 
-def run_lgb(tag, use_orig):
+def run_lgb(tag, pseudo, predict_test=False):
     X = train[FEATS]
+    Xtest = test[FEATS]
     oof = np.zeros((len(train), n_class))
+    pred = np.zeros((len(test), n_class)) if predict_test else None
     skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
     t0 = time.time()
     for fold, (tr, va) in enumerate(skf.split(X, y)):
-        Xtr, ytr = fold_train_data(tr, use_orig)
+        Xtr, ytr = fold_train_data(tr, pseudo)
         m = lgb.LGBMClassifier(
             objective="multiclass", num_class=n_class,
             n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
@@ -156,92 +154,102 @@ def run_lgb(tag, use_orig):
         m.fit(Xtr, ytr, eval_set=[(X.iloc[va], y[va])],
               callbacks=[lgb.early_stopping(ES_ROUNDS, verbose=False)])
         oof[va] = m.predict_proba(X.iloc[va])
+        if predict_test:
+            pred += m.predict_proba(Xtest)
         print(" ", tag, "fold", fold, "best_iter", m.best_iteration_,
               "elapsed", round(time.time() - t0), "s")
+    if predict_test:
+        pred /= N_SPLITS
     f1_arg = f1_score(y, oof.argmax(1), average="macro")
     w, f1_w = tune_weights(oof, y)
     print(tag, "| OOF macro-F1 argmax:", round(f1_arg, 5),
           "| weighted:", round(f1_w, 5),
           "| weights:", dict(zip(classes, np.round(w, 3))))
-    return f1_w
+    return f1_w, pred
 
 if SMOKE:
-    f_a = run_lgb("DIFF", False)
-    f_b = run_lgb("DIFF+ORIG", True)
-    print("A/B result: diff", round(f_a, 5), "vs diff+orig", round(f_b, 5),
+    f_a, pred_a = run_lgb("DIFF", None, predict_test=True)
+    pseudo = build_pseudo(pred_a)
+    f_b, _ = run_lgb("DIFF+PSEUDO", pseudo)
+    print("A/B result: diff", round(f_a, 5), "vs diff+pseudo", round(f_b, 5),
           "| delta", round(f_b - f_a, 5))
     raise SystemExit(0)
 
-# ---- Full ensemble (base+diff+original) ----
-X = train[FEATS]
-Xtest = test[FEATS]
-
-oof = np.zeros((len(train), n_class))
-pred = np.zeros((len(test), n_class))
-n_oof = np.zeros(len(train))
-n_pred = 0
-
+# ---- Full two-stage ensemble (LGB + XGB + CatBoost) ----
 import xgboost as xgb
 from catboost import CatBoostClassifier
 
-t0 = time.time()
-skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
-for fold, (tr, va) in enumerate(skf.split(X, y)):
-    Xtr, ytr = fold_train_data(tr, True)
-    Xva, yva = X.iloc[va], y[va]
-    wtr = compute_sample_weight("balanced", ytr)
+X = train[FEATS]
+Xtest = test[FEATS]
 
-    m = lgb.LGBMClassifier(
-        objective="multiclass", num_class=n_class,
-        n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
-        subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
-        class_weight="balanced",
-        random_state=SEED, n_jobs=-1, verbose=-1)
-    m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
-          callbacks=[lgb.early_stopping(ES_ROUNDS, verbose=False)])
-    oof[va] += m.predict_proba(Xva)
-    pred += m.predict_proba(Xtest)
-    n_oof[va] += 1; n_pred += 1
-    print("  lgb best_iter:", m.best_iteration_)
+def run_ensemble(stage, pseudo):
+    oof = np.zeros((len(train), n_class))
+    pred = np.zeros((len(test), n_class))
+    n_oof = np.zeros(len(train))
+    n_pred = 0
+    t0 = time.time()
+    skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
+    for fold, (tr, va) in enumerate(skf.split(X, y)):
+        Xtr, ytr = fold_train_data(tr, pseudo)
+        Xva, yva = X.iloc[va], y[va]
+        wtr = compute_sample_weight("balanced", ytr)
 
-    mx = xgb.XGBClassifier(
-        objective="multi:softprob", num_class=n_class,
-        n_estimators=MAX_EST, learning_rate=0.03, max_depth=6,
-        subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
-        early_stopping_rounds=ES_ROUNDS,
-        random_state=SEED, n_jobs=-1, tree_method="hist")
-    mx.fit(Xtr, ytr, sample_weight=wtr,
-           eval_set=[(Xva, yva)], verbose=False)
-    oof[va] += mx.predict_proba(Xva)
-    pred += mx.predict_proba(Xtest)
-    n_oof[va] += 1; n_pred += 1
-    print("  xgb best_iter:", mx.best_iteration)
+        m = lgb.LGBMClassifier(
+            objective="multiclass", num_class=n_class,
+            n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
+            subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+            class_weight="balanced",
+            random_state=SEED, n_jobs=-1, verbose=-1)
+        m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
+              callbacks=[lgb.early_stopping(ES_ROUNDS, verbose=False)])
+        oof[va] += m.predict_proba(Xva)
+        pred += m.predict_proba(Xtest)
+        n_oof[va] += 1; n_pred += 1
+        print("  lgb best_iter:", m.best_iteration_)
 
-    mc = CatBoostClassifier(
-        loss_function="MultiClass", classes_count=n_class,
-        iterations=MAX_EST, learning_rate=0.03, depth=6,
-        l2_leaf_reg=3.0, class_weights=list(cls_w),
-        random_seed=SEED, verbose=0)
-    mc.fit(Xtr, ytr, eval_set=(Xva, yva),
-           early_stopping_rounds=ES_ROUNDS, use_best_model=True)
-    oof[va] += mc.predict_proba(Xva)
-    pred += mc.predict_proba(Xtest)
-    n_oof[va] += 1; n_pred += 1
-    print("  cat best_iter:", mc.get_best_iteration())
+        mx = xgb.XGBClassifier(
+            objective="multi:softprob", num_class=n_class,
+            n_estimators=MAX_EST, learning_rate=0.03, max_depth=6,
+            subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+            early_stopping_rounds=ES_ROUNDS,
+            random_state=SEED, n_jobs=-1, tree_method="hist")
+        mx.fit(Xtr, ytr, sample_weight=wtr,
+               eval_set=[(Xva, yva)], verbose=False)
+        oof[va] += mx.predict_proba(Xva)
+        pred += mx.predict_proba(Xtest)
+        n_oof[va] += 1; n_pred += 1
+        print("  xgb best_iter:", mx.best_iteration)
 
-    print("fold", fold, "done", round(time.time() - t0), "s")
+        mc = CatBoostClassifier(
+            loss_function="MultiClass", classes_count=n_class,
+            iterations=MAX_EST, learning_rate=0.03, depth=6,
+            l2_leaf_reg=3.0, class_weights=list(cls_w),
+            random_seed=SEED, verbose=0)
+        mc.fit(Xtr, ytr, eval_set=(Xva, yva),
+               early_stopping_rounds=ES_ROUNDS, use_best_model=True)
+        oof[va] += mc.predict_proba(Xva)
+        pred += mc.predict_proba(Xtest)
+        n_oof[va] += 1; n_pred += 1
+        print("  cat best_iter:", mc.get_best_iteration())
 
-oof /= np.maximum(n_oof, 1)[:, None]
-pred /= max(n_pred, 1)
-oof_pred = oof.argmax(1)
-print("OOF accuracy:", round(accuracy_score(y, oof_pred), 5))
-print("OOF macro-F1 (argmax):", round(f1_score(y, oof_pred, average="macro"), 5))
+        print(stage, "fold", fold, "done", round(time.time() - t0), "s")
 
-best_w, best_f1 = tune_weights(oof, y)
-print("best per-class weights:", dict(zip(classes, np.round(best_w, 3))))
-print("OOF macro-F1 (weighted):", round(best_f1, 5))
+    oof /= np.maximum(n_oof, 1)[:, None]
+    pred /= max(n_pred, 1)
+    f1_arg = f1_score(y, oof.argmax(1), average="macro")
+    w, f1_w = tune_weights(oof, y)
+    print(stage, "| OOF macro-F1 argmax:", round(f1_arg, 5),
+          "| weighted:", round(f1_w, 5),
+          "| weights:", dict(zip(classes, np.round(w, 3))))
+    return oof, pred, w, f1_w
 
-test_pred = (pred * best_w[None, :]).argmax(1)
+oof1, pred1, w1, f1w1 = run_ensemble("STAGE1", None)
+pseudo = build_pseudo(pred1)
+oof2, pred2, w2, f1w2 = run_ensemble("STAGE2", pseudo)
+print("stage1 weighted:", round(f1w1, 5), "| stage2 weighted:", round(f1w2, 5),
+      "| delta", round(f1w2 - f1w1, 5))
+
+test_pred = (pred2 * w2[None, :]).argmax(1)
 sub[target] = [idx2cls[i] for i in test_pred]
 sub.to_csv("submission.csv", index=False)
 print("saved submission.csv", sub.shape)
@@ -252,15 +260,15 @@ print(sub.head())
 code = CODE.replace("__SMOKE__", "True" if SMOKE else "False")
 
 title = (
-    "# Playground Series S6E6 — Stellar Classification (GALAXY / QSO / STAR)\n\n"
+    "# Playground Series S6E6 - Stellar Classification (GALAXY / QSO / STAR)\n\n"
     "3-class classification, label submission, macro-F1 optimized "
     "(balanced class weights + per-class probability weights tuned on OOF).\n"
     "Features: pairwise numeric differences (generalized color indices). "
-    "External: original SDSS17 dataset appended to fold-train only.\n\n"
-    + ("**SMOKE A/B run** (LGB-only, 3-fold): diff vs diff+original-data."
+    "Lever: pseudo-label distillation (confident test rows join fold-train).\n\n"
+    + ("**SMOKE A/B run** (LGB-only, 3-fold): diff vs diff+pseudo-labels."
        if SMOKE else
-       "Full ensemble: LGB + XGB + CatBoost, 1 seed x 5 folds, early stopping, "
-       "diff features + original SDSS17 rows.")
+       "Full two-stage ensemble: LGB + XGB + CatBoost, 1 seed x 5 folds, "
+       "early stopping; stage 2 adds confident pseudo-labeled test rows.")
 )
 
 nb = {
