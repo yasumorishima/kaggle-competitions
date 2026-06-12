@@ -22,7 +22,7 @@ file equals the already-submitted LB 0.95944 - do not resubmit).
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
