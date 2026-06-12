@@ -29,6 +29,14 @@ reusing its averaged test predictions).
 SMOKE=False runs the two-stage full LGB/XGB/CatBoost ensemble
 (1 seed x 5 folds, early stopping, cap 4000 trees); submission comes
 from stage 2.
+
+Round-1 result (2026-06-12): two-stage pseudo-label = LB 0.95944, new
+best (prior 0.95884; STAGE2 OOF +0.00025 understated the +0.0006 LB
+gain - test-distribution alignment does not show in OOF). This version
+additionally saves OOF and averaged test probabilities as .npy kernel
+outputs so downstream kernels (pseudo round 2 / stage blending / NN
+diversity) can mount them via kernel_sources instead of retraining
+stage 1+2 (6.7h) inside a single 12h kernel.
 """
 
 import json
@@ -248,6 +256,16 @@ pseudo = build_pseudo(pred1)
 oof2, pred2, w2, f1w2 = run_ensemble("STAGE2", pseudo)
 print("stage1 weighted:", round(f1w1, 5), "| stage2 weighted:", round(f1w2, 5),
       "| delta", round(f1w2 - f1w1, 5))
+
+# Persist artifacts for cross-kernel chaining (pseudo round 2, stage
+# blending, NN diversity): mounted by downstream kernels via
+# kernel_sources at /kaggle/input/<kernel-slug>/.
+np.save("oof_stage1.npy", oof1)
+np.save("test_probs_stage1.npy", pred1)
+np.save("oof_stage2.npy", oof2)
+np.save("test_probs_stage2.npy", pred2)
+np.save("y_train.npy", y)
+print("saved npy artifacts: oof/test_probs stage1+stage2, y_train")
 
 test_pred = (pred2 * w2[None, :]).argmax(1)
 sub[target] = [idx2cls[i] for i in test_pred]
