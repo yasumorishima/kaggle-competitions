@@ -175,7 +175,8 @@ gh workflow run "EXP to Kaggle Submit" \
 
 | Approach | Public LB |
 |---|---|
-| **Full ensemble (LGB + XGB + CatBoost, 5-fold ES) + pairwise-diff features + per-class probability weights** | **0.95884** |
+| **Two-stage pseudo-label distillation (153k confident test rows join fold-train)** | **0.95944** |
+| Full ensemble (LGB + XGB + CatBoost, 5-fold ES) + pairwise-diff features + per-class probability weights | 0.95884 |
 | Full ensemble + per-class probability weights (no diff features) | 0.95866 |
 | + original SDSS17 dataset in fold-train (external data) | 0.95741 (rejected) |
 | LGB-only 3-fold smoke baseline | 0.95466 |
@@ -183,7 +184,8 @@ gh workflow run "EXP to Kaggle Submit" \
 - **Metric finding:** the LB metric is macro-F1 and OOF macro-F1 matches it within ~0.001, so per-class probability weights tuned on OOF by coordinate ascent are a proven lever (+0.004 LB over plain argmax; balanced class weights alone hurt argmax but win after weight tuning).
 - **Feature lever:** pairwise differences of all numeric columns (generalized color indices), validated by an A/B smoke (+0.00093 OOF) before spending a full run (+0.0002 LB).
 - **External-data lesson:** appending the original SDSS17 dataset to the training side of each fold RAISED OOF (+0.0002, near-duplicates of validation rows leak in) but DROPPED LB (-0.0014). OOF deltas only predict LB deltas while the training distribution stays unchanged.
-- **Current lever:** pseudo-label distillation - test rows predicted with 0.995-plus confidence join the fold-train side in a second stage (A/B smoke first, same protocol).
+- **Pseudo-label lever (proven):** test rows predicted with 0.995-plus confidence join the fold-train side in a second stage: +0.0006 LB while STAGE2 OOF only rose +0.00025 - test-distribution alignment gains do not show in OOF.
+- **Current lever:** chained kernels via persisted OOF / test-probability .npy artifacts (kernel_sources) - pseudo round 2 and stage blending without retraining stage 1+2.
 
 - **Pipeline:** `playground-series-s6e6/generate_notebook.py` → `kaggle-push.yml` (GitHub Actions) → Kaggle kernel. A `SMOKE` flag validates the plumbing (LGB-only, 3-fold) before the full ensemble (1 seed x 5 folds).
 - **Gotcha confirmed:** `competition_sources` mounts data at `/kaggle/input/competitions/<slug>/` (the notebook auto-discovers the dir via `os.walk`).
