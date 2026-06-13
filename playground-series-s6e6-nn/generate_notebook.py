@@ -21,7 +21,7 @@ training loop, blend + submission path). SMOKE=False: 5 folds x up to
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
