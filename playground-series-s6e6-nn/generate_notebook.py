@@ -192,7 +192,7 @@ for fold, (tr, va) in enumerate(skf.split(train[NUMS], y)):
                 break
     model.load_state_dict(best_state)
     oof_nn[va] = predict(model, tn_va, tc_va)
-    pred_nn += predict(model, tn_te, tc_te)
+    pred_nn += predict(model, tn_te, Xc_test)
     print("NN fold", fold, "| best val macro-F1:", round(best_f1, 5),
           "| epochs:", ep + 1, "| elapsed:", round(time.time() - t0), "s")
 pred_nn /= N_SPLITS
