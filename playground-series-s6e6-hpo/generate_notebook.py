@@ -18,7 +18,7 @@ SMOKE=False: N_TRIALS trials at the proxy tree cap.
 
 import json
 
-SMOKE = True
+SMOKE = False
 
 CODE = r'''
 import os, time, numpy as np, pandas as pd
@@ -26,6 +26,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score
 import lightgbm as lgb
 import optuna
+import json
 
 SMOKE = __SMOKE__
 SEED = 42
