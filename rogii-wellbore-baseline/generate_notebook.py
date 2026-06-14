@@ -168,7 +168,7 @@ SMOKE_SRC = '''\
 # constant. FLIP to False (re-run generate_notebook.py, commit, push) for the
 # real full run. SMOKE proves the whole pipeline + submission format end to end
 # cheaply: tiny train subsample, 6 test wells, 50-round GBTs, 3 Optuna trials.
-SMOKE = True
+SMOKE = False
 # Full run searches 500 post-processing trials; 60 is plenty for a baseline and
 # much faster. SMOKE keeps it to 3 just to prove the pipeline runs end to end.
 N_TRIALS = 3 if SMOKE else 60
