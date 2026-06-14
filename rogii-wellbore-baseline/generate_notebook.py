@@ -292,6 +292,22 @@ def main():
             report.append(f"cell {ci}: forced re-train ({k} guard -> models.pkl file)")
     assert n_guard_total >= 2, f"expected >=2 cache guards, found {n_guard_total}"
 
+    # ---- 5d. CatBoost devices="0:1" assumes a 2-GPU box (the author used T4x2).
+    # A single-GPU kernel raises 'id 1 greater than limit 1'. Pin to device 0 so
+    # it runs on any GPU count. ----
+    dev_old = 'devices="0:1"'
+    dev_new = 'devices="0"'
+    n_dev = 0
+    for c in cells:
+        if c["cell_type"] != "code":
+            continue
+        cs = src_str(c)
+        if dev_old in cs:
+            set_src(c, cs.replace(dev_old, dev_new))
+            n_dev += cs.count(dev_old)
+    assert n_dev >= 1, "CatBoost devices=\"0:1\" not found to patch"
+    report.append(f"patched {n_dev} CatBoost devices 0:1 -> 0 (single-GPU)")
+
     # ---- title: tweak the first markdown cell header (non-functional) ----
     # Add a provenance markdown cell at the very top.
     title_cell = {
@@ -327,6 +343,7 @@ def main():
     assert "nrows=(60000 if SMOKE else None)" in full, "SMOKE nrows cap missing!"
     assert '"models" / name).exists()' not in full, "dir-existence cache guard still present (should force re-train)!"
     assert '"models" / name / "models.pkl").exists()' in full, "re-train guard not wired!"
+    assert 'devices="0:1"' not in full, "CatBoost 2-GPU devices not patched!"
     assert "device_type=\"gpu\"" in full, "GPU device flag lost!"
     assert 'task_type="GPU"' in full, "CatBoost GPU lost!"
 
