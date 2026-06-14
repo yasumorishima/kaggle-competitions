@@ -155,10 +155,8 @@ def run_lgb(tag, pseudo, predict_test=False):
         Xtr, ytr = fold_train_data(tr, pseudo)
         m = lgb.LGBMClassifier(
             objective="multiclass", num_class=n_class,
-            n_estimators=MAX_EST, learning_rate=0.04117702665865346,
-            num_leaves=255, max_depth=8, min_child_samples=120,
-            subsample=0.987935611121138, colsample_bytree=0.8790103068923594,
-            reg_lambda=0.9201056783506876, reg_alpha=0.03178900344437503,
+            n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
+            subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
             class_weight="balanced",
             random_state=SEED, n_jobs=-1, verbose=-1)
         m.fit(Xtr, ytr, eval_set=[(X.iloc[va], y[va])],
@@ -206,10 +204,8 @@ def run_ensemble(stage, pseudo):
 
         m = lgb.LGBMClassifier(
             objective="multiclass", num_class=n_class,
-            n_estimators=MAX_EST, learning_rate=0.04117702665865346,
-            num_leaves=255, max_depth=8, min_child_samples=120,
-            subsample=0.987935611121138, colsample_bytree=0.8790103068923594,
-            reg_lambda=0.9201056783506876, reg_alpha=0.03178900344437503,
+            n_estimators=MAX_EST, learning_rate=0.03, num_leaves=63,
+            subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
             class_weight="balanced",
             random_state=SEED, n_jobs=-1, verbose=-1)
         m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
