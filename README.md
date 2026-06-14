@@ -42,7 +42,7 @@ For long-running notebooks that exceed GitHub Actions' 90-min timeout, RPi5 runs
 
 - **`enable_internet: false`** is required for code competition submissions — Internet ON prevents the notebook from being eligible
 - **`competition_sources`** mounts data at `/kaggle/input/competitions/<slug>/` (not `/kaggle/input/<slug>/`)
-- **`CreateCodeSubmission` API returns 403** — but file-based submission (`competition_submit` with output CSV download) works as a reliable alternative
+- **Submission differs by competition type (verified 2026-06 on an active comp):** for **code competitions** the API path is blocked both ways — `CreateCodeSubmission` returns **403** and file submission (`kaggle competitions submit -f`) returns **400** (the upload is rejected and leaves no entry). Code-competition submission must go through the notebook **"Submit to Competition"** UI. File submission (`submit -f`) works only for **regular** competitions (downloadable test + `sample_submission`, not flagged "code competition"), e.g. S6E6 / BirdCLEF.
 
 **Blog post:** [DEV.to](https://dev.to/yasumorishima/kaggle-code-competitions-without-a-local-gpu-github-actions-kaggle-api-cloud-workflow-m3)
 
@@ -166,6 +166,24 @@ gh workflow run "EXP to Kaggle Submit" \
 ---
 
 ## 🏆 Competition Results
+
+### ROGII - Wellbore Geology Prediction (Active)
+
+**Competition:** [ROGII - Wellbore Geology Prediction](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction) | **Deadline:** 2026-08-05 | **Prize:** $50,000 | **Metric:** RMSE
+
+Predict True Vertical Thickness (TVT) along horizontal wellbores to automate geosteering. Per-well multimodal data (`*__horizontal_well.csv` logs + `*__typewell.csv` reference stratigraphy + train `.png`); predict the unrevealed "toe" rows (`TVT_input` is NaN) as a **delta from the last known TVT**. **Code competition** — submission is by notebook "Submit to Competition", not file upload.
+
+| Approach | Public LB |
+|---|---|
+| Public best (DWT/DTW-based clone group) | ~9.25 |
+| Re-training fork baseline (this repo) | pipeline validated — submission pending |
+
+- **Anti-fork wall:** the public ~9.25 notebooks depend on a private BYOD image (`gcr.io/kaggle-private-byod`), ravaghi's `Trainer` pickles, and a custom `hill_climbing` module — a blind fork breaks. Only the public-image `9.251 DWT-based` notebook is forkable, and its sole custom dependency is `from hill_climbing import Climber`.
+- **Fork-runnable baseline (Strategy A):** surgically transform the public source via `rogii-wellbore-baseline/generate_notebook.py` — (1) drop the `hill_climbing` import and inline an equivalent Caruana greedy-ensemble `Climber`; (2) the public artifacts dataset ships `*_trainer_*.pkl` (Trainer/BYOD) not the `models.pkl` cache the notebook's guard expects, so force a re-train from the precomputed `train.csv` features; (3) pin CatBoost to a single GPU (`devices="0:1"` → `"0"`). A `SMOKE` flag (`nrows`-capped train, 6 test wells, 50-round GBTs, 3 Optuna trials) validated the full pipeline (3 LGB + 3 CatBoost → Climber → Optuna post-proc → Savitzky-Golay smoothing → valid `submission.csv`, 14152 rows, no NaN) before the full run.
+- **Submission finding (verified on an active comp):** `kaggle competitions submit -f` returns **400** on this code competition — file submission is structurally disabled; submission must go through the notebook UI. See the corrected Key Finding below.
+- **Open levers (9.25 → ~5.8 frontier):** the train `.png` images are unused by every public notebook; a sequence model (1D-CNN/Transformer over the horizontal log) could replace the flat per-row GBT; richer spatial priors (kriging formation tops, neighbor-well TVT).
+
+---
 
 ### Playground Series S6E6 - Stellar Classification (Active)
 
