@@ -270,6 +270,28 @@ def main():
     report.append(
         f"cell {i_par}: SMOKE shrink lgb n_estimators=50 & cb iterations=50")
 
+    # ---- 5c. force RE-TRAIN: the public artifacts dataset ships ravaghi's
+    # `*_trainer_*.pkl` (Trainer objects, BYOD-only), NOT the `models.pkl` /
+    # `oof_preds.pkl` cache pub_dwt's guard expects. The guard only checks that
+    # the models/<name> DIR exists (it does, with the wrong files) and then
+    # blows up on `joblib.load(path/"models.pkl")`. Make the guard check the
+    # actual models.pkl FILE so it always falls through to training. ----
+    # train_lightgbm and train_catboost live in SEPARATE cells, so patch every
+    # code cell that contains the dir-existence guard.
+    guard_old = 'if (CFG.artifacts_path / "models" / name).exists():'
+    guard_new = 'if (CFG.artifacts_path / "models" / name / "models.pkl").exists():'
+    n_guard_total = 0
+    for ci, c in enumerate(cells):
+        if c["cell_type"] != "code":
+            continue
+        cs = src_str(c)
+        k = cs.count(guard_old)
+        if k:
+            set_src(c, cs.replace(guard_old, guard_new))
+            n_guard_total += k
+            report.append(f"cell {ci}: forced re-train ({k} guard -> models.pkl file)")
+    assert n_guard_total >= 2, f"expected >=2 cache guards, found {n_guard_total}"
+
     # ---- title: tweak the first markdown cell header (non-functional) ----
     # Add a provenance markdown cell at the very top.
     title_cell = {
@@ -303,6 +325,8 @@ def main():
     assert "n_trials=N_TRIALS" in full, "N_TRIALS not wired!"
     assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag missing!"
     assert "nrows=(60000 if SMOKE else None)" in full, "SMOKE nrows cap missing!"
+    assert '"models" / name).exists()' not in full, "dir-existence cache guard still present (should force re-train)!"
+    assert '"models" / name / "models.pkl").exists()' in full, "re-train guard not wired!"
     assert "device_type=\"gpu\"" in full, "GPU device flag lost!"
     assert 'task_type="GPU"' in full, "CatBoost GPU lost!"
 
