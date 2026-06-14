@@ -1,0 +1,30 @@
+{
+  "id": "yasunorim/rna3d-tbm-ensemble-repro",
+  "title": "rna3d-tbm-ensemble-repro",
+  "code_file": "rna3d-tbm-ensemble-repro.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "false",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "kami1976/biopython-cp312",
+    "youhanlee/boltz-dependencies",
+    "igorkrashenyi/fairscale-0413",
+    "grennwolf/protenix-checkpoints-jan-20-2026",
+    "youhanlee/rna-prediction-boltz",
+    "theoviel/rnapro-src",
+    "metric/usalign"
+  ],
+  "kernel_sources": [
+    "packagemanager/pm-109485764-at-03-23-2026-10-20-50"
+  ],
+  "competition_sources": [
+    "stanford-rna-3d-folding-2"
+  ],
+  "model_sources": [
+    "shujun717/ribonanzanet2/PyTorch/alpha/1"
+  ],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:58f63ed194fa7d5c55181f1e8ec0be141e9211efa23bc7501c1c865f7e00057d"
+}
