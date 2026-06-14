@@ -1,0 +1,24 @@
+{
+  "id": "yasunorim/rna3d-protenix-tbm-repro",
+  "title": "rna3d-protenix-tbm-repro",
+  "code_file": "rna3d-protenix-tbm-repro.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "false",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "kami1976/biopython-cp312",
+    "amirrezaaleyasin/biotite",
+    "helmirinaldi/datapithon",
+    "qiweiyin/protenix-v1-adjusted",
+    "amirrezaaleyasin/rdkit-2025-9-5",
+    "metric/usalign"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "stanford-rna-3d-folding-2"
+  ],
+  "model_sources": []
+}
