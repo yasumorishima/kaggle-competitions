@@ -301,7 +301,8 @@ def main():
     assert "\nfrom hill_climbing import Climber" not in ("\n" + full), "Climber import still present!"
     assert "class Climber:" in full, "inline Climber missing!"
     assert "n_trials=N_TRIALS" in full, "N_TRIALS not wired!"
-    assert "SMOKE = os.environ.get" in full, "SMOKE flag missing!"
+    assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag missing!"
+    assert "nrows=(60000 if SMOKE else None)" in full, "SMOKE nrows cap missing!"
     assert "device_type=\"gpu\"" in full, "GPU device flag lost!"
     assert 'task_type="GPU"' in full, "CatBoost GPU lost!"
 
