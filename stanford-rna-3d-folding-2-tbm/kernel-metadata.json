@@ -1,0 +1,19 @@
+{
+  "id": "yasunorim/rna3d-seqtbm",
+  "title": "rna3d-seqtbm",
+  "code_file": "rna3d-seqtbm.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "false",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "kami1976/biopython-cp312"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "stanford-rna-3d-folding-2"
+  ],
+  "model_sources": []
+}
