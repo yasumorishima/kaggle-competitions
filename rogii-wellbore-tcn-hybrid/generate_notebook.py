@@ -35,7 +35,7 @@ SRC = os.path.join(HERE, "..", "rogii-wellbore-work", "pub_dwt",
 OUT = os.path.join(HERE, "rogii-tcn-hybrid.ipynb")
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = True
+SMOKE = False
 
 # train.csv row cap for SMOKE (first ~8 wells of toe rows).
 SMOKE_NROWS = 40000
