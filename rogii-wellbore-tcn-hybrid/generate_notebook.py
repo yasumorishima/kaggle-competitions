@@ -53,12 +53,14 @@ SMOKE = __SMOKE__
 SEED = 42
 torch.manual_seed(SEED); np.random.seed(SEED)
 N_SPLITS = 5
-EPOCHS   = 2   if SMOKE else 30
-PATIENCE = 1   if SMOKE else 6
+EPOCHS   = 2   if SMOKE else 40
+PATIENCE = 1   if SMOKE else 8
 CH       = 32  if SMOKE else 128
 NB       = 2   if SMOKE else 7
-LR = 1e-3
+DROP = 0.15
+LR = 5e-4
 WD = 1e-4
+CLIP = 1.0
 print(f"[TCN] SMOKE={SMOKE} EPOCHS={EPOCHS} CH={CH} NB={NB} n_features={len(features)}")
 
 DEVICE = "cpu"
@@ -127,20 +129,27 @@ gc.collect()
 
 TCN_MODEL = r'''
 # === TCN model ===
+# GroupNorm (batch-independent) instead of BatchNorm: batch=1 per well made
+# BatchNorm's train/eval running-stats mismatch blow up some valid wells
+# (vRMSE spiked to 52). GroupNorm has no running stats -> stable at batch=1.
+def _gn(c):
+    g = 8 if c % 8 == 0 else 1
+    return nn.GroupNorm(g, c)
+
 class TCNBlock(nn.Module):
-    def __init__(s, c, d):
+    def __init__(s, c, d, drop):
         super().__init__()
-        s.c1 = nn.Conv1d(c, c, 3, padding=d, dilation=d); s.b1 = nn.BatchNorm1d(c)
-        s.c2 = nn.Conv1d(c, c, 3, padding=d, dilation=d); s.b2 = nn.BatchNorm1d(c)
-        s.act = nn.ReLU(); s.do = nn.Dropout(0.1)
+        s.c1 = nn.Conv1d(c, c, 3, padding=d, dilation=d); s.n1 = _gn(c)
+        s.c2 = nn.Conv1d(c, c, 3, padding=d, dilation=d); s.n2 = _gn(c)
+        s.act = nn.ReLU(); s.do = nn.Dropout(drop)
     def forward(s, x):
-        y = s.do(s.act(s.b1(s.c1(x)))); y = s.b2(s.c2(y)); return s.act(x + y)
+        y = s.do(s.act(s.n1(s.c1(x)))); y = s.n2(s.c2(y)); return s.act(x + y)
 
 class TCN(nn.Module):
-    def __init__(s, cin, c, nb):
+    def __init__(s, cin, c, nb, drop=0.15):
         super().__init__()
         s.inp = nn.Conv1d(cin, c, 1)
-        s.blocks = nn.ModuleList([TCNBlock(c, 2 ** i) for i in range(nb)])
+        s.blocks = nn.ModuleList([TCNBlock(c, 2 ** i, drop) for i in range(nb)])
         s.head = nn.Conv1d(c, 1, 1)
     def forward(s, x):
         x = s.inp(x)
@@ -166,8 +175,9 @@ gkf = GroupKFold(n_splits=(2 if SMOKE else N_SPLITS))
 idx = np.arange(len(train_seqs))
 fold_states, fold_best = [], []
 for fold, (tr, va) in enumerate(gkf.split(idx, groups=groups)):
-    model = TCN(len(feat), CH, NB).to(DEVICE)
+    model = TCN(len(feat), CH, NB, DROP).to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
     best = 1e9; best_state = None; bad = 0
     tr = np.array(tr)
     for ep in range(EPOCHS):
@@ -175,8 +185,10 @@ for fold, (tr, va) in enumerate(gkf.split(idx, groups=groups)):
         for j in tr:
             s = train_seqs[j]
             x = to_x(s); t = torch.tensor(s['t'][None], dtype=torch.float32, device=DEVICE)
-            opt.zero_grad(); loss = huber(model(x), t); loss.backward(); opt.step()
+            opt.zero_grad(); loss = huber(model(x), t); loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), CLIP); opt.step()
             tl += float(loss)
+        sched.step()
         model.eval(); P, T = [], []
         with torch.no_grad():
             for j in va:
