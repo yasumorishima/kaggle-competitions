@@ -1,11 +1,12 @@
 {
-  "id": "yasunorim/rogii-tcn-seq",
+  "id": "yasunorim/rogii-tcn-sequence",
   "title": "ROGII TCN Sequence",
   "code_file": "rogii-tcn-seq.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
   "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
   "enable_tpu": false,
   "enable_internet": false,
   "keywords": [],

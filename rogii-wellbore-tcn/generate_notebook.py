@@ -36,7 +36,7 @@ import os, glob, math, time
 import numpy as np
 import pandas as pd
 
-SMOKE = True          # FLIP to False (regenerate + commit + push) for the full run
+SMOKE = False         # FLIP to False (regenerate + commit + push) for the full run
 SEED = 42
 N_SPLITS = 5
 EPOCHS   = 3   if SMOKE else 40
