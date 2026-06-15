@@ -1,0 +1,21 @@
+{
+  "id": "yasunorim/rogii-tcn-hybrid",
+  "title": "rogii-tcn-hybrid",
+  "code_file": "rogii-tcn-hybrid.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "ravaghi/wellbore-geology-prediction-artifacts"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "rogii-wellbore-geology-prediction"
+  ],
+  "model_sources": []
+}
