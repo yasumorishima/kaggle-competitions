@@ -31,7 +31,7 @@ SRC = BASE / "_source_super.ipynb"
 OUT = BASE / "rogii-tuned-pubdwt.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = True
+SMOKE = False
 
 
 def src_str(cell):
