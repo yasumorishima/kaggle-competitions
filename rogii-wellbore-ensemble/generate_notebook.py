@@ -33,7 +33,7 @@ SRC = (BASE.parent / "rogii-wellbore-work" / "pub_dwt"
 OUT = BASE / "rogii-tcn-ensemble.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -202,16 +202,18 @@ def _hub(p, t, d=1.0):
 def _tx(s):
     return torch.tensor(s['X'].T[None], dtype=torch.float32, device=_dev)
 
-_oof_id = {}; _test_sum = {}; _nf = 0; _fb = []
-_idx = np.arange(len(_tr))
-for _f, (_tri, _vai) in enumerate(CFG.cv.split(_idx, groups=_grp)):
+N_SEED = 2 if SMOKE else 3   # bag N_SEED TCNs/fold to damp the large fold variance
+print(f"[TCN] N_SEED(bag)={N_SEED}")
+
+def _train_one(_tri, _vai, _seed):
+    torch.manual_seed(_seed); np.random.seed(_seed)
     _m = _TCN(len(_tfeat), T_CH, T_NB, T_DROP).to(_dev)
     _opt = torch.optim.Adam(_m.parameters(), lr=T_LR, weight_decay=T_WD)
     _sch = torch.optim.lr_scheduler.CosineAnnealingLR(_opt, T_max=T_EPOCHS)
-    _best = 1e9; _bs = None; _bad = 0; _tri = np.array(_tri)
+    _best = 1e9; _bs = None; _bad = 0; _trl = np.array(_tri)
     for _ep in range(T_EPOCHS):
-        _m.train(); np.random.shuffle(_tri)
-        for _j in _tri:
+        _m.train(); np.random.shuffle(_trl)
+        for _j in _trl:
             s = _tr[_j]; x = _tx(s); t = torch.tensor(s['t'][None], dtype=torch.float32, device=_dev)
             _opt.zero_grad(); _l = _hub(_m(x), t); _l.backward()
             torch.nn.utils.clip_grad_norm_(_m.parameters(), T_CLIP); _opt.step()
@@ -229,17 +231,35 @@ for _f, (_tri, _vai) in enumerate(CFG.cv.split(_idx, groups=_grp)):
         if _bad >= T_PAT:
             break
     _m.load_state_dict(_bs); _m.eval()
-    with torch.no_grad():
-        for _j in _vai:
-            s = _tr[_j]; pr = _m(_tx(s)).cpu().numpy()[0] * _ysd + _ymu
-            for _i, _id in enumerate(s['ids']):
-                _oof_id[_id] = float(pr[_i])
-        for s in _te:
-            pr = _m(_tx(s)).cpu().numpy()[0] * _ysd + _ymu
-            for _i, _id in enumerate(s['ids']):
-                _test_sum[_id] = _test_sum.get(_id, 0.0) + float(pr[_i])
-    _nf += 1; _fb.append(_best)
-    print(f"[TCN] fold{_f} best toe RMSE = {_best:.4f}")
+    return _m
+
+_oof_id = {}; _test_sum = {}; _nf = 0; _fb = []
+_idx = np.arange(len(_tr))
+for _f, (_tri, _vai) in enumerate(CFG.cv.split(_idx, groups=_grp)):
+    _va_sum = {}; _te_fold = {}
+    for _seed in range(N_SEED):
+        _m = _train_one(_tri, _vai, 1000 * _seed + _f)
+        with torch.no_grad():
+            for _j in _vai:
+                s = _tr[_j]; pr = _m(_tx(s)).cpu().numpy()[0] * _ysd + _ymu
+                for _i, _id in enumerate(s['ids']):
+                    _va_sum[_id] = _va_sum.get(_id, 0.0) + float(pr[_i]) / N_SEED
+            for s in _te:
+                pr = _m(_tx(s)).cpu().numpy()[0] * _ysd + _ymu
+                for _i, _id in enumerate(s['ids']):
+                    _te_fold[_id] = _te_fold.get(_id, 0.0) + float(pr[_i]) / N_SEED
+    for _id, v in _va_sum.items():
+        _oof_id[_id] = v
+    for _id, v in _te_fold.items():
+        _test_sum[_id] = _test_sum.get(_id, 0.0) + v
+    _nf += 1
+    _vp = []; _vt = []
+    for _j in _vai:
+        s = _tr[_j]
+        _vp.extend([_va_sum[i] for i in s['ids']]); _vt.extend(list(s['t'] * _ysd + _ymu))
+    _fr = float(np.sqrt(np.mean((np.array(_vp) - np.array(_vt)) ** 2)))
+    _fb.append(_fr)
+    print(f"[TCN] fold{_f} bagged({N_SEED}) toe RMSE = {_fr:.4f}")
 print("[TCN] CV toe RMSE mean =", float(np.mean(_fb)), "| folds", [round(b, 3) for b in _fb])
 
 # align to train_df / test_df row order (delta units, same as GBT oof)
@@ -347,6 +367,24 @@ def main():
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
     cells.insert(i_df, code_cell(TCN_SRC))
     report.append(f"inserted TCN ensemble cell at {i_df} (before oof_preds DataFrame)")
+
+    # 7. blend visibility: print Climber weights/best_score + Optuna best_value
+    i_cl = find_cell(cells, "climber = Climber(")
+    cl = src_str(cells[i_cl])
+    assert "climber.best_score" in cl
+    set_src(cells[i_cl], cl.rstrip("\n") + (
+        "\nprint('[BLEND] climber.best_score =', climber.best_score)"
+        "\nprint('[BLEND] weights =', {c: round(float(w), 4) "
+        "for c, w in zip(climber.columns_, climber.weights_)})\n"))
+    report.append(f"cell {i_cl}: print climber best_score + weights")
+
+    i_st = find_cell(cells, "study.optimize(objective, n_trials=N_TRIALS")
+    st = src_str(cells[i_st])
+    assert "study.best_value" in st
+    set_src(cells[i_st], st.rstrip("\n") + (
+        "\nprint('[BLEND] Optuna post-proc best OOF RMSE =', study.best_value)"
+        "\nprint('[BLEND] best_pp_params =', best_pp_params)\n"))
+    report.append(f"cell {i_st}: print Optuna best_value")
 
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
