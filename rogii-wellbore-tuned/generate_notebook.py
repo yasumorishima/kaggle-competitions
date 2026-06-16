@@ -102,16 +102,21 @@ def main():
     set_src(cells[i_bld], s2)
     report.append(f"cell {i_bld}: SMOKE subset test_paths[:6]")
 
-    # 4. CatBoost single-GPU (source is T4x2 -> my machine_shape is single T4)
+    # 4. CatBoost single-GPU + bootstrap fix.
+    #    - source is T4x2 -> my machine_shape is single T4 (devices "0:1" -> "0").
+    #    - source sets subsample=0.75 but no bootstrap_type; CatBoost's default GPU
+    #      bootstrap is Bayesian, which REJECTS 'subsample' (hard error). Add
+    #      bootstrap_type="Bernoulli" so the author's intended row-subsampling
+    #      actually applies (faithful to intent, fixes the crash).
     nd = 0
     for c in cells:
         if c["cell_type"] != "code":
             continue
         cs = src_str(c)
         if 'devices="0:1"' in cs:
-            set_src(c, cs.replace('devices="0:1"', 'devices="0"')); nd += 1
+            set_src(c, cs.replace('devices="0:1"', 'devices="0", bootstrap_type="Bernoulli"')); nd += 1
     assert nd >= 1, "expected a CatBoost devices=\"0:1\" to patch"
-    report.append(f"patched {nd} CatBoost devices -> single-GPU")
+    report.append(f"patched {nd} CatBoost devices -> single-GPU + bootstrap_type=Bernoulli")
 
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
@@ -122,6 +127,7 @@ def main():
     full = "\n".join(src_str(c) for c in rt["cells"] if c["cell_type"] == "code")
     assert 'devices="0:1"' not in full
     assert 'devices="0"' in full
+    assert 'bootstrap_type="Bernoulli"' in full
     assert "if SMOKE: hw_paths=hw_paths[:14]" in full
     assert "if SMOKE: test_paths=test_paths[:6]" in full
     assert ("SMOKE = True" if SMOKE else "SMOKE = False") in full
