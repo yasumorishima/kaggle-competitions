@@ -33,7 +33,7 @@ SRC = (BASE.parent / "rogii-wellbore-work" / "pub_dwt"
 OUT = BASE / "rogii-tcn-ensemble.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = True
+SMOKE = False
 
 
 def src_str(cell):
