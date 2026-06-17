@@ -99,11 +99,13 @@ def _phi(x, y):
 class _FormSurf:
     """Per-formation S_f(X,Y) = global 2nd-order WLS trend + local residual IDW.
        LOO fold-safe: trend via per-well normal-equation downdate, residual via
-       self_wid exclusion in the kNN tree."""
+       self_wid exclusion in the kNN tree AND residuals taken against the SAME
+       downdated trend (exact leave-one-well-out, no beta0 imprint)."""
 
     def __init__(self, wids, data_dir):
         XX = []; YY = []; WW = []; FF = {f: [] for f in FORMATIONS}
-        sX = []; sY = []; sW = []; sF = {f: [] for f in FORMATIONS}
+        sX = []; sY = []; sW = []; sFd = {f: [] for f in FORMATIONS}
+        code = {}
         for wid in wids:
             p = data_dir / (wid + "__horizontal_well.csv")
             try:
@@ -112,14 +114,16 @@ class _FormSurf:
                 continue
             if len(df) == 0:
                 continue
+            c = code.setdefault(wid, len(code))
             X = df["X"].to_numpy(_np.float64); Y = df["Y"].to_numpy(_np.float64)
-            XX.append(X); YY.append(Y); WW.append(_np.full(len(df), wid, dtype=object))
+            XX.append(X); YY.append(Y); WW.append(_np.full(len(df), c, dtype=_np.int32))
             for f in FORMATIONS:
                 FF[f].append(df[f].to_numpy(_np.float64))
             ix = _np.linspace(0, len(df) - 1, min(_SPW, len(df))).astype(int)
-            sX.append(X[ix]); sY.append(Y[ix]); sW.append(_np.full(len(ix), wid, dtype=object))
+            sX.append(X[ix]); sY.append(Y[ix]); sW.append(_np.full(len(ix), c, dtype=_np.int32))
             for f in FORMATIONS:
-                sF[f].append(df[f].to_numpy(_np.float64)[ix])
+                sFd[f].append(df[f].to_numpy(_np.float64)[ix])
+        self.code = code
         self.X = _np.concatenate(XX); self.Y = _np.concatenate(YY); self.W = _np.concatenate(WW)
         self.F = {f: _np.concatenate(FF[f]) for f in FORMATIONS}
         self.mx = float(self.X.mean()); self.my = float(self.Y.mean())
@@ -128,43 +132,51 @@ class _FormSurf:
         self.A = P.T @ P + 1e-6 * _np.eye(6)
         self.b = {f: P.T @ self.F[f] for f in FORMATIONS}
         self.Aw = {}; self.bw = {f: {} for f in FORMATIONS}
-        for wid in _np.unique(self.W):
-            m = self.W == wid; Pm = P[m]
-            self.Aw[wid] = Pm.T @ Pm
+        for c in _np.unique(self.W):
+            m = self.W == c; Pm = P[m]
+            self.Aw[int(c)] = Pm.T @ Pm
             for f in FORMATIONS:
-                self.bw[f][wid] = Pm.T @ self.F[f][m]
+                self.bw[f][int(c)] = Pm.T @ self.F[f][m]
         self.beta0 = {f: _np.linalg.solve(self.A, self.b[f]) for f in FORMATIONS}
+        # residual tree (subsample); keep RAW formation values for exact-LOO residual
         self.sX = _np.concatenate(sX); self.sY = _np.concatenate(sY); self.sW = _np.concatenate(sW)
+        self.sF = {f: _np.concatenate(sFd[f]) for f in FORMATIONS}
         self.scale = _np.array([self.sX.std() or 1.0, self.sY.std() or 1.0])
         self.tree = _ckd(_np.column_stack([self.sX, self.sY]) / self.scale)
-        sP = _phi((self.sX - self.mx) / self.nx, (self.sY - self.my) / self.ny)
-        self.sR = {f: self.sF[f] - sP @ self.beta0[f] for f in FORMATIONS}
 
-    def _beta(self, f, wid):
-        if wid is not None and wid in self.Aw:
-            return _np.linalg.solve(self.A - self.Aw[wid] + 1e-6 * _np.eye(6),
-                                    self.b[f] - self.bw[f][wid])
+    def _beta(self, f, code):
+        if code is not None and code in self.Aw:
+            return _np.linalg.solve(self.A - self.Aw[code] + 1e-6 * _np.eye(6),
+                                    self.b[f] - self.bw[f][code])
         return self.beta0[f]
 
+    def _trend(self, beta, xn, yn):
+        return (beta[0] + beta[1] * xn + beta[2] * yn
+                + beta[3] * xn * xn + beta[4] * yn * yn + beta[5] * xn * yn)
+
     def predict(self, xy, wid=None):
+        code = self.code.get(wid) if wid is not None else None
         xy = _np.atleast_2d(xy)
-        x = (xy[:, 0] - self.mx) / self.nx; y = (xy[:, 1] - self.my) / self.ny
-        P = _phi(x, y)
+        xq = (xy[:, 0] - self.mx) / self.nx; yq = (xy[:, 1] - self.my) / self.ny
         kf = min(_KR + 8, len(self.sX))
         dist, idx = self.tree.query(xy / self.scale, k=kf, workers=-1)
         dist = _np.atleast_2d(dist); idx = _np.atleast_2d(idx)
-        if wid is not None:
-            dist = _np.where(self.sW[idx] == wid, _np.inf, dist)
+        if code is not None:
+            dist = _np.where(self.sW[idx] == code, _np.inf, dist)
         kk = min(_KR - 1, kf - 1)
         ordr = _np.argpartition(dist, kk, 1)[:, :_KR]
         dk = _np.take_along_axis(dist, ordr, 1); ik = _np.take_along_axis(idx, ordr, 1)
         vk = _np.isfinite(dk); w = _np.where(vk, 1.0 / (dk + 1e-3), 0.0)
         ws = w.sum(1); safe = _np.where(ws < 1e-9, 1.0, ws)
+        nbx = (self.sX[ik] - self.mx) / self.nx; nby = (self.sY[ik] - self.my) / self.ny
         out = {}
         for f in FORMATIONS:
-            trend = P @ self._beta(f, wid)
-            resid = (self.sR[f][ik] * w).sum(1) / safe
-            out[f] = (trend + resid).astype(_np.float64)
+            beta = self._beta(f, code)
+            trend_q = self._trend(beta, xq, yq)
+            # exact-LOO residual: neighbor residuals against the SAME downdated trend
+            resid_nb = self.sF[f][ik] - self._trend(beta, nbx, nby)
+            resid = (resid_nb * w).sum(1) / safe
+            out[f] = (trend_q + resid).astype(_np.float64)
         return out
 
 
@@ -198,17 +210,22 @@ def _surf_feats(paths, is_train):
             b_f = float(_np.median(tk + zk - Sk[f]))
             bs.append(b_f)
             tvts[f] = (-ze + Se[f] + b_f)
-        M = _np.stack([tvts[f] for f in FORMATIONS], 1)  # (n,6)
-        smean = M.mean(1); sstd = M.std(1); srng = M.max(1) - M.min(1)
+        # clip per well to its own vertical scale (guards quadratic-trend blow-up
+        # outside the train convex hull on unseen wells); all in delta units.
+        rng = float(tk.max() - tk.min())
+        cap = 3.0 * rng + 1000.0
+        deltas = {f: _np.clip(tvts[f] - last_tvt, -cap, cap) for f in FORMATIONS}
+        M = _np.stack([deltas[f] for f in FORMATIONS], 1)  # (n,6) clipped deltas
+        smean_d = M.mean(1); sstd = M.std(1); srng = M.max(1) - M.min(1)
         bs = _np.array(bs); b_spread = float(bs.std())
         ids = [f"{wid}_{i}" for i in ev.index]
         d = {"id": ids,
-             "surf_mean_d": (smean - last_tvt).astype(_np.float32),
+             "surf_mean_d": smean_d.astype(_np.float32),
              "surf_std": sstd.astype(_np.float32),
              "surf_rng": srng.astype(_np.float32),
              "surf_datum_spread": _np.full(len(ev), b_spread, _np.float32)}
         for f in FORMATIONS:
-            d[f"tvtS_{f}_d"] = (tvts[f] - last_tvt).astype(_np.float32)
+            d[f"tvtS_{f}_d"] = deltas[f].astype(_np.float32)
         recs.append(_pd.DataFrame(d))
     return _pd.concat(recs, ignore_index=True) if recs else _pd.DataFrame({"id": []})
 
@@ -228,6 +245,7 @@ _surfcols = [c for c in _sf_tr.columns if c != "id"]
 _miss_tr = int(train_df[_surfcols].isna().any(axis=1).sum())
 _miss_te = int(test_df[_surfcols].isna().any(axis=1).sum())
 print(f"[SURF] merged surf cols={len(_surfcols)} | train NaN-rows={_miss_tr} test NaN-rows={_miss_te}")
+assert _miss_tr == 0, f"[SURF] {_miss_tr} train rows lack surface features (id set mismatch with build_well)"
 for c in _surfcols:
     train_df[c] = train_df[c].fillna(0.0).astype(_np.float32)
     test_df[c] = test_df[c].fillna(0.0).astype(_np.float32)
