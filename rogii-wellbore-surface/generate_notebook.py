@@ -179,21 +179,6 @@ class _FormSurf:
             out[f] = (trend_q + resid).astype(_np.float64)
         return out
 
-    def grad(self, xy, wid=None):
-        """Analytic gradient (dS_f/dX, dS_f/dY) of the TREND surface (physical units).
-           Trend-only (smooth structural dip); residual IDW excluded. Uses the SAME
-           downdated beta as predict() => exact leave-one-well-out fold-safe."""
-        code = self.code.get(wid) if wid is not None else None
-        xy = _np.atleast_2d(xy)
-        xq = (xy[:, 0] - self.mx) / self.nx; yq = (xy[:, 1] - self.my) / self.ny
-        out = {}
-        for f in FORMATIONS:
-            beta = self._beta(f, code)
-            dSdxn = beta[1] + 2.0 * beta[3] * xq + beta[5] * yq
-            dSdyn = beta[2] + 2.0 * beta[4] * yq + beta[5] * xq
-            out[f] = (dSdxn / self.nx, dSdyn / self.ny)
-        return out
-
 
 print("[SURF] building FormationSurfaceModel ..."); _t0 = _t.time()
 _FS = _FormSurf(train_wids, TRAIN_DIR)
@@ -233,31 +218,12 @@ def _surf_feats(paths, is_train):
         M = _np.stack([deltas[f] for f in FORMATIONS], 1)  # (n,6) clipped deltas
         smean_d = M.mean(1); sstd = M.std(1); srng = M.max(1) - M.min(1)
         bs = _np.array(bs); b_spread = float(bs.std())
-        # --- STEP0 dip diagnostic: structural dip from the S_f trend gradient ---
-        # apparent dip along the lateral azimuth (heel->toe XY direction) and dip
-        # magnitude, averaged over formations. dS_f/dXY is the structural-surface
-        # slope = the geometry the public beam transition (mc*|d|) ignores. These
-        # probe whether explicit dip is a real lever before building the aligner.
-        vx = float(xe[-1, 0] - xk[-1, 0]); vy = float(xe[-1, 1] - xk[-1, 1])
-        vn = (vx * vx + vy * vy) ** 0.5 + 1e-9
-        ux = vx / vn; uy = vy / vn
-        G = _FS.grad(xe, swid)
-        dal = []; dmg = []
-        for f in FORMATIONS:
-            gx, gy = G[f]
-            dal.append(gx * ux + gy * uy)        # apparent structural dip along well
-            dmg.append(_np.hypot(gx, gy))        # structural dip magnitude
-        DAL = _np.stack(dal, 1); DMG = _np.stack(dmg, 1)
-        dip_along = DAL.mean(1); dip_mag = DMG.mean(1); dip_along_sp = DAL.std(1)
         ids = [f"{wid}_{i}" for i in ev.index]
         d = {"id": ids,
              "surf_mean_d": smean_d.astype(_np.float32),
              "surf_std": sstd.astype(_np.float32),
              "surf_rng": srng.astype(_np.float32),
-             "surf_datum_spread": _np.full(len(ev), b_spread, _np.float32),
-             "surf_dip_along": dip_along.astype(_np.float32),
-             "surf_dip_mag": dip_mag.astype(_np.float32),
-             "surf_dip_along_sp": dip_along_sp.astype(_np.float32)}
+             "surf_datum_spread": _np.full(len(ev), b_spread, _np.float32)}
         for f in FORMATIONS:
             d[f"tvtS_{f}_d"] = deltas[f].astype(_np.float32)
         recs.append(_pd.DataFrame(d))
