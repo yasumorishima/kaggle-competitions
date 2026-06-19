@@ -44,7 +44,7 @@ SRC = BASE / "_source_super.ipynb"
 OUT = BASE / "rogii-surface.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -259,6 +259,119 @@ _gc.collect()
 '''
 
 
+# STEP1 diagnostic: dip-aware-transition beam vs public geometry-blind beam,
+# benchmarked by KNOWN-ZONE pseudo-toe reconstruction (toe target never used).
+# Runs over all train wells (cheap CPU), prints, pipeline continues.
+BENCH_SRC = r'''
+# === STEP1 BENCH: dip-aware aligner (known-zone pseudo-toe reconstruction) ===
+from pathlib import Path as _BPath
+import numpy as _bnp, pandas as _bpd
+from numba import njit as _bnjit
+
+@_bnjit(cache=True)
+def _beam_dip_jit(sgr, tw_gr, si, BS, mc, es, d_exp, W):
+    n=len(sgr); nt=len(tw_gr); MAX=BS*(2*W+6)
+    bidx=_bnp.zeros(BS,_bnp.int64); bidx[0]=si
+    bcost=_bnp.full(BS,1e30); bcost[0]=0.; bn=_bnp.int64(1)
+    hI=_bnp.zeros((n,BS),_bnp.int64); hP=_bnp.zeros((n,BS),_bnp.int64)
+    cI=_bnp.zeros(MAX,_bnp.int64); cC=_bnp.full(MAX,1e30); cP=_bnp.zeros(MAX,_bnp.int64)
+    for step in range(n):
+        gv=sgr[step]; de=d_exp[step]; nc=_bnp.int64(0)
+        dlo=int(_bnp.floor(de))-W; dhi=int(_bnp.ceil(de))+W
+        for bi in range(bn):
+            idx=bidx[bi]; cost=bcost[bi]
+            for d in range(dlo,dhi+1):
+                ni=idx+d
+                if ni<0 or ni>=nt: continue
+                dd=d-de
+                tot=cost+(gv-tw_gr[ni])**2/es+mc*(dd if dd>=0 else -dd)
+                fnd=_bnp.int64(-1)
+                for ci in range(nc):
+                    if cI[ci]==ni: fnd=ci; break
+                if fnd>=0:
+                    if tot<cC[fnd]: cC[fnd]=tot; cP[fnd]=bi
+                else:
+                    if nc<MAX: cI[nc]=ni; cC[nc]=tot; cP[nc]=bi; nc+=1
+        if nc==0:
+            # all moves left the typewell range: carry the best current beam
+            # forward unchanged (prevents bn=0 path collapse).
+            bp=_bnp.int64(0)
+            for bi in range(1,bn):
+                if bcost[bi]<bcost[bp]: bp=bi
+            ci0=bidx[bp]
+            if ci0<0: ci0=_bnp.int64(0)
+            if ci0>=nt: ci0=_bnp.int64(nt-1)
+            cI[0]=ci0; cC[0]=bcost[bp]; cP[0]=bp; nc=_bnp.int64(1)
+        kept=min(BS,nc)
+        for i in range(kept):
+            mi=i
+            for j in range(i+1,nc):
+                if cC[j]<cC[mi]: mi=j
+            if mi!=i:
+                cI[i],cI[mi]=cI[mi],cI[i]; cC[i],cC[mi]=cC[mi],cC[i]; cP[i],cP[mi]=cP[mi],cP[i]
+        hI[step,:kept]=cI[:kept]; hP[step,:kept]=cP[:kept]
+        bidx[:kept]=cI[:kept]; bcost[:kept]=cC[:kept]; bn=kept
+    best=_bnp.int64(0)
+    for b in range(1,bn):
+        if bcost[b]<bcost[best]: best=b
+    path=_bnp.zeros(n,_bnp.int64); b=best
+    for s in range(n-1,-1,-1): path[s]=hI[s,b]; b=hP[s,b]
+    return path
+
+def _bench_one(hw_path):
+    wid=_BPath(hw_path).stem.replace('__horizontal_well','')
+    twp=_BPath(hw_path).parent/(wid+'__typewell.csv')
+    if not twp.exists(): return None
+    try:
+        hw=_bpd.read_csv(hw_path); tw=_bpd.read_csv(twp).sort_values('TVT')
+    except Exception: return None
+    kn=hw[hw['TVT_input'].notna()]
+    if len(kn)<40 or len(tw)<5: return None
+    tw_tvt=tw['TVT'].to_numpy(_bnp.float64); tw_gr=tw['GR'].to_numpy(_bnp.float64)
+    dtvt=float(_bnp.median(_bnp.diff(tw_tvt)))
+    if dtvt<=0: return None
+    ttvt=kn['TVT_input'].to_numpy(_bnp.float64)               # benchmark ground truth (not the comp target)
+    Z=kn['Z'].to_numpy(_bnp.float64); X=kn['X'].to_numpy(_bnp.float64); Y=kn['Y'].to_numpy(_bnp.float64)
+    gr=(kn['GR'].astype(float).interpolate(limit_direction='both')
+        .fillna(float(_bnp.nanmean(tw_gr))).to_numpy(_bnp.float64))
+    n=len(kn); split=int(0.7*n)
+    if split<10 or n-split<10: return None
+    dh=_bnp.hypot(_bnp.diff(X),_bnp.diff(Y)); hcum=_bnp.concatenate([[0.0],_bnp.cumsum(dh)])
+    sh=ttvt[:split]+Z[:split]; hh=hcum[:split]                # heel-only dip estimate (leak-free)
+    dip=0.0 if _bnp.std(hh)<1e-6 else float(_bnp.polyfit(hh,sh,1)[0])
+    anchor=float(ttvt[split-1]); si=_nn(tw_tvt,anchor)
+    sgr=_smooth(gr[split:],float(_bnp.nanmean(tw_gr)),2).astype(_bnp.float64)
+    dZt=_bnp.diff(Z[split-1:]); dht=_bnp.hypot(_bnp.diff(X[split-1:]),_bnp.diff(Y[split-1:]))
+    dexp_tvt=-dZt+dip*dht                                     # expected dTVT per pseudo-toe step
+    dexp_idx=(dexp_tvt/dtvt).astype(_bnp.float64)
+    true_pt=ttvt[split:]
+    geo=anchor+_bnp.cumsum(dexp_tvt)
+    _zero=_bnp.zeros_like(dexp_idx)
+    p_pub=_beam_jit(sgr,tw_gr,si,10,20.0,144.0)                       # public beam (window [-2,2], sanity)
+    p0=_beam_dip_jit(sgr,tw_gr,si,10,20.0,144.0,_zero,2)             # FAIR baseline: same impl/width, de=0
+    p1=_beam_dip_jit(sgr,tw_gr,si,10,20.0,144.0,dexp_idx,2)          # dip-aware: only transition center differs
+    rg=float(_bnp.sqrt(_bnp.mean((geo-true_pt)**2)))
+    rpub=float(_bnp.sqrt(_bnp.mean((tw_tvt[p_pub]-true_pt)**2)))
+    rb=float(_bnp.sqrt(_bnp.mean((tw_tvt[p0]-true_pt)**2)))
+    rd=float(_bnp.sqrt(_bnp.mean((tw_tvt[p1]-true_pt)**2)))
+    return (rg,rpub,rb,rd,n-split)
+
+print("[BENCH] dip-aware aligner known-zone pseudo-toe reconstruction (all train wells) ...")
+_brows=[]
+for _hp in sorted(TRAIN_DIR.glob('*__horizontal_well.csv')):
+    _r=_bench_one(_hp)
+    if _r is not None: _brows.append(_r)
+if _brows:
+    _BA=_bnp.array([r[:4] for r in _brows]); _gm=_BA.mean(0)   # cols: geo, pub, fair, dip
+    _win=int((_BA[:,3]<_BA[:,2]).sum())                         # dip vs FAIR baseline (same impl/width)
+    print(f"[BENCH] wells={len(_brows)} | mean per-well RMSE  geo_only={_gm[0]:.3f}  beam_pub={_gm[1]:.3f}  beam_fair={_gm[2]:.3f}  dip_beam={_gm[3]:.3f}")
+    print(f"[BENCH] fair check: beam_pub({_gm[1]:.3f}) vs beam_fair({_gm[2]:.3f}) should match (same beam, de=0)")
+    print(f"[BENCH] dip_beam beats beam_fair on {_win}/{len(_brows)} wells | mean(fair-dip)={(_BA[:,2]-_BA[:,3]).mean():.3f}")
+else:
+    print("[BENCH] no eligible wells")
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -278,6 +391,12 @@ def main():
     assert anchor in s
     set_src(cells[i_imp], s.replace(anchor, anchor + "if SMOKE: hw_paths=hw_paths[:14]\n"))
     report.append(f"cell {i_imp}: SMOKE subset hw_paths[:14]")
+
+    # 2b. INJECT STEP1 dip-aware aligner benchmark right after the imputer cell
+    #     (_beam_jit/_smooth/_nn defined earlier; globs all train wells itself).
+    i_imp2 = find_cell(cells, "hw_paths=sorted(TRAIN_DIR.glob('*__horizontal_well.csv'))")
+    cells.insert(i_imp2 + 1, code_cell(BENCH_SRC))
+    report.append(f"inserted STEP1 BENCH cell at {i_imp2 + 1}")
 
     # 3. SMOKE subset of test wells
     i_bld = find_cell(cells, "test_paths=sorted(TEST_DIR.glob('*__horizontal_well.csv'))")
@@ -315,6 +434,7 @@ def main():
     assert "if SMOKE: hw_paths=hw_paths[:14]" in full
     assert "class _FormSurf:" in full
     assert "tvtS_" in full
+    assert "_beam_dip_jit" in full and "[BENCH]" in full
     # surface cell must come after the first feature_cols build and recompute X/Xt
     assert full.count("feature_cols = [c for c in train_df.columns if c not in SKIP]") >= 1
     assert "_FS = _FormSurf(train_wids, TRAIN_DIR)" in full
