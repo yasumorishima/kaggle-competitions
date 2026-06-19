@@ -372,6 +372,68 @@ else:
 '''
 
 
+# STEP2: dip-aware-transition beam as a production feature on the REAL toe.
+# Intra-well only (own known zone for dip+anchor, own typewell, own trajectory,
+# own toe GR) => fold-safe by construction, no cross-well leak. Reuses
+# _beam_dip_jit defined in the BENCH cell (runs earlier).
+DIPBEAM_SRC = r'''
+# === STEP2: dip-aware beam member (intra-well, fold-safe by construction) ===
+import numpy as _qnp, pandas as _qpd
+from pathlib import Path as _QPath
+
+def _dipbeam_one(hw_path):
+    wid=_QPath(hw_path).stem.replace('__horizontal_well','')
+    twp=_QPath(hw_path).parent/(wid+'__typewell.csv')
+    if not twp.exists(): return None
+    try:
+        hw=_qpd.read_csv(hw_path); tw=_qpd.read_csv(twp).sort_values('TVT')
+    except Exception: return None
+    kn=hw[hw['TVT_input'].notna()]; ev=hw[hw['TVT_input'].isna()]
+    if len(ev)==0 or len(kn)<10 or len(tw)<5: return None
+    tw_tvt=tw['TVT'].to_numpy(_qnp.float64); tw_gr=tw['GR'].to_numpy(_qnp.float64)
+    dtvt=float(_qnp.median(_qnp.diff(tw_tvt)))
+    if dtvt<=0: return None
+    ktvt=kn['TVT_input'].to_numpy(_qnp.float64); kz=kn['Z'].to_numpy(_qnp.float64)
+    kx=kn['X'].to_numpy(_qnp.float64); ky=kn['Y'].to_numpy(_qnp.float64)
+    # heel dip = d(TVT+Z)/d(horizontal) over the KNOWN zone (known at test time => leak-free)
+    dhk=_qnp.hypot(_qnp.diff(kx),_qnp.diff(ky)); hck=_qnp.concatenate([[0.0],_qnp.cumsum(dhk)])
+    dip=0.0 if _qnp.std(hck)<1e-6 else float(_qnp.polyfit(hck,ktvt+kz,1)[0])
+    last_tvt=float(ktvt[-1])
+    gr_full=hw['GR'].astype(float).interpolate(limit_direction='both').fillna(float(_qnp.nanmean(tw_gr)))
+    hgr=gr_full.iloc[ev.index].to_numpy(_qnp.float64)
+    sgr=_smooth(hgr,float(_qnp.nanmean(tw_gr)),2).astype(_qnp.float64)
+    zx=ev['X'].to_numpy(_qnp.float64); zy=ev['Y'].to_numpy(_qnp.float64); ze=ev['Z'].to_numpy(_qnp.float64)
+    # steps: last known point -> first toe row -> ... (geometry transition center)
+    Xc=_qnp.concatenate([[float(kx[-1])],zx]); Yc=_qnp.concatenate([[float(ky[-1])],zy]); Zc=_qnp.concatenate([[float(kz[-1])],ze])
+    dZt=_qnp.diff(Zc); dht=_qnp.hypot(_qnp.diff(Xc),_qnp.diff(Yc))
+    dexp_idx=((-dZt+dip*dht)/dtvt).astype(_qnp.float64)          # len = len(ev)
+    si=_nn(tw_tvt,last_tvt)
+    path=_beam_dip_jit(sgr,tw_gr,si,10,20.0,144.0,dexp_idx,2)
+    tvt_dip=tw_tvt[path]
+    ids=[f'{wid}_{i}' for i in ev.index]
+    return _qpd.DataFrame({'id':ids,
+        'tvt_dipbeam_d':(tvt_dip-last_tvt).astype(_qnp.float32),
+        'dipbeam_dip':_qnp.full(len(ev),_qnp.float32(dip),_qnp.float32)})
+
+def _dipbeam_feats(paths):
+    recs=[r for r in (_dipbeam_one(p) for p in paths) if r is not None]
+    return _qpd.concat(recs,ignore_index=True) if recs else _qpd.DataFrame({'id':[]})
+
+print("[DIPBEAM] computing dip-aware beam member (intra-well) ...")
+_db_tr=_dipbeam_feats(hw_paths); _db_te=_dipbeam_feats(test_paths)
+_dn0=len(train_df); _dm0=len(test_df)
+train_df=train_df.merge(_db_tr,on='id',how='left'); test_df=test_df.merge(_db_te,on='id',how='left')
+assert len(train_df)==_dn0 and len(test_df)==_dm0, "[DIPBEAM] merge changed row count"
+for _c in ['tvt_dipbeam_d','dipbeam_dip']:
+    train_df[_c]=train_df[_c].fillna(0.0).astype(_qnp.float32)
+    test_df[_c]=test_df[_c].fillna(0.0).astype(_qnp.float32)
+feature_cols=[c for c in train_df.columns if c not in SKIP]
+X=train_df[feature_cols]; y=train_df["target"]; g=train_df["well"]; Xt=test_df[feature_cols]
+print(f"[DIPBEAM] +2 features | #features now {len(feature_cols)}")
+_gc.collect()
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -422,6 +484,11 @@ def main():
     cells.insert(i_feat + 1, code_cell(SURF_SRC))
     report.append(f"inserted SURFACE cell at {i_feat + 1} (after feature_cols build)")
 
+    # 6. INJECT dip-aware beam member cell right after the surface cell
+    #    (reuses _beam_dip_jit from the BENCH cell; recomputes X/Xt last).
+    cells.insert(i_feat + 2, code_cell(DIPBEAM_SRC))
+    report.append(f"inserted DIPBEAM cell at {i_feat + 2} (after surface cell)")
+
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
     json.dump(nb, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -435,6 +502,7 @@ def main():
     assert "class _FormSurf:" in full
     assert "tvtS_" in full
     assert "_beam_dip_jit" in full and "[BENCH]" in full
+    assert "tvt_dipbeam_d" in full and "[DIPBEAM]" in full
     # surface cell must come after the first feature_cols build and recompute X/Xt
     assert full.count("feature_cols = [c for c in train_df.columns if c not in SKIP]") >= 1
     assert "_FS = _FormSurf(train_wids, TRAIN_DIR)" in full
