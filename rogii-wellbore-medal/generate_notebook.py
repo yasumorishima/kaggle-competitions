@@ -44,7 +44,7 @@ SRC = BASE / "_source_super.ipynb"
 OUT = BASE / "rogii-medal.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -411,6 +411,118 @@ del _tr, _te; gc.collect()
 '''
 
 
+# STEP2-c: dip-aware-transition beam as an intra-well production feature on the
+# REAL toe (own known zone -> dip+anchor, own typewell, own trajectory, own toe
+# GR) => fold-safe by construction, no cross-well leak. Self-contained: bundles
+# its own _beam_dip_jit (medal base has no BENCH cell); reuses _smooth/_nn from
+# the base build_well. Inserted right after the SURFACE cell so feature_cols
+# (and the later TCN's _tfeat) pick the 2 new columns up automatically.
+DIPBEAM_SRC = r'''
+# === STEP2-c: dip-aware beam member (intra-well, fold-safe by construction) ===
+import numpy as _qnp, pandas as _qpd
+from pathlib import Path as _QPath
+from numba import njit as _qnjit
+
+@_qnjit(cache=True)
+def _beam_dip_jit(sgr, tw_gr, si, BS, mc, es, d_exp, W):
+    n=len(sgr); nt=len(tw_gr); MAX=BS*(2*W+6)
+    bidx=_qnp.zeros(BS,_qnp.int64); bidx[0]=si
+    bcost=_qnp.full(BS,1e30); bcost[0]=0.; bn=_qnp.int64(1)
+    hI=_qnp.zeros((n,BS),_qnp.int64); hP=_qnp.zeros((n,BS),_qnp.int64)
+    cI=_qnp.zeros(MAX,_qnp.int64); cC=_qnp.full(MAX,1e30); cP=_qnp.zeros(MAX,_qnp.int64)
+    for step in range(n):
+        gv=sgr[step]; de=d_exp[step]; nc=_qnp.int64(0)
+        dlo=int(_qnp.floor(de))-W; dhi=int(_qnp.ceil(de))+W
+        for bi in range(bn):
+            idx=bidx[bi]; cost=bcost[bi]
+            for d in range(dlo,dhi+1):
+                ni=idx+d
+                if ni<0 or ni>=nt: continue
+                dd=d-de
+                tot=cost+(gv-tw_gr[ni])**2/es+mc*(dd if dd>=0 else -dd)
+                fnd=_qnp.int64(-1)
+                for ci in range(nc):
+                    if cI[ci]==ni: fnd=ci; break
+                if fnd>=0:
+                    if tot<cC[fnd]: cC[fnd]=tot; cP[fnd]=bi
+                else:
+                    if nc<MAX: cI[nc]=ni; cC[nc]=tot; cP[nc]=bi; nc+=1
+        if nc==0:
+            bp=_qnp.int64(0)
+            for bi in range(1,bn):
+                if bcost[bi]<bcost[bp]: bp=bi
+            ci0=bidx[bp]
+            if ci0<0: ci0=_qnp.int64(0)
+            if ci0>=nt: ci0=_qnp.int64(nt-1)
+            cI[0]=ci0; cC[0]=bcost[bp]; cP[0]=bp; nc=_qnp.int64(1)
+        kept=min(BS,nc)
+        for i in range(kept):
+            mi=i
+            for j in range(i+1,nc):
+                if cC[j]<cC[mi]: mi=j
+            if mi!=i:
+                cI[i],cI[mi]=cI[mi],cI[i]; cC[i],cC[mi]=cC[mi],cC[i]; cP[i],cP[mi]=cP[mi],cP[i]
+        hI[step,:kept]=cI[:kept]; hP[step,:kept]=cP[:kept]
+        bidx[:kept]=cI[:kept]; bcost[:kept]=cC[:kept]; bn=kept
+    best=_qnp.int64(0)
+    for b in range(1,bn):
+        if bcost[b]<bcost[best]: best=b
+    path=_qnp.zeros(n,_qnp.int64); b=best
+    for s in range(n-1,-1,-1): path[s]=hI[s,b]; b=hP[s,b]
+    return path
+
+def _dipbeam_one(hw_path):
+    wid=_QPath(hw_path).stem.replace('__horizontal_well','')
+    twp=_QPath(hw_path).parent/(wid+'__typewell.csv')
+    if not twp.exists(): return None
+    try:
+        hw=_qpd.read_csv(hw_path); tw=_qpd.read_csv(twp).sort_values('TVT')
+    except Exception: return None
+    kn=hw[hw['TVT_input'].notna()]; ev=hw[hw['TVT_input'].isna()]
+    if len(ev)==0 or len(kn)<10 or len(tw)<5: return None
+    tw_tvt=tw['TVT'].to_numpy(_qnp.float64); tw_gr=tw['GR'].to_numpy(_qnp.float64)
+    dtvt=float(_qnp.median(_qnp.diff(tw_tvt)))
+    if dtvt<=0: return None
+    ktvt=kn['TVT_input'].to_numpy(_qnp.float64); kz=kn['Z'].to_numpy(_qnp.float64)
+    kx=kn['X'].to_numpy(_qnp.float64); ky=kn['Y'].to_numpy(_qnp.float64)
+    # heel dip = d(TVT+Z)/d(horizontal) over the KNOWN zone (known at test time => leak-free)
+    dhk=_qnp.hypot(_qnp.diff(kx),_qnp.diff(ky)); hck=_qnp.concatenate([[0.0],_qnp.cumsum(dhk)])
+    dip=0.0 if _qnp.std(hck)<1e-6 else float(_qnp.polyfit(hck,ktvt+kz,1)[0])
+    last_tvt=float(ktvt[-1])
+    gr_full=hw['GR'].astype(float).interpolate(limit_direction='both').fillna(float(_qnp.nanmean(tw_gr)))
+    hgr=gr_full.iloc[ev.index[0]:].to_numpy(_qnp.float64)        # toe is trailing-contiguous (base pattern)
+    sgr=_smooth(hgr,float(_qnp.nanmean(tw_gr)),2).astype(_qnp.float64)
+    zx=ev['X'].to_numpy(_qnp.float64); zy=ev['Y'].to_numpy(_qnp.float64); ze=ev['Z'].to_numpy(_qnp.float64)
+    Xc=_qnp.concatenate([[float(kx[-1])],zx]); Yc=_qnp.concatenate([[float(ky[-1])],zy]); Zc=_qnp.concatenate([[float(kz[-1])],ze])
+    dZt=_qnp.diff(Zc); dht=_qnp.hypot(_qnp.diff(Xc),_qnp.diff(Yc))
+    dexp_idx=((-dZt+dip*dht)/dtvt).astype(_qnp.float64)          # len = len(ev)
+    si=_nn(tw_tvt,last_tvt)
+    path=_beam_dip_jit(sgr,tw_gr,si,10,20.0,144.0,dexp_idx,2)
+    tvt_dip=tw_tvt[path]
+    ids=[f'{wid}_{i}' for i in ev.index]
+    return _qpd.DataFrame({'id':ids,
+        'tvt_dipbeam_d':(tvt_dip-last_tvt).astype(_qnp.float32),
+        'dipbeam_dip':_qnp.full(len(ev),_qnp.float32(dip),_qnp.float32)})
+
+def _dipbeam_feats(paths):
+    recs=[r for r in (_dipbeam_one(p) for p in paths) if r is not None]
+    return _qpd.concat(recs,ignore_index=True) if recs else _qpd.DataFrame({'id':[]})
+
+print("[DIPBEAM] computing dip-aware beam member (intra-well) ...")
+_db_tr=_dipbeam_feats(hw_paths); _db_te=_dipbeam_feats(test_paths)
+_dn0=len(train_df); _dm0=len(test_df)
+train_df=train_df.merge(_db_tr,on='id',how='left'); test_df=test_df.merge(_db_te,on='id',how='left')
+assert len(train_df)==_dn0 and len(test_df)==_dm0, "[DIPBEAM] merge changed row count"
+for _c in ['tvt_dipbeam_d','dipbeam_dip']:
+    train_df[_c]=train_df[_c].fillna(0.0).astype(_qnp.float32)
+    test_df[_c]=test_df[_c].fillna(0.0).astype(_qnp.float32)
+feature_cols=[c for c in train_df.columns if c not in SKIP]
+X=train_df[feature_cols]; y=train_df["target"]; g=train_df["well"]; Xt=test_df[feature_cols]
+print(f"[DIPBEAM] +2 features | #features now {len(feature_cols)}")
+gc.collect()
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -455,6 +567,11 @@ def main():
     cells.insert(i_feat + 1, code_cell(SURF_SRC))
     report.append(f"inserted SURFACE cell at {i_feat + 1} (after feature_cols build)")
 
+    # 5b. INJECT dip-aware beam member cell right after the surface cell. Recomputes
+    #     feature_cols/X/Xt so both GBT models and the later TCN (_tfeat) see it.
+    cells.insert(i_feat + 2, code_cell(DIPBEAM_SRC))
+    report.append(f"inserted DIPBEAM cell at {i_feat + 2} (after surface cell)")
+
     # 6. INJECT TCN as a Ridge-stack member: train it right before the stack is built
     i_stk = find_cell(cells, "Sx=np.column_stack([v['oof'] for v in results.values()])")
     st = src_str(cells[i_stk])
@@ -482,6 +599,11 @@ def main():
     assert "results['tcn'] = {'oof': _tcn_oof" in full
     assert full.index("results['tcn']") < full.index("Sx=np.column_stack([v['oof'] for v in results.values()])")
     assert "class _TCN(nn.Module)" in full
+    # DIPBEAM cell present, self-contained, and before the TCN reads feature_cols
+    assert "def _dipbeam_one(hw_path):" in full
+    assert "def _beam_dip_jit(" in full
+    assert "tvt_dipbeam_d" in full and "dipbeam_dip" in full
+    assert full.index("[DIPBEAM] +2 features") < full.index("_tfeat = list(feature_cols)")
     print("=== PATCH REPORT ===")
     for r in report:
         print(" -", r)
