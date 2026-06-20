@@ -44,7 +44,7 @@ SRC = BASE / "_source_super.ipynb"
 OUT = BASE / "rogii-align.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = True
+SMOKE = False
 
 
 def src_str(cell):
