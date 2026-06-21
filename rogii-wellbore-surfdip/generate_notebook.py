@@ -422,6 +422,16 @@ def _dipbeam_one(hw_path, is_train):
     # RMSE dominated by long-toe beam drift? (diagnostic only)
     path_w=_beam_dip_jit(sgr,tw_gr,si,30,20.0,144.0,dexp_idx,4)
     tvt_dip_w=tw_tvt[path_w]
+    # PROBE2: baseline/scale-corrected GR emission. Raw-GR L2 is fragile to GR
+    # calibration differences between the horizontal well and the typewell. Rescale
+    # the (smoothed) toe GR from the well's GR distribution onto the typewell's
+    # distribution, then run the SAME beam (es=144 stays valid) -> isolates the
+    # baseline-correction effect. Does it break the 13.0 info limit?
+    _mw=float(_qnp.nanmean(gr_full.to_numpy())); _sw=float(_qnp.nanstd(gr_full.to_numpy())) or 1.0
+    _mt=float(_qnp.nanmean(tw_gr)); _st=float(_qnp.nanstd(tw_gr)) or 1.0
+    sgr_z=((sgr-_mw)/_sw*_st+_mt).astype(_qnp.float64)
+    path_z=_beam_dip_jit(sgr_z,tw_gr,si,10,20.0,144.0,dexp_idx,2)
+    tvt_dip_z=tw_tvt[path_z]
     # (b) surface-sourced dipbeam path: step-wise dS_f* from the LOO global surface.
     #     f* = formation whose surface SHAPE best matches the well's known-zone TVT+Z
     #     (datum-free via std). Train wells excluded from their own surface (LOO).
@@ -451,7 +461,8 @@ def _dipbeam_one(hw_path, is_train):
         'dipbeam_dip':_qnp.full(len(ev),_qnp.float32(dip),_qnp.float32),
         'tvt_dipbeam_surf_d':surf_d.astype(_qnp.float32),
         'dipbeam_surf_match':_qnp.full(len(ev),surf_match,_qnp.float32),
-        'tvt_dipbeam_wide_d':(tvt_dip_w-last_tvt).astype(_qnp.float32)})
+        'tvt_dipbeam_wide_d':(tvt_dip_w-last_tvt).astype(_qnp.float32),
+        'tvt_dipbeam_znorm_d':(tvt_dip_z-last_tvt).astype(_qnp.float32)})
 
 def _dipbeam_feats(paths, is_train):
     recs=[r for r in (_dipbeam_one(p,is_train) for p in paths) if r is not None]
@@ -469,24 +480,25 @@ assert len(train_df)==_dn0 and len(test_df)==_dm0, "[DIPBEAM] merge changed row 
 # wells where dipbeam actually ran; no 0-fill contamination).
 try:
     _diag=_db_tr.merge(train_df[['id','target']],on='id',how='inner').dropna(
-        subset=['tvt_dipbeam_d','tvt_dipbeam_surf_d','tvt_dipbeam_wide_d','target'])
+        subset=['tvt_dipbeam_d','tvt_dipbeam_surf_d','tvt_dipbeam_wide_d','tvt_dipbeam_znorm_d','target'])
     if len(_diag):
         _t=_diag['target'].to_numpy(_qnp.float64)
         _rh=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_d'].to_numpy(_qnp.float64)-_t)**2)))
         _rs=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_surf_d'].to_numpy(_qnp.float64)-_t)**2)))
         _rw=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_wide_d'].to_numpy(_qnp.float64)-_t)**2)))
+        _rz=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_znorm_d'].to_numpy(_qnp.float64)-_t)**2)))
         print(f"[DIAG] aligner-alone real-toe abs RMSE on train: heel={_rh:.4f} surf={_rs:.4f} "
-              f"wide(BS30,W4)={_rw:.4f} (n={len(_diag)}) | champion GBT model=9.978 | BENCH pseudo-toe=5.753")
+              f"wide(BS30,W4)={_rw:.4f} znorm-GR={_rz:.4f} (n={len(_diag)}) | champion GBT model=9.978 | BENCH pseudo-toe=5.753")
     else:
         print("[DIAG] no rows for aligner-alone diagnostic")
 except Exception as _e:
     print("[DIAG] skipped:", _e)
-for _c in ['tvt_dipbeam_d','dipbeam_dip','tvt_dipbeam_surf_d','dipbeam_surf_match','tvt_dipbeam_wide_d']:
+for _c in ['tvt_dipbeam_d','dipbeam_dip','tvt_dipbeam_surf_d','dipbeam_surf_match','tvt_dipbeam_wide_d','tvt_dipbeam_znorm_d']:
     train_df[_c]=train_df[_c].fillna(0.0).astype(_qnp.float32)
     test_df[_c]=test_df[_c].fillna(0.0).astype(_qnp.float32)
 feature_cols=[c for c in train_df.columns if c not in SKIP]
 X=train_df[feature_cols]; y=train_df["target"]; g=train_df["well"]; Xt=test_df[feature_cols]
-print(f"[DIPBEAM] +5 features (heel+surf+wide-probe) | #features now {len(feature_cols)}")
+print(f"[DIPBEAM] +6 features (heel+surf+wide+znorm probes) | #features now {len(feature_cols)}")
 _gc.collect()
 '''
 
@@ -563,9 +575,10 @@ def main():
     # surfdip: surface-sourced second dip path emitted alongside the heel path
     assert "tvt_dipbeam_surf_d" in full and "dipbeam_surf_match" in full
     assert "tvt_dipbeam_wide_d" in full and "wide(BS30,W4)" in full
+    assert "tvt_dipbeam_znorm_d" in full and "znorm-GR" in full
     assert "def _dipbeam_one(hw_path, is_train):" in full
     assert "Sc=_FS.predict(_qnp.column_stack([Xc,Yc]),swid)[best_f]" in full
-    assert "+5 features (heel+surf+wide-probe)" in full
+    assert "+6 features (heel+surf+wide+znorm probes)" in full
     # the surface model (_FS) must be defined before the dipbeam cell uses it
     assert full.index("_FS = _FormSurf(train_wids, TRAIN_DIR)") < full.index("Sc=_FS.predict(_qnp.column_stack([Xc,Yc])")
     # surface cell must come after the first feature_cols build and recompute X/Xt
