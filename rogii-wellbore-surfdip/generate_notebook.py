@@ -44,7 +44,7 @@ SRC = BASE / "_source_super.ipynb"
 OUT = BASE / "rogii-surfdip.ipynb"
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -457,6 +457,24 @@ _db_tr=_dipbeam_feats(hw_paths, True); _db_te=_dipbeam_feats(test_paths, False)
 _dn0=len(train_df); _dm0=len(test_df)
 train_df=train_df.merge(_db_tr,on='id',how='left'); test_df=test_df.merge(_db_te,on='id',how='left')
 assert len(train_df)==_dn0 and len(test_df)==_dm0, "[DIPBEAM] merge changed row count"
+# [DIAG] aligner-alone real-toe abs RMSE on TRAIN toe (TVT known there => non-leak
+# diagnostic). Asks: how much is the 184-feature GBT stack diluting the aligner?
+# tvt_dipbeam_d directly predicts target (= TVT - last_tvt), so |pred - target| RMSE
+# is the absolute-TVT RMSE of the aligner used ALONE. Computed from _db_tr (only
+# wells where dipbeam actually ran; no 0-fill contamination).
+try:
+    _diag=_db_tr.merge(train_df[['id','target']],on='id',how='inner').dropna(
+        subset=['tvt_dipbeam_d','tvt_dipbeam_surf_d','target'])
+    if len(_diag):
+        _t=_diag['target'].to_numpy(_qnp.float64)
+        _rh=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_d'].to_numpy(_qnp.float64)-_t)**2)))
+        _rs=float(_qnp.sqrt(_qnp.mean((_diag['tvt_dipbeam_surf_d'].to_numpy(_qnp.float64)-_t)**2)))
+        print(f"[DIAG] aligner-alone real-toe abs RMSE on train: heel={_rh:.4f} surf={_rs:.4f} "
+              f"(n={len(_diag)}) | champion GBT model=9.978 | BENCH pseudo-toe=5.753")
+    else:
+        print("[DIAG] no rows for aligner-alone diagnostic")
+except Exception as _e:
+    print("[DIAG] skipped:", _e)
 for _c in ['tvt_dipbeam_d','dipbeam_dip','tvt_dipbeam_surf_d','dipbeam_surf_match']:
     train_df[_c]=train_df[_c].fillna(0.0).astype(_qnp.float32)
     test_df[_c]=test_df[_c].fillna(0.0).astype(_qnp.float32)
