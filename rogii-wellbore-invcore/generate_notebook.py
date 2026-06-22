@@ -30,7 +30,7 @@ Push via GHA:
 import json
 from pathlib import Path
 
-SMOKE = False  # True: 8 wells, 2 epochs, fast pipeline check. False: full diagnostic.
+SMOKE = True  # True: 8 wells, 2 epochs, fast pipeline check. False: full diagnostic.
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "rogii-invcore-diag.ipynb"
@@ -256,7 +256,10 @@ def make_feats(gr_w, twg, twt):
 '''
 
 CELL_RUN = r'''
-# === build synthetic set, hold out wells, train, evaluate, GO/NO-GO ===
+# === REAL known-zone training (no synthetic): learned core vs L2 aligner on real data ===
+# Decisive question, zero synth->real gap: a K=1 cross-attention inversion net trained on
+# REAL (GR window -> TVT) known-zone pairs -- does it beat the L2 emission beam aligner on
+# HELD-OUT wells' real known-zone? anchor = last-known row TVT; toe = split..split+toe_len.
 rng = np.random.default_rng(SEED)
 nw = len(WELLS); n_hold = max(2, nw//5)
 hold = set(rng.choice(nw, n_hold, replace=False).tolist())
@@ -264,49 +267,55 @@ tr_wells = [w for i,w in enumerate(WELLS) if i not in hold]
 ho_wells = [w for i,w in enumerate(WELLS) if i in hold]
 print(f"train wells={len(tr_wells)} holdout wells={len(ho_wells)}")
 
-def build_synth(wells, n):
-    GH=[]; GT=[]; Y=[]; A=[]; raw=[]
-    per = max(1, n//max(1,len(wells)))
+def _window(w, split, toe_len, gr_aug=0.0):
+    n=len(w["X"]); ttvt=w["ttvt"]; gr=w["gr"]; tw_tvt=w["tw_tvt"]; tw_gr=w["tw_gr"]
+    j1=min(n, split+toe_len)
+    if split<5 or j1-split<12: return None
+    anchor=float(ttvt[split-1])
+    gr_t=_smooth(gr[split:j1], float(np.nanmean(tw_gr)), 1)
+    if gr_aug>0: gr_t = gr_t + rng.normal(0, gr_aug, gr_t.shape)   # GR-noise augmentation
+    true=ttvt[split:j1]
+    gr_w=_resample(gr_t, L); true_w=_resample(true, L)
+    twg=_resample(tw_gr, M); twt=_resample(tw_tvt, M)
+    gh,gt=make_feats(gr_w, twg, twt)
+    return gh, gt, true_w, anchor, gr_w, tw_gr, tw_tvt
+
+def build_real(wells, multi):
+    GH=[];GT=[];Y=[];A=[]
     for w in wells:
-        for _ in range(per):
-            r = synth_pair(w, rng)
+        n=len(w["X"])
+        fracs=[0.30,0.40,0.50,0.60,0.68] if multi else [0.5]
+        for fr in fracs:
+            split=int(fr*n); toe=int(rng.integers(L, 2*L))
+            r=_window(w, split, toe, gr_aug=4.0)
             if r is None: continue
-            gr_w, tvt_w, anchor, twg, twt, twgn, twtn = r
-            gh, gt = make_feats(gr_w, twg, twt)
-            GH.append(gh); GT.append(gt); Y.append(tvt_w); A.append(anchor)
-            raw.append((gr_w, tvt_w, anchor, twgn, twtn))   # native typewell for aligner
-    return (np.array(GH), np.array(GT), np.array(Y), np.array(A), raw)
+            gh,gt,true_w,anchor,_,_,_=r
+            GH.append(gh);GT.append(gt);Y.append(true_w);A.append(anchor)
+    return np.array(GH),np.array(GT),np.array(Y),np.array(A)
 
-GH,GT,Y,A,RAW = build_synth(tr_wells, N_SYN)
-GHh,GTh,Yh,Ah,RAWh = build_synth(ho_wells, max(60, N_SYN//6))
-assert len(GH) > 0 and len(GHh) > 0, "no synthetic pairs generated (forward sim rejected all)"
-print(f"synth train={len(GH)} holdout={len(GHh)}")
+GH,GT,Y,A = build_real(tr_wells, True)
+assert len(GH)>0, "no real training windows"
+print(f"real train windows={len(GH)}")
 
-# --- baseline R_align_synth on holdout synthetic windows (native typewell, fair W) ---
-ra=[]
-for gr_w,tvt_w,anchor,twgn,twtn in RAWh:
-    pred = align_l2(gr_w, anchor, twgn, twtn, true_for_w=tvt_w)
-    ra.append(np.sqrt(np.mean((pred - tvt_w)**2)))
-R_align_synth = float(np.mean(ra))
-print(f"[BASELINE] R_align_synth = {R_align_synth:.4f}  (must be >> 0; ~0 => sim still degenerate)")
-
-# --- train K=1 InvCore on synthetic ---
+# --- train K=1 InvCore on real known-zone windows ---
 model = InvCore().to(DEV)
 opt = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=1e-4)
+sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
 ghT=torch.tensor(GH,device=DEV); gtT=torch.tensor(GT,device=DEV)
 yT=torch.tensor(Y.astype(np.float32),device=DEV); aT=torch.tensor(A.astype(np.float32),device=DEV)
-dyT = yT - aT[:,None]   # predict TVT offset from anchor (cumulative target)
+dyT = yT - aT[:,None]   # predict TVT offset from the last-known anchor
 bs=64
 for ep in range(EPOCHS):
     perm=torch.randperm(len(ghT),device=DEV); tot=0.
     model.train()
     for i in range(0,len(ghT),bs):
         idx=perm[i:i+bs]
-        dtvt=model(ghT[idx], gtT[idx])           # (b,L) per-row increment
-        pred=torch.cumsum(dtvt,1)                 # offset from anchor
+        dtvt=model(ghT[idx], gtT[idx])
+        pred=torch.cumsum(dtvt,1)
         loss=F.smooth_l1_loss(pred, dyT[idx])
         opt.zero_grad(); loss.backward(); opt.step(); tot+=loss.item()*len(idx)
-    if ep%max(1,EPOCHS//5)==0 or ep==EPOCHS-1:
+    sched.step()
+    if ep%max(1,EPOCHS//6)==0 or ep==EPOCHS-1:
         print(f"  ep{ep} loss {tot/len(ghT):.4f}")
 
 def mdn_pred(gh, gt, anchor):
@@ -316,50 +325,30 @@ def mdn_pred(gh, gt, anchor):
         off=torch.cumsum(d,1).cpu().numpy()[0]
     return anchor + off
 
-# --- R_mdn_synth on holdout synthetic ---
-rm=[]
-for k in range(len(GHh)):
-    pred=mdn_pred(GHh[k], GTh[k], Ah[k])
-    rm.append(np.sqrt(np.mean((pred - Yh[k])**2)))
-R_mdn_synth = float(np.mean(rm))
-print(f"[MDN] R_mdn_synth = {R_mdn_synth:.4f}")
-
-# --- real known-zone: pseudo-toe reconstruction on holdout real wells ---
-# anchor = last KNOWN row TVT (split-1); toe = rows split.. ; same convention as synth_pair.
-def real_known(w):
-    n=len(w["X"]); split=int(0.7*n)
-    if split<20 or n-split<20: return None
-    ttvt=w["ttvt"]; gr=w["gr"]; tw_tvt=w["tw_tvt"]; tw_gr=w["tw_gr"]
-    anchor=float(ttvt[split-1])
-    gr_t=_smooth(gr[split:], float(np.nanmean(tw_gr)), 1)
-    true=ttvt[split:]
-    gr_w=_resample(gr_t, L); twg=_resample(tw_gr, M); twt=_resample(tw_tvt, M)
-    true_w=_resample(true, L)
-    return gr_w, true_w, anchor, twg, twt, tw_gr, tw_tvt
-
-rma=[]; rmm=[]
+# --- eval on holdout wells' real known-zone (capped toe; same window for L2 and MDN) ---
+rma=[]; rmm=[]; wins=0
 for w in ho_wells:
-    r=real_known(w)
+    n=len(w["X"]); split=int(0.7*n); toe=int(1.5*L)
+    r=_window(w, split, toe)
     if r is None: continue
-    gr_w,true_w,anchor,twg,twt,twgn,twtn=r
+    gh,gt,true_w,anchor,gr_w,twgn,twtn=r
     pa=align_l2(gr_w, anchor, twgn, twtn, true_for_w=true_w)
-    rma.append(np.sqrt(np.mean((pa-true_w)**2)))
-    gh,gt=make_feats(gr_w, twg, twt)
     pm=mdn_pred(gh, gt, anchor)
-    rmm.append(np.sqrt(np.mean((pm-true_w)**2)))
+    ra=float(np.sqrt(np.mean((pa-true_w)**2))); rm=float(np.sqrt(np.mean((pm-true_w)**2)))
+    rma.append(ra); rmm.append(rm); wins += (rm < ra)
 R_align_realkn=float(np.mean(rma)); R_mdn_realkn=float(np.mean(rmm))
-print(f"[REAL] R_align_realkn={R_align_realkn:.4f}  R_mdn_realkn={R_mdn_realkn:.4f}")
+nwh=len(rma)
+print(f"[REAL] wells={nwh}  R_align_realkn={R_align_realkn:.4f}  R_mdn_realkn={R_mdn_realkn:.4f}")
+print(f"[REAL] MDN beats L2 on {wins}/{nwh} wells")
 
-# --- GO/NO-GO verdict ---
-gate_i  = R_mdn_synth < 0.70*R_align_synth
-gap = R_mdn_realkn/max(R_mdn_synth,1e-6)
-gate_ii = (R_mdn_realkn < R_align_realkn) and (gap < 2.0)
-print("\n================ GO/NO-GO ================")
-print(f"(i)  R_mdn_synth {R_mdn_synth:.3f} < 0.70*R_align_synth {0.70*R_align_synth:.3f} : {'PASS' if gate_i else 'FAIL'}")
-print(f"(ii) R_mdn_realkn {R_mdn_realkn:.3f} < R_align_realkn {R_align_realkn:.3f}"
-      f" AND gap {gap:.2f} < 2.0 : {'PASS' if gate_ii else 'FAIL'}")
-print(f"VERDICT: {'GO -> full MTP build' if (gate_i and gate_ii) else 'NO-GO -> improve forward sim physics' }")
-print("=========================================")
+# --- GO/NO-GO: single decisive gate, zero synth confound ---
+beat = R_mdn_realkn < R_align_realkn
+margin = (R_align_realkn - R_mdn_realkn)/R_align_realkn*100
+print("\n================ GO/NO-GO (real-trained) ================")
+print(f"R_mdn_realkn {R_mdn_realkn:.3f} vs R_align_realkn {R_align_realkn:.3f}  ->  "
+      f"{'MDN wins' if beat else 'L2 wins'} ({margin:+.1f}% vs L2)")
+print(f"VERDICT: {'GO -> learned core beats L2 on real; build full MTP (synth pretrain + real finetune)' if beat else 'NO-GO -> learned core does not beat L2 on real known-zone'}")
+print("=========================================================")
 '''
 
 CELLS = [CELL_CONFIG, CELL_FORWARD, CELL_BASELINE, CELL_MODEL, CELL_RUN]
