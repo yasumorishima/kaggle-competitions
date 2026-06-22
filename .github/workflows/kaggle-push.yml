@@ -69,8 +69,14 @@ jobs:
               STARTED=true
               break
             fi
-            if [ "$STATUS" = "complete" ]; then
-              echo "Kernel completed successfully."
+            # fast kernels can reach COMPLETE before the startup loop sees RUNNING.
+            # CLI emits e.g. KernelWorkerStatus.COMPLETE -> match the whole token.
+            if echo "$STATUS" | grep -qiE "complete_empty|ERROR|CANCEL"; then
+              echo "Kernel failed during startup with status: $STATUS"
+              exit 1
+            fi
+            if echo "$STATUS" | grep -qiE "COMPLETE"; then
+              echo "Kernel completed successfully (fast path): $STATUS"
               exit 0
             fi
             sleep 30
