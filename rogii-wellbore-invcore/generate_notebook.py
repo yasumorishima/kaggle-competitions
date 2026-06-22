@@ -30,7 +30,7 @@ Push via GHA:
 import json
 from pathlib import Path
 
-SMOKE = False  # True: 8 wells, 2 epochs, fast pipeline check. False: full diagnostic.
+SMOKE = True  # True: 8 wells, 2 epochs, fast pipeline check. False: full diagnostic.
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "rogii-invcore-diag.ipynb"
@@ -208,6 +208,64 @@ def align_l2(gr_w, anchor, tw_gr_native, tw_tvt_native, true_for_w=None):
         W = 8
     p = _beam_l2(gr_w.astype(np.float64), twg, si, 12, 20.0, 144.0, W)
     return twt[p]
+
+# --- dip-aware beam (champion signal source): transition centered on geometric drift d_exp ---
+@njit(cache=True)
+def _beam_dip(sgr, tw_gr, si, BS, mc, es, d_exp, W):
+    n=len(sgr); nt=len(tw_gr); MAX=BS*(2*W+6)
+    bidx=np.zeros(BS,np.int64); bidx[0]=si
+    bcost=np.full(BS,1e30); bcost[0]=0.; bn=np.int64(1)
+    hI=np.zeros((n,BS),np.int64); hP=np.zeros((n,BS),np.int64)
+    cI=np.zeros(MAX,np.int64); cC=np.full(MAX,1e30); cP=np.zeros(MAX,np.int64)
+    for step in range(n):
+        gv=sgr[step]; de=d_exp[step]; nc=np.int64(0)
+        dlo=int(np.floor(de))-W; dhi=int(np.ceil(de))+W
+        for bi in range(bn):
+            idx=bidx[bi]; cost=bcost[bi]
+            for d in range(dlo,dhi+1):
+                ni=idx+d
+                if ni<0 or ni>=nt: continue
+                dd=d-de
+                tot=cost+(gv-tw_gr[ni])**2/es+mc*(dd if dd>=0 else -dd)
+                fnd=np.int64(-1)
+                for ci in range(nc):
+                    if cI[ci]==ni: fnd=ci; break
+                if fnd>=0:
+                    if tot<cC[fnd]: cC[fnd]=tot; cP[fnd]=bi
+                else:
+                    if nc<MAX: cI[nc]=ni; cC[nc]=tot; cP[nc]=bi; nc+=1
+        if nc==0:
+            bp=np.int64(0)
+            for bi in range(1,bn):
+                if bcost[bi]<bcost[bp]: bp=bi
+            ci0=bidx[bp]
+            if ci0<0: ci0=np.int64(0)
+            if ci0>=nt: ci0=np.int64(nt-1)
+            cI[0]=ci0; cC[0]=bcost[bp]; cP[0]=bp; nc=np.int64(1)
+        kept=min(BS,nc)
+        for i in range(kept):
+            mi=i
+            for j in range(i+1,nc):
+                if cC[j]<cC[mi]: mi=j
+            if mi!=i:
+                cI[i],cI[mi]=cI[mi],cI[i]; cC[i],cC[mi]=cC[mi],cC[i]; cP[i],cP[mi]=cP[mi],cP[i]
+        hI[step,:kept]=cI[:kept]; hP[step,:kept]=cP[:kept]
+        bidx[:kept]=cI[:kept]; bcost[:kept]=cC[:kept]; bn=kept
+    best=np.int64(0)
+    for b in range(1,bn):
+        if bcost[b]<bcost[best]: best=b
+    path=np.zeros(n,np.int64); b=best
+    for s in range(n-1,-1,-1): path[s]=hI[s,b]; b=hP[s,b]
+    return path
+
+def align_dip(gr_w, anchor, tw_gr_native, tw_tvt_native, dexp_idx, W=8):
+    """Champion baseline: dip-aware beam. dexp_idx = per-row expected typewell-index drift
+       (= (-dZ + dip*dhoriz)/dtvt), the geometric TVT-change prior the public beam ignores.
+       W=8 (generous search around the prior) so the beam is not artificially throttled."""
+    twg = tw_gr_native.astype(np.float64); twt = tw_tvt_native.astype(np.float64)
+    si = _nn(twt, anchor)
+    p = _beam_dip(gr_w.astype(np.float64), twg, si, 12, 20.0, 144.0, dexp_idx.astype(np.float64), W)
+    return twt[p]
 '''
 
 CELL_MODEL = r'''
@@ -227,13 +285,15 @@ class TCNBlock(nn.Module):
         h = F.gelu(s.c1(x)); h = s.c2(h); return F.gelu(s.n(x + h))
 
 class InvCore(nn.Module):
-    """Horizontal GR window (query) attends to typewell GR profile (key/value).
-       Outputs per-row TVT increment; TVT = anchor + cumsum(dtvt_pred)."""
+    """Horizontal window (query: GR + geometry prior) attends to typewell GR (key/value).
+       Predicts the per-row RESIDUAL between the geometric path and truth (GR correction).
+       Final TVT = geo_path + residual -- geometry is exact, the net learns the GR fix the
+       dip-aware beam does via DP. Fair, same-information comparison to the champion beam."""
     def __init__(s, C=64):
         super().__init__()
-        s.in_h = nn.Conv1d(4, C, 1)          # [GR,dGR,pos,one]
+        s.in_h = nn.Conv1d(4, C, 1)          # [GR, dGR, geo_offset, pos]
         s.tcn  = nn.Sequential(TCNBlock(C,5,1), TCNBlock(C,5,2), TCNBlock(C,5,4))
-        s.in_t = nn.Conv1d(2, C, 1)          # typewell [GR,dGR]
+        s.in_t = nn.Conv1d(2, C, 1)          # typewell [GR, dGR]
         s.tw_enc = nn.Sequential(TCNBlock(C,5,1), TCNBlock(C,5,2))
         s.attn = nn.MultiheadAttention(C, 4, batch_first=True)
         s.head = nn.Sequential(nn.Linear(C, C), nn.GELU(), nn.Linear(C, 1))
@@ -242,24 +302,26 @@ class InvCore(nn.Module):
         q = s.tcn(s.in_h(gh)).transpose(1,2)         # (B,L,C)
         kv = s.tw_enc(s.in_t(gt)).transpose(1,2)     # (B,M,C)
         a,_ = s.attn(q, kv, kv)                       # (B,L,C)
-        dtvt = s.head(q + a).squeeze(-1)              # (B,L)
-        return dtvt
+        resid = s.head(q + a).squeeze(-1)             # (B,L) residual vs geometric path
+        return resid
 
-def make_feats(gr_w, twg, twt):
+def make_feats(gr_w, geo_off, twg, twt):
     gr = (gr_w - gr_w.mean())/max(gr_w.std(), 1e-3)      # clamp: avoid blow-up on flat windows
     dgr = np.gradient(gr)
     pos = np.linspace(0,1,len(gr))
-    gh = np.stack([gr, dgr, pos, np.ones_like(gr)], 0)
+    go = (geo_off - geo_off.mean())/max(geo_off.std(), 1e-3)   # geometric-path offset (dip prior)
+    gh = np.stack([gr, dgr, go, pos], 0)
     tg = (twg - twg.mean())/max(twg.std(), 1e-3)
     gt = np.stack([tg, np.gradient(tg)], 0)
     return gh.astype(np.float32), gt.astype(np.float32)
 '''
 
 CELL_RUN = r'''
-# === REAL known-zone training (no synthetic): learned core vs L2 aligner on real data ===
-# Decisive question, zero synth->real gap: a K=1 cross-attention inversion net trained on
-# REAL (GR window -> TVT) known-zone pairs -- does it beat the L2 emission beam aligner on
-# HELD-OUT wells' real known-zone? anchor = last-known row TVT; toe = split..split+toe_len.
+# === FAIR diagnostic: learned residual core vs the DIP-AWARE beam (champion signal source) ===
+# Both methods get the SAME information: the geometric path (anchor + cumsum(-dZ + dip*dhoriz),
+# heel-estimated dip = leak-free) plus GR vs typewell. The dip-aware beam refines geometry by
+# DP GR-matching; the net predicts the residual (true - geo) from GR + typewell cross-attention.
+# Regime = champion BENCH (split 0.7, toe = rest of known zone). Gate: net beats the dip beam.
 rng = np.random.default_rng(SEED)
 nw = len(WELLS); n_hold = max(2, nw//5)
 hold = set(rng.choice(nw, n_hold, replace=False).tolist())
@@ -269,88 +331,104 @@ print(f"train wells={len(tr_wells)} holdout wells={len(ho_wells)}")
 
 def _window(w, split, toe_len, gr_aug=0.0):
     n=len(w["X"]); ttvt=w["ttvt"]; gr=w["gr"]; tw_tvt=w["tw_tvt"]; tw_gr=w["tw_gr"]
+    X=w["X"]; Y=w["Y"]; Z=w["Z"]
     j1=min(n, split+toe_len)
-    if split<5 or j1-split<12: return None
+    if split<12 or j1-split<12: return None
+    # heel-only dip (leak-free): fit (TVT+Z) vs horizontal distance over rows [0:split]
+    dh0=np.hypot(np.diff(X[:split]), np.diff(Y[:split])); hh=np.concatenate([[0.0], np.cumsum(dh0)])
+    sh=ttvt[:split]+Z[:split]
+    dip=0.0 if np.std(hh)<1e-6 else float(np.polyfit(hh, sh, 1)[0])
     anchor=float(ttvt[split-1])
+    # toe geometry (rows split-1..j1): genuine first step, geometric TVT path
+    Xt=X[split-1:j1]; Yt=Y[split-1:j1]; Zt=Z[split-1:j1]
+    dZt=np.diff(Zt); dht=np.hypot(np.diff(Xt), np.diff(Yt))     # len = j1-split
+    dexp_tvt = -dZt + dip*dht
+    geo = anchor + np.cumsum(dexp_tvt)                           # geometric path (toe length)
+    dtvt_tw=float(np.median(np.diff(tw_tvt)))
+    if dtvt_tw<=0: return None
+    dexp_idx = (dexp_tvt/dtvt_tw)                                # dip-beam transition prior (native)
     gr_t=_smooth(gr[split:j1], float(np.nanmean(tw_gr)), 1)
-    if gr_aug>0: gr_t = gr_t + rng.normal(0, gr_aug, gr_t.shape)   # GR-noise augmentation
+    if gr_aug>0: gr_t = gr_t + rng.normal(0, gr_aug, gr_t.shape)
     true=ttvt[split:j1]
-    gr_w=_resample(gr_t, L); true_w=_resample(true, L)
+    gr_w=_resample(gr_t, L); geo_w=_resample(geo, L); true_w=_resample(true, L)
     twg=_resample(tw_gr, M); twt=_resample(tw_tvt, M)
-    gh,gt=make_feats(gr_w, twg, twt)
-    return gh, gt, true_w, anchor, gr_w, tw_gr, tw_tvt
+    gh,gt=make_feats(gr_w, geo_w-anchor, twg, twt)
+    return dict(gh=gh, gt=gt, geo_w=geo_w, true_w=true_w, anchor=anchor,
+                gr_native=gr_t.astype(np.float64), geo_native=geo.astype(np.float64),
+                true_native=true.astype(np.float64), dexp_idx=dexp_idx, twgn=tw_gr, twtn=tw_tvt)
 
 def build_real(wells, multi):
-    # LONG-RANGE regime (competition-relevant): anchor early, toe extends to the end of
-    # the known zone (~3-8L), so L2 degrades the way it does on the real long toe.
-    GH=[];GT=[];Y=[];A=[]
+    GH=[];GT=[];GEO=[];Y=[]
     for w in wells:
         n=len(w["X"])
-        fracs=[0.10,0.16,0.22,0.28] if multi else [0.15]
+        fracs=[0.40,0.50,0.60] if multi else [0.5]   # eval split (0.70) kept OUT of train fracs
         for fr in fracs:
-            split=int(fr*n); toe=int(rng.integers(3*L, 8*L))
+            split=int(fr*n); toe=n-split           # to end of known zone (BENCH-like)
             r=_window(w, split, toe, gr_aug=4.0)
             if r is None: continue
-            gh,gt,true_w,anchor,_,_,_=r
-            GH.append(gh);GT.append(gt);Y.append(true_w);A.append(anchor)
-    return np.array(GH),np.array(GT),np.array(Y),np.array(A)
+            GH.append(r["gh"]);GT.append(r["gt"]);GEO.append(r["geo_w"]);Y.append(r["true_w"])
+    return np.array(GH),np.array(GT),np.array(GEO),np.array(Y)
 
-GH,GT,Y,A = build_real(tr_wells, True)
+GH,GT,GEO,Y = build_real(tr_wells, True)
 assert len(GH)>0, "no real training windows"
 print(f"real train windows={len(GH)}")
 
-# --- train K=1 InvCore on real known-zone windows ---
+# --- train: net predicts residual (true - geo); final = geo + residual ---
 model = InvCore().to(DEV)
 opt = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=1e-4)
 sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
 ghT=torch.tensor(GH,device=DEV); gtT=torch.tensor(GT,device=DEV)
-yT=torch.tensor(Y.astype(np.float32),device=DEV); aT=torch.tensor(A.astype(np.float32),device=DEV)
-dyT = yT - aT[:,None]   # predict TVT offset from the last-known anchor
+geoT=torch.tensor(GEO.astype(np.float32),device=DEV); yT=torch.tensor(Y.astype(np.float32),device=DEV)
+residT = yT - geoT
 bs=64
 for ep in range(EPOCHS):
     perm=torch.randperm(len(ghT),device=DEV); tot=0.
     model.train()
     for i in range(0,len(ghT),bs):
         idx=perm[i:i+bs]
-        dtvt=model(ghT[idx], gtT[idx])
-        pred=torch.cumsum(dtvt,1)
-        loss=F.smooth_l1_loss(pred, dyT[idx])
+        r=model(ghT[idx], gtT[idx])
+        loss=F.smooth_l1_loss(r, residT[idx])
         opt.zero_grad(); loss.backward(); opt.step(); tot+=loss.item()*len(idx)
     sched.step()
     if ep%max(1,EPOCHS//6)==0 or ep==EPOCHS-1:
         print(f"  ep{ep} loss {tot/len(ghT):.4f}")
 
-def mdn_pred(gh, gt, anchor):
+def net_pred_native(gh, gt, geo_w, nlen):
     model.eval()
     with torch.no_grad():
-        d=model(torch.tensor(gh[None],device=DEV), torch.tensor(gt[None],device=DEV))
-        off=torch.cumsum(d,1).cpu().numpy()[0]
-    return anchor + off
+        r=model(torch.tensor(gh[None],device=DEV), torch.tensor(gt[None],device=DEV)).cpu().numpy()[0]
+    pred_L = geo_w + r                       # prediction on the L grid
+    return _resample(pred_L, nlen)           # upsample to native toe length (fair: net's L bottleneck shows)
 
-# --- eval on holdout wells' real known-zone (capped toe; same window for L2 and MDN) ---
-rma=[]; rmm=[]; wins=0
+# --- eval on holdout wells (BENCH regime split 0.7, toe=rest); ALL methods on NATIVE grid ---
+rmse=lambda a,b: float(np.sqrt(np.mean((a-b)**2)))
+r_dip=[]; r_geo=[]; r_l2=[]; r_net=[]; wins_dip=0
 for w in ho_wells:
-    n=len(w["X"]); split=int(0.15*n); toe=int(8*L)   # long-range: anchor early, toe to known-zone end
+    n=len(w["X"]); split=int(0.7*n); toe=n-split
     r=_window(w, split, toe)
     if r is None: continue
-    gh,gt,true_w,anchor,gr_w,twgn,twtn=r
-    pa=align_l2(gr_w, anchor, twgn, twtn, true_for_w=true_w)
-    pm=mdn_pred(gh, gt, anchor)
-    ra=float(np.sqrt(np.mean((pa-true_w)**2))); rm=float(np.sqrt(np.mean((pm-true_w)**2)))
-    rma.append(ra); rmm.append(rm); wins += (rm < ra)
-R_align_realkn=float(np.mean(rma)); R_mdn_realkn=float(np.mean(rmm))
-nwh=len(rma)
-print(f"[REAL] wells={nwh}  R_align_realkn={R_align_realkn:.4f}  R_mdn_realkn={R_mdn_realkn:.4f}")
-print(f"[REAL] MDN beats L2 on {wins}/{nwh} wells")
+    true_n=r["true_native"]; geo_n=r["geo_native"]; anchor=r["anchor"]; nlen=len(true_n)
+    # champion baseline: dip-aware beam, native grid (W=8, not throttled)
+    p_dip=align_dip(r["gr_native"], anchor, r["twgn"], r["twtn"], r["dexp_idx"])
+    rd=rmse(p_dip, true_n)
+    rg=rmse(geo_n, true_n)                                   # geometry-only reference
+    p_l2=align_l2(r["gr_native"], anchor, r["twgn"], r["twtn"], true_for_w=true_n)  # pure-L2 reference
+    rl=rmse(p_l2, true_n)
+    rn=rmse(net_pred_native(r["gh"], r["gt"], r["geo_w"], nlen), true_n)            # learned core -> native
+    r_dip.append(rd); r_geo.append(rg); r_l2.append(rl); r_net.append(rn); wins_dip += (rn < rd)
+assert len(r_dip) > 0, "no eligible holdout wells (all _window None)"
+R_dip=float(np.mean(r_dip)); R_geo=float(np.mean(r_geo)); R_l2=float(np.mean(r_l2)); R_net=float(np.mean(r_net))
+nwh=len(r_dip)
+print(f"[REAL] wells={nwh}  geo_only={R_geo:.3f}  L2_beam={R_l2:.3f}  dip_beam(champion)={R_dip:.3f}  net={R_net:.3f}")
+print(f"[REAL] net beats dip_beam on {wins_dip}/{nwh} wells")
 
-# --- GO/NO-GO: single decisive gate, zero synth confound ---
-beat = R_mdn_realkn < R_align_realkn
-margin = (R_align_realkn - R_mdn_realkn)/R_align_realkn*100
-print("\n================ GO/NO-GO (real-trained) ================")
-print(f"R_mdn_realkn {R_mdn_realkn:.3f} vs R_align_realkn {R_align_realkn:.3f}  ->  "
-      f"{'MDN wins' if beat else 'L2 wins'} ({margin:+.1f}% vs L2)")
-print(f"VERDICT: {'GO -> learned core beats L2 on real; build full MTP (synth pretrain + real finetune)' if beat else 'NO-GO -> learned core does not beat L2 on real known-zone'}")
-print("=========================================================")
+# --- GO/NO-GO: does the learned core beat the champion dip-aware beam? ---
+beat = R_net < R_dip
+margin = (R_dip - R_net)/R_dip*100
+print("\n================ GO/NO-GO (vs champion dip-beam) ================")
+print(f"net {R_net:.3f} vs dip_beam {R_dip:.3f}  ->  {'NET wins' if beat else 'dip_beam wins'} ({margin:+.1f}%)")
+print(f"VERDICT: {'GO -> learned core beats the champion aligner; build full MTP' if beat else 'NO-GO -> learned core does not beat the dip-aware beam'}")
+print("=================================================================")
 '''
 
 CELLS = [CELL_CONFIG, CELL_FORWARD, CELL_BASELINE, CELL_MODEL, CELL_RUN]
