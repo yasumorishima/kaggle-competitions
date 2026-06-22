@@ -281,12 +281,14 @@ def _window(w, split, toe_len, gr_aug=0.0):
     return gh, gt, true_w, anchor, gr_w, tw_gr, tw_tvt
 
 def build_real(wells, multi):
+    # LONG-RANGE regime (competition-relevant): anchor early, toe extends to the end of
+    # the known zone (~3-8L), so L2 degrades the way it does on the real long toe.
     GH=[];GT=[];Y=[];A=[]
     for w in wells:
         n=len(w["X"])
-        fracs=[0.30,0.40,0.50,0.60,0.68] if multi else [0.5]
+        fracs=[0.10,0.16,0.22,0.28] if multi else [0.15]
         for fr in fracs:
-            split=int(fr*n); toe=int(rng.integers(L, 2*L))
+            split=int(fr*n); toe=int(rng.integers(3*L, 8*L))
             r=_window(w, split, toe, gr_aug=4.0)
             if r is None: continue
             gh,gt,true_w,anchor,_,_,_=r
@@ -328,7 +330,7 @@ def mdn_pred(gh, gt, anchor):
 # --- eval on holdout wells' real known-zone (capped toe; same window for L2 and MDN) ---
 rma=[]; rmm=[]; wins=0
 for w in ho_wells:
-    n=len(w["X"]); split=int(0.7*n); toe=int(1.5*L)
+    n=len(w["X"]); split=int(0.15*n); toe=int(8*L)   # long-range: anchor early, toe to known-zone end
     r=_window(w, split, toe)
     if r is None: continue
     gh,gt,true_w,anchor,gr_w,twgn,twtn=r
