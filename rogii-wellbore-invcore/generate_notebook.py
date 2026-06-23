@@ -30,7 +30,7 @@ Push via GHA:
 import json
 from pathlib import Path
 
-SMOKE = True  # True: 8 wells, N=400 particles, fast pipeline check. False: full diagnostic.
+SMOKE = False  # True: 8 wells, N=400 particles, fast pipeline check. False: full diagnostic.
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "rogii-invcore-diag.ipynb"
