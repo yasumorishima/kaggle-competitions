@@ -335,15 +335,15 @@ def _systematic(w, N):
 
 @_pnjit(cache=True)
 def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
-             s_gr, s_dip, s_tvt, s_init, s_dipinit, rough, N, ess_frac, seed):
+             s_gr, s_dip, s_tvt, s_init, s_dipinit, rough_tvt, rough_dip, N, ess_frac, seed):
     np.random.seed(seed)
     n = len(gr)
     tvt = anchor + np.random.randn(N)*s_init
     dip = dip0 + np.random.randn(N)*s_dipinit
     logw = np.zeros(N)
-    out = np.empty(n); ess_hist = np.empty(n)
+    out = np.empty(n); ess_hist = np.empty(n); dipvar = np.empty(n)
     for i in range(n):
-        dip = dip + np.random.randn(N)*s_dip
+        dip = dip + np.random.randn(N)*s_dip          # along-hole dip random walk
         tvt = tvt + (-dZ[i] + dip*dh[i]) + np.random.randn(N)*s_tvt
         g = np.interp(tvt, tw_tvt, tw_gr)             # typewell GR at each particle's TVT
         d = (gr[i] - g)/s_gr
@@ -356,18 +356,19 @@ def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
         else: w = w/sw
         out[i] = (w*tvt).sum()                        # posterior-mean TVT
         ess = 1.0/np.sum(w*w); ess_hist[i] = ess
+        dipvar[i] = np.sqrt((w*(dip-(w*dip).sum())**2).sum())   # weighted dip std (drift health)
         if ess < ess_frac*N:
             idx = _systematic(w, N)
-            tvt = tvt[idx] + np.random.randn(N)*rough
-            dip = dip[idx] + np.random.randn(N)*rough*0.5
+            tvt = tvt[idx] + np.random.randn(N)*rough_tvt        # TVT-scale roughening (leak-free)
+            dip = dip[idx] + np.random.randn(N)*rough_dip        # dip-scale roughening
             logw = np.zeros(N)
-    return out, ess_hist
+    return out, ess_hist, dipvar
 
 def pf_predict(gr_toe, dZ_toe, dh_toe, tw_gr, tw_tvt, anchor, dip0, hyp, seed):
     return pf_track(gr_toe.astype(np.float64), dZ_toe.astype(np.float64), dh_toe.astype(np.float64),
                     tw_gr.astype(np.float64), tw_tvt.astype(np.float64), float(anchor), float(dip0),
                     hyp["s_gr"], hyp["s_dip"], hyp["s_tvt"], hyp["s_init"], hyp["s_dipinit"],
-                    hyp["rough"], int(hyp["N"]), float(hyp["ess_frac"]), int(seed))
+                    hyp["rough_tvt"], hyp["rough_dip"], int(hyp["N"]), float(hyp["ess_frac"]), int(seed))
 '''
 
 CELL_RUN = r'''
@@ -397,25 +398,32 @@ def _setup(w, split, toe_len):
     dexp_tvt=-dZt + dip*dht; geo=anchor+np.cumsum(dexp_tvt); dexp_idx=dexp_tvt/dtvt_tw
     gr_t=_smooth(gr[split:j1], float(np.nanmean(tw_gr)), 1)
     true=ttvt[split:j1]
-    # --- leak-free PF hyperparams from heel known zone ---
+    # --- leak-free PF hyperparams from heel known zone ONLY (no toe-true dependence) ---
     gr_k=_smooth(gr[:split], float(np.nanmean(tw_gr)), 1)
     s_gr=float(np.std(gr_k - np.interp(ttvt[:split], tw_tvt, tw_gr))); s_gr=max(s_gr, 3.0)
-    # along-hole dip variation in known zone: dip in 5 heel segments
+    # along-hole dip variation in known zone: dip fit over 5 heel segments -> spread
     seg=max(1, split//5); dips=[]
     for a in range(0, split-seg, seg):
         hs=hh[a:a+seg]-hh[a]; ss=sh[a:a+seg]
         if np.std(hs)>1e-6: dips.append(np.polyfit(hs, ss, 1)[0])
     s_dip_total=float(np.std(np.array(dips))) if len(dips)>1 else abs(dip)*0.1+1e-3
+    # per-step dip random-walk: heel dip spread accumulates over ~split steps =>
+    # per-step std = spread/sqrt(split). Lets dip drift ~spread over a toe of similar length.
+    s_dip_step=max(s_dip_total/np.sqrt(max(float(split),1.0)), 1e-6)
     med_abs_dexp=float(np.median(np.abs(dexp_tvt)))+1e-6
-    hyp=dict(s_gr=s_gr, s_dip=max(s_dip_total/ max(seg,1.0), 1e-5), s_tvt=0.2*med_abs_dexp,
+    s_tvt=0.2*med_abs_dexp
+    # heel-derived TVT step scale (leak-free) for roughening, NOT toe-true range
+    tvt_step_heel=float(np.std(np.diff(ttvt[:split])))+1e-6
+    hyp=dict(s_gr=s_gr, s_dip=s_dip_step, s_tvt=s_tvt,
              s_init=max(float(np.std(dip_res)), 1.0), s_dipinit=s_dip_total+1e-4,
-             rough=0.05*(true.max()-true.min()+1e-6), N=(400 if SMOKE else 2000), ess_frac=0.5)
+             rough_tvt=0.5*max(s_tvt, tvt_step_heel), rough_dip=0.5*s_dip_total,
+             N=(400 if SMOKE else 2000), ess_frac=0.5)
     return dict(gr_t=gr_t.astype(np.float64), dZt=dZt, dht=dht, dexp_idx=dexp_idx,
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
                 twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
 
 wells = WELLS if not SMOKE else WELLS[:8]
-r_geo=[]; r_dip=[]; r_pf=[]; wins=0; ess_lo=0; nrows=0
+r_geo=[]; r_dip=[]; r_pf=[]; wins=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
 for wi, w in enumerate(wells):
     n=len(w["X"]); split=int(0.20*n); toe=n-split          # LONG pseudo-toe: anchor early
     s=_setup(w, split, toe)
@@ -424,14 +432,18 @@ for wi, w in enumerate(wells):
     rg=rmse(s["geo"], true)
     p_dip=align_dip(s["gr_t"], s["anchor"], s["twgn"], s["twtn"], s["dexp_idx"])
     rd=rmse(p_dip, true)
-    pf_tvt, ess=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
+    pf_tvt, ess, dipvar=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
     rp=rmse(pf_tvt, true)
     r_geo.append(rg); r_dip.append(rd); r_pf.append(rp); wins += (rp < rd)
-    ess_lo += int(np.mean(ess) < H["N"]/20.0); nrows += 1
+    ess_lo += int(np.mean(ess) < H["N"]/20.0)
+    dipdrift += float(dipvar[-1]/(dipvar[0]+1e-9))          # dip-spread growth heel->toe (should be >1)
+    pf_geo_dev += rmse(pf_tvt, s["geo"])                    # PF deviation from pure geometry (GR is acting)
+    nrows += 1
 assert nrows>0, "no eligible wells"
 R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_pf=float(np.mean(r_pf))
 print(f"[LONG-TOE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  PF(online-dip)={R_pf:.3f}")
-print(f"[LONG-TOE] PF beats dip_beam on {wins}/{nrows} wells | wells with collapsed ESS(mean<N/20)={ess_lo}/{nrows}")
+print(f"[LONG-TOE] PF beats dip_beam on {wins}/{nrows} wells | collapsed-ESS wells={ess_lo}/{nrows}")
+print(f"[HEALTH] beam GR-utility (geo-dip)={R_geo-R_dip:+.3f}  PF dip-drift growth={dipdrift/nrows:.2f}x  PF-vs-geo dev={pf_geo_dev/nrows:.3f}")
 
 # --- GO/NO-GO: PF must beat the fixed-dip beam by >= 0.3 (below that = ceiling noise) ---
 gain = R_dip - R_pf
