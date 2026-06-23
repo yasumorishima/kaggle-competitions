@@ -57,7 +57,7 @@ def _find():
 
 DATA = _find(); TRAIN_DIR = DATA/"train"
 HW = sorted(TRAIN_DIR.glob("*__horizontal_well.csv"))
-if SMOKE: HW = HW[:8]
+if SMOKE: HW = HW[::max(1,len(HW)//40)][:40]   # representative spread, not the first 8 (lucky sample)
 print(f"SMOKE={SMOKE}  train wells={len(HW)}")
 
 L      = 96      # toe-window length (resampled rows)
@@ -425,7 +425,7 @@ def _setup(w, split, toe_len):
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
                 twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
 
-wells = WELLS if not SMOKE else WELLS[::max(1,len(WELLS)//40)][:40]   # representative spread (avoid lucky-8)
+wells = WELLS   # load step already applies the SMOKE spread sample
 r_geo=[]; r_dip=[]; r_pf=[]; r_blend=[]; wins=0; wins_bl=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
 for wi, w in enumerate(wells):
     n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe (competition-ish degradation)
