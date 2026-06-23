@@ -400,6 +400,18 @@ def _setup(w, split, toe_len):
     dexp_tvt=-dZt + dip*dht; geo=anchor+np.cumsum(dexp_tvt); dexp_idx=dexp_tvt/dtvt_tw
     gr_t=_smooth(gr[split:j1], float(np.nanmean(tw_gr)), 1)
     true=ttvt[split:j1]
+    # --- leak-free stretch base from heel (true index advance / geometric index advance) ---
+    idx_grid=np.arange(len(tw_tvt), dtype=np.float64)
+    th_idx=np.interp(ttvt[:split], tw_tvt, idx_grid)           # heel true typewell-index path (TVT known)
+    true_adv=np.diff(th_idx)                                   # heel true per-step index advance
+    geo_adv=((-np.diff(Z[:split]) + dip*dh0)/dtvt_tw)          # heel geometric index advance (dip-only)
+    msk=np.abs(geo_adv) > 0.25*np.median(np.abs(geo_adv)+1e-9) # drop near-zero-advance steps (unstable ratio)
+    if msk.sum() >= 5:
+        s_raw=np.clip(true_adv[msk]/geo_adv[msk], 0.0, 3.0)    # stretch ratio per heel step
+        wgt=geo_adv[msk]**2
+        s_base=float(np.sum(wgt*s_raw)/np.sum(wgt))            # robust weighted mean (leak-free)
+    else:
+        s_base=1.0
     # --- leak-free PF hyperparams from heel known zone ONLY (no toe-true dependence) ---
     gr_k=_smooth(gr[:split], float(np.nanmean(tw_gr)), 1)
     s_gr=float(np.std(gr_k - np.interp(ttvt[:split], tw_tvt, tw_gr))); s_gr=max(s_gr, 3.0)
@@ -423,7 +435,7 @@ def _setup(w, split, toe_len):
              N=(400 if SMOKE else 2000), ess_frac=0.33)      # resample less often -> preserve dip diversity
     return dict(gr_t=gr_t.astype(np.float64), dZt=dZt, dht=dht, dexp_idx=dexp_idx,
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
-                twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
+                twgn=tw_gr, twtn=tw_tvt, hyp=hyp, s_base=s_base)
 
 wells = WELLS   # load step already applies the SMOKE spread sample
 # === ORACLE stretch test (cheapest decisive ceiling): is bed-thickness stretch the gold lever? ===
@@ -431,7 +443,7 @@ wells = WELLS   # load step already applies the SMOKE spread sample
 # typewell-index advance (= true stretch+dip). This is the ceiling IF stretch were predicted
 # perfectly. Uses toe truth ON PURPOSE (oracle/upper-bound, not a submission). If this ceiling
 # is far below the fixed-dip beam, bed-thickness stretch is the lever -> build the regression.
-r_geo=[]; r_dip=[]; r_orc=[]; nrows=0; win_orc=0
+r_geo=[]; r_dip=[]; r_base=[]; r_orc=[]; nrows=0; win_base=0; win_orc=0; sb_sum=0.0
 for wi, w in enumerate(wells):
     n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe
     s=_setup(w, split, toe)
@@ -440,29 +452,33 @@ for wi, w in enumerate(wells):
     rg=rmse(s["geo"], true)
     p_dip=align_dip(s["gr_t"], anchor, twg, twt, s["dexp_idx"])
     rd=rmse(p_dip, true)
-    # oracle transition prior = true per-step typewell-index advance from the true toe TVT path
+    # STAGE A: multiplicative constant-stretch injection (leak-free heel base, NO regression)
+    p_base=align_dip(s["gr_t"], anchor, twg, twt, s["s_base"]*s["dexp_idx"])
+    rbz=rmse(p_base, true)
+    # ORACLE: true per-step typewell-index advance (upper bound, uses toe truth on purpose)
     idx_grid=np.arange(len(twt), dtype=np.float64)
-    true_idxf=np.interp(true, twt, idx_grid)               # true fractional typewell index per toe row
+    true_idxf=np.interp(true, twt, idx_grid)
     si_f=float(np.interp(anchor, twt, idx_grid))
-    oracle_dexp=np.diff(np.concatenate([[si_f], true_idxf]))   # per-step true advance (stretch+dip)
-    p_orc=align_dip(s["gr_t"], anchor, twg, twt, oracle_dexp)  # beam with the TRUE transition prior
+    oracle_dexp=np.diff(np.concatenate([[si_f], true_idxf]))
+    p_orc=align_dip(s["gr_t"], anchor, twg, twt, oracle_dexp)
     ro=rmse(p_orc, true)
-    r_geo.append(rg); r_dip.append(rd); r_orc.append(ro); win_orc += (ro < rd); nrows += 1
+    r_geo.append(rg); r_dip.append(rd); r_base.append(rbz); r_orc.append(ro)
+    win_base += (rbz < rd); win_orc += (ro < rd); sb_sum += s["s_base"]; nrows += 1
 assert nrows>0, "no eligible wells"
-R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_orc=float(np.mean(r_orc))
-print(f"[ORACLE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  beam+ORACLE-stretch={R_orc:.3f}")
-print(f"[ORACLE] oracle beats fixed-dip beam on {win_orc}/{nrows} wells")
+R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_base=float(np.mean(r_base)); R_orc=float(np.mean(r_orc))
+print(f"[STRETCH] wells={nrows}  geo={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  base-stretch(A)={R_base:.3f}  ORACLE={R_orc:.3f}")
+print(f"[STRETCH] base beats beam {win_base}/{nrows} | oracle beats beam {win_orc}/{nrows} | mean s_base={sb_sum/nrows:.3f}")
 
-# --- GO/NO-GO: does knowing the true stretch+dip transition collapse the long-toe error? ---
-drop = R_dip - R_orc
-print("\n================ ORACLE go/no-go (stretch as the gold lever) ================")
-print(f"beam+oracle-stretch {R_orc:.3f} vs fixed-dip beam {R_dip:.3f}  ->  drop {drop:+.3f}")
-if R_orc <= 9.0:
-    v="GO -> stretch IS the lever; build predicted-stretch regression (heel DTW-slope -> GBT -> inject)"
-elif R_orc <= 13.0:
-    v="WEAK -> stretch helps but ceiling modest; predicted stretch must be near-perfect"
+# --- Stage-A go/no-go: is the heel stretch EXTRAPOLABLE to the toe (constant base)? ---
+gainA = R_dip - R_base
+print("\n================ STAGE-A go/no-go (constant heel-stretch injection) ================")
+print(f"base-stretch {R_base:.3f} vs fixed-dip beam {R_dip:.3f}  ->  gain {gainA:+.3f}  (oracle ceiling {R_orc:.3f})")
+if R_base <= 13.0:
+    v="GO -> heel stretch extrapolates; build B(heel-trend)+C(GBT residual)+D(adaptive GR-trust)"
+elif R_base <= 14.5:
+    v="MARGINAL -> base helps a little; add heel-trend + GBT residual before judging"
 else:
-    v="NO-GO -> even perfect stretch doesn't collapse long-toe; bottleneck is GR-correlation, not stretch"
+    v="NO-GO(const) -> heel-mean stretch does not extrapolate; try heel-trend then reassess core"
 print(f"VERDICT: {v}")
 print("=============================================================================")
 '''
