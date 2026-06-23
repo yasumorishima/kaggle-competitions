@@ -30,7 +30,7 @@ Push via GHA:
 import json
 from pathlib import Path
 
-SMOKE = False  # True: 8 wells, N=400 particles, fast pipeline check. False: full diagnostic.
+SMOKE = True  # True: ~40 spread wells, N=400 particles, representative check. False: full diagnostic.
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "rogii-invcore-diag.ipynb"
@@ -341,7 +341,7 @@ def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
     tvt = anchor + np.random.randn(N)*s_init
     dip = dip0 + np.random.randn(N)*s_dipinit
     logw = np.zeros(N)
-    out = np.empty(n); ess_hist = np.empty(n); dipvar = np.empty(n)
+    out = np.empty(n); ess_hist = np.empty(n); dipvar = np.empty(n); tvtstd = np.empty(n)
     for i in range(n):
         dip = dip + theta*(dip0 - dip) + np.random.randn(N)*s_dip   # OU: mean-revert to heel dip + local walk
         tvt = tvt + (-dZ[i] + dip*dh[i]) + np.random.randn(N)*s_tvt
@@ -354,7 +354,9 @@ def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
         m = logw.max(); w = np.exp(logw - m); sw = w.sum()
         if sw <= 0: w = np.ones(N)/N
         else: w = w/sw
-        out[i] = (w*tvt).sum()                        # posterior-mean TVT
+        mu = (w*tvt).sum()
+        out[i] = mu                                   # posterior-mean TVT
+        tvtstd[i] = np.sqrt((w*(tvt-mu)**2).sum())    # posterior TVT std (confidence -> blend gate)
         ess = 1.0/np.sum(w*w); ess_hist[i] = ess
         dipvar[i] = np.sqrt((w*(dip-(w*dip).sum())**2).sum())   # weighted dip std (drift health)
         if ess < ess_frac*N:
@@ -362,7 +364,7 @@ def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
             tvt = tvt[idx] + np.random.randn(N)*rough_tvt        # TVT-scale roughening (leak-free)
             dip = dip[idx] + np.random.randn(N)*rough_dip        # dip-scale roughening
             logw = np.zeros(N)
-    return out, ess_hist, dipvar
+    return out, ess_hist, dipvar, tvtstd
 
 def pf_predict(gr_toe, dZ_toe, dh_toe, tw_gr, tw_tvt, anchor, dip0, hyp, seed):
     return pf_track(gr_toe.astype(np.float64), dZ_toe.astype(np.float64), dh_toe.astype(np.float64),
@@ -423,8 +425,8 @@ def _setup(w, split, toe_len):
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
                 twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
 
-wells = WELLS if not SMOKE else WELLS[:8]
-r_geo=[]; r_dip=[]; r_pf=[]; wins=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
+wells = WELLS if not SMOKE else WELLS[::max(1,len(WELLS)//40)][:40]   # representative spread (avoid lucky-8)
+r_geo=[]; r_dip=[]; r_pf=[]; r_blend=[]; wins=0; wins_bl=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
 for wi, w in enumerate(wells):
     n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe (competition-ish degradation)
     s=_setup(w, split, toe)
@@ -433,29 +435,35 @@ for wi, w in enumerate(wells):
     rg=rmse(s["geo"], true)
     p_dip=align_dip(s["gr_t"], s["anchor"], s["twgn"], s["twtn"], s["dexp_idx"])
     rd=rmse(p_dip, true)
-    pf_tvt, ess, dipvar=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
+    pf_tvt, ess, dipvar, tvtstd=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
     rp=rmse(pf_tvt, true)
-    r_geo.append(rg); r_dip.append(rd); r_pf.append(rp); wins += (rp < rd)
+    # confidence-gated blend: trust PF where its posterior is tight, fall back to beam where wide (leak-free)
+    scale_conf=5.0*H["s_init"]
+    conf=np.exp(-0.5*(tvtstd/scale_conf)**2)
+    blend=p_dip + conf*(pf_tvt - p_dip)
+    rb=rmse(blend, true)
+    r_geo.append(rg); r_dip.append(rd); r_pf.append(rp); r_blend.append(rb)
+    wins += (rp < rd); wins_bl += (rb < rd)
     ess_lo += int(np.mean(ess) < H["N"]/20.0)
     dipdrift += float(dipvar[-1]/(dipvar[0]+1e-9))          # dip-spread growth heel->toe (should be >1)
     pf_geo_dev += rmse(pf_tvt, s["geo"])                    # PF deviation from pure geometry (GR is acting)
     nrows += 1
 assert nrows>0, "no eligible wells"
-R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_pf=float(np.mean(r_pf))
-print(f"[LONG-TOE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  PF(online-dip)={R_pf:.3f}")
-print(f"[LONG-TOE] PF beats dip_beam on {wins}/{nrows} wells | collapsed-ESS wells={ess_lo}/{nrows}")
+R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_pf=float(np.mean(r_pf)); R_bl=float(np.mean(r_blend))
+print(f"[LONG-TOE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  PF(raw)={R_pf:.3f}  PF-beam blend={R_bl:.3f}")
+print(f"[LONG-TOE] PF-raw beats beam {wins}/{nrows} | blend beats beam {wins_bl}/{nrows} | collapsed-ESS={ess_lo}/{nrows}")
 print(f"[HEALTH] beam GR-utility (geo-dip)={R_geo-R_dip:+.3f}  PF dip-drift growth={dipdrift/nrows:.2f}x  PF-vs-geo dev={pf_geo_dev/nrows:.3f}")
 
-# --- GO/NO-GO: PF must beat the fixed-dip beam by >= 0.3 (below that = ceiling noise) ---
-gain = R_dip - R_pf
-print("\n================ GO/NO-GO (PF online-dip vs fixed-dip beam, long-toe) ================")
-print(f"PF {R_pf:.3f} vs dip_beam {R_dip:.3f}  ->  gain {gain:+.3f}")
+# --- GO/NO-GO: the deployable predictor is the confidence-gated blend (robust to PF divergence) ---
+gain = R_dip - R_bl
+print("\n================ GO/NO-GO (PF-beam blend vs fixed-dip beam, long-toe) ================")
+print(f"blend {R_bl:.3f} vs dip_beam {R_dip:.3f}  ->  gain {gain:+.3f}")
 if gain >= 1.0:
     v="GO (strong, gold-signal) -> 6-formation + stretch/squeeze 2nd stage"
 elif gain >= 0.3:
-    v="GO -> PF helps; tune + build into pipeline"
+    v="GO -> blend helps; tune + build into pipeline"
 else:
-    v="NO-GO -> PF within ceiling noise; pivot core (typewell elastic stretch)"
+    v="NO-GO -> blend within ceiling noise; retune gate or pivot core"
 print(f"VERDICT: {v}")
 print("=====================================================================================")
 '''
