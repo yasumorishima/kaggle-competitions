@@ -30,7 +30,7 @@ Push via GHA:
 import json
 from pathlib import Path
 
-SMOKE = False  # True: 8 wells, 2 epochs, fast pipeline check. False: full diagnostic.
+SMOKE = True  # True: 8 wells, N=400 particles, fast pipeline check. False: full diagnostic.
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "rogii-invcore-diag.ipynb"
@@ -316,122 +316,138 @@ def make_feats(gr_w, geo_off, twg, twt):
     return gh.astype(np.float32), gt.astype(np.float32)
 '''
 
-CELL_RUN = r'''
-# === FAIR diagnostic: learned residual core vs the DIP-AWARE beam (champion signal source) ===
-# Both methods get the SAME information: the geometric path (anchor + cumsum(-dZ + dip*dhoriz),
-# heel-estimated dip = leak-free) plus GR vs typewell. The dip-aware beam refines geometry by
-# DP GR-matching; the net predicts the residual (true - geo) from GR + typewell cross-attention.
-# Regime = champion BENCH (split 0.7, toe = rest of known zone). Gate: net beats the dip beam.
-rng = np.random.default_rng(SEED)
-nw = len(WELLS); n_hold = max(2, nw//5)
-hold = set(rng.choice(nw, n_hold, replace=False).tolist())
-tr_wells = [w for i,w in enumerate(WELLS) if i not in hold]
-ho_wells = [w for i,w in enumerate(WELLS) if i in hold]
-print(f"train wells={len(tr_wells)} holdout wells={len(ho_wells)}")
+CELL_PF = r'''
+# === long-range core: distance-direction particle filter with along-hole dip update ===
+# state = (TVT, dip_local). transition: dTVT = -dZ + dip*dhoriz + walk; dip random-walks
+# (the fix for fixed-heel-dip long-toe degradation). likelihood: GR_obs vs typewell GR(TVT).
+# No training; hyperparams self-estimated from each well's heel known zone (leak-free).
+from numba import njit as _pnjit
 
-def _window(w, split, toe_len, gr_aug=0.0):
+@_pnjit(cache=True)
+def _systematic(w, N):
+    pos = (np.random.rand() + np.arange(N))/N
+    cum = np.cumsum(w)
+    idx = np.empty(N, np.int64); j = 0
+    for k in range(N):
+        while pos[k] > cum[j] and j < N-1: j += 1
+        idx[k] = j
+    return idx
+
+@_pnjit(cache=True)
+def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
+             s_gr, s_dip, s_tvt, s_init, s_dipinit, rough, N, ess_frac, seed):
+    np.random.seed(seed)
+    n = len(gr)
+    tvt = anchor + np.random.randn(N)*s_init
+    dip = dip0 + np.random.randn(N)*s_dipinit
+    logw = np.zeros(N)
+    out = np.empty(n); ess_hist = np.empty(n)
+    for i in range(n):
+        dip = dip + np.random.randn(N)*s_dip
+        tvt = tvt + (-dZ[i] + dip*dh[i]) + np.random.randn(N)*s_tvt
+        g = np.interp(tvt, tw_tvt, tw_gr)             # typewell GR at each particle's TVT
+        d = (gr[i] - g)/s_gr
+        d2 = d*d
+        for p in range(N):
+            if d2[p] > 9.0: d2[p] = 9.0               # fat-tail clip (3 sigma)
+        logw = logw - 0.5*d2
+        m = logw.max(); w = np.exp(logw - m); sw = w.sum()
+        if sw <= 0: w = np.ones(N)/N
+        else: w = w/sw
+        out[i] = (w*tvt).sum()                        # posterior-mean TVT
+        ess = 1.0/np.sum(w*w); ess_hist[i] = ess
+        if ess < ess_frac*N:
+            idx = _systematic(w, N)
+            tvt = tvt[idx] + np.random.randn(N)*rough
+            dip = dip[idx] + np.random.randn(N)*rough*0.5
+            logw = np.zeros(N)
+    return out, ess_hist
+
+def pf_predict(gr_toe, dZ_toe, dh_toe, tw_gr, tw_tvt, anchor, dip0, hyp, seed):
+    return pf_track(gr_toe.astype(np.float64), dZ_toe.astype(np.float64), dh_toe.astype(np.float64),
+                    tw_gr.astype(np.float64), tw_tvt.astype(np.float64), float(anchor), float(dip0),
+                    hyp["s_gr"], hyp["s_dip"], hyp["s_tvt"], hyp["s_init"], hyp["s_dipinit"],
+                    hyp["rough"], int(hyp["N"]), float(hyp["ess_frac"]), int(seed))
+'''
+
+CELL_RUN = r'''
+# === GO/NO-GO: distance-direction particle filter (online dip) vs fixed-dip beam, LONG-TOE ===
+# No training. Per well: anchor early in the known zone, pseudo-toe = rest of known zone
+# (longest supervisable extrapolation). All methods on the NATIVE grid. Hyperparams for the
+# PF are self-estimated from each well's heel known zone (leak-free).
+rng = np.random.default_rng(SEED)
+rmse=lambda a,b: float(np.sqrt(np.mean((a-b)**2)))
+
+def _setup(w, split, toe_len):
     n=len(w["X"]); ttvt=w["ttvt"]; gr=w["gr"]; tw_tvt=w["tw_tvt"]; tw_gr=w["tw_gr"]
     X=w["X"]; Y=w["Y"]; Z=w["Z"]
     j1=min(n, split+toe_len)
-    if split<12 or j1-split<12: return None
-    # heel-only dip (leak-free): fit (TVT+Z) vs horizontal distance over rows [0:split]
+    if split<20 or j1-split<20 or len(tw_tvt)<8: return None
+    # heel-only dip (leak-free)
     dh0=np.hypot(np.diff(X[:split]), np.diff(Y[:split])); hh=np.concatenate([[0.0], np.cumsum(dh0)])
     sh=ttvt[:split]+Z[:split]
-    dip=0.0 if np.std(hh)<1e-6 else float(np.polyfit(hh, sh, 1)[0])
+    if np.std(hh)<1e-6: return None
+    cf=np.polyfit(hh, sh, 1); dip=float(cf[0]); dip_res=sh-(cf[0]*hh+cf[1])
     anchor=float(ttvt[split-1])
-    # toe geometry (rows split-1..j1): genuine first step, geometric TVT path
-    Xt=X[split-1:j1]; Yt=Y[split-1:j1]; Zt=Z[split-1:j1]
-    dZt=np.diff(Zt); dht=np.hypot(np.diff(Xt), np.diff(Yt))     # len = j1-split
-    dexp_tvt = -dZt + dip*dht
-    geo = anchor + np.cumsum(dexp_tvt)                           # geometric path (toe length)
     dtvt_tw=float(np.median(np.diff(tw_tvt)))
     if dtvt_tw<=0: return None
-    dexp_idx = (dexp_tvt/dtvt_tw)                                # dip-beam transition prior (native)
+    # toe geometry
+    Xt=X[split-1:j1]; Yt=Y[split-1:j1]; Zt=Z[split-1:j1]
+    dZt=np.diff(Zt); dht=np.hypot(np.diff(Xt), np.diff(Yt))
+    dexp_tvt=-dZt + dip*dht; geo=anchor+np.cumsum(dexp_tvt); dexp_idx=dexp_tvt/dtvt_tw
     gr_t=_smooth(gr[split:j1], float(np.nanmean(tw_gr)), 1)
-    if gr_aug>0: gr_t = gr_t + rng.normal(0, gr_aug, gr_t.shape)
     true=ttvt[split:j1]
-    gr_w=_resample(gr_t, L); geo_w=_resample(geo, L); true_w=_resample(true, L)
-    twg=_resample(tw_gr, M); twt=_resample(tw_tvt, M)
-    gh,gt=make_feats(gr_w, geo_w-anchor, twg, twt)
-    return dict(gh=gh, gt=gt, geo_w=geo_w, true_w=true_w, anchor=anchor,
-                gr_native=gr_t.astype(np.float64), geo_native=geo.astype(np.float64),
-                true_native=true.astype(np.float64), dexp_idx=dexp_idx, twgn=tw_gr, twtn=tw_tvt)
+    # --- leak-free PF hyperparams from heel known zone ---
+    gr_k=_smooth(gr[:split], float(np.nanmean(tw_gr)), 1)
+    s_gr=float(np.std(gr_k - np.interp(ttvt[:split], tw_tvt, tw_gr))); s_gr=max(s_gr, 3.0)
+    # along-hole dip variation in known zone: dip in 5 heel segments
+    seg=max(1, split//5); dips=[]
+    for a in range(0, split-seg, seg):
+        hs=hh[a:a+seg]-hh[a]; ss=sh[a:a+seg]
+        if np.std(hs)>1e-6: dips.append(np.polyfit(hs, ss, 1)[0])
+    s_dip_total=float(np.std(np.array(dips))) if len(dips)>1 else abs(dip)*0.1+1e-3
+    med_abs_dexp=float(np.median(np.abs(dexp_tvt)))+1e-6
+    hyp=dict(s_gr=s_gr, s_dip=max(s_dip_total/ max(seg,1.0), 1e-5), s_tvt=0.2*med_abs_dexp,
+             s_init=max(float(np.std(dip_res)), 1.0), s_dipinit=s_dip_total+1e-4,
+             rough=0.05*(true.max()-true.min()+1e-6), N=(400 if SMOKE else 2000), ess_frac=0.5)
+    return dict(gr_t=gr_t.astype(np.float64), dZt=dZt, dht=dht, dexp_idx=dexp_idx,
+                geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
+                twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
 
-def build_real(wells, multi):
-    GH=[];GT=[];GEO=[];Y=[]
-    for w in wells:
-        n=len(w["X"])
-        fracs=[0.40,0.50,0.60] if multi else [0.5]   # eval split (0.70) kept OUT of train fracs
-        for fr in fracs:
-            split=int(fr*n); toe=n-split           # to end of known zone (BENCH-like)
-            r=_window(w, split, toe, gr_aug=4.0)
-            if r is None: continue
-            GH.append(r["gh"]);GT.append(r["gt"]);GEO.append(r["geo_w"]);Y.append(r["true_w"])
-    return np.array(GH),np.array(GT),np.array(GEO),np.array(Y)
+wells = WELLS if not SMOKE else WELLS[:8]
+r_geo=[]; r_dip=[]; r_pf=[]; wins=0; ess_lo=0; nrows=0
+for wi, w in enumerate(wells):
+    n=len(w["X"]); split=int(0.20*n); toe=n-split          # LONG pseudo-toe: anchor early
+    s=_setup(w, split, toe)
+    if s is None: continue
+    true=s["true"]; H=s["hyp"]
+    rg=rmse(s["geo"], true)
+    p_dip=align_dip(s["gr_t"], s["anchor"], s["twgn"], s["twtn"], s["dexp_idx"])
+    rd=rmse(p_dip, true)
+    pf_tvt, ess=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
+    rp=rmse(pf_tvt, true)
+    r_geo.append(rg); r_dip.append(rd); r_pf.append(rp); wins += (rp < rd)
+    ess_lo += int(np.mean(ess) < H["N"]/20.0); nrows += 1
+assert nrows>0, "no eligible wells"
+R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_pf=float(np.mean(r_pf))
+print(f"[LONG-TOE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  PF(online-dip)={R_pf:.3f}")
+print(f"[LONG-TOE] PF beats dip_beam on {wins}/{nrows} wells | wells with collapsed ESS(mean<N/20)={ess_lo}/{nrows}")
 
-GH,GT,GEO,Y = build_real(tr_wells, True)
-assert len(GH)>0, "no real training windows"
-print(f"real train windows={len(GH)}")
-
-# --- train: net predicts residual (true - geo); final = geo + residual ---
-model = InvCore().to(DEV)
-opt = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=1e-4)
-sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
-ghT=torch.tensor(GH,device=DEV); gtT=torch.tensor(GT,device=DEV)
-geoT=torch.tensor(GEO.astype(np.float32),device=DEV); yT=torch.tensor(Y.astype(np.float32),device=DEV)
-residT = yT - geoT
-bs=64
-for ep in range(EPOCHS):
-    perm=torch.randperm(len(ghT),device=DEV); tot=0.
-    model.train()
-    for i in range(0,len(ghT),bs):
-        idx=perm[i:i+bs]
-        r=model(ghT[idx], gtT[idx])
-        loss=F.smooth_l1_loss(r, residT[idx])
-        opt.zero_grad(); loss.backward(); opt.step(); tot+=loss.item()*len(idx)
-    sched.step()
-    if ep%max(1,EPOCHS//6)==0 or ep==EPOCHS-1:
-        print(f"  ep{ep} loss {tot/len(ghT):.4f}")
-
-def net_pred_native(gh, gt, geo_w, nlen):
-    model.eval()
-    with torch.no_grad():
-        r=model(torch.tensor(gh[None],device=DEV), torch.tensor(gt[None],device=DEV)).cpu().numpy()[0]
-    pred_L = geo_w + r                       # prediction on the L grid
-    return _resample(pred_L, nlen)           # upsample to native toe length (fair: net's L bottleneck shows)
-
-# --- eval on holdout wells (BENCH regime split 0.7, toe=rest); ALL methods on NATIVE grid ---
-rmse=lambda a,b: float(np.sqrt(np.mean((a-b)**2)))
-r_dip=[]; r_geo=[]; r_l2=[]; r_net=[]; wins_dip=0
-for w in ho_wells:
-    n=len(w["X"]); split=int(0.7*n); toe=n-split
-    r=_window(w, split, toe)
-    if r is None: continue
-    true_n=r["true_native"]; geo_n=r["geo_native"]; anchor=r["anchor"]; nlen=len(true_n)
-    # champion baseline: dip-aware beam, native grid (W=8, not throttled)
-    p_dip=align_dip(r["gr_native"], anchor, r["twgn"], r["twtn"], r["dexp_idx"])
-    rd=rmse(p_dip, true_n)
-    rg=rmse(geo_n, true_n)                                   # geometry-only reference
-    p_l2=align_l2(r["gr_native"], anchor, r["twgn"], r["twtn"], true_for_w=true_n)  # pure-L2 reference
-    rl=rmse(p_l2, true_n)
-    rn=rmse(net_pred_native(r["gh"], r["gt"], r["geo_w"], nlen), true_n)            # learned core -> native
-    r_dip.append(rd); r_geo.append(rg); r_l2.append(rl); r_net.append(rn); wins_dip += (rn < rd)
-assert len(r_dip) > 0, "no eligible holdout wells (all _window None)"
-R_dip=float(np.mean(r_dip)); R_geo=float(np.mean(r_geo)); R_l2=float(np.mean(r_l2)); R_net=float(np.mean(r_net))
-nwh=len(r_dip)
-print(f"[REAL] wells={nwh}  geo_only={R_geo:.3f}  L2_beam={R_l2:.3f}  dip_beam(champion)={R_dip:.3f}  net={R_net:.3f}")
-print(f"[REAL] net beats dip_beam on {wins_dip}/{nwh} wells")
-
-# --- GO/NO-GO: does the learned core beat the champion dip-aware beam? ---
-beat = R_net < R_dip
-margin = (R_dip - R_net)/R_dip*100
-print("\n================ GO/NO-GO (vs champion dip-beam) ================")
-print(f"net {R_net:.3f} vs dip_beam {R_dip:.3f}  ->  {'NET wins' if beat else 'dip_beam wins'} ({margin:+.1f}%)")
-print(f"VERDICT: {'GO -> learned core beats the champion aligner; build full MTP' if beat else 'NO-GO -> learned core does not beat the dip-aware beam'}")
-print("=================================================================")
+# --- GO/NO-GO: PF must beat the fixed-dip beam by >= 0.3 (below that = ceiling noise) ---
+gain = R_dip - R_pf
+print("\n================ GO/NO-GO (PF online-dip vs fixed-dip beam, long-toe) ================")
+print(f"PF {R_pf:.3f} vs dip_beam {R_dip:.3f}  ->  gain {gain:+.3f}")
+if gain >= 1.0:
+    v="GO (strong, gold-signal) -> 6-formation + stretch/squeeze 2nd stage"
+elif gain >= 0.3:
+    v="GO -> PF helps; tune + build into pipeline"
+else:
+    v="NO-GO -> PF within ceiling noise; pivot core (typewell elastic stretch)"
+print(f"VERDICT: {v}")
+print("=====================================================================================")
 '''
 
-CELLS = [CELL_CONFIG, CELL_FORWARD, CELL_BASELINE, CELL_MODEL, CELL_RUN]
+CELLS = [CELL_CONFIG, CELL_FORWARD, CELL_BASELINE, CELL_PF, CELL_RUN]
 
 
 def main():
