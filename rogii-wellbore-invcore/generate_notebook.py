@@ -426,46 +426,45 @@ def _setup(w, split, toe_len):
                 twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
 
 wells = WELLS   # load step already applies the SMOKE spread sample
-r_geo=[]; r_dip=[]; r_pf=[]; r_blend=[]; wins=0; wins_bl=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
+# === ORACLE stretch test (cheapest decisive ceiling): is bed-thickness stretch the gold lever? ===
+# Replace the geometric transition prior (dexp from fixed heel dip) with the TRUE per-step
+# typewell-index advance (= true stretch+dip). This is the ceiling IF stretch were predicted
+# perfectly. Uses toe truth ON PURPOSE (oracle/upper-bound, not a submission). If this ceiling
+# is far below the fixed-dip beam, bed-thickness stretch is the lever -> build the regression.
+r_geo=[]; r_dip=[]; r_orc=[]; nrows=0; win_orc=0
 for wi, w in enumerate(wells):
-    n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe (competition-ish degradation)
+    n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe
     s=_setup(w, split, toe)
     if s is None: continue
-    true=s["true"]; H=s["hyp"]
+    true=s["true"]; twt=s["twtn"]; twg=s["twgn"]; anchor=s["anchor"]
     rg=rmse(s["geo"], true)
-    p_dip=align_dip(s["gr_t"], s["anchor"], s["twgn"], s["twtn"], s["dexp_idx"])
+    p_dip=align_dip(s["gr_t"], anchor, twg, twt, s["dexp_idx"])
     rd=rmse(p_dip, true)
-    pf_tvt, ess, dipvar, tvtstd=pf_predict(s["gr_t"], s["dZt"], s["dht"], s["twgn"], s["twtn"], s["anchor"], s["dip"], H, wi+1)
-    rp=rmse(pf_tvt, true)
-    # confidence-gated blend: trust PF where its posterior is tight, fall back to beam where wide (leak-free)
-    scale_conf=5.0*H["s_init"]
-    conf=np.exp(-0.5*(tvtstd/scale_conf)**2)
-    blend=p_dip + conf*(pf_tvt - p_dip)
-    rb=rmse(blend, true)
-    r_geo.append(rg); r_dip.append(rd); r_pf.append(rp); r_blend.append(rb)
-    wins += (rp < rd); wins_bl += (rb < rd)
-    ess_lo += int(np.mean(ess) < H["N"]/20.0)
-    dipdrift += float(dipvar[-1]/(dipvar[0]+1e-9))          # dip-spread growth heel->toe (should be >1)
-    pf_geo_dev += rmse(pf_tvt, s["geo"])                    # PF deviation from pure geometry (GR is acting)
-    nrows += 1
+    # oracle transition prior = true per-step typewell-index advance from the true toe TVT path
+    idx_grid=np.arange(len(twt), dtype=np.float64)
+    true_idxf=np.interp(true, twt, idx_grid)               # true fractional typewell index per toe row
+    si_f=float(np.interp(anchor, twt, idx_grid))
+    oracle_dexp=np.diff(np.concatenate([[si_f], true_idxf]))   # per-step true advance (stretch+dip)
+    p_orc=align_dip(s["gr_t"], anchor, twg, twt, oracle_dexp)  # beam with the TRUE transition prior
+    ro=rmse(p_orc, true)
+    r_geo.append(rg); r_dip.append(rd); r_orc.append(ro); win_orc += (ro < rd); nrows += 1
 assert nrows>0, "no eligible wells"
-R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_pf=float(np.mean(r_pf)); R_bl=float(np.mean(r_blend))
-print(f"[LONG-TOE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  PF(raw)={R_pf:.3f}  PF-beam blend={R_bl:.3f}")
-print(f"[LONG-TOE] PF-raw beats beam {wins}/{nrows} | blend beats beam {wins_bl}/{nrows} | collapsed-ESS={ess_lo}/{nrows}")
-print(f"[HEALTH] beam GR-utility (geo-dip)={R_geo-R_dip:+.3f}  PF dip-drift growth={dipdrift/nrows:.2f}x  PF-vs-geo dev={pf_geo_dev/nrows:.3f}")
+R_geo=float(np.mean(r_geo)); R_dip=float(np.mean(r_dip)); R_orc=float(np.mean(r_orc))
+print(f"[ORACLE] wells={nrows}  geo_only={R_geo:.3f}  dip_beam(fixed)={R_dip:.3f}  beam+ORACLE-stretch={R_orc:.3f}")
+print(f"[ORACLE] oracle beats fixed-dip beam on {win_orc}/{nrows} wells")
 
-# --- GO/NO-GO: the deployable predictor is the confidence-gated blend (robust to PF divergence) ---
-gain = R_dip - R_bl
-print("\n================ GO/NO-GO (PF-beam blend vs fixed-dip beam, long-toe) ================")
-print(f"blend {R_bl:.3f} vs dip_beam {R_dip:.3f}  ->  gain {gain:+.3f}")
-if gain >= 1.0:
-    v="GO (strong, gold-signal) -> 6-formation + stretch/squeeze 2nd stage"
-elif gain >= 0.3:
-    v="GO -> blend helps; tune + build into pipeline"
+# --- GO/NO-GO: does knowing the true stretch+dip transition collapse the long-toe error? ---
+drop = R_dip - R_orc
+print("\n================ ORACLE go/no-go (stretch as the gold lever) ================")
+print(f"beam+oracle-stretch {R_orc:.3f} vs fixed-dip beam {R_dip:.3f}  ->  drop {drop:+.3f}")
+if R_orc <= 9.0:
+    v="GO -> stretch IS the lever; build predicted-stretch regression (heel DTW-slope -> GBT -> inject)"
+elif R_orc <= 13.0:
+    v="WEAK -> stretch helps but ceiling modest; predicted stretch must be near-perfect"
 else:
-    v="NO-GO -> blend within ceiling noise; retune gate or pivot core"
+    v="NO-GO -> even perfect stretch doesn't collapse long-toe; bottleneck is GR-correlation, not stretch"
 print(f"VERDICT: {v}")
-print("=====================================================================================")
+print("=============================================================================")
 '''
 
 CELLS = [CELL_CONFIG, CELL_FORWARD, CELL_BASELINE, CELL_PF, CELL_RUN]
