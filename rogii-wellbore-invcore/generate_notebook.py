@@ -335,7 +335,7 @@ def _systematic(w, N):
 
 @_pnjit(cache=True)
 def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
-             s_gr, s_dip, s_tvt, s_init, s_dipinit, rough_tvt, rough_dip, N, ess_frac, seed):
+             s_gr, s_dip, s_tvt, s_init, s_dipinit, rough_tvt, rough_dip, theta, N, ess_frac, seed):
     np.random.seed(seed)
     n = len(gr)
     tvt = anchor + np.random.randn(N)*s_init
@@ -343,7 +343,7 @@ def pf_track(gr, dZ, dh, tw_gr, tw_tvt, anchor, dip0,
     logw = np.zeros(N)
     out = np.empty(n); ess_hist = np.empty(n); dipvar = np.empty(n)
     for i in range(n):
-        dip = dip + np.random.randn(N)*s_dip          # along-hole dip random walk
+        dip = dip + theta*(dip0 - dip) + np.random.randn(N)*s_dip   # OU: mean-revert to heel dip + local walk
         tvt = tvt + (-dZ[i] + dip*dh[i]) + np.random.randn(N)*s_tvt
         g = np.interp(tvt, tw_tvt, tw_gr)             # typewell GR at each particle's TVT
         d = (gr[i] - g)/s_gr
@@ -368,7 +368,7 @@ def pf_predict(gr_toe, dZ_toe, dh_toe, tw_gr, tw_tvt, anchor, dip0, hyp, seed):
     return pf_track(gr_toe.astype(np.float64), dZ_toe.astype(np.float64), dh_toe.astype(np.float64),
                     tw_gr.astype(np.float64), tw_tvt.astype(np.float64), float(anchor), float(dip0),
                     hyp["s_gr"], hyp["s_dip"], hyp["s_tvt"], hyp["s_init"], hyp["s_dipinit"],
-                    hyp["rough_tvt"], hyp["rough_dip"], int(hyp["N"]), float(hyp["ess_frac"]), int(seed))
+                    hyp["rough_tvt"], hyp["rough_dip"], hyp["theta"], int(hyp["N"]), float(hyp["ess_frac"]), int(seed))
 '''
 
 CELL_RUN = r'''
@@ -411,12 +411,13 @@ def _setup(w, split, toe_len):
     # per-step std = spread/sqrt(split). Lets dip drift ~spread over a toe of similar length.
     s_dip_step=max(s_dip_total/np.sqrt(max(float(split),1.0)), 1e-6)
     med_abs_dexp=float(np.median(np.abs(dexp_tvt)))+1e-6
-    s_tvt=0.2*med_abs_dexp
+    s_tvt=0.1*med_abs_dexp                                   # tighter process noise (was 0.2 -> diverged)
     # heel-derived TVT step scale (leak-free) for roughening, NOT toe-true range
     tvt_step_heel=float(np.std(np.diff(ttvt[:split])))+1e-6
     hyp=dict(s_gr=s_gr, s_dip=s_dip_step, s_tvt=s_tvt,
              s_init=max(float(np.std(dip_res)), 1.0), s_dipinit=s_dip_total+1e-4,
-             rough_tvt=0.5*max(s_tvt, tvt_step_heel), rough_dip=0.5*s_dip_total,
+             rough_tvt=0.3*max(s_tvt, tvt_step_heel), rough_dip=0.3*s_dip_total,
+             theta=0.03,                                     # OU mean-reversion to heel dip (bounds drift)
              N=(400 if SMOKE else 2000), ess_frac=0.5)
     return dict(gr_t=gr_t.astype(np.float64), dZt=dZt, dht=dht, dexp_idx=dexp_idx,
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
@@ -425,7 +426,7 @@ def _setup(w, split, toe_len):
 wells = WELLS if not SMOKE else WELLS[:8]
 r_geo=[]; r_dip=[]; r_pf=[]; wins=0; ess_lo=0; nrows=0; dipdrift=0.0; pf_geo_dev=0.0
 for wi, w in enumerate(wells):
-    n=len(w["X"]); split=int(0.20*n); toe=n-split          # LONG pseudo-toe: anchor early
+    n=len(w["X"]); split=int(0.50*n); toe=n-split          # moderate-long pseudo-toe (competition-ish degradation)
     s=_setup(w, split, toe)
     if s is None: continue
     true=s["true"]; H=s["hyp"]
