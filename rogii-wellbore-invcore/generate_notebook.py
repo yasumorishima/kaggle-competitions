@@ -409,16 +409,16 @@ def _setup(w, split, toe_len):
     s_dip_total=float(np.std(np.array(dips))) if len(dips)>1 else abs(dip)*0.1+1e-3
     # per-step dip random-walk: heel dip spread accumulates over ~split steps =>
     # per-step std = spread/sqrt(split). Lets dip drift ~spread over a toe of similar length.
-    s_dip_step=max(s_dip_total/np.sqrt(max(float(split),1.0)), 1e-6)
+    s_dip_step=max(2.0*s_dip_total/np.sqrt(max(float(split),1.0)), 1e-6)   # let dip walk enough to update
     med_abs_dexp=float(np.median(np.abs(dexp_tvt)))+1e-6
     s_tvt=0.1*med_abs_dexp                                   # tighter process noise (was 0.2 -> diverged)
     # heel-derived TVT step scale (leak-free) for roughening, NOT toe-true range
     tvt_step_heel=float(np.std(np.diff(ttvt[:split])))+1e-6
     hyp=dict(s_gr=s_gr, s_dip=s_dip_step, s_tvt=s_tvt,
              s_init=max(float(np.std(dip_res)), 1.0), s_dipinit=s_dip_total+1e-4,
-             rough_tvt=0.3*max(s_tvt, tvt_step_heel), rough_dip=0.3*s_dip_total,
-             theta=0.03,                                     # OU mean-reversion to heel dip (bounds drift)
-             N=(400 if SMOKE else 2000), ess_frac=0.5)
+             rough_tvt=0.3*max(s_tvt, tvt_step_heel), rough_dip=s_dip_total+1e-4,  # restore full dip spread on resample
+             theta=0.015,                                    # OU mean-reversion (looser: let GR move dip)
+             N=(400 if SMOKE else 2000), ess_frac=0.33)      # resample less often -> preserve dip diversity
     return dict(gr_t=gr_t.astype(np.float64), dZt=dZt, dht=dht, dexp_idx=dexp_idx,
                 geo=geo.astype(np.float64), true=true.astype(np.float64), anchor=anchor, dip=dip,
                 twgn=tw_gr, twtn=tw_tvt, hyp=hyp)
