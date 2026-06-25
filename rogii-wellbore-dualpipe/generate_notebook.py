@@ -36,7 +36,7 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -622,6 +622,7 @@ _INPUT_FILES = {
     'fleongg': _WORK / 'submission.csv',
     'sp45': _WORK / 'sp45_projection_submission.csv',
     'tcn': _WORK / 'tcn_submission.csv',
+    'surf': _WORK / 'surf_submission.csv',
 }
 
 
@@ -775,6 +776,115 @@ else:
     _final = _final_pd.read_csv(_WORK / _final_name)
     _final.to_csv(_WORK / 'submission.csv', index=False)
     print('wrote final submission.csv from', _final_name, _final.shape, flush=True)
+
+# --- blend-level C layer: surf+dipbeam standalone member, UN-DILUTED (rides over the
+#     2-way base, parallel to the dormant TCN lane). C is the decorrelated structural
+#     model whose errors are uncorrelated with the GBT/Ridge base -> the "biggest cheap
+#     win" for the PRIVATE base. Shipped at _SELECTED_C_WEIGHT (0.0 = verified base until
+#     C's standalone CV is confirmed by the [C] CV log); all C variants are exported so a
+#     follow-up can pick w_c. This block runs LAST so it has the final word on
+#     submission.csv (the downstream override cell still overwrites public wells only).
+_SELECTED_C_WEIGHT = 0.0
+_C_WEIGHTS = (0.10, 0.15, 0.20, 0.25)
+_surf_path = _INPUT_FILES.get('surf')
+_use_C = _surf_path is not None and _FinalBlendPath(_surf_path).exists()
+if _use_C:
+    try:
+        _surf_sub = _read_submission_frame(_surf_path, 'surf')
+        _mergedC = _merge_blend_inputs(_sp45, _fle).merge(
+            _surf_sub.rename(columns={'tvt': 'tvt_surf'}), on='id', how='inner')
+        if len(_mergedC) != len(_sp45):
+            raise RuntimeError(f'C blend id mismatch: sp45={len(_sp45)}, merged={len(_mergedC)}')
+    except Exception as _eC:
+        print('[BLENDC] C setup failed -> C layer skipped:', str(_eC)[:160], flush=True)
+        _use_C = False
+
+if _use_C:
+    def _weighted_submission_C(merged, w_sp45, w_c):
+        # keep sp45/fleongg internal ratio intact; ride C over it (TCN-lane structure)
+        _base = (float(w_sp45) * merged['tvt_sp45'].astype(float)
+                 + (1.0 - float(w_sp45)) * merged['tvt_fleongg'].astype(float))
+        out = merged[['id']].copy()
+        out['tvt'] = (1.0 - float(w_c)) * _base + float(w_c) * merged['tvt_surf'].astype(float)
+        return out
+
+    # DIAG: public-well true-RMSE (IN-SAMPLE / optimistic; C saw these wells in training).
+    # Direction signal only -- the private/unseen-well behavior is NOT measured here.
+    _id2trueC = dict(zip(train_df['id'].astype(str),
+                         (train_df['last_known_tvt'].astype(float) + train_df['target'].astype(float))))
+    _hasC = _mergedC['id'].astype(str).isin(_id2trueC)
+    _nC = int(_hasC.sum())
+    if _nC > 0:
+        _trueC = _mergedC.loc[_hasC, 'id'].astype(str).map(_id2trueC).to_numpy(dtype=float)
+
+        def _rmseC(_cand):
+            _p = _cand.loc[_hasC.values, 'tvt'].to_numpy(dtype=float)
+            return float(_final_np.sqrt(_final_np.mean((_p - _trueC) ** 2)))
+
+        print(f'[BLENDC-DIAG] true-RMSE on {_nC} public-well rows (IN-SAMPLE, optimistic; direction only):', flush=True)
+        for _wc in (0.0,) + _C_WEIGHTS:
+            print(f'[BLENDC-DIAG]   w_c={_wc:.2f} RMSE_vs_true='
+                  f'{_rmseC(_weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _wc)):.4f}', flush=True)
+    else:
+        print('[BLENDC-DIAG] no public-well overlap -> skipping C true-RMSE', flush=True)
+
+    for _wc in _C_WEIGHTS:
+        _weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _wc).to_csv(
+            _WORK / f'submission_surf_w{_wc:.2f}.csv', index=False)
+
+    _finalC = _weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _SELECTED_C_WEIGHT)
+    _finalC.to_csv(_WORK / 'submission.csv', index=False)
+    print(f'[BLENDC] wrote final submission.csv via C layer w_c={_SELECTED_C_WEIGHT:.2f}', _finalC.shape, flush=True)
+else:
+    print('[BLENDC] surf_submission.csv absent -> C layer skipped (submission.csv unchanged)', flush=True)
+'''
+
+
+# === Member C: surface+dipbeam-ONLY standalone GBT (decorrelated blend-level member). ===
+# Reads ONLY the structural columns merged onto train_df/test_df by the SURFACE + DIPBEAM
+# cells above. Does NOT touch features/X/oof_preds -> pipeline A is left UN-diluted (the
+# A-ridge surf/dipbeam gain is kept separately & for free). Writes surf_submission.csv
+# (absolute = last_known_tvt + delta, same id-alignment proven by the TCN standalone cell).
+# Decorrelation is at the ERROR level, so overlap of inputs with A is irrelevant.
+MEMBER_C_SRC = r'''
+import lightgbm as _clgb, numpy as _cnp, pandas as _cpd, os as _cos
+from sklearn.model_selection import GroupKFold as _CGKF
+
+_C_COLS = [c for c in train_df.columns
+           if c.startswith('tvtS_') or c.startswith('surf_')
+           or c in ('tvt_dipbeam_d', 'dipbeam_dip')]
+assert len(_C_COLS) >= 8, f"[C] too few structural cols ({_C_COLS}); SURFACE/DIPBEAM didn't run?"
+print(f"[C] member-C feature cols={len(_C_COLS)}: {sorted(_C_COLS)}", flush=True)
+
+_Xc  = train_df[_C_COLS].astype(_cnp.float32).to_numpy()
+_Xct = test_df[_C_COLS].astype(_cnp.float32).to_numpy()
+_yc  = train_df['target'].to_numpy(_cnp.float32)     # delta target (same as pipeline A)
+_gc_ = train_df['well'].to_numpy()
+
+_C_PARAMS = dict(objective='regression_l1', n_estimators=(60 if SMOKE else 600),
+                 learning_rate=0.03, num_leaves=31, min_child_samples=40,
+                 subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
+                 reg_lambda=1.0, n_jobs=-1, verbosity=-1)
+
+_oofC = _cnp.zeros(len(train_df), _cnp.float64)
+_teC  = _cnp.zeros(len(test_df), _cnp.float64)
+_cfb = []
+for _cf, (_tri, _vai) in enumerate(_CGKF(n_splits=CFG.n_splits).split(_Xc, groups=_gc_)):
+    _mc = _clgb.LGBMRegressor(**_C_PARAMS, random_state=100 + _cf)
+    _mc.fit(_Xc[_tri], _yc[_tri])
+    _oofC[_vai] = _mc.predict(_Xc[_vai])
+    _teC += _mc.predict(_Xct) / CFG.n_splits
+    _fr = float(_cnp.sqrt(_cnp.mean((_oofC[_vai] - _yc[_vai]) ** 2)))
+    _cfb.append(_fr); print(f"[C] fold{_cf} delta-RMSE={_fr:.4f}", flush=True)
+print("[C] CV delta-RMSE mean =", float(_cnp.mean(_cfb)), "| folds", [round(b, 3) for b in _cfb], flush=True)
+
+# absolute standalone submission: abs = last_known_tvt (constant broadcast) + delta
+_lkc = test_df['last_known_tvt'].to_numpy(_cnp.float64)
+assert len(_lkc) == len(_teC), "[C] last_known_tvt / test length mismatch"
+_C_abs = (_lkc + _teC).astype(float)
+_wkC = '/kaggle/working' if _cos.path.exists('/kaggle/working') else '.'
+_cpd.DataFrame({'id': test_df['id'].astype(str), 'tvt': _C_abs}).to_csv(f'{_wkC}/surf_submission.csv', index=False)
+print(f"[C] wrote surf_submission.csv (abs, rows={len(_C_abs)}) | features/oof_preds untouched (no A dilution)", flush=True)
 '''
 
 
@@ -798,7 +908,8 @@ def main():
     assert "X = train_df[features]" in fc and "X_test = test_df[features]" in fc, "unexpected feature-build cell"
     cells.insert(i_feat + 1, code_cell(SURF_SRC))
     cells.insert(i_feat + 2, code_cell(DIPBEAM_SRC))
-    report.append(f"inserted SURFACE cell at {i_feat + 1} and DIPBEAM cell at {i_feat + 2} (after feature build)")
+    cells.insert(i_feat + 3, code_cell(MEMBER_C_SRC))
+    report.append(f"inserted SURFACE cell at {i_feat + 1}, DIPBEAM at {i_feat + 2}, MEMBER_C at {i_feat + 3} (after feature build)")
 
     # 1c. FORCE GBT re-training: the pretrained lightgbm/catboost artifacts were fit on
     #     the OLD feature set; with surface/dipbeam added they must be refit. Gate the
@@ -909,6 +1020,21 @@ def main():
     assert 'pd.read_csv(CFG.artifacts_path / "data" / "train.csv"' in full, "train.csv fast-load harmed"
     # SURF-DIPBEAM feature-count DIAG line
     assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
+
+    # MEMBER_C cell present, after DIPBEAM, before the lightgbm loop; writes surf_submission.csv
+    assert "[C] member-C feature cols" in full, "MEMBER_C cell missing"
+    assert "surf_submission.csv" in full, "surf_submission.csv writer missing"
+    assert "[C] CV delta-RMSE mean" in full, "MEMBER_C CV print missing"
+    assert full.index("[DIPBEAM] +2 features") < full.index("[C] member-C feature cols"), \
+        "MEMBER_C must come after DIPBEAM"
+    assert full.index("[C] member-C feature cols") < full.index('for i, params in enumerate(lgb_params):'), \
+        "MEMBER_C must be injected before the lightgbm loop"
+    # C blend layer in the final blend cell (un-diluted member, runs last)
+    assert "'surf': _WORK / 'surf_submission.csv'" in full, "_INPUT_FILES missing 'surf'"
+    assert "def _weighted_submission_C(" in full, "_weighted_submission_C missing"
+    assert "[BLENDC-DIAG]" in full, "C true-RMSE DIAG missing"
+    assert "submission_surf_w" in full, "C variant export missing"
+    assert "_SELECTED_C_WEIGHT = 0.0" in full, "C ships at verified base (w_c=0) until CV confirmed"
 
     # existing override / final blend markers intact (override cell untouched)
     assert "_ov_tvt_from_contacts" in full, "contact-override marker missing (override cell harmed?)"
