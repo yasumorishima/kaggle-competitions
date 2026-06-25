@@ -34,9 +34,7 @@ SRC = BASE / "rogii-dualpipe.base.ipynb"   # pristine source (never overwritten)
 OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 
 # Flip to False (regenerate + commit + push) for the full run.
-# Generated as SMOKE=True so the coordinator can smoke-verify the new blend-level
-# 3-way path first, then flip to False for the full run.
-SMOKE = True
+SMOKE = False
 
 
 def src_str(cell):
@@ -299,7 +297,12 @@ import pandas as _final_pd
 _WORK = _FinalBlendPath('/kaggle/working') if _FinalBlendPath('/kaggle/working').exists() else _FinalBlendPath('.')
 _BLEND_WEIGHTS_SP45 = (0.50, 0.52, 0.55, 0.58, 0.60)
 _SELECTED_SP45_WEIGHT = 0.55
-_SELECTED_TCN_WEIGHT = 0.15
+# w_tcn=0 ships the verified A-ridge-improved base (the Ridge stack optimally weights
+# the TCN member: GroupKFold OOF 10.42->10.22, -0.199). The blend-level fixed-weight
+# 3-way is kept dormant: it is NOT validated (the only available signal is the
+# public-well true-RMSE, which is IN-SAMPLE and favors the GBT memorization, not the
+# private/unseen-well behavior). The 3-way candidates are still exported for study.
+_SELECTED_TCN_WEIGHT = 0.0
 _TCN_WEIGHTS = (0.10, 0.15, 0.20)
 _INPUT_FILES = {
     'fleongg': _WORK / 'submission.csv',
