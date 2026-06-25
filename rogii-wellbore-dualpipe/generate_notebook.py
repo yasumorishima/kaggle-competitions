@@ -990,7 +990,21 @@ assert not np.isnan(_lstm_test).any(), "LSTM test unmapped"
 oof_preds["lstm"] = _lstm_oof
 test_preds["lstm"] = _lstm_test
 print(f"[LSTM] member added | OOF residual RMSE={float(np.sqrt(np.mean((_lstm_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-del _ltr, _lte; gc.collect()
+# Free the LSTM's GPU model + sequence arrays before the TCN cell runs. The prior
+# DeadKernelError (kernel OOM) hit 25 s into the TCN cell: LSTM left a GPU model and
+# seq copy resident, so TCN's own GPU model + seq rebuild tipped it over. Release them.
+try:
+    del _m
+except NameError:
+    pass
+del _ltr, _lte, _loof_id, _ltest_sum
+gc.collect()
+try:
+    if _ldev == "cuda":
+        torch.cuda.empty_cache()
+except Exception as _ce:
+    print("[LSTM] empty_cache skipped:", str(_ce)[:80])
+print("[LSTM] freed GPU + sequence memory before the TCN cell")
 '''
 
 
