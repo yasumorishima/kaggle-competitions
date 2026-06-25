@@ -34,7 +34,9 @@ SRC = BASE / "rogii-dualpipe.base.ipynb"   # pristine source (never overwritten)
 OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+# Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
+# FORCE_RETRAIN path first, then flip to False for the full run.
+SMOKE = True
 
 
 def src_str(cell):
@@ -66,7 +68,12 @@ def code_cell(src):
 SMOKE_SRC = '''\
 # === SMOKE gating (baked-in; Kaggle injects no env). FLIP via generate_notebook.py. ===
 SMOKE = __SMOKE__
-print(f"SMOKE={SMOKE}")
+# Force GBT re-training: the pretrained artifacts were fit on the OLD feature set, so
+# they MUST be retrained once we inject the surface + dip-beam columns (else the loaded
+# models ignore / mismatch the new features). The train.csv fast-load is untouched; only
+# the lightgbm/catboost load-vs-fit branches honor this flag.
+FORCE_RETRAIN = True
+print(f"SMOKE={SMOKE}  FORCE_RETRAIN={FORCE_RETRAIN}")
 '''
 
 
@@ -247,6 +254,309 @@ del _tr, _te; gc.collect()
 '''
 
 
+# === Surface + dip-beam structural features (proven on the standalone surface kernel:
+#     SURF -10.3159->10.1929 = -0.123, DIPBEAM 10.1929->9.9780 = -0.215). Adapted from
+#     rogii-wellbore-medal/generate_notebook.py SURF_SRC + DIPBEAM_SRC to dualpipe names:
+#       feature_cols -> features ; Xt -> X_test ; SKIP -> {'well','id','target'}
+#       TRAIN_DIR    -> defined in-cell as CFG.dataset_path / "train"
+#     Already-present dualpipe symbols reused as-is (defined in the big helper cell that
+#     runs before the load cell): FORMATIONS, train_wids, hw_paths, test_paths, _smooth,
+#     _nn. Both cells read the RAW *__horizontal_well.csv (via train_wids/hw_paths/
+#     test_paths), so they work even when train_df/test_df came from the train.csv
+#     fast-load -- the new cols are id-merged onto train_df/test_df (medal pattern).
+SURF_SRC = r'''
+# === Global formation structural-surface features (per-row, datum-separated, LOO fold-safe) ===
+from scipy.spatial import cKDTree as _ckd
+import numpy as _np, pandas as _pd, gc as _gc, time as _t
+
+TRAIN_DIR = CFG.dataset_path / "train"   # dualpipe path (medal used a TRAIN_DIR constant)
+SKIP = {'well', 'id', 'target'}          # dualpipe feature-exclusion set
+
+_SPW = 80   # per-well subsample for the residual field (mirrors DenseANCC SPW)
+_KR  = 16   # residual IDW neighbors
+
+
+def _phi(x, y):
+    # 2nd-order polynomial basis (normalized inputs)
+    return _np.column_stack([_np.ones_like(x), x, y, x * x, y * y, x * y])
+
+
+class _FormSurf:
+    """Per-formation S_f(X,Y) = global 2nd-order WLS trend + local residual IDW.
+       LOO fold-safe: trend via per-well normal-equation downdate, residual via
+       self_wid exclusion in the kNN tree AND residuals taken against the SAME
+       downdated trend (exact leave-one-well-out, no beta0 imprint)."""
+
+    def __init__(self, wids, data_dir):
+        XX = []; YY = []; WW = []; FF = {f: [] for f in FORMATIONS}
+        sX = []; sY = []; sW = []; sFd = {f: [] for f in FORMATIONS}
+        code = {}
+        for wid in wids:
+            p = data_dir / (wid + "__horizontal_well.csv")
+            try:
+                df = _pd.read_csv(p, usecols=["X", "Y"] + FORMATIONS).dropna()
+            except Exception:
+                continue
+            if len(df) == 0:
+                continue
+            c = code.setdefault(wid, len(code))
+            X = df["X"].to_numpy(_np.float64); Y = df["Y"].to_numpy(_np.float64)
+            XX.append(X); YY.append(Y); WW.append(_np.full(len(df), c, dtype=_np.int32))
+            for f in FORMATIONS:
+                FF[f].append(df[f].to_numpy(_np.float64))
+            ix = _np.linspace(0, len(df) - 1, min(_SPW, len(df))).astype(int)
+            sX.append(X[ix]); sY.append(Y[ix]); sW.append(_np.full(len(ix), c, dtype=_np.int32))
+            for f in FORMATIONS:
+                sFd[f].append(df[f].to_numpy(_np.float64)[ix])
+        self.code = code
+        self.X = _np.concatenate(XX); self.Y = _np.concatenate(YY); self.W = _np.concatenate(WW)
+        self.F = {f: _np.concatenate(FF[f]) for f in FORMATIONS}
+        self.mx = float(self.X.mean()); self.my = float(self.Y.mean())
+        self.nx = float(self.X.std() or 1.0); self.ny = float(self.Y.std() or 1.0)
+        P = _phi((self.X - self.mx) / self.nx, (self.Y - self.my) / self.ny)
+        self.A = P.T @ P + 1e-6 * _np.eye(6)
+        self.b = {f: P.T @ self.F[f] for f in FORMATIONS}
+        self.Aw = {}; self.bw = {f: {} for f in FORMATIONS}
+        for c in _np.unique(self.W):
+            m = self.W == c; Pm = P[m]
+            self.Aw[int(c)] = Pm.T @ Pm
+            for f in FORMATIONS:
+                self.bw[f][int(c)] = Pm.T @ self.F[f][m]
+        self.beta0 = {f: _np.linalg.solve(self.A, self.b[f]) for f in FORMATIONS}
+        # residual tree (subsample); keep RAW formation values for exact-LOO residual
+        self.sX = _np.concatenate(sX); self.sY = _np.concatenate(sY); self.sW = _np.concatenate(sW)
+        self.sF = {f: _np.concatenate(sFd[f]) for f in FORMATIONS}
+        self.scale = _np.array([self.sX.std() or 1.0, self.sY.std() or 1.0])
+        self.tree = _ckd(_np.column_stack([self.sX, self.sY]) / self.scale)
+
+    def _beta(self, f, code):
+        if code is not None and code in self.Aw:
+            return _np.linalg.solve(self.A - self.Aw[code] + 1e-6 * _np.eye(6),
+                                    self.b[f] - self.bw[f][code])
+        return self.beta0[f]
+
+    def _trend(self, beta, xn, yn):
+        return (beta[0] + beta[1] * xn + beta[2] * yn
+                + beta[3] * xn * xn + beta[4] * yn * yn + beta[5] * xn * yn)
+
+    def predict(self, xy, wid=None):
+        code = self.code.get(wid) if wid is not None else None
+        xy = _np.atleast_2d(xy)
+        xq = (xy[:, 0] - self.mx) / self.nx; yq = (xy[:, 1] - self.my) / self.ny
+        kf = min(_KR + 8, len(self.sX))
+        dist, idx = self.tree.query(xy / self.scale, k=kf, workers=-1)
+        dist = _np.atleast_2d(dist); idx = _np.atleast_2d(idx)
+        if code is not None:
+            dist = _np.where(self.sW[idx] == code, _np.inf, dist)
+        kk = min(_KR - 1, kf - 1)
+        ordr = _np.argpartition(dist, kk, 1)[:, :_KR]
+        dk = _np.take_along_axis(dist, ordr, 1); ik = _np.take_along_axis(idx, ordr, 1)
+        vk = _np.isfinite(dk); w = _np.where(vk, 1.0 / (dk + 1e-3), 0.0)
+        ws = w.sum(1); safe = _np.where(ws < 1e-9, 1.0, ws)
+        nbx = (self.sX[ik] - self.mx) / self.nx; nby = (self.sY[ik] - self.my) / self.ny
+        out = {}
+        for f in FORMATIONS:
+            beta = self._beta(f, code)
+            trend_q = self._trend(beta, xq, yq)
+            # exact-LOO residual: neighbor residuals against the SAME downdated trend
+            resid_nb = self.sF[f][ik] - self._trend(beta, nbx, nby)
+            resid = (resid_nb * w).sum(1) / safe
+            out[f] = (trend_q + resid).astype(_np.float64)
+        return out
+
+
+print("[SURF] building FormationSurfaceModel ..."); _t0 = _t.time()
+_FS = _FormSurf(train_wids, TRAIN_DIR)
+print(f"[SURF]  trend pts={len(_FS.X):,} tree pts={len(_FS.sX):,} ({_t.time()-_t0:.0f}s)")
+
+
+def _surf_feats(paths, is_train):
+    recs = []
+    for p in paths:
+        wid = p.stem.replace("__horizontal_well", "")
+        try:
+            hw = _pd.read_csv(p)
+        except Exception:
+            continue
+        if "TVT_input" not in hw.columns:
+            continue
+        kn = hw[hw["TVT_input"].notna()]
+        ev = hw[hw["TVT_input"].isna()]
+        if len(ev) == 0 or len(kn) < 10:
+            continue
+        last_tvt = float(kn["TVT_input"].to_numpy()[-1])
+        swid = wid if is_train else None
+        xk = kn[["X", "Y"]].to_numpy(_np.float64); zk = kn["Z"].to_numpy(_np.float64)
+        tk = kn["TVT_input"].to_numpy(_np.float64)
+        xe = ev[["X", "Y"]].to_numpy(_np.float64); ze = ev["Z"].to_numpy(_np.float64)
+        Sk = _FS.predict(xk, swid); Se = _FS.predict(xe, swid)
+        tvts = {}; bs = []
+        for f in FORMATIONS:
+            b_f = float(_np.median(tk + zk - Sk[f]))
+            bs.append(b_f)
+            tvts[f] = (-ze + Se[f] + b_f)
+        # clip per well to its own vertical scale (guards quadratic-trend blow-up
+        # outside the train convex hull on unseen wells); all in delta units.
+        rng = float(tk.max() - tk.min())
+        cap = 3.0 * rng + 1000.0
+        deltas = {f: _np.clip(tvts[f] - last_tvt, -cap, cap) for f in FORMATIONS}
+        M = _np.stack([deltas[f] for f in FORMATIONS], 1)  # (n,6) clipped deltas
+        smean_d = M.mean(1); sstd = M.std(1); srng = M.max(1) - M.min(1)
+        bs = _np.array(bs); b_spread = float(bs.std())
+        ids = [f"{wid}_{i}" for i in ev.index]
+        d = {"id": ids,
+             "surf_mean_d": smean_d.astype(_np.float32),
+             "surf_std": sstd.astype(_np.float32),
+             "surf_rng": srng.astype(_np.float32),
+             "surf_datum_spread": _np.full(len(ev), b_spread, _np.float32)}
+        for f in FORMATIONS:
+            d[f"tvtS_{f}_d"] = deltas[f].astype(_np.float32)
+        recs.append(_pd.DataFrame(d))
+    return _pd.concat(recs, ignore_index=True) if recs else _pd.DataFrame({"id": []})
+
+
+print("[SURF] train surface feats (LOO) ..."); _t0 = _t.time()
+_sf_tr = _surf_feats(hw_paths, True)
+print(f"[SURF]  train surf rows={len(_sf_tr)} ({_t.time()-_t0:.0f}s)")
+print("[SURF] test surface feats ..."); _t0 = _t.time()
+_sf_te = _surf_feats(test_paths, False)
+print(f"[SURF]  test surf rows={len(_sf_te)} ({_t.time()-_t0:.0f}s)")
+
+_n_tr0 = len(train_df); _n_te0 = len(test_df)
+train_df = train_df.merge(_sf_tr, on="id", how="left")
+test_df = test_df.merge(_sf_te, on="id", how="left")
+assert len(train_df) == _n_tr0 and len(test_df) == _n_te0, "surf merge changed row count"
+_surfcols = [c for c in _sf_tr.columns if c != "id"]
+_miss_tr = int(train_df[_surfcols].isna().any(axis=1).sum())
+_miss_te = int(test_df[_surfcols].isna().any(axis=1).sum())
+print(f"[SURF] merged surf cols={len(_surfcols)} | train NaN-rows={_miss_tr} test NaN-rows={_miss_te}")
+assert _miss_tr == 0, f"[SURF] {_miss_tr} train rows lack surface features (id set mismatch with build_well)"
+for c in _surfcols:
+    train_df[c] = train_df[c].fillna(0.0).astype(_np.float32)
+    test_df[c] = test_df[c].fillna(0.0).astype(_np.float32)
+
+# recompute the model matrices so the GBT + Ridge stack (and the later TCN) see the surface features
+features = [c for c in train_df.columns if c not in SKIP]
+X = train_df[features]; y = train_df["target"]; g = train_df["well"]
+X_test = test_df[features]
+print(f"[SURF] #features now {len(features)} (+{len(_surfcols)} surface)")
+_gc.collect()
+'''
+
+
+# dip-aware-transition beam as an intra-well production feature on the REAL toe (own
+# known zone -> dip+anchor, own typewell, own trajectory, own toe GR) => fold-safe by
+# construction, no cross-well leak. Self-contained: bundles its own _beam_dip_jit;
+# reuses dualpipe's _smooth/_nn (defined in the big helper cell). Inserted right after
+# the SURFACE cell so features (and the later TCN's _tfeat) pick the 2 new columns up.
+DIPBEAM_SRC = r'''
+# === dip-aware beam member (intra-well, fold-safe by construction) ===
+import numpy as _qnp, pandas as _qpd, gc as _qgc
+from pathlib import Path as _QPath
+from numba import njit as _qnjit
+
+SKIP = {'well', 'id', 'target'}
+
+@_qnjit(cache=True)
+def _beam_dip_jit(sgr, tw_gr, si, BS, mc, es, d_exp, W):
+    n=len(sgr); nt=len(tw_gr); MAX=BS*(2*W+6)
+    bidx=_qnp.zeros(BS,_qnp.int64); bidx[0]=si
+    bcost=_qnp.full(BS,1e30); bcost[0]=0.; bn=_qnp.int64(1)
+    hI=_qnp.zeros((n,BS),_qnp.int64); hP=_qnp.zeros((n,BS),_qnp.int64)
+    cI=_qnp.zeros(MAX,_qnp.int64); cC=_qnp.full(MAX,1e30); cP=_qnp.zeros(MAX,_qnp.int64)
+    for step in range(n):
+        gv=sgr[step]; de=d_exp[step]; nc=_qnp.int64(0)
+        dlo=int(_qnp.floor(de))-W; dhi=int(_qnp.ceil(de))+W
+        for bi in range(bn):
+            idx=bidx[bi]; cost=bcost[bi]
+            for d in range(dlo,dhi+1):
+                ni=idx+d
+                if ni<0 or ni>=nt: continue
+                dd=d-de
+                tot=cost+(gv-tw_gr[ni])**2/es+mc*(dd if dd>=0 else -dd)
+                fnd=_qnp.int64(-1)
+                for ci in range(nc):
+                    if cI[ci]==ni: fnd=ci; break
+                if fnd>=0:
+                    if tot<cC[fnd]: cC[fnd]=tot; cP[fnd]=bi
+                else:
+                    if nc<MAX: cI[nc]=ni; cC[nc]=tot; cP[nc]=bi; nc+=1
+        if nc==0:
+            bp=_qnp.int64(0)
+            for bi in range(1,bn):
+                if bcost[bi]<bcost[bp]: bp=bi
+            ci0=bidx[bp]
+            if ci0<0: ci0=_qnp.int64(0)
+            if ci0>=nt: ci0=_qnp.int64(nt-1)
+            cI[0]=ci0; cC[0]=bcost[bp]; cP[0]=bp; nc=_qnp.int64(1)
+        kept=min(BS,nc)
+        for i in range(kept):
+            mi=i
+            for j in range(i+1,nc):
+                if cC[j]<cC[mi]: mi=j
+            if mi!=i:
+                cI[i],cI[mi]=cI[mi],cI[i]; cC[i],cC[mi]=cC[mi],cC[i]; cP[i],cP[mi]=cP[mi],cP[i]
+        hI[step,:kept]=cI[:kept]; hP[step,:kept]=cP[:kept]
+        bidx[:kept]=cI[:kept]; bcost[:kept]=cC[:kept]; bn=kept
+    best=_qnp.int64(0)
+    for b in range(1,bn):
+        if bcost[b]<bcost[best]: best=b
+    path=_qnp.zeros(n,_qnp.int64); b=best
+    for s in range(n-1,-1,-1): path[s]=hI[s,b]; b=hP[s,b]
+    return path
+
+def _dipbeam_one(hw_path):
+    wid=_QPath(hw_path).stem.replace('__horizontal_well','')
+    twp=_QPath(hw_path).parent/(wid+'__typewell.csv')
+    if not twp.exists(): return None
+    try:
+        hw=_qpd.read_csv(hw_path); tw=_qpd.read_csv(twp).sort_values('TVT')
+    except Exception: return None
+    kn=hw[hw['TVT_input'].notna()]; ev=hw[hw['TVT_input'].isna()]
+    if len(ev)==0 or len(kn)<10 or len(tw)<5: return None
+    tw_tvt=tw['TVT'].to_numpy(_qnp.float64); tw_gr=tw['GR'].to_numpy(_qnp.float64)
+    dtvt=float(_qnp.median(_qnp.diff(tw_tvt)))
+    if dtvt<=0: return None
+    ktvt=kn['TVT_input'].to_numpy(_qnp.float64); kz=kn['Z'].to_numpy(_qnp.float64)
+    kx=kn['X'].to_numpy(_qnp.float64); ky=kn['Y'].to_numpy(_qnp.float64)
+    # heel dip = d(TVT+Z)/d(horizontal) over the KNOWN zone (known at test time => leak-free)
+    dhk=_qnp.hypot(_qnp.diff(kx),_qnp.diff(ky)); hck=_qnp.concatenate([[0.0],_qnp.cumsum(dhk)])
+    dip=0.0 if _qnp.std(hck)<1e-6 else float(_qnp.polyfit(hck,ktvt+kz,1)[0])
+    last_tvt=float(ktvt[-1])
+    gr_full=hw['GR'].astype(float).interpolate(limit_direction='both').fillna(float(_qnp.nanmean(tw_gr)))
+    hgr=gr_full.iloc[ev.index[0]:].to_numpy(_qnp.float64)        # toe is trailing-contiguous (base pattern)
+    sgr=_smooth(hgr,float(_qnp.nanmean(tw_gr)),2).astype(_qnp.float64)
+    zx=ev['X'].to_numpy(_qnp.float64); zy=ev['Y'].to_numpy(_qnp.float64); ze=ev['Z'].to_numpy(_qnp.float64)
+    Xc=_qnp.concatenate([[float(kx[-1])],zx]); Yc=_qnp.concatenate([[float(ky[-1])],zy]); Zc=_qnp.concatenate([[float(kz[-1])],ze])
+    dZt=_qnp.diff(Zc); dht=_qnp.hypot(_qnp.diff(Xc),_qnp.diff(Yc))
+    dexp_idx=((-dZt+dip*dht)/dtvt).astype(_qnp.float64)          # len = len(ev)
+    si=_nn(tw_tvt,last_tvt)
+    path=_beam_dip_jit(sgr,tw_gr,si,10,20.0,144.0,dexp_idx,2)
+    tvt_dip=tw_tvt[path]
+    ids=[f'{wid}_{i}' for i in ev.index]
+    return _qpd.DataFrame({'id':ids,
+        'tvt_dipbeam_d':(tvt_dip-last_tvt).astype(_qnp.float32),
+        'dipbeam_dip':_qnp.full(len(ev),_qnp.float32(dip),_qnp.float32)})
+
+def _dipbeam_feats(paths):
+    recs=[r for r in (_dipbeam_one(p) for p in paths) if r is not None]
+    return _qpd.concat(recs,ignore_index=True) if recs else _qpd.DataFrame({'id':[]})
+
+print("[DIPBEAM] computing dip-aware beam member (intra-well) ...")
+_db_tr=_dipbeam_feats(hw_paths); _db_te=_dipbeam_feats(test_paths)
+_dn0=len(train_df); _dm0=len(test_df)
+train_df=train_df.merge(_db_tr,on='id',how='left'); test_df=test_df.merge(_db_te,on='id',how='left')
+assert len(train_df)==_dn0 and len(test_df)==_dm0, "[DIPBEAM] merge changed row count"
+for _c in ['tvt_dipbeam_d','dipbeam_dip']:
+    train_df[_c]=train_df[_c].fillna(0.0).astype(_qnp.float32)
+    test_df[_c]=test_df[_c].fillna(0.0).astype(_qnp.float32)
+features=[c for c in train_df.columns if c not in SKIP]
+X=train_df[features]; y=train_df["target"]; g=train_df["well"]; X_test=test_df[features]
+print(f"[DIPBEAM] +2 features | #features now {len(features)}")
+_qgc.collect()
+'''
+
+
 # DIAG: marginal benefit of the TCN member on pipeline A's Ridge OOF. Re-runs the
 # Ridge stack with vs. without the 'tcn' column (same params / CV / groups) and
 # prints both OOF RMSEs + the delta. This is the *private proxy* signal: the public
@@ -272,6 +582,10 @@ _r_notcn = _ridge_oof_rmse(_cols_notcn)
 _r_tcn = _ridge_oof_rmse(_cols_all)
 print(f"[DIAG] Ridge-A OOF  without_TCN={_r_notcn:.4f}  with_TCN={_r_tcn:.4f}  "
       f"delta={_r_tcn - _r_notcn:+.4f}  (negative = TCN helps the base)")
+# surface + dip-beam feature count (compare without_TCN to the prior no-surf baseline)
+_sdcols = [c for c in features if c.startswith("tvtS_") or c.startswith("surf_")
+           or c in ("tvt_dipbeam_d", "dipbeam_dip")]
+print(f"[SURF-DIPBEAM] features added: {len(_sdcols)} ({sorted(_sdcols)}) | total features={len(features)}")
 '''
 
 
@@ -477,6 +791,30 @@ def main():
     cells.insert(i_cfg + 1, code_cell(SMOKE_SRC.replace("__SMOKE__", "True" if SMOKE else "False")))
     report.append(f"inserted SMOKE cell at {i_cfg + 1} (after CFG)")
 
+    # 1b. INJECT SURFACE then DIPBEAM cells right after the feature-build cell, so the
+    #     GBT models (now retrained) and the later TCN see the new structural columns.
+    i_feat = find_cell(cells, "features = [c for c in train_df.columns if c not in {'well','id','target'}]")
+    fc = src_str(cells[i_feat])
+    assert "X = train_df[features]" in fc and "X_test = test_df[features]" in fc, "unexpected feature-build cell"
+    cells.insert(i_feat + 1, code_cell(SURF_SRC))
+    cells.insert(i_feat + 2, code_cell(DIPBEAM_SRC))
+    report.append(f"inserted SURFACE cell at {i_feat + 1} and DIPBEAM cell at {i_feat + 2} (after feature build)")
+
+    # 1c. FORCE GBT re-training: the pretrained lightgbm/catboost artifacts were fit on
+    #     the OLD feature set; with surface/dipbeam added they must be refit. Gate the
+    #     load branch on `and not FORCE_RETRAIN` (FORCE_RETRAIN defined in the SMOKE cell).
+    nr = 0
+    for c in cells:
+        if c["cell_type"] != "code":
+            continue
+        cs = src_str(c)
+        anc = "if (CFG.artifacts_path / save_path).exists():"
+        if anc in cs and "and not FORCE_RETRAIN" not in cs:
+            set_src(c, cs.replace(anc, "if (CFG.artifacts_path / save_path).exists() and not FORCE_RETRAIN:"))
+            nr += 1
+    assert nr == 2, f"expected to gate 2 GBT load branches (lightgbm + catboost), gated {nr}"
+    report.append(f"gated {nr} GBT load branches on `and not FORCE_RETRAIN`")
+
     # 2. INJECT the TCN member cell right before `oof_preds = pd.DataFrame(oof_preds)`
     #    (after the catboost loop; oof_preds/test_preds are still dicts here).
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
@@ -522,7 +860,7 @@ def main():
     assert "GroupKFold(n_splits=CFG.n_splits)" in full, "N_SPLITS->CFG.n_splits adaptation missing"
     # SMOKE cell precedes the TCN cell
     assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag cell missing"
-    assert full.index("print(f\"SMOKE={SMOKE}\")") < full.index("class _TCN(nn.Module)"), \
+    assert full.index("FORCE_RETRAIN={FORCE_RETRAIN}") < full.index("class _TCN(nn.Module)"), \
         "SMOKE cell must precede TCN cell"
     # DIAG cell present and placed after the Ridge stack
     assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
@@ -545,6 +883,32 @@ def main():
     # base 2-way behavior preserved (candidate exports + report)
     assert "submission_sp45_fleongg_w{_w_sp45:.2f}.csv" in full, "2-way candidate exports lost"
     assert "sp45_fleongg_blend_report.csv" in full, "blend report export lost"
+
+    # SURFACE + DIPBEAM cells present, after feature build, before the GBT loops & TCN
+    assert "class _FormSurf:" in full, "SURFACE cell (_FormSurf) missing"
+    assert "_FS = _FormSurf(train_wids, TRAIN_DIR)" in full, "SURFACE build missing"
+    assert "tvtS_" in full, "surface tvtS_ columns missing"
+    assert "def _beam_dip_jit(" in full and "tvt_dipbeam_d" in full and "dipbeam_dip" in full, \
+        "DIPBEAM cell missing"
+    _i_feat = full.index("features = [c for c in train_df.columns if c not in {'well','id','target'}]")
+    assert _i_feat < full.index("class _FormSurf:"), "SURFACE must come after the feature build"
+    assert full.index("class _FormSurf:") < full.index("def _beam_dip_jit("), "SURFACE must precede DIPBEAM"
+    assert full.index("[DIPBEAM] +2 features") < full.index('for i, params in enumerate(lgb_params):'), \
+        "SURF/DIPBEAM must be injected before the lightgbm loop"
+    assert full.index("[DIPBEAM] +2 features") < full.index("_tfeat = list(features)"), \
+        "SURF/DIPBEAM must be injected before the TCN reads features"
+    # surface/dipbeam recompute features/X/X_test (dualpipe names, not medal feature_cols/Xt)
+    assert "X_test = test_df[features]" in full, "SURFACE feature recompute (X_test) missing"
+    assert "X=train_df[features]; y=train_df[\"target\"]; g=train_df[\"well\"]; X_test=test_df[features]" in full, \
+        "DIPBEAM feature recompute missing"
+    # FORCE_RETRAIN defined and both GBT load branches gated on it
+    assert "FORCE_RETRAIN = True" in full, "FORCE_RETRAIN flag missing"
+    assert full.count("and not FORCE_RETRAIN") == 2, \
+        "both lightgbm + catboost load branches must be gated on `and not FORCE_RETRAIN`"
+    # the train.csv fast-load is untouched (surface/dipbeam are merged on top, not recomputed)
+    assert 'pd.read_csv(CFG.artifacts_path / "data" / "train.csv"' in full, "train.csv fast-load harmed"
+    # SURF-DIPBEAM feature-count DIAG line
+    assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
 
     # existing override / final blend markers intact (override cell untouched)
     assert "_ov_tvt_from_contacts" in full, "contact-override marker missing (override cell harmed?)"
