@@ -34,7 +34,7 @@ SRC = BASE / "rogii-dualpipe.base.ipynb"   # pristine source (never overwritten)
 OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = True
+SMOKE = False
 
 
 def src_str(cell):
@@ -234,6 +234,34 @@ del _tr, _te; gc.collect()
 '''
 
 
+# DIAG: marginal benefit of the TCN member on pipeline A's Ridge OOF. Re-runs the
+# Ridge stack with vs. without the 'tcn' column (same params / CV / groups) and
+# prints both OOF RMSEs + the delta. This is the *private proxy* signal: the public
+# LB is override-dominated and does NOT reflect base changes, so the submit decision
+# rides on whether TCN lowers pipeline A's Ridge OOF (which flows into the blend).
+DIAG_SRC = r'''
+# === DIAG: does the TCN member lower pipeline A's Ridge OOF? (private proxy) ===
+from sklearn.linear_model import Ridge as _RD
+from sklearn.model_selection import GroupKFold as _GKF
+
+
+def _ridge_oof_rmse(_cols):
+    _M = oof_preds[_cols].to_numpy(); _yv = y.values; _oof = np.zeros(len(_M))
+    for _tri, _vai in _GKF(n_splits=CFG.n_splits).split(_M, groups=g):
+        _r = _RD(**ridge_params).fit(_M[_tri], _yv[_tri])
+        _oof[_vai] = _r.predict(_M[_vai])
+    return float(np.sqrt(np.mean((_oof - _yv) ** 2)))
+
+
+_cols_all = list(oof_preds.columns)
+_cols_notcn = [c for c in _cols_all if c != "tcn"]
+_r_notcn = _ridge_oof_rmse(_cols_notcn)
+_r_tcn = _ridge_oof_rmse(_cols_all)
+print(f"[DIAG] Ridge-A OOF  without_TCN={_r_notcn:.4f}  with_TCN={_r_tcn:.4f}  "
+      f"delta={_r_tcn - _r_notcn:+.4f}  (negative = TCN helps the base)")
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -252,6 +280,12 @@ def main():
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
     cells.insert(i_df, code_cell(TCN_SRC))
     report.append(f"inserted TCN cell at {i_df} (before oof_preds = pd.DataFrame(oof_preds))")
+
+    # 3. INJECT the DIAG cell right after the Ridge stack is built (oof_preds is a
+    #    DataFrame by then), so the log reports the TCN's marginal OOF benefit.
+    i_rd = find_cell(cells, "ridge_oof_preds = ridge_trainer.oof_preds")
+    cells.insert(i_rd + 1, code_cell(DIAG_SRC))
+    report.append(f"inserted DIAG cell at {i_rd + 1} (after Ridge stack)")
 
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
@@ -278,6 +312,10 @@ def main():
     assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag cell missing"
     assert full.index("print(f\"SMOKE={SMOKE}\")") < full.index("class _TCN(nn.Module)"), \
         "SMOKE cell must precede TCN cell"
+    # DIAG cell present and placed after the Ridge stack
+    assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
+    assert full.index("ridge_oof_preds = ridge_trainer.oof_preds") < full.index("[DIAG] Ridge-A OOF"), \
+        "DIAG must come after the Ridge stack"
     # existing override / final blend markers intact (untouched)
     assert "_ov_tvt_from_contacts" in full, "contact-override marker missing (override cell harmed?)"
     assert "_FinalBlendPath" in full, "final-blend marker missing (blend cell harmed?)"
