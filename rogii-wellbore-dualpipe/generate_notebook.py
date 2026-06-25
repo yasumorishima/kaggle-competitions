@@ -34,7 +34,9 @@ SRC = BASE / "rogii-dualpipe.base.ipynb"   # pristine source (never overwritten)
 OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 
 # Flip to False (regenerate + commit + push) for the full run.
-SMOKE = False
+# Generated as SMOKE=True so the coordinator can smoke-verify the new blend-level
+# 3-way path first, then flip to False for the full run.
+SMOKE = True
 
 
 def src_str(cell):
@@ -226,7 +228,20 @@ assert len(_tcn_oof) == len(train_df), "TCN OOF length != train_df"
 assert len(_tcn_test) == len(test_df), "TCN test length != test_df"
 assert not np.isnan(_tcn_oof).any(), "TCN OOF unmapped"
 assert not np.isnan(_tcn_test).any(), "TCN test unmapped"
+
+# --- standalone ABSOLUTE-TVT submission (consumed by the blend-level 3-way member) ---
+# test_df['last_known_tvt'] is the RAW last-known TVT: build_well stores it via the
+# constant broadcast `sc(last_tvt)` (np.full, NOT a scaler), so absolute = last_known + delta.
+_lk = test_df['last_known_tvt'].to_numpy(np.float32)
+assert len(_lk) == len(_tcn_test), "last_known_tvt / tcn_test length mismatch"
+_tcn_abs = (_lk + _tcn_test).astype(float)
+import os as _os
+_wk = '/kaggle/working' if _os.path.exists('/kaggle/working') else '.'
+pd.DataFrame({'id': test_df['id'].astype(str), 'tvt': _tcn_abs}).to_csv(f'{_wk}/tcn_submission.csv', index=False)
+print(f"[TCN] wrote tcn_submission.csv abs (rows={len(_tcn_abs)})")
+
 # oof_preds / test_preds are still dicts here -> add the member; the Ridge stack weights it.
+# (kept independently of the standalone blend member above; A-ridge gain is free.)
 oof_preds["tcn"] = _tcn_oof
 test_preds["tcn"] = _tcn_test
 print(f"[TCN] member added | OOF residual RMSE={float(np.sqrt(np.mean((_tcn_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
@@ -262,6 +277,190 @@ print(f"[DIAG] Ridge-A OOF  without_TCN={_r_notcn:.4f}  with_TCN={_r_tcn:.4f}  "
 '''
 
 
+# Full replacement for the final-blend cell. It is a strict superset of the base:
+#  * the base 2-way sp45/fleongg blend (0.55/0.45 internal ratio) is computed exactly
+#    as before, all `submission_sp45_fleongg_w*.csv` candidate exports + report CSV
+#    are preserved (backward compatible);
+#  * if `tcn_submission.csv` exists, a blend-level 3-way layer is added on TOP:
+#        out = (1 - w_tcn) * [ w_sp45*sp45 + (1-w_sp45)*fleongg ] + w_tcn*tcn
+#    so the sp45/fleongg 0.55/0.45 mix is untouched and TCN rides over it at w_tcn;
+#  * DIAG prints true-RMSE (train has the public wells' real TVT) for w_tcn in
+#    {0, 0.10, 0.15, 0.20} -- optimistic (TCN saw those wells) but a real-geology
+#    direction signal;
+#  * submission.csv is written from the 3-way w_tcn=0.15 / w_sp45=0.55 candidate;
+#  * if tcn_submission.csv is absent (TCN failed), it AUTOMATICALLY falls back to the
+#    base 2-way path -> the blend never dies on a TCN failure.
+# The downstream override cell (_ov_tvt_from_contacts) still overwrites public wells.
+BLEND3_SRC = r'''
+from pathlib import Path as _FinalBlendPath
+import numpy as _final_np
+import pandas as _final_pd
+
+_WORK = _FinalBlendPath('/kaggle/working') if _FinalBlendPath('/kaggle/working').exists() else _FinalBlendPath('.')
+_BLEND_WEIGHTS_SP45 = (0.50, 0.52, 0.55, 0.58, 0.60)
+_SELECTED_SP45_WEIGHT = 0.55
+_SELECTED_TCN_WEIGHT = 0.15
+_TCN_WEIGHTS = (0.10, 0.15, 0.20)
+_INPUT_FILES = {
+    'fleongg': _WORK / 'submission.csv',
+    'sp45': _WORK / 'sp45_projection_submission.csv',
+    'tcn': _WORK / 'tcn_submission.csv',
+}
+
+
+def _read_submission_frame(path, label):
+    frame = _final_pd.read_csv(path)
+    missing = {'id', 'tvt'} - set(frame.columns)
+    if missing:
+        raise RuntimeError(f'{label} submission is missing columns: {sorted(missing)}')
+
+    frame = frame[['id', 'tvt']].copy()
+    frame['id'] = frame['id'].astype(str)
+    frame['tvt'] = frame['tvt'].astype(float)
+
+    if not _final_np.isfinite(frame['tvt'].to_numpy(dtype=float)).all():
+        raise RuntimeError(f'Non-finite values in {label} tvt')
+    return frame
+
+
+def _merge_blend_inputs(sp45, fleongg):
+    merged = sp45.rename(columns={'tvt': 'tvt_sp45'}).merge(
+        fleongg.rename(columns={'tvt': 'tvt_fleongg'}),
+        on='id',
+        how='inner',
+    )
+    if len(merged) != len(sp45) or len(merged) != len(fleongg):
+        raise RuntimeError(
+            f'Blend id mismatch: sp45={len(sp45)}, fleongg={len(fleongg)}, merged={len(merged)}'
+        )
+    return merged
+
+
+def _merge_blend_inputs3(sp45, fleongg, tcn):
+    merged = _merge_blend_inputs(sp45, fleongg).merge(
+        tcn.rename(columns={'tvt': 'tvt_tcn'}),
+        on='id',
+        how='inner',
+    )
+    if len(merged) != len(sp45) or len(merged) != len(fleongg) or len(merged) != len(tcn):
+        raise RuntimeError(
+            f'3-way blend id mismatch: sp45={len(sp45)}, fleongg={len(fleongg)}, '
+            f'tcn={len(tcn)}, merged={len(merged)}'
+        )
+    return merged
+
+
+def _weighted_submission(merged, w_sp45):
+    w_fleongg = 1.0 - float(w_sp45)
+    out = merged[['id']].copy()
+    out['tvt'] = (
+        float(w_sp45) * merged['tvt_sp45'].astype(float)
+        + w_fleongg * merged['tvt_fleongg'].astype(float)
+    )
+    return out
+
+
+def _weighted_submission3(merged, w_sp45, w_tcn):
+    # Keep the sp45/fleongg internal ratio (default 0.55/0.45) intact; ride TCN over it.
+    _base = (
+        float(w_sp45) * merged['tvt_sp45'].astype(float)
+        + (1.0 - float(w_sp45)) * merged['tvt_fleongg'].astype(float)
+    )
+    out = merged[['id']].copy()
+    out['tvt'] = (1.0 - float(w_tcn)) * _base + float(w_tcn) * merged['tvt_tcn'].astype(float)
+    return out
+
+
+def _candidate_report_row(candidate, merged, file_name, w_sp45):
+    diff = candidate['tvt'].to_numpy(dtype=float) - merged['tvt_sp45'].to_numpy(dtype=float)
+    return {
+        'file': file_name,
+        'w_sp45': float(w_sp45),
+        'w_fleongg': float(1.0 - w_sp45),
+        'rows': int(len(candidate)),
+        'mean_tvt': float(candidate['tvt'].mean()),
+        'std_tvt': float(candidate['tvt'].std()),
+        'rmse_vs_sp45': float(_final_np.sqrt(_final_np.mean(diff * diff))),
+        'p95_abs_vs_sp45': float(_final_np.quantile(_final_np.abs(diff), 0.95)),
+    }
+
+
+# --- base 2-way sp45/fleongg blend (unchanged; candidate exports + report preserved) ---
+_fle = _read_submission_frame(_INPUT_FILES['fleongg'], 'fleongg')
+_fle.to_csv(_WORK / 'fleongg_pretrained_submission.csv', index=False)
+_sp45 = _read_submission_frame(_INPUT_FILES['sp45'], 'sp45')
+_merged = _merge_blend_inputs(_sp45, _fle)
+
+_report_rows = []
+for _w_sp45 in _BLEND_WEIGHTS_SP45:
+    _candidate = _weighted_submission(_merged, _w_sp45)
+    _name = f'submission_sp45_fleongg_w{_w_sp45:.2f}.csv'
+    _candidate.to_csv(_WORK / _name, index=False)
+    _report_rows.append(_candidate_report_row(_candidate, _merged, _name, _w_sp45))
+
+_report = _final_pd.DataFrame(_report_rows)
+_report.to_csv(_WORK / 'sp45_fleongg_blend_report.csv', index=False)
+print(_report.to_string(index=False), flush=True)
+
+# --- blend-level 3-way layer (TCN as a standalone member, no A-ridge dilution) ---
+_tcn_path = _INPUT_FILES['tcn']
+_use_3way = _FinalBlendPath(_tcn_path).exists()
+if _use_3way:
+    try:
+        _tcn_sub = _read_submission_frame(_tcn_path, 'tcn')
+        _merged3 = _merge_blend_inputs3(_sp45, _fle, _tcn_sub)
+    except Exception as _e3:
+        print('[BLEND3] 3-way setup failed -> 2-way fallback:', str(_e3)[:160], flush=True)
+        _use_3way = False
+else:
+    print('[BLEND3] tcn_submission.csv absent -> 2-way fallback', flush=True)
+
+if _use_3way:
+    # DIAG: true-RMSE on the public wells (train holds their real TVT via
+    # true_tvt = last_known_tvt + target). Optimistic (TCN saw these wells in
+    # training) but a real-geology direction signal for picking w_tcn.
+    _id2true = dict(zip(
+        train_df['id'].astype(str),
+        (train_df['last_known_tvt'].astype(float) + train_df['target'].astype(float)),
+    ))
+    _has_true = _merged3['id'].astype(str).isin(_id2true)
+    _n_true = int(_has_true.sum())
+    if _n_true > 0:
+        _td = _merged3[_has_true].copy()
+        _true = _td['id'].astype(str).map(_id2true).to_numpy(dtype=float)
+
+        def _rmse_vs_true(_cand):
+            _p = _cand.loc[_has_true.values, 'tvt'].to_numpy(dtype=float)
+            return float(_final_np.sqrt(_final_np.mean((_p - _true) ** 2)))
+
+        _cand0 = _weighted_submission3(_merged3, _SELECTED_SP45_WEIGHT, 0.0)
+        print(f'[BLEND3-DIAG] true-RMSE on {_n_true} public-well rows '
+              f'(train-known TVT; optimistic, TCN trained on these):', flush=True)
+        print(f'[BLEND3-DIAG]   w_tcn=0.00 (2-way) RMSE_vs_true={_rmse_vs_true(_cand0):.4f}', flush=True)
+        for _wt in _TCN_WEIGHTS:
+            _candw = _weighted_submission3(_merged3, _SELECTED_SP45_WEIGHT, _wt)
+            print(f'[BLEND3-DIAG]   w_tcn={_wt:.2f} (3-way) RMSE_vs_true={_rmse_vs_true(_candw):.4f}', flush=True)
+    else:
+        print('[BLEND3-DIAG] no public-well overlap with train ids -> skipping true-RMSE', flush=True)
+
+    # export all 3-way candidates (compat-side, alongside the 2-way ones)
+    for _wt in _TCN_WEIGHTS:
+        _c3 = _weighted_submission3(_merged3, _SELECTED_SP45_WEIGHT, _wt)
+        _c3.to_csv(_WORK / f'submission_3way_wtcn{_wt:.2f}.csv', index=False)
+
+    _final = _weighted_submission3(_merged3, _SELECTED_SP45_WEIGHT, _SELECTED_TCN_WEIGHT)
+    _final.to_csv(_WORK / 'submission.csv', index=False)
+    print(f'wrote final submission.csv via 3-way w_sp45={_SELECTED_SP45_WEIGHT:.2f} '
+          f'w_tcn={_SELECTED_TCN_WEIGHT:.2f}', _final.shape, flush=True)
+else:
+    # base 2-way path (identical to the original blend cell's tail)
+    _final_name = f'submission_sp45_fleongg_w{_SELECTED_SP45_WEIGHT:.2f}.csv'
+    _final = _final_pd.read_csv(_WORK / _final_name)
+    _final.to_csv(_WORK / 'submission.csv', index=False)
+    print('wrote final submission.csv from', _final_name, _final.shape, flush=True)
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -286,6 +485,16 @@ def main():
     i_rd = find_cell(cells, "ridge_oof_preds = ridge_trainer.oof_preds")
     cells.insert(i_rd + 1, code_cell(DIAG_SRC))
     report.append(f"inserted DIAG cell at {i_rd + 1} (after Ridge stack)")
+
+    # 4. REPLACE the final-blend cell with the 3-way version (TCN as a standalone
+    #    blend member, with 2-way auto-fallback if tcn_submission.csv is missing).
+    i_bl = find_cell(cells, "_SELECTED_SP45_WEIGHT = 0.55")
+    base_blend = src_str(cells[i_bl])
+    assert "_FinalBlendPath" in base_blend and "_weighted_submission(" in base_blend, \
+        "unexpected blend cell shape"
+    assert "_ov_tvt_from_contacts" not in base_blend, "blend cell must not be the override cell"
+    set_src(cells[i_bl], BLEND3_SRC)
+    report.append(f"replaced blend cell at {i_bl} with 3-way (TCN member + 2-way fallback)")
 
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
@@ -316,7 +525,25 @@ def main():
     assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
     assert full.index("ridge_oof_preds = ridge_trainer.oof_preds") < full.index("[DIAG] Ridge-A OOF"), \
         "DIAG must come after the Ridge stack"
-    # existing override / final blend markers intact (untouched)
+    # standalone TCN absolute submission written in the TCN cell
+    assert "tcn_submission.csv" in full, "tcn_submission.csv writer missing"
+    assert "_tcn_abs = (_lk + _tcn_test)" in full, "TCN absolute = last_known + delta missing"
+    assert full.index("tcn_submission.csv") < full.index("oof_preds = pd.DataFrame(oof_preds)"), \
+        "tcn_submission.csv must be written before the dict->DataFrame conversion"
+
+    # 3-way blend cell: tcn input, 3-way weighting fn, true-RMSE DIAG, fallback, 3-way export
+    assert "'tcn': _WORK / 'tcn_submission.csv'" in full, "_INPUT_FILES missing 'tcn'"
+    assert "def _weighted_submission3(" in full, "_weighted_submission3 missing"
+    assert "[BLEND3-DIAG]" in full and "RMSE_vs_true" in full, "true-RMSE DIAG missing"
+    assert "submission_3way_wtcn" in full, "3-way candidate export missing"
+    assert "2-way fallback" in full, "2-way fallback branch missing"
+    # submission.csv is written via the 3-way path (and still via 2-way in the fallback)
+    assert "wrote final submission.csv via 3-way" in full, "3-way submission.csv write missing"
+    # base 2-way behavior preserved (candidate exports + report)
+    assert "submission_sp45_fleongg_w{_w_sp45:.2f}.csv" in full, "2-way candidate exports lost"
+    assert "sp45_fleongg_blend_report.csv" in full, "blend report export lost"
+
+    # existing override / final blend markers intact (override cell untouched)
     assert "_ov_tvt_from_contacts" in full, "contact-override marker missing (override cell harmed?)"
     assert "_FinalBlendPath" in full, "final-blend marker missing (blend cell harmed?)"
     assert "features = [c for c in train_df.columns if c not in {'well','id','target'}]" in full, \
