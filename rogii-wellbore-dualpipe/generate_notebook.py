@@ -36,7 +36,7 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = False
+SMOKE = True
 
 # The BiLSTM Ridge member is shelved: it ran (CV 11.04) but the kernel OOMs at the
 # following TCN cell (two sequence models + full GBT retrain exceed host RAM), and its
@@ -278,25 +278,29 @@ import numpy as _np, pandas as _pd, gc as _gc, time as _t
 TRAIN_DIR = CFG.dataset_path / "train"   # dualpipe path (medal used a TRAIN_DIR constant)
 SKIP = {'well', 'id', 'target'}          # dualpipe feature-exclusion set
 
-_SPW = 80   # per-well subsample for the residual field (mirrors DenseANCC SPW)
-_KR  = 16   # residual IDW neighbors
+_NODE_K   = 3      # representative TPS nodes per well (heel/mid/toe)
+_N_TARGET = 2600   # keep N=W*_NODE_K under this; auto-shrink _NODE_K if W is large
+_LAM      = 5.0    # TPS smoothing (tune in smoke: 1, 5, 20)
 
 
-def _phi(x, y):
-    # 2nd-order polynomial basis (normalized inputs)
-    return _np.column_stack([_np.ones_like(x), x, y, x * x, y * y, x * y])
+def _tps_U(r2):
+    # thin-plate radial basis r^2*log(r) expressed in r^2 (>=0); 0 at r=0
+    return _np.where(r2 > 1e-12, 0.5 * r2 * _np.log(_np.maximum(r2, 1e-30)), 0.0)
 
 
-class _FormSurf:
-    """Per-formation S_f(X,Y) = global 2nd-order WLS trend + local residual IDW.
-       LOO fold-safe: trend via per-well normal-equation downdate, residual via
-       self_wid exclusion in the kNN tree AND residuals taken against the SAME
-       downdated trend (exact leave-one-well-out, no beta0 imprint)."""
+class _FormSurfTPS:
+    """Per-formation S_f(X,Y) via smoothed Thin-Plate-Spline on a FEW representative
+       nodes per well (heel/mid/toe). Horizontal wells are near-linear tracks, so
+       per-row points are spatially redundant; a few nodes per well capture the
+       cross-well global structure (dip/folding between wells). Replaces BOTH the
+       2nd-order trend and the IDW residual with one global C1 surface; intra-well
+       dip is carried by the per-well datum b_f (_surf_feats) and the dipbeam member.
+       Exact well-level LOO: each train well's surface is solved with that well's
+       nodes EXCLUDED (cached per-well), so any GroupKFold split is leak-free -- same
+       guarantee as the prior _FormSurf downdate. predict(xy, wid) is API-compatible."""
 
     def __init__(self, wids, data_dir):
-        XX = []; YY = []; WW = []; FF = {f: [] for f in FORMATIONS}
-        sX = []; sY = []; sW = []; sFd = {f: [] for f in FORMATIONS}
-        code = {}
+        raw = []
         for wid in wids:
             p = data_dir / (wid + "__horizontal_well.csv")
             try:
@@ -305,75 +309,76 @@ class _FormSurf:
                 continue
             if len(df) == 0:
                 continue
+            raw.append((wid, df))
+        W = len(raw)
+        node_k = max(2, min(_NODE_K, int(_N_TARGET / max(W, 1))))   # auto-shrink guard
+        rows_x = []; rows_y = []; rows_w = []; rows_F = {f: [] for f in FORMATIONS}
+        code = {}
+        for wid, df in raw:
             c = code.setdefault(wid, len(code))
-            X = df["X"].to_numpy(_np.float64); Y = df["Y"].to_numpy(_np.float64)
-            XX.append(X); YY.append(Y); WW.append(_np.full(len(df), c, dtype=_np.int32))
+            n = len(df)
+            ix = _np.unique(_np.linspace(0, n - 1, min(node_k, n)).astype(int))  # heel..toe
+            sub = df.iloc[ix]
+            rows_x.append(sub["X"].to_numpy(_np.float64))
+            rows_y.append(sub["Y"].to_numpy(_np.float64))
+            rows_w.append(_np.full(len(sub), c, _np.int32))
             for f in FORMATIONS:
-                FF[f].append(df[f].to_numpy(_np.float64))
-            ix = _np.linspace(0, len(df) - 1, min(_SPW, len(df))).astype(int)
-            sX.append(X[ix]); sY.append(Y[ix]); sW.append(_np.full(len(ix), c, dtype=_np.int32))
-            for f in FORMATIONS:
-                sFd[f].append(df[f].to_numpy(_np.float64)[ix])
+                rows_F[f].append(sub[f].to_numpy(_np.float64))
         self.code = code
-        self.X = _np.concatenate(XX); self.Y = _np.concatenate(YY); self.W = _np.concatenate(WW)
-        self.F = {f: _np.concatenate(FF[f]) for f in FORMATIONS}
-        self.mx = float(self.X.mean()); self.my = float(self.Y.mean())
-        self.nx = float(self.X.std() or 1.0); self.ny = float(self.Y.std() or 1.0)
-        P = _phi((self.X - self.mx) / self.nx, (self.Y - self.my) / self.ny)
-        self.A = P.T @ P + 1e-6 * _np.eye(6)
-        self.b = {f: P.T @ self.F[f] for f in FORMATIONS}
-        self.Aw = {}; self.bw = {f: {} for f in FORMATIONS}
-        for c in _np.unique(self.W):
-            m = self.W == c; Pm = P[m]
-            self.Aw[int(c)] = Pm.T @ Pm
-            for f in FORMATIONS:
-                self.bw[f][int(c)] = Pm.T @ self.F[f][m]
-        self.beta0 = {f: _np.linalg.solve(self.A, self.b[f]) for f in FORMATIONS}
-        # residual tree (subsample); keep RAW formation values for exact-LOO residual
-        self.sX = _np.concatenate(sX); self.sY = _np.concatenate(sY); self.sW = _np.concatenate(sW)
-        self.sF = {f: _np.concatenate(sFd[f]) for f in FORMATIONS}
-        self.scale = _np.array([self.sX.std() or 1.0, self.sY.std() or 1.0])
-        self.tree = _ckd(_np.column_stack([self.sX, self.sY]) / self.scale)
+        self.nx = _np.concatenate(rows_x); self.ny = _np.concatenate(rows_y)
+        self.nw = _np.concatenate(rows_w)
+        self.nF = {f: _np.concatenate(rows_F[f]) for f in FORMATIONS}
+        N = len(self.nx)
+        self.mx = float(self.nx.mean()); self.my = float(self.ny.mean())
+        self.sx = float(self.nx.std() or 1.0); self.sy = float(self.ny.std() or 1.0)
+        self._Xn = (self.nx - self.mx) / self.sx
+        self._Yn = (self.ny - self.my) / self.sy
+        _bytes = (N + 3) ** 2 * 8
+        print(f"[SURF-TPS] wells={W} node_k={node_k} N={N} "
+              f"saddle={(N+3)}x{(N+3)} ({_bytes/1e6:.0f}MB) lam={_LAM}")
+        _t0s = _t.time()
+        self._full = self._solve(_np.ones(N, bool))
+        print(f"[SURF-TPS] full solve {_t.time()-_t0s:.2f}s")
+        _t0s = _t.time()
+        self._loo = {}
+        for c in _np.unique(self.nw):
+            self._loo[int(c)] = self._solve(self.nw != c)
+        print(f"[SURF-TPS] {len(self._loo)} per-well LOO solves {_t.time()-_t0s:.1f}s")
 
-    def _beta(self, f, code):
-        if code is not None and code in self.Aw:
-            return _np.linalg.solve(self.A - self.Aw[code] + 1e-6 * _np.eye(6),
-                                    self.b[f] - self.bw[f][code])
-        return self.beta0[f]
+    def _solve(self, mask):
+        Xn = self._Xn[mask]; Yn = self._Yn[mask]; m = len(Xn)
+        dx = Xn[:, None] - Xn[None, :]; dy = Yn[:, None] - Yn[None, :]
+        K = _tps_U(dx * dx + dy * dy) + _LAM * _np.eye(m)
+        P = _np.column_stack([_np.ones(m), Xn, Yn])
+        Asys = _np.zeros((m + 3, m + 3))
+        Asys[:m, :m] = K; Asys[:m, m:] = P; Asys[m:, :m] = P.T
+        Asys += 1e-8 * _np.eye(m + 3)
+        RHS = _np.zeros((m + 3, len(FORMATIONS)))
+        for j, f in enumerate(FORMATIONS):
+            RHS[:m, j] = self.nF[f][mask]
+        SOL = _np.linalg.solve(Asys, RHS)   # saddle is symmetric-indefinite -> LU
+        coeffs = {f: (SOL[:m, j], SOL[m:, j]) for j, f in enumerate(FORMATIONS)}
+        return {"Xn": Xn, "Yn": Yn, "coeffs": coeffs}
 
-    def _trend(self, beta, xn, yn):
-        return (beta[0] + beta[1] * xn + beta[2] * yn
-                + beta[3] * xn * xn + beta[4] * yn * yn + beta[5] * xn * yn)
+    def _eval(self, bundle, xy, f):
+        Xq = (xy[:, 0] - self.mx) / self.sx
+        Yq = (xy[:, 1] - self.my) / self.sy
+        dx = Xq[:, None] - bundle["Xn"][None, :]
+        dy = Yq[:, None] - bundle["Yn"][None, :]
+        w, a = bundle["coeffs"][f]
+        return _tps_U(dx * dx + dy * dy) @ w + a[0] + a[1] * Xq + a[2] * Yq
 
     def predict(self, xy, wid=None):
-        code = self.code.get(wid) if wid is not None else None
         xy = _np.atleast_2d(xy)
-        xq = (xy[:, 0] - self.mx) / self.nx; yq = (xy[:, 1] - self.my) / self.ny
-        kf = min(_KR + 8, len(self.sX))
-        dist, idx = self.tree.query(xy / self.scale, k=kf, workers=-1)
-        dist = _np.atleast_2d(dist); idx = _np.atleast_2d(idx)
-        if code is not None:
-            dist = _np.where(self.sW[idx] == code, _np.inf, dist)
-        kk = min(_KR - 1, kf - 1)
-        ordr = _np.argpartition(dist, kk, 1)[:, :_KR]
-        dk = _np.take_along_axis(dist, ordr, 1); ik = _np.take_along_axis(idx, ordr, 1)
-        vk = _np.isfinite(dk); w = _np.where(vk, 1.0 / (dk + 1e-3), 0.0)
-        ws = w.sum(1); safe = _np.where(ws < 1e-9, 1.0, ws)
-        nbx = (self.sX[ik] - self.mx) / self.nx; nby = (self.sY[ik] - self.my) / self.ny
-        out = {}
-        for f in FORMATIONS:
-            beta = self._beta(f, code)
-            trend_q = self._trend(beta, xq, yq)
-            # exact-LOO residual: neighbor residuals against the SAME downdated trend
-            resid_nb = self.sF[f][ik] - self._trend(beta, nbx, nby)
-            resid = (resid_nb * w).sum(1) / safe
-            out[f] = (trend_q + resid).astype(_np.float64)
-        return out
+        code = self.code.get(wid) if wid is not None else None
+        b = self._loo[code] if (code is not None and code in self._loo) else self._full
+        return {f: self._eval(b, xy, f).astype(_np.float64) for f in FORMATIONS}
 
 
-print("[SURF] building FormationSurfaceModel ..."); _t0 = _t.time()
-_FS = _FormSurf(train_wids, TRAIN_DIR)
-print(f"[SURF]  trend pts={len(_FS.X):,} tree pts={len(_FS.sX):,} ({_t.time()-_t0:.0f}s)")
+print("[SURF] building FormationSurfaceModel (representative-node TPS, per-well LOO) ...")
+_t0 = _t.time()
+_FS = _FormSurfTPS(train_wids, TRAIN_DIR)
+print(f"[SURF]  nodes={len(_FS.nx):,} wells={len(_FS.code)} ({_t.time()-_t0:.0f}s)")
 
 
 def _surf_feats(paths, is_train):
@@ -1177,14 +1182,14 @@ def main():
     assert "sp45_fleongg_blend_report.csv" in full, "blend report export lost"
 
     # SURFACE + DIPBEAM cells present, after feature build, before the GBT loops & TCN
-    assert "class _FormSurf:" in full, "SURFACE cell (_FormSurf) missing"
-    assert "_FS = _FormSurf(train_wids, TRAIN_DIR)" in full, "SURFACE build missing"
+    assert "class _FormSurfTPS:" in full, "SURFACE cell (_FormSurfTPS) missing"
+    assert "_FS = _FormSurfTPS(train_wids, TRAIN_DIR)" in full, "SURFACE build missing"
     assert "tvtS_" in full, "surface tvtS_ columns missing"
     assert "def _beam_dip_jit(" in full and "tvt_dipbeam_d" in full and "dipbeam_dip" in full, \
         "DIPBEAM cell missing"
     _i_feat = full.index("features = [c for c in train_df.columns if c not in {'well','id','target'}]")
-    assert _i_feat < full.index("class _FormSurf:"), "SURFACE must come after the feature build"
-    assert full.index("class _FormSurf:") < full.index("def _beam_dip_jit("), "SURFACE must precede DIPBEAM"
+    assert _i_feat < full.index("class _FormSurfTPS:"), "SURFACE must come after the feature build"
+    assert full.index("class _FormSurfTPS:") < full.index("def _beam_dip_jit("), "SURFACE must precede DIPBEAM"
     assert full.index("[DIPBEAM] +2 features") < full.index('for i, params in enumerate(lgb_params):'), \
         "SURF/DIPBEAM must be injected before the lightgbm loop"
     assert full.index("[DIPBEAM] +2 features") < full.index("_tfeat = list(features)"), \
