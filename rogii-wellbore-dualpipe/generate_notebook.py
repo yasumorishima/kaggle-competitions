@@ -278,9 +278,7 @@ import numpy as _np, pandas as _pd, gc as _gc, time as _t
 TRAIN_DIR = CFG.dataset_path / "train"   # dualpipe path (medal used a TRAIN_DIR constant)
 SKIP = {'well', 'id', 'target'}          # dualpipe feature-exclusion set
 
-_NODE_K   = 3      # representative TPS nodes per well (heel/mid/toe)
-_N_TARGET = 2600   # keep N=W*_NODE_K under this; auto-shrink _NODE_K if W is large
-_LAM      = 5.0    # TPS smoothing (tune in smoke: 1, 5, 20)
+_LAM = 5.0    # TPS smoothing (tune in smoke: 1, 5, 20). N = W distinct well centroids.
 
 
 def _tps_U(r2):
@@ -311,19 +309,23 @@ class _FormSurfTPS:
                 continue
             raw.append((wid, df))
         W = len(raw)
-        node_k = max(2, min(_NODE_K, int(_N_TARGET / max(W, 1))))   # auto-shrink guard
         rows_x = []; rows_y = []; rows_w = []; rows_F = {f: [] for f in FORMATIONS}
         code = {}
         for wid, df in raw:
             c = code.setdefault(wid, len(code))
-            n = len(df)
-            ix = _np.unique(_np.linspace(0, n - 1, min(node_k, n)).astype(int))  # heel..toe
-            sub = df.iloc[ix]
-            rows_x.append(sub["X"].to_numpy(_np.float64))
-            rows_y.append(sub["Y"].to_numpy(_np.float64))
-            rows_w.append(_np.full(len(sub), c, _np.int32))
+            # ONE representative node per well: centroid (X,Y) + median formation top.
+            # Horizontal wells have a tiny X,Y footprint, so heel/mid/toe of one well
+            # are near-coincident points -> the TPS drift block [1,x,y] goes rank-
+            # deficient and the saddle system becomes singular (LAPACK segfault =
+            # the earlier DeadKernel, no Python traceback). The formation surface is
+            # fundamentally a CROSS-well object (it varies with well LOCATION and is
+            # ~constant within a near-linear well); within-well variation is carried
+            # by the per-well datum b_f and the Z trajectory. So N = W distinct nodes.
+            rows_x.append(_np.array([df["X"].mean()], _np.float64))
+            rows_y.append(_np.array([df["Y"].mean()], _np.float64))
+            rows_w.append(_np.full(1, c, _np.int32))
             for f in FORMATIONS:
-                rows_F[f].append(sub[f].to_numpy(_np.float64))
+                rows_F[f].append(_np.array([_np.median(df[f].to_numpy(_np.float64))], _np.float64))
         self.code = code
         self.nx = _np.concatenate(rows_x); self.ny = _np.concatenate(rows_y)
         self.nw = _np.concatenate(rows_w)
@@ -334,16 +336,16 @@ class _FormSurfTPS:
         self._Xn = (self.nx - self.mx) / self.sx
         self._Yn = (self.ny - self.my) / self.sy
         _bytes = (N + 3) ** 2 * 8
-        print(f"[SURF-TPS] wells={W} node_k={node_k} N={N} "
-              f"saddle={(N+3)}x{(N+3)} ({_bytes/1e6:.0f}MB) lam={_LAM}")
+        print(f"[SURF-TPS] wells={W} N={N} (1 centroid node/well) "
+              f"saddle={(N+3)}x{(N+3)} ({_bytes/1e6:.0f}MB) lam={_LAM}", flush=True)
         _t0s = _t.time()
         self._full = self._solve(_np.ones(N, bool))
-        print(f"[SURF-TPS] full solve {_t.time()-_t0s:.2f}s")
+        print(f"[SURF-TPS] full solve {_t.time()-_t0s:.2f}s", flush=True)
         _t0s = _t.time()
         self._loo = {}
         for c in _np.unique(self.nw):
             self._loo[int(c)] = self._solve(self.nw != c)
-        print(f"[SURF-TPS] {len(self._loo)} per-well LOO solves {_t.time()-_t0s:.1f}s")
+        print(f"[SURF-TPS] {len(self._loo)} per-well LOO solves {_t.time()-_t0s:.1f}s", flush=True)
 
     def _solve(self, mask):
         Xn = self._Xn[mask]; Yn = self._Yn[mask]; m = len(Xn)
