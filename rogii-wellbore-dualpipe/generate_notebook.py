@@ -36,7 +36,13 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = True
+SMOKE = False
+
+# The BiLSTM Ridge member is shelved: it ran (CV 11.04) but the kernel OOMs at the
+# following TCN cell (two sequence models + full GBT retrain exceed host RAM), and its
+# expected marginal is low (weaker than the TCN, same features -> correlated, and any
+# gain is diluted ~0.165x to the final blend). Code kept; insertion gated off here.
+STACK_LSTM = False
 
 
 def src_str(cell):
@@ -1099,9 +1105,13 @@ def main():
     #    members here). LSTM goes FIRST so it is self-contained with _l* names and the
     #    TCN cell's `del _tr,_te` cannot break it. The Ridge stack weights both.
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
-    cells.insert(i_df, code_cell(LSTM_SRC))
-    cells.insert(i_df + 1, code_cell(TCN_SRC))
-    report.append(f"inserted BiLSTM cell at {i_df} and TCN cell at {i_df + 1} (before oof_preds DataFrame)")
+    if STACK_LSTM:
+        cells.insert(i_df, code_cell(LSTM_SRC))
+        cells.insert(i_df + 1, code_cell(TCN_SRC))
+        report.append(f"inserted BiLSTM cell at {i_df} and TCN cell at {i_df + 1} (before oof_preds DataFrame)")
+    else:
+        cells.insert(i_df, code_cell(TCN_SRC))
+        report.append(f"inserted TCN cell at {i_df} (BiLSTM shelved: STACK_LSTM=False)")
 
     # 3. INJECT the DIAG cell right after the Ridge stack is built (oof_preds is a
     #    DataFrame by then), so the log reports the TCN's marginal OOF benefit.
@@ -1192,21 +1202,24 @@ def main():
     # SURF-DIPBEAM feature-count DIAG line
     assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
 
-    # BiLSTM member present, dict member before df conversion, distinct from TCN, _l* names
-    assert "class _BiLSTM(nn.Module)" in full, "BiLSTM class missing"
-    assert "nn.LSTM(" in full and "bidirectional=True" in full, "bidirectional LSTM layer missing"
-    assert 'oof_preds["lstm"] = _lstm_oof' in full, "oof_preds['lstm'] assignment missing"
-    assert 'test_preds["lstm"] = _lstm_test' in full, "test_preds['lstm'] assignment missing"
-    assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index("oof_preds = pd.DataFrame(oof_preds)"), \
-        "LSTM dict assignment must precede DataFrame conversion"
-    assert "[LSTM] CV toe RMSE mean" in full, "LSTM CV print missing"
-    assert "_ltr = _lseqs(train_df, True)" in full, "LSTM independent _lseqs build missing"
-    assert "lstm_submission.csv" not in full, "LSTM is a Ridge member only (no standalone submission)"
-    assert full.index("[DIPBEAM] +2 features") < full.index("_lfeat = list(features)"), \
-        "SURF/DIPBEAM must be injected before the LSTM reads features"
-    assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index('oof_preds["tcn"] = _tcn_oof'), \
-        "LSTM cell must precede the TCN cell (so TCN's del _tr,_te can't touch _ltr,_lte)"
-    assert "delta_lstm=" in full, "LSTM marginal DIAG missing"
+    # BiLSTM member (only when STACK_LSTM): dict member before df conversion, _l* names
+    if STACK_LSTM:
+        assert "class _BiLSTM(nn.Module)" in full, "BiLSTM class missing"
+        assert "nn.LSTM(" in full and "bidirectional=True" in full, "bidirectional LSTM layer missing"
+        assert 'oof_preds["lstm"] = _lstm_oof' in full, "oof_preds['lstm'] assignment missing"
+        assert 'test_preds["lstm"] = _lstm_test' in full, "test_preds['lstm'] assignment missing"
+        assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index("oof_preds = pd.DataFrame(oof_preds)"), \
+            "LSTM dict assignment must precede DataFrame conversion"
+        assert "[LSTM] CV toe RMSE mean" in full, "LSTM CV print missing"
+        assert "_ltr = _lseqs(train_df, True)" in full, "LSTM independent _lseqs build missing"
+        assert "lstm_submission.csv" not in full, "LSTM is a Ridge member only (no standalone submission)"
+        assert full.index("[DIPBEAM] +2 features") < full.index("_lfeat = list(features)"), \
+            "SURF/DIPBEAM must be injected before the LSTM reads features"
+        assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index('oof_preds["tcn"] = _tcn_oof'), \
+            "LSTM cell must precede the TCN cell (so TCN's del _tr,_te can't touch _ltr,_lte)"
+        assert "delta_lstm=" in full, "LSTM marginal DIAG missing"
+    else:
+        assert "class _BiLSTM" not in full, "BiLSTM should be absent when STACK_LSTM=False"
 
     # MEMBER_C cell present, after DIPBEAM, before the lightgbm loop; writes surf_submission.csv
     assert "[C] member-C feature cols" in full, "MEMBER_C cell missing"
