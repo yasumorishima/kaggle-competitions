@@ -36,13 +36,7 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = True
-
-# The BiLSTM Ridge member is shelved: it ran (CV 11.04) but the kernel OOMs at the
-# following TCN cell (two sequence models + full GBT retrain exceed host RAM), and its
-# expected marginal is low (weaker than the TCN, same features -> correlated, and any
-# gain is diluted ~0.165x to the final blend). Code kept; insertion gated off here.
-STACK_LSTM = False
+SMOKE = False
 
 
 def src_str(cell):
@@ -270,43 +264,33 @@ del _tr, _te; gc.collect()
 #     _nn. Both cells read the RAW *__horizontal_well.csv (via train_wids/hw_paths/
 #     test_paths), so they work even when train_df/test_df came from the train.csv
 #     fast-load -- the new cols are id-merged onto train_df/test_df (medal pattern).
-SURF_CHILD = r'''import sys, time, os
-from pathlib import Path
-DATA = Path("/kaggle/input/competitions/rogii-wellbore-geology-prediction")
-FORMATIONS = ["ANCC", "ASTNU", "ASTNL", "EGFDU", "EGFDL", "BUDA"]
-hw_paths = sorted((DATA / "train").glob("*__horizontal_well.csv"))
-test_paths = sorted((DATA / "test").glob("*__horizontal_well.csv"))
-train_wids = [p.stem.replace("__horizontal_well", "") for p in hw_paths]
-print(f"[SURF-CHILD] train wells={len(train_wids)} test wells={len(test_paths)}", flush=True)
-
+SURF_SRC = r'''
 # === Global formation structural-surface features (per-row, datum-separated, LOO fold-safe) ===
 from scipy.spatial import cKDTree as _ckd
 import numpy as _np, pandas as _pd, gc as _gc, time as _t
 
-TRAIN_DIR = Path("/kaggle/input/competitions/rogii-wellbore-geology-prediction") / "train"   # dualpipe path (medal used a TRAIN_DIR constant)
+TRAIN_DIR = CFG.dataset_path / "train"   # dualpipe path (medal used a TRAIN_DIR constant)
 SKIP = {'well', 'id', 'target'}          # dualpipe feature-exclusion set
 
-_LAM = 5.0    # TPS smoothing (tune in smoke: 1, 5, 20). N = W distinct well centroids.
+_SPW = 80   # per-well subsample for the residual field (mirrors DenseANCC SPW)
+_KR  = 16   # residual IDW neighbors
 
 
-def _tps_U(r2):
-    # thin-plate radial basis r^2*log(r) expressed in r^2 (>=0); 0 at r=0
-    return _np.where(r2 > 1e-12, 0.5 * r2 * _np.log(_np.maximum(r2, 1e-30)), 0.0)
+def _phi(x, y):
+    # 2nd-order polynomial basis (normalized inputs)
+    return _np.column_stack([_np.ones_like(x), x, y, x * x, y * y, x * y])
 
 
-class _FormSurfTPS:
-    """Per-formation S_f(X,Y) via smoothed Thin-Plate-Spline on a FEW representative
-       nodes per well (heel/mid/toe). Horizontal wells are near-linear tracks, so
-       per-row points are spatially redundant; a few nodes per well capture the
-       cross-well global structure (dip/folding between wells). Replaces BOTH the
-       2nd-order trend and the IDW residual with one global C1 surface; intra-well
-       dip is carried by the per-well datum b_f (_surf_feats) and the dipbeam member.
-       Exact well-level LOO: each train well's surface is solved with that well's
-       nodes EXCLUDED (cached per-well), so any GroupKFold split is leak-free -- same
-       guarantee as the prior _FormSurf downdate. predict(xy, wid) is API-compatible."""
+class _FormSurf:
+    """Per-formation S_f(X,Y) = global 2nd-order WLS trend + local residual IDW.
+       LOO fold-safe: trend via per-well normal-equation downdate, residual via
+       self_wid exclusion in the kNN tree AND residuals taken against the SAME
+       downdated trend (exact leave-one-well-out, no beta0 imprint)."""
 
     def __init__(self, wids, data_dir):
-        raw = []
+        XX = []; YY = []; WW = []; FF = {f: [] for f in FORMATIONS}
+        sX = []; sY = []; sW = []; sFd = {f: [] for f in FORMATIONS}
+        code = {}
         for wid in wids:
             p = data_dir / (wid + "__horizontal_well.csv")
             try:
@@ -315,80 +299,75 @@ class _FormSurfTPS:
                 continue
             if len(df) == 0:
                 continue
-            raw.append((wid, df))
-        W = len(raw)
-        rows_x = []; rows_y = []; rows_w = []; rows_F = {f: [] for f in FORMATIONS}
-        code = {}
-        for wid, df in raw:
             c = code.setdefault(wid, len(code))
-            # ONE representative node per well: centroid (X,Y) + median formation top.
-            # Horizontal wells have a tiny X,Y footprint, so heel/mid/toe of one well
-            # are near-coincident points -> the TPS drift block [1,x,y] goes rank-
-            # deficient and the saddle system becomes singular (LAPACK segfault =
-            # the earlier DeadKernel, no Python traceback). The formation surface is
-            # fundamentally a CROSS-well object (it varies with well LOCATION and is
-            # ~constant within a near-linear well); within-well variation is carried
-            # by the per-well datum b_f and the Z trajectory. So N = W distinct nodes.
-            rows_x.append(_np.array([df["X"].mean()], _np.float64))
-            rows_y.append(_np.array([df["Y"].mean()], _np.float64))
-            rows_w.append(_np.full(1, c, _np.int32))
+            X = df["X"].to_numpy(_np.float64); Y = df["Y"].to_numpy(_np.float64)
+            XX.append(X); YY.append(Y); WW.append(_np.full(len(df), c, dtype=_np.int32))
             for f in FORMATIONS:
-                rows_F[f].append(_np.array([_np.median(df[f].to_numpy(_np.float64))], _np.float64))
+                FF[f].append(df[f].to_numpy(_np.float64))
+            ix = _np.linspace(0, len(df) - 1, min(_SPW, len(df))).astype(int)
+            sX.append(X[ix]); sY.append(Y[ix]); sW.append(_np.full(len(ix), c, dtype=_np.int32))
+            for f in FORMATIONS:
+                sFd[f].append(df[f].to_numpy(_np.float64)[ix])
         self.code = code
-        self.nx = _np.concatenate(rows_x); self.ny = _np.concatenate(rows_y)
-        self.nw = _np.concatenate(rows_w)
-        self.nF = {f: _np.concatenate(rows_F[f]) for f in FORMATIONS}
-        N = len(self.nx)
-        self.mx = float(self.nx.mean()); self.my = float(self.ny.mean())
-        self.sx = float(self.nx.std() or 1.0); self.sy = float(self.ny.std() or 1.0)
-        self._Xn = (self.nx - self.mx) / self.sx
-        self._Yn = (self.ny - self.my) / self.sy
-        _bytes = (N + 3) ** 2 * 8
-        print(f"[SURF-TPS] wells={W} N={N} (1 centroid node/well) "
-              f"saddle={(N+3)}x{(N+3)} ({_bytes/1e6:.0f}MB) lam={_LAM}", flush=True)
-        _t0s = _t.time()
-        self._full = self._solve(_np.ones(N, bool))
-        print(f"[SURF-TPS] full solve {_t.time()-_t0s:.2f}s", flush=True)
-        _t0s = _t.time()
-        self._loo = {}
-        for c in _np.unique(self.nw):
-            self._loo[int(c)] = self._solve(self.nw != c)
-        print(f"[SURF-TPS] {len(self._loo)} per-well LOO solves {_t.time()-_t0s:.1f}s", flush=True)
+        self.X = _np.concatenate(XX); self.Y = _np.concatenate(YY); self.W = _np.concatenate(WW)
+        self.F = {f: _np.concatenate(FF[f]) for f in FORMATIONS}
+        self.mx = float(self.X.mean()); self.my = float(self.Y.mean())
+        self.nx = float(self.X.std() or 1.0); self.ny = float(self.Y.std() or 1.0)
+        P = _phi((self.X - self.mx) / self.nx, (self.Y - self.my) / self.ny)
+        self.A = P.T @ P + 1e-6 * _np.eye(6)
+        self.b = {f: P.T @ self.F[f] for f in FORMATIONS}
+        self.Aw = {}; self.bw = {f: {} for f in FORMATIONS}
+        for c in _np.unique(self.W):
+            m = self.W == c; Pm = P[m]
+            self.Aw[int(c)] = Pm.T @ Pm
+            for f in FORMATIONS:
+                self.bw[f][int(c)] = Pm.T @ self.F[f][m]
+        self.beta0 = {f: _np.linalg.solve(self.A, self.b[f]) for f in FORMATIONS}
+        # residual tree (subsample); keep RAW formation values for exact-LOO residual
+        self.sX = _np.concatenate(sX); self.sY = _np.concatenate(sY); self.sW = _np.concatenate(sW)
+        self.sF = {f: _np.concatenate(sFd[f]) for f in FORMATIONS}
+        self.scale = _np.array([self.sX.std() or 1.0, self.sY.std() or 1.0])
+        self.tree = _ckd(_np.column_stack([self.sX, self.sY]) / self.scale)
 
-    def _solve(self, mask):
-        Xn = self._Xn[mask]; Yn = self._Yn[mask]; m = len(Xn)
-        dx = Xn[:, None] - Xn[None, :]; dy = Yn[:, None] - Yn[None, :]
-        K = _tps_U(dx * dx + dy * dy) + _LAM * _np.eye(m)
-        P = _np.column_stack([_np.ones(m), Xn, Yn])
-        Asys = _np.zeros((m + 3, m + 3))
-        Asys[:m, :m] = K; Asys[:m, m:] = P; Asys[m:, :m] = P.T
-        Asys += 1e-8 * _np.eye(m + 3)
-        RHS = _np.zeros((m + 3, len(FORMATIONS)))
-        for j, f in enumerate(FORMATIONS):
-            RHS[:m, j] = self.nF[f][mask]
-        SOL = _np.linalg.solve(Asys, RHS)   # saddle is symmetric-indefinite -> LU
-        coeffs = {f: (SOL[:m, j], SOL[m:, j]) for j, f in enumerate(FORMATIONS)}
-        return {"Xn": Xn, "Yn": Yn, "coeffs": coeffs}
+    def _beta(self, f, code):
+        if code is not None and code in self.Aw:
+            return _np.linalg.solve(self.A - self.Aw[code] + 1e-6 * _np.eye(6),
+                                    self.b[f] - self.bw[f][code])
+        return self.beta0[f]
 
-    def _eval(self, bundle, xy, f):
-        Xq = (xy[:, 0] - self.mx) / self.sx
-        Yq = (xy[:, 1] - self.my) / self.sy
-        dx = Xq[:, None] - bundle["Xn"][None, :]
-        dy = Yq[:, None] - bundle["Yn"][None, :]
-        w, a = bundle["coeffs"][f]
-        return _tps_U(dx * dx + dy * dy) @ w + a[0] + a[1] * Xq + a[2] * Yq
+    def _trend(self, beta, xn, yn):
+        return (beta[0] + beta[1] * xn + beta[2] * yn
+                + beta[3] * xn * xn + beta[4] * yn * yn + beta[5] * xn * yn)
 
     def predict(self, xy, wid=None):
-        xy = _np.atleast_2d(xy)
         code = self.code.get(wid) if wid is not None else None
-        b = self._loo[code] if (code is not None and code in self._loo) else self._full
-        return {f: self._eval(b, xy, f).astype(_np.float64) for f in FORMATIONS}
+        xy = _np.atleast_2d(xy)
+        xq = (xy[:, 0] - self.mx) / self.nx; yq = (xy[:, 1] - self.my) / self.ny
+        kf = min(_KR + 8, len(self.sX))
+        dist, idx = self.tree.query(xy / self.scale, k=kf, workers=-1)
+        dist = _np.atleast_2d(dist); idx = _np.atleast_2d(idx)
+        if code is not None:
+            dist = _np.where(self.sW[idx] == code, _np.inf, dist)
+        kk = min(_KR - 1, kf - 1)
+        ordr = _np.argpartition(dist, kk, 1)[:, :_KR]
+        dk = _np.take_along_axis(dist, ordr, 1); ik = _np.take_along_axis(idx, ordr, 1)
+        vk = _np.isfinite(dk); w = _np.where(vk, 1.0 / (dk + 1e-3), 0.0)
+        ws = w.sum(1); safe = _np.where(ws < 1e-9, 1.0, ws)
+        nbx = (self.sX[ik] - self.mx) / self.nx; nby = (self.sY[ik] - self.my) / self.ny
+        out = {}
+        for f in FORMATIONS:
+            beta = self._beta(f, code)
+            trend_q = self._trend(beta, xq, yq)
+            # exact-LOO residual: neighbor residuals against the SAME downdated trend
+            resid_nb = self.sF[f][ik] - self._trend(beta, nbx, nby)
+            resid = (resid_nb * w).sum(1) / safe
+            out[f] = (trend_q + resid).astype(_np.float64)
+        return out
 
 
-print("[SURF] building FormationSurfaceModel (representative-node TPS, per-well LOO) ...")
-_t0 = _t.time()
-_FS = _FormSurfTPS(train_wids, TRAIN_DIR)
-print(f"[SURF]  nodes={len(_FS.nx):,} wells={len(_FS.code)} ({_t.time()-_t0:.0f}s)")
+print("[SURF] building FormationSurfaceModel ..."); _t0 = _t.time()
+_FS = _FormSurf(train_wids, TRAIN_DIR)
+print(f"[SURF]  trend pts={len(_FS.X):,} tree pts={len(_FS.sX):,} ({_t.time()-_t0:.0f}s)")
 
 
 def _surf_feats(paths, is_train):
@@ -443,55 +422,6 @@ print("[SURF] test surface feats ..."); _t0 = _t.time()
 _sf_te = _surf_feats(test_paths, False)
 print(f"[SURF]  test surf rows={len(_sf_te)} ({_t.time()-_t0:.0f}s)")
 
-print(f"[SURF-CHILD] surf rows train={len(_sf_tr)} test={len(_sf_te)} cols={list(_sf_tr.columns)}", flush=True)
-_sf_tr.to_pickle("/kaggle/working/surf_tps_train.pkl")
-_sf_te.to_pickle("/kaggle/working/surf_tps_test.pkl")
-print("SURF_CHILD_OK", flush=True)
-'''
-
-
-SURF_SRC = r'''
-# === Global formation structural-surface features (TPS), computed in an ISOLATED
-#     subprocess (OOM-safe). The in-process build's peak memory coexisted with the
-#     resident train.csv inside the T4 kernel -> OOM-kill (DeadKernel, no traceback).
-#     The child re-derives paths from the mounted competition data, builds the SAME
-#     _FormSurfTPS + _surf_feats (per-well LOO), and pickles surf_tps_{train,test}.pkl.
-#     This parent runs it, captures its returncode/stdout/stderr, then reads + merges. ===
-import subprocess as _sp, sys as _sys, time as _stime, os as _sos
-import numpy as _np, pandas as _pd, gc as _gc
-
-SKIP = {'well', 'id', 'target'}
-_FORMS = ["ANCC", "ASTNU", "ASTNL", "EGFDU", "EGFDL", "BUDA"]
-_SURF_CHILD = __SURF_CHILD__
-
-_wk = '/kaggle/working' if _sos.path.exists('/kaggle/working') else '.'
-with open(_wk + '/surf_child.py', 'w') as _fh:
-    _fh.write(_SURF_CHILD)
-
-print("[SURF] building TPS surface in an ISOLATED subprocess (OOM-safe) ...", flush=True)
-_t0 = _stime.time(); _rc = None; _o = ''; _e = ''
-try:
-    _r = _sp.run([_sys.executable, '-u', _wk + '/surf_child.py'],
-                 capture_output=True, text=True, timeout=5400)
-    _rc, _o, _e = _r.returncode, _r.stdout, _r.stderr
-except _sp.TimeoutExpired as _texc:
-    _o = _texc.stdout if isinstance(_texc.stdout, str) else (_texc.stdout or b'').decode('utf-8', 'replace')
-    _e = _texc.stderr if isinstance(_texc.stderr, str) else (_texc.stderr or b'').decode('utf-8', 'replace')
-    print("[SURF] !!! surface child TIMED OUT !!!", flush=True)
-print(f"[SURF] child returncode={_rc} elapsed={_stime.time()-_t0:.0f}s", flush=True)
-print("[SURF] ---- child stdout (tail) ----", flush=True); print(_o[-4000:], flush=True)
-if _e.strip():
-    print("[SURF] ---- child stderr (tail) ----", flush=True); print(_e[-4000:], flush=True)
-
-_trp = _wk + '/surf_tps_train.pkl'; _tep = _wk + '/surf_tps_test.pkl'
-if _rc == 0 and _sos.path.exists(_trp) and _sos.path.exists(_tep):
-    _sf_tr = _pd.read_pickle(_trp); _sf_te = _pd.read_pickle(_tep)
-    print(f"[SURF] loaded surf pickles train={len(_sf_tr)} test={len(_sf_te)}", flush=True)
-else:
-    print(f"[SURF] !!! surface child FAILED (rc={_rc}) -> EMPTY surface fallback (fillna 0.0) !!!", flush=True)
-    _cols0 = ['id', 'surf_mean_d', 'surf_std', 'surf_rng', 'surf_datum_spread'] + [f'tvtS_{_f}_d' for _f in _FORMS]
-    _sf_tr = _pd.DataFrame({_c: [] for _c in _cols0}); _sf_te = _pd.DataFrame({_c: [] for _c in _cols0})
-
 _n_tr0 = len(train_df); _n_te0 = len(test_df)
 train_df = train_df.merge(_sf_tr, on="id", how="left")
 test_df = test_df.merge(_sf_te, on="id", how="left")
@@ -500,8 +430,7 @@ _surfcols = [c for c in _sf_tr.columns if c != "id"]
 _miss_tr = int(train_df[_surfcols].isna().any(axis=1).sum())
 _miss_te = int(test_df[_surfcols].isna().any(axis=1).sum())
 print(f"[SURF] merged surf cols={len(_surfcols)} | train NaN-rows={_miss_tr} test NaN-rows={_miss_te}")
-if _miss_tr:
-    print(f"[SURF] WARNING: {_miss_tr} train rows lack surface features (filled 0.0)", flush=True)
+assert _miss_tr == 0, f"[SURF] {_miss_tr} train rows lack surface features (id set mismatch with build_well)"
 for c in _surfcols:
     train_df[c] = train_df[c].fillna(0.0).astype(_np.float32)
     test_df[c] = test_df[c].fillna(0.0).astype(_np.float32)
@@ -653,12 +582,6 @@ _r_notcn = _ridge_oof_rmse(_cols_notcn)
 _r_tcn = _ridge_oof_rmse(_cols_all)
 print(f"[DIAG] Ridge-A OOF  without_TCN={_r_notcn:.4f}  with_TCN={_r_tcn:.4f}  "
       f"delta={_r_tcn - _r_notcn:+.4f}  (negative = TCN helps the base)")
-# LSTM member marginal: drop only 'lstm' from the full stack (with_all=_r_tcn includes
-# every member). delta_lstm<0 => the BiLSTM decorrelates from GBT+TCN and helps the base.
-_cols_nolstm = [c for c in _cols_all if c != "lstm"]
-_r_nolstm = _ridge_oof_rmse(_cols_nolstm) if "lstm" in _cols_all else _r_tcn
-print(f"[DIAG] Ridge-A OOF  without_LSTM={_r_nolstm:.4f}  with_all={_r_tcn:.4f}  "
-      f"delta_lstm={_r_tcn - _r_nolstm:+.4f}  (negative = LSTM helps the base)")
 # surface + dip-beam feature count (compare without_TCN to the prior no-surf baseline)
 _sdcols = [c for c in features if c.startswith("tvtS_") or c.startswith("surf_")
            or c in ("tvt_dipbeam_d", "dipbeam_dip")]
@@ -699,7 +622,6 @@ _INPUT_FILES = {
     'fleongg': _WORK / 'submission.csv',
     'sp45': _WORK / 'sp45_projection_submission.csv',
     'tcn': _WORK / 'tcn_submission.csv',
-    'surf': _WORK / 'surf_submission.csv',
 }
 
 
@@ -853,277 +775,6 @@ else:
     _final = _final_pd.read_csv(_WORK / _final_name)
     _final.to_csv(_WORK / 'submission.csv', index=False)
     print('wrote final submission.csv from', _final_name, _final.shape, flush=True)
-
-# --- blend-level C layer: surf+dipbeam standalone member, UN-DILUTED (rides over the
-#     2-way base, parallel to the dormant TCN lane). C is the decorrelated structural
-#     model whose errors are uncorrelated with the GBT/Ridge base -> the "biggest cheap
-#     win" for the PRIVATE base. Shipped at _SELECTED_C_WEIGHT (0.0 = verified base until
-#     C's standalone CV is confirmed by the [C] CV log); all C variants are exported so a
-#     follow-up can pick w_c. This block runs LAST so it has the final word on
-#     submission.csv (the downstream override cell still overwrites public wells only).
-_SELECTED_C_WEIGHT = 0.0
-_C_WEIGHTS = (0.10, 0.15, 0.20, 0.25)
-_surf_path = _INPUT_FILES.get('surf')
-_use_C = _surf_path is not None and _FinalBlendPath(_surf_path).exists()
-if _use_C:
-    try:
-        _surf_sub = _read_submission_frame(_surf_path, 'surf')
-        _mergedC = _merge_blend_inputs(_sp45, _fle).merge(
-            _surf_sub.rename(columns={'tvt': 'tvt_surf'}), on='id', how='inner')
-        if len(_mergedC) != len(_sp45):
-            raise RuntimeError(f'C blend id mismatch: sp45={len(_sp45)}, merged={len(_mergedC)}')
-    except Exception as _eC:
-        print('[BLENDC] C setup failed -> C layer skipped:', str(_eC)[:160], flush=True)
-        _use_C = False
-
-if _use_C:
-    def _weighted_submission_C(merged, w_sp45, w_c):
-        # keep sp45/fleongg internal ratio intact; ride C over it (TCN-lane structure)
-        _base = (float(w_sp45) * merged['tvt_sp45'].astype(float)
-                 + (1.0 - float(w_sp45)) * merged['tvt_fleongg'].astype(float))
-        out = merged[['id']].copy()
-        out['tvt'] = (1.0 - float(w_c)) * _base + float(w_c) * merged['tvt_surf'].astype(float)
-        return out
-
-    # DIAG: public-well true-RMSE (IN-SAMPLE / optimistic; C saw these wells in training).
-    # Direction signal only -- the private/unseen-well behavior is NOT measured here.
-    _id2trueC = dict(zip(train_df['id'].astype(str),
-                         (train_df['last_known_tvt'].astype(float) + train_df['target'].astype(float))))
-    _hasC = _mergedC['id'].astype(str).isin(_id2trueC)
-    _nC = int(_hasC.sum())
-    if _nC > 0:
-        _trueC = _mergedC.loc[_hasC, 'id'].astype(str).map(_id2trueC).to_numpy(dtype=float)
-
-        def _rmseC(_cand):
-            _p = _cand.loc[_hasC.values, 'tvt'].to_numpy(dtype=float)
-            return float(_final_np.sqrt(_final_np.mean((_p - _trueC) ** 2)))
-
-        print(f'[BLENDC-DIAG] true-RMSE on {_nC} public-well rows (IN-SAMPLE, optimistic; direction only):', flush=True)
-        for _wc in (0.0,) + _C_WEIGHTS:
-            print(f'[BLENDC-DIAG]   w_c={_wc:.2f} RMSE_vs_true='
-                  f'{_rmseC(_weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _wc)):.4f}', flush=True)
-    else:
-        print('[BLENDC-DIAG] no public-well overlap -> skipping C true-RMSE', flush=True)
-
-    for _wc in _C_WEIGHTS:
-        _weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _wc).to_csv(
-            _WORK / f'submission_surf_w{_wc:.2f}.csv', index=False)
-
-    _finalC = _weighted_submission_C(_mergedC, _SELECTED_SP45_WEIGHT, _SELECTED_C_WEIGHT)
-    _finalC.to_csv(_WORK / 'submission.csv', index=False)
-    print(f'[BLENDC] wrote final submission.csv via C layer w_c={_SELECTED_C_WEIGHT:.2f}', _finalC.shape, flush=True)
-else:
-    print('[BLENDC] surf_submission.csv absent -> C layer skipped (submission.csv unchanged)', flush=True)
-'''
-
-
-# === Bidirectional LSTM as a 2nd decorrelated series member in pipeline A's Ridge stack.
-#     Modeled on TCN_SRC but with independent _l* names (so TCN's `del _tr,_te` cannot
-#     touch it) and a recurrent architecture (decorrelated from the dilated-conv TCN).
-#     Added to oof_preds/test_preds while they are still dicts -> the Ridge stack weights
-#     it optimally (positive-constrained), no fixed-weight dilution. NOT a blend member.
-LSTM_SRC = r'''
-import torch, torch.nn as nn
-import gc
-torch.manual_seed(43); np.random.seed(43)
-_LE = 2 if SMOKE else 40
-_LPAT = 1 if SMOKE else 8
-_LHID = 48 if SMOKE else 128      # hidden size per direction
-_LNL = 1 if SMOKE else 2          # stacked LSTM layers
-_LDROP, _LLR, _LWD, _LCLIP = 0.15, 1e-3, 1e-4, 1.0
-_LNSEED = 1 if SMOKE else 3
-_lfeat = list(features)
-print(f"[LSTM] SMOKE={SMOKE} ep={_LE} hid={_LHID} nl={_LNL} nfeat={len(_lfeat)} seeds={_LNSEED}")
-
-_ldev = "cpu"
-try:
-    if torch.cuda.is_available():
-        _lg = torch.zeros(8, device="cuda"); _ = float((_lg + 1).sum().item()); _ldev = "cuda"
-        print("[LSTM] GPU:", torch.cuda.get_device_name(0))
-except Exception as e:
-    print("[LSTM] GPU unusable -> CPU:", str(e)[:100])
-
-_lXall = train_df[_lfeat].to_numpy(np.float32); _lXall[~np.isfinite(_lXall)] = np.nan
-_lmu = np.nanmean(_lXall, 0).astype(np.float32); _lsd = np.nanstd(_lXall, 0).astype(np.float32); _lsd[_lsd < 1e-6] = 1.0
-del _lXall; gc.collect()
-_lyt = train_df['target'].to_numpy(np.float32); _lymu = float(np.nanmean(_lyt)); _lysd = float(np.nanstd(_lyt)) or 1.0
-
-
-def _lnorm(M):
-    M = M.astype(np.float32, copy=True); M[~np.isfinite(M)] = np.nan; M = (M - _lmu) / _lsd
-    return np.nan_to_num(M, nan=0.0, posinf=0.0, neginf=0.0)
-
-
-def _lseqs(df, has_t):
-    df = df.copy(); df['_ri'] = df['id'].str.rsplit('_', n=1).str[-1].astype(int)
-    out = []
-    for wid, gd in df.groupby('well', sort=False):
-        gd = gd.sort_values('_ri')
-        it = {'wid': wid, 'X': _lnorm(gd[_lfeat].to_numpy()), 'ids': gd['id'].to_numpy()}
-        if has_t:
-            it['t'] = (gd['target'].to_numpy(np.float32) - _lymu) / _lysd
-        out.append(it)
-    return out
-
-
-_ltr = _lseqs(train_df, True); _lte = _lseqs(test_df, False)
-_lgrp = np.array([s['wid'] for s in _ltr])
-
-
-class _BiLSTM(nn.Module):
-    def __init__(s, ci, hid, nl, dr):
-        super().__init__()
-        s.inp = nn.Linear(ci, hid)
-        s.act = nn.ReLU()
-        s.lstm = nn.LSTM(hid, hid, num_layers=nl, batch_first=True,
-                         bidirectional=True, dropout=(dr if nl > 1 else 0.0))
-        s.do = nn.Dropout(dr)
-        s.h = nn.Linear(2 * hid, 1)   # 2*hid: forward+backward concat
-
-    def forward(s, x):                # x: (1, L, ci) per-well, batch=1, variable length
-        z = s.act(s.inp(x))
-        z, _ = s.lstm(z)              # (1, L, 2*hid)
-        return s.h(s.do(z)).squeeze(-1)   # (1, L)
-
-
-def _lhub(p, t, d=1.0):
-    e = p - t; a = e.abs(); return torch.where(a <= d, 0.5 * e * e, d * (a - 0.5 * d)).mean()
-
-
-def _ltx(s):
-    return torch.tensor(s['X'][None], dtype=torch.float32, device=_ldev)
-
-
-def _ltrain_one(_tri, _vai, _seed):
-    torch.manual_seed(_seed); np.random.seed(_seed)
-    _m = _BiLSTM(len(_lfeat), _LHID, _LNL, _LDROP).to(_ldev)
-    _opt = torch.optim.Adam(_m.parameters(), lr=_LLR, weight_decay=_LWD)
-    _sch = torch.optim.lr_scheduler.CosineAnnealingLR(_opt, T_max=_LE)
-    _best = 1e9; _bs = None; _bad = 0; _trl = np.array(_tri)
-    for _ep in range(_LE):
-        _m.train(); np.random.shuffle(_trl)
-        for _j in _trl:
-            s = _ltr[_j]; x = _ltx(s); t = torch.tensor(s['t'][None], dtype=torch.float32, device=_ldev)
-            _opt.zero_grad(); _l = _lhub(_m(x), t); _l.backward()
-            torch.nn.utils.clip_grad_norm_(_m.parameters(), _LCLIP); _opt.step()
-        _sch.step()
-        _m.eval(); _P = []; _T = []
-        with torch.no_grad():
-            for _j in _vai:
-                s = _ltr[_j]; _P.append(_m(_ltx(s)).cpu().numpy()[0] * _lysd + _lymu); _T.append(s['t'] * _lysd + _lymu)
-        _vr = float(np.sqrt(np.mean((np.concatenate(_P) - np.concatenate(_T)) ** 2)))
-        if _vr < _best - 1e-4:
-            _best = _vr; _bad = 0
-            _bs = {k: v.detach().cpu().clone() for k, v in _m.state_dict().items()}
-        else:
-            _bad += 1
-        if _bad >= _LPAT:
-            break
-    _m.load_state_dict(_bs); _m.eval(); return _m
-
-
-_loof_id = {}; _ltest_sum = {}; _lnf = 0; _lfb = []
-_lidx = np.arange(len(_ltr))
-for _f, (_tri, _vai) in enumerate(GroupKFold(n_splits=CFG.n_splits).split(_lidx, groups=_lgrp)):
-    _va_sum = {}; _te_fold = {}
-    for _seed in range(_LNSEED):
-        _m = _ltrain_one(_tri, _vai, 2000 * _seed + _f)
-        with torch.no_grad():
-            for _j in _vai:
-                s = _ltr[_j]; pr = _m(_ltx(s)).cpu().numpy()[0] * _lysd + _lymu
-                for _i, _id in enumerate(s['ids']):
-                    _va_sum[_id] = _va_sum.get(_id, 0.0) + float(pr[_i]) / _LNSEED
-            for s in _lte:
-                pr = _m(_ltx(s)).cpu().numpy()[0] * _lysd + _lymu
-                for _i, _id in enumerate(s['ids']):
-                    _te_fold[_id] = _te_fold.get(_id, 0.0) + float(pr[_i]) / _LNSEED
-    for _id, v in _va_sum.items():
-        _loof_id[_id] = v
-    for _id, v in _te_fold.items():
-        _ltest_sum[_id] = _ltest_sum.get(_id, 0.0) + v
-    _lnf += 1
-    _vp = []; _vt = []
-    for _j in _vai:
-        s = _ltr[_j]; _vp.extend([_va_sum[i] for i in s['ids']]); _vt.extend(list(s['t'] * _lysd + _lymu))
-    _fr = float(np.sqrt(np.mean((np.array(_vp) - np.array(_vt)) ** 2))); _lfb.append(_fr)
-    print(f"[LSTM] fold{_f} toe RMSE={_fr:.4f}")
-print("[LSTM] CV toe RMSE mean =", float(np.mean(_lfb)), "| folds", [round(b, 3) for b in _lfb])
-
-_lstm_oof = train_df['id'].map(_loof_id).to_numpy(np.float32)
-_lte_mean = {k: v / _lnf for k, v in _ltest_sum.items()}
-_lstm_test = test_df['id'].map(_lte_mean).to_numpy(np.float32)
-assert len(_lstm_oof) == len(train_df), "LSTM OOF length != train_df"
-assert len(_lstm_test) == len(test_df), "LSTM test length != test_df"
-assert not np.isnan(_lstm_oof).any(), "LSTM OOF unmapped"
-assert not np.isnan(_lstm_test).any(), "LSTM test unmapped"
-
-# oof_preds / test_preds are still dicts here -> add the member; the Ridge stack weights it.
-oof_preds["lstm"] = _lstm_oof
-test_preds["lstm"] = _lstm_test
-print(f"[LSTM] member added | OOF residual RMSE={float(np.sqrt(np.mean((_lstm_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-# Free the LSTM's GPU model + sequence arrays before the TCN cell runs. The prior
-# DeadKernelError (kernel OOM) hit 25 s into the TCN cell: LSTM left a GPU model and
-# seq copy resident, so TCN's own GPU model + seq rebuild tipped it over. Release them.
-try:
-    del _m
-except NameError:
-    pass
-del _ltr, _lte, _loof_id, _ltest_sum
-gc.collect()
-try:
-    if _ldev == "cuda":
-        torch.cuda.empty_cache()
-except Exception as _ce:
-    print("[LSTM] empty_cache skipped:", str(_ce)[:80])
-print("[LSTM] freed GPU + sequence memory before the TCN cell")
-'''
-
-
-# === Member C: surface+dipbeam-ONLY standalone GBT (decorrelated blend-level member). ===
-# Reads ONLY the structural columns merged onto train_df/test_df by the SURFACE + DIPBEAM
-# cells above. Does NOT touch features/X/oof_preds -> pipeline A is left UN-diluted (the
-# A-ridge surf/dipbeam gain is kept separately & for free). Writes surf_submission.csv
-# (absolute = last_known_tvt + delta, same id-alignment proven by the TCN standalone cell).
-# Decorrelation is at the ERROR level, so overlap of inputs with A is irrelevant.
-MEMBER_C_SRC = r'''
-import lightgbm as _clgb, numpy as _cnp, pandas as _cpd, os as _cos
-from sklearn.model_selection import GroupKFold as _CGKF
-
-_C_COLS = [c for c in train_df.columns
-           if c.startswith('tvtS_') or c.startswith('surf_')
-           or c in ('tvt_dipbeam_d', 'dipbeam_dip')]
-assert len(_C_COLS) >= 8, f"[C] too few structural cols ({_C_COLS}); SURFACE/DIPBEAM didn't run?"
-print(f"[C] member-C feature cols={len(_C_COLS)}: {sorted(_C_COLS)}", flush=True)
-
-_Xc  = train_df[_C_COLS].astype(_cnp.float32).to_numpy()
-_Xct = test_df[_C_COLS].astype(_cnp.float32).to_numpy()
-_yc  = train_df['target'].to_numpy(_cnp.float32)     # delta target (same as pipeline A)
-_gc_ = train_df['well'].to_numpy()
-
-_C_PARAMS = dict(objective='regression_l1', n_estimators=(60 if SMOKE else 600),
-                 learning_rate=0.03, num_leaves=31, min_child_samples=40,
-                 subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
-                 reg_lambda=1.0, n_jobs=-1, verbosity=-1)
-
-_oofC = _cnp.zeros(len(train_df), _cnp.float64)
-_teC  = _cnp.zeros(len(test_df), _cnp.float64)
-_cfb = []
-for _cf, (_tri, _vai) in enumerate(_CGKF(n_splits=CFG.n_splits).split(_Xc, groups=_gc_)):
-    _mc = _clgb.LGBMRegressor(**_C_PARAMS, random_state=100 + _cf)
-    _mc.fit(_Xc[_tri], _yc[_tri])
-    _oofC[_vai] = _mc.predict(_Xc[_vai])
-    _teC += _mc.predict(_Xct) / CFG.n_splits
-    _fr = float(_cnp.sqrt(_cnp.mean((_oofC[_vai] - _yc[_vai]) ** 2)))
-    _cfb.append(_fr); print(f"[C] fold{_cf} delta-RMSE={_fr:.4f}", flush=True)
-print("[C] CV delta-RMSE mean =", float(_cnp.mean(_cfb)), "| folds", [round(b, 3) for b in _cfb], flush=True)
-
-# absolute standalone submission: abs = last_known_tvt (constant broadcast) + delta
-_lkc = test_df['last_known_tvt'].to_numpy(_cnp.float64)
-assert len(_lkc) == len(_teC), "[C] last_known_tvt / test length mismatch"
-_C_abs = (_lkc + _teC).astype(float)
-_wkC = '/kaggle/working' if _cos.path.exists('/kaggle/working') else '.'
-_cpd.DataFrame({'id': test_df['id'].astype(str), 'tvt': _C_abs}).to_csv(f'{_wkC}/surf_submission.csv', index=False)
-print(f"[C] wrote surf_submission.csv (abs, rows={len(_C_abs)}) | features/oof_preds untouched (no A dilution)", flush=True)
 '''
 
 
@@ -1145,10 +796,9 @@ def main():
     i_feat = find_cell(cells, "features = [c for c in train_df.columns if c not in {'well','id','target'}]")
     fc = src_str(cells[i_feat])
     assert "X = train_df[features]" in fc and "X_test = test_df[features]" in fc, "unexpected feature-build cell"
-    cells.insert(i_feat + 1, code_cell(SURF_SRC.replace("__SURF_CHILD__", repr(SURF_CHILD))))
+    cells.insert(i_feat + 1, code_cell(SURF_SRC))
     cells.insert(i_feat + 2, code_cell(DIPBEAM_SRC))
-    cells.insert(i_feat + 3, code_cell(MEMBER_C_SRC))
-    report.append(f"inserted SURFACE cell at {i_feat + 1}, DIPBEAM at {i_feat + 2}, MEMBER_C at {i_feat + 3} (after feature build)")
+    report.append(f"inserted SURFACE cell at {i_feat + 1} and DIPBEAM cell at {i_feat + 2} (after feature build)")
 
     # 1c. FORCE GBT re-training: the pretrained lightgbm/catboost artifacts were fit on
     #     the OLD feature set; with surface/dipbeam added they must be refit. Gate the
@@ -1165,18 +815,11 @@ def main():
     assert nr == 2, f"expected to gate 2 GBT load branches (lightgbm + catboost), gated {nr}"
     report.append(f"gated {nr} GBT load branches on `and not FORCE_RETRAIN`")
 
-    # 2. INJECT the BiLSTM member, then the TCN member, right before
-    #    `oof_preds = pd.DataFrame(oof_preds)` (after the catboost loop; both are dict
-    #    members here). LSTM goes FIRST so it is self-contained with _l* names and the
-    #    TCN cell's `del _tr,_te` cannot break it. The Ridge stack weights both.
+    # 2. INJECT the TCN member cell right before `oof_preds = pd.DataFrame(oof_preds)`
+    #    (after the catboost loop; oof_preds/test_preds are still dicts here).
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
-    if STACK_LSTM:
-        cells.insert(i_df, code_cell(LSTM_SRC))
-        cells.insert(i_df + 1, code_cell(TCN_SRC))
-        report.append(f"inserted BiLSTM cell at {i_df} and TCN cell at {i_df + 1} (before oof_preds DataFrame)")
-    else:
-        cells.insert(i_df, code_cell(TCN_SRC))
-        report.append(f"inserted TCN cell at {i_df} (BiLSTM shelved: STACK_LSTM=False)")
+    cells.insert(i_df, code_cell(TCN_SRC))
+    report.append(f"inserted TCN cell at {i_df} (before oof_preds = pd.DataFrame(oof_preds))")
 
     # 3. INJECT the DIAG cell right after the Ridge stack is built (oof_preds is a
     #    DataFrame by then), so the log reports the TCN's marginal OOF benefit.
@@ -1242,14 +885,14 @@ def main():
     assert "sp45_fleongg_blend_report.csv" in full, "blend report export lost"
 
     # SURFACE + DIPBEAM cells present, after feature build, before the GBT loops & TCN
-    assert "class _FormSurfTPS:" in full, "SURFACE cell (_FormSurfTPS) missing"
-    assert "_FS = _FormSurfTPS(train_wids, TRAIN_DIR)" in full, "SURFACE build missing"
+    assert "class _FormSurf:" in full, "SURFACE cell (_FormSurf) missing"
+    assert "_FS = _FormSurf(train_wids, TRAIN_DIR)" in full, "SURFACE build missing"
     assert "tvtS_" in full, "surface tvtS_ columns missing"
     assert "def _beam_dip_jit(" in full and "tvt_dipbeam_d" in full and "dipbeam_dip" in full, \
         "DIPBEAM cell missing"
     _i_feat = full.index("features = [c for c in train_df.columns if c not in {'well','id','target'}]")
-    assert _i_feat < full.index("class _FormSurfTPS:"), "SURFACE must come after the feature build"
-    assert full.index("class _FormSurfTPS:") < full.index("def _beam_dip_jit("), "SURFACE must precede DIPBEAM"
+    assert _i_feat < full.index("class _FormSurf:"), "SURFACE must come after the feature build"
+    assert full.index("class _FormSurf:") < full.index("def _beam_dip_jit("), "SURFACE must precede DIPBEAM"
     assert full.index("[DIPBEAM] +2 features") < full.index('for i, params in enumerate(lgb_params):'), \
         "SURF/DIPBEAM must be injected before the lightgbm loop"
     assert full.index("[DIPBEAM] +2 features") < full.index("_tfeat = list(features)"), \
@@ -1266,40 +909,6 @@ def main():
     assert 'pd.read_csv(CFG.artifacts_path / "data" / "train.csv"' in full, "train.csv fast-load harmed"
     # SURF-DIPBEAM feature-count DIAG line
     assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
-
-    # BiLSTM member (only when STACK_LSTM): dict member before df conversion, _l* names
-    if STACK_LSTM:
-        assert "class _BiLSTM(nn.Module)" in full, "BiLSTM class missing"
-        assert "nn.LSTM(" in full and "bidirectional=True" in full, "bidirectional LSTM layer missing"
-        assert 'oof_preds["lstm"] = _lstm_oof' in full, "oof_preds['lstm'] assignment missing"
-        assert 'test_preds["lstm"] = _lstm_test' in full, "test_preds['lstm'] assignment missing"
-        assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index("oof_preds = pd.DataFrame(oof_preds)"), \
-            "LSTM dict assignment must precede DataFrame conversion"
-        assert "[LSTM] CV toe RMSE mean" in full, "LSTM CV print missing"
-        assert "_ltr = _lseqs(train_df, True)" in full, "LSTM independent _lseqs build missing"
-        assert "lstm_submission.csv" not in full, "LSTM is a Ridge member only (no standalone submission)"
-        assert full.index("[DIPBEAM] +2 features") < full.index("_lfeat = list(features)"), \
-            "SURF/DIPBEAM must be injected before the LSTM reads features"
-        assert full.index('oof_preds["lstm"] = _lstm_oof') < full.index('oof_preds["tcn"] = _tcn_oof'), \
-            "LSTM cell must precede the TCN cell (so TCN's del _tr,_te can't touch _ltr,_lte)"
-        assert "delta_lstm=" in full, "LSTM marginal DIAG missing"
-    else:
-        assert "class _BiLSTM" not in full, "BiLSTM should be absent when STACK_LSTM=False"
-
-    # MEMBER_C cell present, after DIPBEAM, before the lightgbm loop; writes surf_submission.csv
-    assert "[C] member-C feature cols" in full, "MEMBER_C cell missing"
-    assert "surf_submission.csv" in full, "surf_submission.csv writer missing"
-    assert "[C] CV delta-RMSE mean" in full, "MEMBER_C CV print missing"
-    assert full.index("[DIPBEAM] +2 features") < full.index("[C] member-C feature cols"), \
-        "MEMBER_C must come after DIPBEAM"
-    assert full.index("[C] member-C feature cols") < full.index('for i, params in enumerate(lgb_params):'), \
-        "MEMBER_C must be injected before the lightgbm loop"
-    # C blend layer in the final blend cell (un-diluted member, runs last)
-    assert "'surf': _WORK / 'surf_submission.csv'" in full, "_INPUT_FILES missing 'surf'"
-    assert "def _weighted_submission_C(" in full, "_weighted_submission_C missing"
-    assert "[BLENDC-DIAG]" in full, "C true-RMSE DIAG missing"
-    assert "submission_surf_w" in full, "C variant export missing"
-    assert "_SELECTED_C_WEIGHT = 0.0" in full, "C ships at verified base (w_c=0) until CV confirmed"
 
     # existing override / final blend markers intact (override cell untouched)
     assert "_ov_tvt_from_contacts" in full, "contact-override marker missing (override cell harmed?)"
