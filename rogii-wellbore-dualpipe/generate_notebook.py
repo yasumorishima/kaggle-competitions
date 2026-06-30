@@ -250,7 +250,10 @@ print(f"[TCN] wrote tcn_submission.csv abs (rows={len(_tcn_abs)})")
 oof_preds["tcn"] = _tcn_oof
 test_preds["tcn"] = _tcn_test
 print(f"[TCN] member added | OOF residual RMSE={float(np.sqrt(np.mean((_tcn_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-del _tr, _te; gc.collect()
+# KEEP _tr/_te ALIVE for the Transformer (xf) cell to REUSE (it runs immediately after).
+# Building a 2nd ~3GB normalised sequence copy on top of these OOM-killed the kernel
+# (DeadKernel ~27s into the xf cell). The xf cell reuses _tr/_te and frees them at its end.
+gc.collect()
 '''
 
 
@@ -641,37 +644,15 @@ try:
 except Exception as e:
     print("[XF] GPU unusable -> CPU:", str(e)[:100])
 
-# memory-light per-column mean/std: avoids the ~3GB full float32 copy + ~0.8GB bool mask
-# that OOM-killed the kernel when this 2nd sequence model ran after the TCN. One column at
-# a time -> peak transient is a single column (~15MB). inf is dropped (not folded to nan).
-_xmu = np.zeros(len(_xfeat), np.float32); _xsd = np.ones(len(_xfeat), np.float32)
-for _ci, _cn in enumerate(_xfeat):
-    _col = train_df[_cn].to_numpy(np.float32); _col = _col[np.isfinite(_col)]
-    if len(_col):
-        _xmu[_ci] = _col.mean(); _s = float(_col.std()); _xsd[_ci] = _s if _s > 1e-6 else 1.0
-    del _col
-gc.collect()
-_xyt = train_df['target'].to_numpy(np.float32); _xymu = float(np.nanmean(_xyt)); _xysd = float(np.nanstd(_xyt)) or 1.0
-
-
-def _xnorm(M):
-    M = M.astype(np.float32, copy=True); M[~np.isfinite(M)] = np.nan; M = (M - _xmu) / _xsd
-    return np.nan_to_num(M, nan=0.0, posinf=0.0, neginf=0.0)
-
-
-def _xseqs(df, has_t):
-    df = df.copy(); df['_ri'] = df['id'].str.rsplit('_', n=1).str[-1].astype(int)
-    out = []
-    for wid, gd in df.groupby('well', sort=False):
-        gd = gd.sort_values('_ri')
-        it = {'wid': wid, 'X': _xnorm(gd[_xfeat].to_numpy()), 'ids': gd['id'].to_numpy()}
-        if has_t:
-            it['t'] = (gd['target'].to_numpy(np.float32) - _xymu) / _xysd
-        out.append(it)
-    return out
-
-
-_xtr = _xseqs(train_df, True); _xte = _xseqs(test_df, False)
+# REUSE the TCN cell's already-built per-well sequences (_tr/_te) instead of materialising
+# a SECOND ~3GB normalised float32 copy. Rebuilding _xseqs on top of the TCN residue
+# OOM-killed the kernel (DeadKernel ~27s into this cell). _tr/_te already hold the same
+# (rows, feat) globally-standardised arrays this windowed-attention model needs; the TCN's
+# target normalisation (_ymu/_ysd) is reused for denorm. The TCN cell now KEEPS _tr/_te
+# alive (its `del _tr,_te` moved to the END of THIS cell) -> total sequence memory stays at
+# ONE copy = the peak the TCN already proved fits. _xtr/_xte are plain aliases (no copy).
+_xymu = _ymu; _xysd = _ysd
+_xtr = _tr; _xte = _te
 _xgrp = np.array([s['wid'] for s in _xtr])
 
 
@@ -779,7 +760,8 @@ assert not np.isnan(_xf_test).any(), "XF test unmapped"
 oof_preds["xf"] = _xf_oof
 test_preds["xf"] = _xf_test
 print(f"[XF] member added | OOF residual RMSE={float(np.sqrt(np.mean((_xf_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-del _xtr, _xte; gc.collect()
+# _xtr/_xte alias _tr/_te -> free the single shared sequence copy here (moved from the TCN cell).
+del _tr, _te, _xtr, _xte; gc.collect()
 try:
     if _xdev == "cuda":
         torch.cuda.empty_cache()
