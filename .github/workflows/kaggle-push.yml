@@ -29,11 +29,13 @@ jobs:
           python-version: '3.12'
 
       - name: Install kaggle CLI
-        # Pin kaggle==2.0.0: the latest (2.2.2) ships a broken wheel that raises
-        # `ModuleNotFoundError: No module named 'kagglesdk.competitions.legacy'` at import
-        # (missing subpackage), failing every push. 2.0.0 is the version verified working
-        # locally and still supports KAGGLE_API_TOKEN env auth + kernels push/status.
-        run: pip install 'kaggle==2.0.0' lightgbm xgboost wandb
+        # Pin BOTH kaggle==2.0.0 AND its kagglesdk dep==0.1.15. The real breakage is in
+        # kagglesdk: its latest wheel is missing the `competitions.legacy` subpackage, so
+        # `import kaggle` dies with `ModuleNotFoundError: No module named
+        # 'kagglesdk.competitions.legacy'` and every push fails — pinning kaggle alone does
+        # NOT help because kagglesdk resolves to its own (broken) latest. 2.0.0 + 0.1.15 is
+        # the combo verified working locally; supports KAGGLE_API_TOKEN env auth.
+        run: pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15' lightgbm xgboost wandb
 
       - name: Generate notebook (if generate_notebook.py exists)
         run: |
