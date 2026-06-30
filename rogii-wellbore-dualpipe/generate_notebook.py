@@ -606,14 +606,23 @@ TRANSFORMER_SRC = r'''
 import torch, torch.nn as nn, math
 import gc
 torch.manual_seed(44); np.random.seed(44)
-# free any GPU residue the TCN cell left bound before building this model
+# Free the TCN cell's residue BACK TO THE OS before this 2nd sequence model allocates.
+# CPython's allocator keeps freed pools (does not return to the OS), so after the TCN's
+# `del _tr,_te; gc.collect()` the ~3GB sequence memory stays in RSS; the XF's own big
+# allocation then OOM-killed the kernel (DeadKernel ~27s into this cell). malloc_trim(0)
+# returns the freed arena to the OS; empty_cache frees the TCN's GPU model.
 try:
     gc.collect()
+    import ctypes as _ct
+    try:
+        _ct.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 except Exception:
     pass
-_XE = 2 if SMOKE else 30
+_XE = 2 if SMOKE else 20
 _XPAT = 1 if SMOKE else 5
 _XD = 64
 _XH = 4
@@ -632,9 +641,16 @@ try:
 except Exception as e:
     print("[XF] GPU unusable -> CPU:", str(e)[:100])
 
-_xXall = train_df[_xfeat].to_numpy(np.float32); _xXall[~np.isfinite(_xXall)] = np.nan
-_xmu = np.nanmean(_xXall, 0).astype(np.float32); _xsd = np.nanstd(_xXall, 0).astype(np.float32); _xsd[_xsd < 1e-6] = 1.0
-del _xXall; gc.collect()
+# memory-light per-column mean/std: avoids the ~3GB full float32 copy + ~0.8GB bool mask
+# that OOM-killed the kernel when this 2nd sequence model ran after the TCN. One column at
+# a time -> peak transient is a single column (~15MB). inf is dropped (not folded to nan).
+_xmu = np.zeros(len(_xfeat), np.float32); _xsd = np.ones(len(_xfeat), np.float32)
+for _ci, _cn in enumerate(_xfeat):
+    _col = train_df[_cn].to_numpy(np.float32); _col = _col[np.isfinite(_col)]
+    if len(_col):
+        _xmu[_ci] = _col.mean(); _s = float(_col.std()); _xsd[_ci] = _s if _s > 1e-6 else 1.0
+    del _col
+gc.collect()
 _xyt = train_df['target'].to_numpy(np.float32); _xymu = float(np.nanmean(_xyt)); _xysd = float(np.nanstd(_xyt)) or 1.0
 
 
