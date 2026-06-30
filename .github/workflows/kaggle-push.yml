@@ -29,7 +29,11 @@ jobs:
           python-version: '3.12'
 
       - name: Install kaggle CLI
-        run: pip install kaggle lightgbm xgboost wandb
+        # Pin kaggle==2.0.0: the latest (2.2.2) ships a broken wheel that raises
+        # `ModuleNotFoundError: No module named 'kagglesdk.competitions.legacy'` at import
+        # (missing subpackage), failing every push. 2.0.0 is the version verified working
+        # locally and still supports KAGGLE_API_TOKEN env auth + kernels push/status.
+        run: pip install 'kaggle==2.0.0' lightgbm xgboost wandb
 
       - name: Generate notebook (if generate_notebook.py exists)
         run: |
