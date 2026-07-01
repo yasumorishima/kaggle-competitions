@@ -961,6 +961,22 @@ def main():
     cells.append(code_cell(GEO_OOF_SRC))
     report.append(f"appended GEO-OOF diagnostic cell at {len(cells) - 1} (last)")
 
+    # 6. LOO-honesty for the GEO-OOF surface/dense candidates: _gold_surface_candidates
+    #    imputes with self_wid=None, so a TRAIN query well sees its OWN structure in the
+    #    Formation-plane / DenseANCC imputer (built on all train wids) -> the dense_ancc_*/
+    #    surface_* toe-RMSE is self-inclusion-optimistic. Pass self_wid=wid (the query well)
+    #    at the two call sites inside _gold_surface_candidates so the query is excluded
+    #    (proper leave-one-well-out). PRODUCTION-SAFE: at test time `wid` is a TEST well,
+    #    which is absent from the train-built imputer pool, so self_wid=<test wid> excludes
+    #    nothing (identical to None there) -> the deployed submission is unchanged.
+    _gsrc = src_str(cells[_gold_cell_i])
+    for _old, _new in [("fi.impute(xy, self_wid=None)", "fi.impute(xy, self_wid=wid)"),
+                       ("di.impute(xy, self_wid=None)", "di.impute(xy, self_wid=wid)")]:
+        assert _gsrc.count(_old) == 1, f"expected exactly one {_old!r} in the gold cell"
+        _gsrc = _gsrc.replace(_old, _new)
+    set_src(cells[_gold_cell_i], _gsrc)
+    report.append("patched _gold_surface_candidates imputes to self_wid=wid (LOO honesty)")
+
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
     json.dump(nb, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -992,6 +1008,11 @@ def main():
     assert "with_quality=True" in full, "GEO-OOF quality-premise probe missing"
     assert full.rindex("[GEO-OOF]") > full.rindex("Gold visible-prefix calibration overlay"), \
         "GEO-OOF must run after the gold-calibration cell"
+    # LOO-honesty patch applied: the two _gold_surface_candidates call sites use self_wid=wid
+    assert "fi.impute(xy, self_wid=wid)" in full and "di.impute(xy, self_wid=wid)" in full, \
+        "surface-candidate imputes not switched to self_wid=wid (LOO honesty)"
+    assert "fi.impute(xy, self_wid=None)" not in full and "di.impute(xy, self_wid=None)" not in full, \
+        "stale self_wid=None call site survived"
     # DIAG cell present and placed after the Ridge stack
     assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
     assert full.index("ridge_oof_preds = ridge_trainer.oof_preds") < full.index("[DIAG] Ridge-A OOF"), \
