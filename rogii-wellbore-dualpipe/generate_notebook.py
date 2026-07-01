@@ -589,6 +589,121 @@ print(f"[SURF-DIPBEAM] features added: {len(_sdcols)} ({sorted(_sdcols)}) | tota
 '''
 
 
+# === GEO-OOF diagnostic cell (read-only, appended LAST so every _gold_*/lik_pf/imputer is
+#     defined). The base only OOF-scores the GBT ridge stack; the GEOSTEERING candidates
+#     (PF/beam/selector/poly/surface/contact) that DOMINATE the final blend (0.7 in sp45,
+#     direct in fleongg) are produced only at TEST time and never scored on train -> the
+#     field tunes them on the override-mirage public LB. This builds the missing
+#     private-relevant signal: for N train wells, mask the toe EXACTLY as test masks it
+#     (TVT_input NaN on the toe), run the candidate pool, and score each candidate on the
+#     toe against the TRUE `TVT` column (present only in train). Also tests the
+#     quality-conditioning premise: does the PF's own confidence (pf_best_ll/pf_ll_spread/
+#     pf_pt_std) predict its toe error? Prints [GEO-OOF] lines only; never writes the
+#     submission; fully guarded so it can never break the run. ===
+GEO_OOF_SRC = r'''
+import numpy as _gnp, pandas as _gpd, os as _gos
+from pathlib import Path as _GP
+_GEO_N = 40          # subsample of train wells (2 PF ensembles/well is the runtime cost)
+_GEO_SEEDS = 24      # candidate-pool PF seeds (matches _GOLD_CAL_SEEDS)
+_GEO_QSEEDS = 48     # (B) quality-probe PF seeds (kept < the deployed 128 to bound runtime)
+
+
+def _geo_find_train():
+    try:
+        for _root, _dirs, _files in _gos.walk('/kaggle/input'):
+            if 'sample_submission.csv' in _files and (_GP(_root) / 'train').is_dir():
+                return _GP(_root) / 'train'
+    except Exception:
+        pass
+    return _GP('/kaggle/input/rogii-wellbore-geology-prediction/train')
+
+
+try:
+    _GEO_DIR = _geo_find_train()
+    _geo_wids = sorted(p.stem.replace('__horizontal_well', '')
+                       for p in _GEO_DIR.glob('*__horizontal_well.csv'))
+    if len(_geo_wids) > _GEO_N:                      # deterministic even stride (no RNG)
+        _gstep = len(_geo_wids) / float(_GEO_N)
+        _geo_wids = [_geo_wids[int(_k * _gstep)] for _k in range(_GEO_N)]
+    _geo_variants = _gold_variant_grid() if callable(globals().get('_gold_variant_grid')) else []
+    _geo_acc = {}                 # candidate name -> [toe RMSE per well]
+    _geo_q = []                   # (pf_best_ll, pf_ll_spread, mean pf_pt_std, pf_toe_rmse)
+    _geo_used = 0
+    for _wid in _geo_wids:
+        try:
+            _hw = _gpd.read_csv(_GEO_DIR / (_wid + '__horizontal_well.csv'))
+            _tw = _gpd.read_csv(_GEO_DIR / (_wid + '__typewell.csv'))
+        except Exception:
+            continue
+        _tcol = [c for c in _hw.columns if c.lower() == 'tvt']
+        if not _tcol or 'TVT_input' not in _hw.columns:
+            continue
+        _true = _hw[_tcol[0]].to_numpy(float)
+        _toe = _hw['TVT_input'].isna().to_numpy()
+        if int(_toe.sum()) < 20 or int(_gnp.isfinite(_true[_toe]).sum()) < 20:
+            continue
+        _geo_used += 1
+        try:                                          # (A) candidate-pool toe floor
+            _pool = _gold_candidate_pool(_wid, _hw, _tw, _GEO_DIR, _geo_variants,
+                                         include_pf=True, n_seeds=_GEO_SEEDS,
+                                         n_particles=int(globals().get('_GOLD_PARTICLES', 350)))
+            for _nm, _pr in _pool.items():
+                # LEAK-SAFE: drop contact_* -- _gold_contact_candidate re-reads the well's
+                # TRAIN file and returns its TRUE TVT (a public-overlap override artifact that
+                # does NOT generalize to private wells). Keep only candidates built from the
+                # heel-masked TVT_input / offset-well structure (pf|*, poly_*, surface_*, dense_*).
+                if _nm.startswith('contact'):
+                    continue
+                _pr = _gnp.asarray(_pr, float)
+                if len(_pr) == len(_hw):
+                    _e = float(_gold_rmse(_pr[_toe], _true[_toe]))
+                    if _gnp.isfinite(_e):
+                        _geo_acc.setdefault(_nm, []).append(_e)
+        except Exception as _ea:
+            print('[GEO-OOF] pool fail', _wid, str(_ea)[:80])
+        try:                                          # (B) PF confidence vs PF toe error
+            _out, _ev, _q = lik_pf(_hw, _tw, n_seeds=_GEO_QSEEDS, with_quality=True)
+            if _q and 'pf_scale_8' in _out and len(_ev):
+                _pf_pred = _gnp.asarray(_out['pf_scale_8'], float)
+                _yt = _true[_ev]
+                _mk = _gnp.isfinite(_pf_pred) & _gnp.isfinite(_yt)
+                if int(_mk.sum()) >= 20:
+                    _rpf = float(_gnp.sqrt(_gnp.mean((_pf_pred[_mk] - _yt[_mk]) ** 2)))
+                    _geo_q.append((float(_q['pf_best_ll']), float(_q['pf_ll_spread']),
+                                   float(_gnp.mean(_q['pf_pt_std'])), _rpf))
+        except Exception as _eb:
+            print('[GEO-OOF] quality fail', _wid, str(_eb)[:80])
+    print(f'[GEO-OOF] wells scored={_geo_used}/{len(_geo_wids)}')
+    _rank = sorted(((float(_gnp.mean(v)), float(_gnp.median(v)), len(v), k)
+                    for k, v in _geo_acc.items() if len(v) >= max(5, _geo_used // 5)))
+    # pf|* and poly_* are leak-clean AND self-independent (own GR/TVT_input + own typewell,
+    # no cross-well imputer). surface_*/dense_* use the offset-well imputer with self_wid=None
+    # here, so they carry a mild self-inclusion OPTIMISM vs production (self_wid=swid) -> flag
+    # them so their toe-RMSE is not over-trusted. PF is the dominant final-blend signal, so the
+    # leak-clean group is the one that drives the next lever.
+    def _geo_clean(k):
+        return k.startswith('pf|') or k.startswith('poly')
+    print('[GEO-OOF] === candidate toe-RMSE (train, best first) | [C]=leak-clean self-indep, '
+          '[o]=self-incl optimistic ===')
+    for _gmean, _gmed, _gn, _gk in _rank[:30]:
+        _tag = 'C' if _geo_clean(_gk) else 'o'
+        print(f'[GEO-OOF]  [{_tag}] {_gk:28s} mean={_gmean:7.4f} median={_gmed:7.4f} n={_gn}')
+    _clean_rank = [r for r in _rank if _geo_clean(r[3])]
+    if _clean_rank:
+        print(f'[GEO-OOF] best leak-clean candidate = {_clean_rank[0][3]} '
+              f'mean={_clean_rank[0][0]:.4f} (this is the private-relevant geosteering floor)')
+    if len(_geo_q) >= 10:
+        _Q = _gnp.asarray(_geo_q, float)
+        for _ci, _cn in enumerate(['pf_best_ll', 'pf_ll_spread', 'pf_pt_std_mean']):
+            _cc = float(_gnp.corrcoef(_Q[:, _ci], _Q[:, 3])[0, 1])
+            print(f'[GEO-OOF] corr({_cn:14s}, pf_toe_rmse) = {_cc:+.3f}  (n={len(_Q)})')
+        print(f'[GEO-OOF] pf_toe_rmse mean={_Q[:,3].mean():.4f} '
+              f'median={float(_gnp.median(_Q[:,3])):.4f} p90={float(_gnp.percentile(_Q[:,3],90)):.4f}')
+except Exception as _eg:
+    print('[GEO-OOF] SKIPPED:', str(_eg)[:200])
+'''
+
+
 # Full replacement for the final-blend cell. It is a strict superset of the base:
 #  * the base 2-way sp45/fleongg blend (0.55/0.45 internal ratio) is computed exactly
 #    as before, all `submission_sp45_fleongg_w*.csv` candidate exports + report CSV
@@ -837,6 +952,15 @@ def main():
     set_src(cells[i_bl], BLEND3_SRC)
     report.append(f"replaced blend cell at {i_bl} with 3-way (TCN member + 2-way fallback)")
 
+    # 5. APPEND the GEO-OOF diagnostic as the LAST cell, so every _gold_*/lik_pf/imputer it
+    #    calls is already defined and the imputers are initialised (main() has run). It is
+    #    read-only (prints [GEO-OOF] only, never writes submission) and fully guarded.
+    _gold_cell_i = find_cell(cells, "Gold visible-prefix calibration overlay")
+    assert _gold_cell_i == len(cells) - 1, \
+        f"expected the gold-calibration cell to be last (at {_gold_cell_i}, n={len(cells)})"
+    cells.append(code_cell(GEO_OOF_SRC))
+    report.append(f"appended GEO-OOF diagnostic cell at {len(cells) - 1} (last)")
+
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
     json.dump(nb, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -862,6 +986,12 @@ def main():
     assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag cell missing"
     assert full.index("FORCE_RETRAIN={FORCE_RETRAIN}") < full.index("class _TCN(nn.Module)"), \
         "SMOKE cell must precede TCN cell"
+    # GEO-OOF diagnostic present, last, read-only, and scores against the true TVT toe
+    assert "[GEO-OOF] === candidate toe-RMSE" in full, "GEO-OOF diagnostic missing"
+    assert "_gold_candidate_pool(_wid, _hw, _tw" in full, "GEO-OOF must call the gold candidate pool"
+    assert "with_quality=True" in full, "GEO-OOF quality-premise probe missing"
+    assert full.rindex("[GEO-OOF]") > full.rindex("Gold visible-prefix calibration overlay"), \
+        "GEO-OOF must run after the gold-calibration cell"
     # DIAG cell present and placed after the Ridge stack
     assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
     assert full.index("ridge_oof_preds = ridge_trainer.oof_preds") < full.index("[DIAG] Ridge-A OOF"), \
