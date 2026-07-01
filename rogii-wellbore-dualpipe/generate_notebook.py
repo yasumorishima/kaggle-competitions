@@ -250,10 +250,7 @@ print(f"[TCN] wrote tcn_submission.csv abs (rows={len(_tcn_abs)})")
 oof_preds["tcn"] = _tcn_oof
 test_preds["tcn"] = _tcn_test
 print(f"[TCN] member added | OOF residual RMSE={float(np.sqrt(np.mean((_tcn_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-# KEEP _tr/_te ALIVE for the Transformer (xf) cell to REUSE (it runs immediately after).
-# Building a 2nd ~3GB normalised sequence copy on top of these OOM-killed the kernel
-# (DeadKernel ~27s into the xf cell). The xf cell reuses _tr/_te and frees them at its end.
-gc.collect()
+del _tr, _te; gc.collect()
 '''
 
 
@@ -585,188 +582,10 @@ _r_notcn = _ridge_oof_rmse(_cols_notcn)
 _r_tcn = _ridge_oof_rmse(_cols_all)
 print(f"[DIAG] Ridge-A OOF  without_TCN={_r_notcn:.4f}  with_TCN={_r_tcn:.4f}  "
       f"delta={_r_tcn - _r_notcn:+.4f}  (negative = TCN helps the base)")
-# Transformer member marginal: drop only 'xf' from the full stack (with_all=_r_tcn includes
-# every member). delta_xf<0 => the Transformer decorrelates from GBT+TCN and helps the base.
-_cols_noxf = [c for c in _cols_all if c != "xf"]
-_r_noxf = _ridge_oof_rmse(_cols_noxf) if "xf" in _cols_all else _r_tcn
-print(f"[DIAG] Ridge-A OOF  without_XF={_r_noxf:.4f}  with_all={_r_tcn:.4f}  "
-      f"delta_xf={_r_tcn - _r_noxf:+.4f}  (negative = Transformer helps the base)")
 # surface + dip-beam feature count (compare without_TCN to the prior no-surf baseline)
 _sdcols = [c for c in features if c.startswith("tvtS_") or c.startswith("surf_")
            or c in ("tvt_dipbeam_d", "dipbeam_dip")]
 print(f"[SURF-DIPBEAM] features added: {len(_sdcols)} ({sorted(_sdcols)}) | total features={len(features)}")
-'''
-
-
-# === Transformer-encoder sequence model: a 2nd decorrelated Ridge-stack member. ===
-# Self-attention is a distinct inductive bias from the dilated-conv TCN, so its errors
-# decorrelate -> the positive-constrained Ridge stack extracts blend gain (0-weight if it
-# does not help => never worse). WINDOWED attention (W<=512) bounds memory to O(W^2) (NOT
-# O(L^2)) so long toe sequences cannot OOM the kernel. Runs AFTER the TCN cell (which frees
-# its sequence copy), with independent _x* names; added to oof_preds/test_preds while they
-# are still dicts, exactly like the TCN member -> the Ridge stack weights it.
-TRANSFORMER_SRC = r'''
-import torch, torch.nn as nn, math
-import gc
-torch.manual_seed(44); np.random.seed(44)
-# Free the TCN cell's residue BACK TO THE OS before this 2nd sequence model allocates.
-# CPython's allocator keeps freed pools (does not return to the OS), so after the TCN's
-# `del _tr,_te; gc.collect()` the ~3GB sequence memory stays in RSS; the XF's own big
-# allocation then OOM-killed the kernel (DeadKernel ~27s into this cell). malloc_trim(0)
-# returns the freed arena to the OS; empty_cache frees the TCN's GPU model.
-try:
-    gc.collect()
-    import ctypes as _ct
-    try:
-        _ct.CDLL("libc.so.6").malloc_trim(0)
-    except Exception:
-        pass
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-except Exception:
-    pass
-_XE = 2 if SMOKE else 20
-_XPAT = 1 if SMOKE else 5
-_XD = 64
-_XH = 4
-_XL = 1 if SMOKE else 2
-_XW = 512
-_XDROP, _XLR, _XWD, _XCLIP = 0.1, 5e-4, 1e-4, 1.0
-_XNSEED = 1 if SMOKE else 2
-_xfeat = list(features)
-print(f"[XF] SMOKE={SMOKE} ep={_XE} d={_XD} heads={_XH} layers={_XL} win={_XW} nfeat={len(_xfeat)} seeds={_XNSEED}")
-
-_xdev = "cpu"
-try:
-    if torch.cuda.is_available():
-        _xg = torch.zeros(8, device="cuda"); _ = float((_xg + 1).sum().item()); _xdev = "cuda"
-        print("[XF] GPU:", torch.cuda.get_device_name(0))
-except Exception as e:
-    print("[XF] GPU unusable -> CPU:", str(e)[:100])
-
-# REUSE the TCN cell's already-built per-well sequences (_tr/_te) instead of materialising
-# a SECOND ~3GB normalised float32 copy. Rebuilding _xseqs on top of the TCN residue
-# OOM-killed the kernel (DeadKernel ~27s into this cell). _tr/_te already hold the same
-# (rows, feat) globally-standardised arrays this windowed-attention model needs; the TCN's
-# target normalisation (_ymu/_ysd) is reused for denorm. The TCN cell now KEEPS _tr/_te
-# alive (its `del _tr,_te` moved to the END of THIS cell) -> total sequence memory stays at
-# ONE copy = the peak the TCN already proved fits. _xtr/_xte are plain aliases (no copy).
-_xymu = _ymu; _xysd = _ysd
-_xtr = _tr; _xte = _te
-_xgrp = np.array([s['wid'] for s in _xtr])
-
-
-class _XPos(nn.Module):
-    def __init__(s, d, mx):
-        super().__init__()
-        pe = torch.zeros(mx, d); pos = torch.arange(mx).unsqueeze(1).float()
-        dv = torch.exp(torch.arange(0, d, 2).float() * (-math.log(10000.0) / d))
-        pe[:, 0::2] = torch.sin(pos * dv); pe[:, 1::2] = torch.cos(pos * dv)
-        s.register_buffer('pe', pe)
-
-    def forward(s, x):
-        return x + s.pe[:x.size(1)].unsqueeze(0)
-
-
-class _XFnet(nn.Module):
-    def __init__(s, ci, d, h, nl, dr, win):
-        super().__init__()
-        s.win = win
-        s.inp = nn.Linear(ci, d); s.act = nn.ReLU(); s.pos = _XPos(d, win)
-        el = nn.TransformerEncoderLayer(d, h, dim_feedforward=2 * d, dropout=dr,
-                                        batch_first=True, activation='gelu')
-        s.enc = nn.TransformerEncoder(el, nl); s.do = nn.Dropout(dr); s.head = nn.Linear(d, 1)
-
-    def forward(s, x):                 # x: (1, L, ci) -> (1, L); attend within W-sized windows
-        z = s.act(s.inp(x)); L = z.size(1); outs = []
-        for st in range(0, L, s.win):
-            w = z[:, st:st + s.win]; w = s.pos(w); w = s.enc(w); outs.append(w)
-        z = torch.cat(outs, 1)
-        return s.head(s.do(z)).squeeze(-1)
-
-
-def _xhub(p, t, d=1.0):
-    e = p - t; a = e.abs(); return torch.where(a <= d, 0.5 * e * e, d * (a - 0.5 * d)).mean()
-
-
-def _xtx(s):
-    return torch.tensor(s['X'][None], dtype=torch.float32, device=_xdev)
-
-
-def _xtrain_one(_tri, _vai, _seed):
-    torch.manual_seed(_seed); np.random.seed(_seed)
-    _m = _XFnet(len(_xfeat), _XD, _XH, _XL, _XDROP, _XW).to(_xdev)
-    _opt = torch.optim.Adam(_m.parameters(), lr=_XLR, weight_decay=_XWD)
-    _sch = torch.optim.lr_scheduler.CosineAnnealingLR(_opt, T_max=_XE)
-    _best = 1e9; _bs = None; _bad = 0; _trl = np.array(_tri)
-    for _ep in range(_XE):
-        _m.train(); np.random.shuffle(_trl)
-        for _j in _trl:
-            s = _xtr[_j]; x = _xtx(s); t = torch.tensor(s['t'][None], dtype=torch.float32, device=_xdev)
-            _opt.zero_grad(); _l = _xhub(_m(x), t); _l.backward()
-            torch.nn.utils.clip_grad_norm_(_m.parameters(), _XCLIP); _opt.step()
-        _sch.step()
-        _m.eval(); _P = []; _T = []
-        with torch.no_grad():
-            for _j in _vai:
-                s = _xtr[_j]; _P.append(_m(_xtx(s)).cpu().numpy()[0] * _xysd + _xymu); _T.append(s['t'] * _xysd + _xymu)
-        _vr = float(np.sqrt(np.mean((np.concatenate(_P) - np.concatenate(_T)) ** 2)))
-        if _vr < _best - 1e-4:
-            _best = _vr; _bad = 0
-            _bs = {k: v.detach().cpu().clone() for k, v in _m.state_dict().items()}
-        else:
-            _bad += 1
-        if _bad >= _XPAT:
-            break
-    _m.load_state_dict(_bs); _m.eval(); return _m
-
-
-_xoof_id = {}; _xtest_sum = {}; _xnf = 0; _xfb = []
-_xidx = np.arange(len(_xtr))
-for _f, (_tri, _vai) in enumerate(GroupKFold(n_splits=CFG.n_splits).split(_xidx, groups=_xgrp)):
-    _va_sum = {}; _te_fold = {}
-    for _seed in range(_XNSEED):
-        _m = _xtrain_one(_tri, _vai, 3000 * _seed + _f)
-        with torch.no_grad():
-            for _j in _vai:
-                s = _xtr[_j]; pr = _m(_xtx(s)).cpu().numpy()[0] * _xysd + _xymu
-                for _i, _id in enumerate(s['ids']):
-                    _va_sum[_id] = _va_sum.get(_id, 0.0) + float(pr[_i]) / _XNSEED
-            for s in _xte:
-                pr = _m(_xtx(s)).cpu().numpy()[0] * _xysd + _xymu
-                for _i, _id in enumerate(s['ids']):
-                    _te_fold[_id] = _te_fold.get(_id, 0.0) + float(pr[_i]) / _XNSEED
-    for _id, v in _va_sum.items():
-        _xoof_id[_id] = v
-    for _id, v in _te_fold.items():
-        _xtest_sum[_id] = _xtest_sum.get(_id, 0.0) + v
-    _xnf += 1
-    _vp = []; _vt = []
-    for _j in _vai:
-        s = _xtr[_j]; _vp.extend([_va_sum[i] for i in s['ids']]); _vt.extend(list(s['t'] * _xysd + _xymu))
-    _fr = float(np.sqrt(np.mean((np.array(_vp) - np.array(_vt)) ** 2))); _xfb.append(_fr)
-    print(f"[XF] fold{_f} toe RMSE={_fr:.4f}")
-print("[XF] CV toe RMSE mean =", float(np.mean(_xfb)), "| folds", [round(b, 3) for b in _xfb])
-
-_xf_oof = train_df['id'].map(_xoof_id).to_numpy(np.float32)
-_xte_mean = {k: v / _xnf for k, v in _xtest_sum.items()}
-_xf_test = test_df['id'].map(_xte_mean).to_numpy(np.float32)
-assert len(_xf_oof) == len(train_df), "XF OOF length != train_df"
-assert len(_xf_test) == len(test_df), "XF test length != test_df"
-assert not np.isnan(_xf_oof).any(), "XF OOF unmapped"
-assert not np.isnan(_xf_test).any(), "XF test unmapped"
-
-# oof_preds / test_preds are still dicts here -> add the member; the Ridge stack weights it.
-oof_preds["xf"] = _xf_oof
-test_preds["xf"] = _xf_test
-print(f"[XF] member added | OOF residual RMSE={float(np.sqrt(np.mean((_xf_oof - y.values) ** 2))):.4f} | members={list(oof_preds.keys())}")
-# _xtr/_xte alias _tr/_te -> free the single shared sequence copy here (moved from the TCN cell).
-del _tr, _te, _xtr, _xte; gc.collect()
-try:
-    if _xdev == "cuda":
-        torch.cuda.empty_cache()
-except Exception:
-    pass
 '''
 
 
@@ -1000,9 +819,7 @@ def main():
     #    (after the catboost loop; oof_preds/test_preds are still dicts here).
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
     cells.insert(i_df, code_cell(TCN_SRC))
-    cells.insert(i_df + 1, code_cell(TRANSFORMER_SRC))
-    report.append(f"inserted TCN cell at {i_df} and Transformer (xf) cell at {i_df + 1} "
-                  f"(before oof_preds = pd.DataFrame(oof_preds))")
+    report.append(f"inserted TCN cell at {i_df} (before oof_preds = pd.DataFrame(oof_preds))")
 
     # 3. INJECT the DIAG cell right after the Ridge stack is built (oof_preds is a
     #    DataFrame by then), so the log reports the TCN's marginal OOF benefit.
@@ -1038,19 +855,6 @@ def main():
         "TCN dict assignment must precede DataFrame conversion"
     # CV print retained
     assert "[TCN] CV toe RMSE mean" in full, "CV print missing"
-    # Transformer (xf) member: distinct class, dict member before DataFrame conversion, after TCN
-    assert "class _XFnet(nn.Module)" in full, "Transformer class missing"
-    assert "nn.TransformerEncoder(" in full, "TransformerEncoder layer missing"
-    assert 'oof_preds["xf"] = _xf_oof' in full, "oof_preds['xf'] assignment missing"
-    assert 'test_preds["xf"] = _xf_test' in full, "test_preds['xf'] assignment missing"
-    assert full.index('oof_preds["xf"] = _xf_oof') < full.index("oof_preds = pd.DataFrame(oof_preds)"), \
-        "XF dict assignment must precede DataFrame conversion"
-    assert full.index('oof_preds["tcn"] = _tcn_oof') < full.index('oof_preds["xf"] = _xf_oof'), \
-        "Transformer cell must come after the TCN cell"
-    assert "[XF] CV toe RMSE mean" in full, "XF CV print missing"
-    assert "_xfeat = list(features)" in full, "XF feature adaptation missing"
-    assert "without_XF" in full and "delta_xf=" in full, "DIAG xf marginal missing"
-    assert "xf_submission" not in full, "XF is a Ridge member only (no standalone submission)"
     # variable adaptation: dualpipe names, not medal names
     assert "_tfeat = list(features)" in full, "feature_cols->features adaptation missing"
     assert "GroupKFold(n_splits=CFG.n_splits)" in full, "N_SPLITS->CFG.n_splits adaptation missing"
