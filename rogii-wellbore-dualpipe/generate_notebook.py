@@ -86,6 +86,34 @@ print(f"SMOKE={SMOKE}  FORCE_RETRAIN={FORCE_RETRAIN}  FLE_RETRAIN={FLE_RETRAIN}"
 '''
 
 
+# sp45 GBT CPU fallback. lgb_params/cb_params hardcode GPU; when FORCE_RETRAIN=True the
+# dicts are fit directly, so on a CPU kernel (or after the weekly GPU quota is spent)
+# they must lose their GPU-only keys. Also shrink trees under SMOKE for a fast CPU smoke.
+GBT_CPU_FALLBACK_SRC = r'''
+# === sp45 GBT device fallback (GPU quota / CPU kernel) + SMOKE tree shrink ===
+import subprocess as _sp_gpu
+_HAS_GPU = False
+try:
+    _HAS_GPU = _sp_gpu.run(["nvidia-smi"], capture_output=True).returncode == 0
+except Exception:
+    _HAS_GPU = False
+if not _HAS_GPU:
+    for _p in lgb_params:
+        _p.pop("device_type", None); _p.pop("device", None); _p.pop("gpu_use_dp", None)
+    for _p in cb_params:
+        _p["task_type"] = "CPU"; _p.pop("devices", None)
+    print("[GBT-DEVICE] no NVIDIA GPU -> stripped GPU keys (CPU fit)")
+else:
+    print("[GBT-DEVICE] NVIDIA GPU present -> keeping GPU params")
+if SMOKE:
+    for _p in lgb_params:
+        _p["n_estimators"] = min(_p.get("n_estimators", 5000), 300)
+    for _p in cb_params:
+        _p["iterations"] = min(_p.get("iterations", 8000), 300)
+    print("[GBT-DEVICE] SMOKE -> capped lgb n_estimators / cb iterations at 300")
+'''
+
+
 # TCN sequence model member. Adapted from rogii-wellbore-medal/generate_notebook.py
 # TCN_SRC (the proven 10.224 -> 9.905 injection) to dualpipe variable names:
 #   feature_cols  -> features          (dualpipe's feature list, built in the load cell)
@@ -1154,6 +1182,19 @@ def main():
     assert nr == 2, f"expected to gate 2 GBT load branches (lightgbm + catboost), gated {nr}"
     report.append(f"gated {nr} GBT load branches on `and not FORCE_RETRAIN`")
 
+    # 1d. CPU fallback for the sp45 GBT param dicts. lgb_params/cb_params hardcode
+    #     device_type="gpu"/task_type="GPU"; with FORCE_RETRAIN=True (features changed)
+    #     these dicts are instantiated for fitting, so on a CPU kernel (or once the
+    #     weekly GPU quota is exhausted) LightGBM/CatBoost raise. Insert a fixup cell
+    #     right after the params cell that strips GPU-only keys when no NVIDIA GPU is
+    #     visible, and shrinks the tree counts under SMOKE so a CPU smoke stays fast.
+    i_par = find_cell(cells, "lgb_params = [")
+    par_src = src_str(cells[i_par])
+    assert "cb_params = [" in par_src and "ridge_params = {" in par_src, \
+        "unexpected sp45 param cell shape"
+    cells.insert(i_par + 1, code_cell(GBT_CPU_FALLBACK_SRC))
+    report.append(f"inserted sp45 GBT CPU-fallback cell at {i_par + 1} (after param dicts)")
+
     # 2. INJECT the TCN member cell right before `oof_preds = pd.DataFrame(oof_preds)`
     #    (after the catboost loop; oof_preds/test_preds are still dicts here).
     i_df = find_cell(cells, "oof_preds = pd.DataFrame(oof_preds)")
@@ -1239,7 +1280,8 @@ def main():
     fsrc = ("import numpy as _bnp_stash\n"
             "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n"
             "if SMOKE:\n"
-            "    CFG.N_TRAIN_WELLS = 60   # fleongg smoke subset (first 60 wells)\n" + fsrc)
+            "    CFG.N_TRAIN_WELLS = 60   # fleongg smoke subset (first 60 wells)\n"
+            "    CFG.FAST = True          # 600/800-tree GBTs so a CPU smoke stays fast\n" + fsrc)
     set_src(cells[i_fm], fsrc)
     report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash "
                   f"+ FLE_RETRAIN gate + SMOKE well cap")
@@ -1350,6 +1392,11 @@ def main():
         "both lightgbm + catboost load branches must be gated on `and not FORCE_RETRAIN`"
     # the train.csv fast-load is untouched (surface/dipbeam are merged on top, not recomputed)
     assert 'pd.read_csv(CFG.artifacts_path / "data" / "train.csv"' in full, "train.csv fast-load harmed"
+    # sp45 GBT CPU fallback present and ordered before the GBT training loops
+    assert "[GBT-DEVICE]" in full, "sp45 GBT CPU-fallback cell missing"
+    assert full.index("[GBT-DEVICE]") < full.index("for i, params in enumerate(lgb_params):"), \
+        "GBT CPU-fallback must precede the sp45 GBT training loop"
+    assert "CFG.FAST = True" in full, "fleongg SMOKE FAST cap missing"
     # SURF-DIPBEAM feature-count DIAG line
     assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
 

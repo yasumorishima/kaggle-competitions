@@ -50,7 +50,27 @@ jobs:
       - name: Push notebook to Kaggle
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-        run: kaggle kernels push -p "${{ inputs.notebook_dir }}"
+        run: |
+          KERNEL_ID="${{ inputs.kernel_id }}"
+          # Capture the kernel's lastRunTime BEFORE pushing. The poll step uses it to
+          # tell a NEW run's terminal status apart from the PREVIOUS run's stale
+          # COMPLETE/ERROR (2026-07-02: stale COMPLETE was accepted as success while
+          # the push had silently failed on GPU quota).
+          if [ -n "$KERNEL_ID" ]; then
+            PRE_LRT=$(kaggle kernels list --user "${KERNEL_ID%%/*}" --search "${KERNEL_ID#*/}" --page-size 100 -v 2>/dev/null \
+              | awk -F, -v k="$KERNEL_ID" '$1==k{print $4}')
+            echo "PRE_LRT=$PRE_LRT" >> "$GITHUB_ENV"
+            echo "lastRunTime before push: ${PRE_LRT:-<none>}"
+          fi
+          # kaggle CLI exits 0 even on "Kernel push error: ..." (e.g. weekly GPU quota
+          # exhausted), so require the explicit success marker in the output.
+          RC=0
+          OUT=$(kaggle kernels push -p "${{ inputs.notebook_dir }}" 2>&1) || RC=$?
+          echo "$OUT"
+          if [ "$RC" -ne 0 ] || ! echo "$OUT" | grep -q "successfully pushed"; then
+            echo "::error::kaggle kernels push did not confirm success (see output above)"
+            exit 1
+          fi
 
       - name: Poll until complete (max 90min)
         if: ${{ inputs.kernel_id != '' }}
@@ -59,10 +79,15 @@ jobs:
         run: |
           KERNEL_ID="${{ inputs.kernel_id }}"
 
+          get_lrt() {
+            kaggle kernels list --user "${KERNEL_ID%%/*}" --search "${KERNEL_ID#*/}" --page-size 100 -v 2>/dev/null \
+              | awk -F, -v k="$KERNEL_ID" '$1==k{print $4}'
+          }
+
           # Wait for kernel to register on Kaggle (stale status防止)
           echo "Waiting 60s for Kaggle to register push..."
           sleep 60
-          echo "Waiting for kernel to start..."
+          echo "Waiting for kernel to start... (lastRunTime before push: ${PRE_LRT:-<none>})"
           STARTED=false
           for i in $(seq 1 30); do
             RAW=$(kaggle kernels status "$KERNEL_ID" 2>&1) || true
@@ -75,15 +100,21 @@ jobs:
               STARTED=true
               break
             fi
-            # fast kernels can reach COMPLETE before the startup loop sees RUNNING.
-            # CLI emits e.g. KernelWorkerStatus.COMPLETE -> match the whole token.
-            if echo "$STATUS" | grep -qiE "complete_empty|ERROR|CANCEL"; then
-              echo "Kernel failed during startup with status: $STATUS"
-              exit 1
-            fi
-            if echo "$STATUS" | grep -qiE "COMPLETE"; then
-              echo "Kernel completed successfully (fast path): $STATUS"
-              exit 0
+            # Terminal status during startup is trustworthy ONLY if lastRunTime moved
+            # past its pre-push value — otherwise it is the PREVIOUS run's stale state
+            # (2026-07-02: stale COMPLETE was reported as success in ~1min while the
+            # new version never ran). Fast kernels still exit here via the LRT check.
+            if echo "$STATUS" | grep -qiE "COMPLETE|ERROR|CANCEL"; then
+              CUR_LRT=$(get_lrt)
+              if [ -n "$PRE_LRT" ] && [ -n "$CUR_LRT" ] && [ "$CUR_LRT" != "$PRE_LRT" ]; then
+                if echo "$STATUS" | grep -qiE "complete_empty|ERROR|CANCEL"; then
+                  echo "Kernel failed during startup with status: $STATUS"
+                  exit 1
+                fi
+                echo "Kernel completed successfully (fast path, lastRunTime $PRE_LRT -> $CUR_LRT): $STATUS"
+                exit 0
+              fi
+              echo "Ignoring stale terminal status $STATUS (lastRunTime unchanged: ${CUR_LRT:-<none>})"
             fi
             sleep 30
           done
