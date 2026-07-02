@@ -37,6 +37,9 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
 SMOKE = True
+# FLE_RETRAIN=True for diagnostic runs (fleongg CV OOF + stash); False to reproduce the
+# banked pretrained-fleongg submission path exactly.
+FLE_RETRAIN = True
 
 
 def src_str(cell):
@@ -73,7 +76,13 @@ SMOKE = __SMOKE__
 # models ignore / mismatch the new features). The train.csv fast-load is untouched; only
 # the lightgbm/catboost load-vs-fit branches honor this flag.
 FORCE_RETRAIN = True
-print(f"SMOKE={SMOKE}  FORCE_RETRAIN={FORCE_RETRAIN}")
+# Force fleongg (pipeline B) re-training too: its mounted pretrained boosters were fit on
+# ALL train wells, so their train-well predictions are in-sample (leak) and main()'s
+# INFERENCE branch skips the _BLEND_OOF_STASH. Diagnostic runs need the TRAIN branch
+# (GroupKFold OOF). Flip to False when regenerating a submit version that must reproduce
+# the banked pretrained-fleongg submission exactly.
+FLE_RETRAIN = __FLE_RETRAIN__
+print(f"SMOKE={SMOKE}  FORCE_RETRAIN={FORCE_RETRAIN}  FLE_RETRAIN={FLE_RETRAIN}")
 '''
 
 
@@ -919,9 +928,12 @@ try:
         _BO_DIR = (CFG.DATA / 'train') if hasattr(CFG, 'DATA') else (CFG.dataset_path / 'train')
     _bo_wids = sorted(p.stem.replace('__horizontal_well', '')
                       for p in _BO_DIR.glob('*__horizontal_well.csv'))
-    if len(_bo_wids) > _BO_N:                        # same deterministic stride as GEO-OOF
-        _bstep = len(_bo_wids) / float(_BO_N)
-        _bo_wids = [_bo_wids[int(_k * _bstep)] for _k in range(_BO_N)]
+    if len(_bo_wids) > _BO_N:
+        if SMOKE:
+            _bo_wids = _bo_wids[:_BO_N]              # align with fleongg's SMOKE cap (first 60)
+        else:                                        # deterministic even stride (same as GEO-OOF)
+            _bstep = len(_bo_wids) / float(_BO_N)
+            _bo_wids = [_bo_wids[int(_k * _bstep)] for _k in range(_BO_N)]
 
     # --- pipeline-A sub_1: ridge-pp OOF TVT with the exact production post-processing ---
     # (lookup dicts restricted to the selected wells: keeps the final-stage RAM footprint
@@ -1114,7 +1126,8 @@ def main():
     i_cfg = find_cell(cells, "class CFG:")
     cfg = src_str(cells[i_cfg])
     assert "n_splits = 5" in cfg and "GroupKFold(n_splits=n_splits)" in cfg
-    cells.insert(i_cfg + 1, code_cell(SMOKE_SRC.replace("__SMOKE__", "True" if SMOKE else "False")))
+    cells.insert(i_cfg + 1, code_cell(SMOKE_SRC.replace("__SMOKE__", "True" if SMOKE else "False")
+                                      .replace("__FLE_RETRAIN__", "True" if FLE_RETRAIN else "False")))
     report.append(f"inserted SMOKE cell at {i_cfg + 1} (after CFG)")
 
     # 1b. INJECT SURFACE then DIPBEAM cells right after the feature-build cell, so the
@@ -1216,11 +1229,20 @@ def main():
         '        }\n'
     )
     fsrc = fsrc.replace(anc_cv, stash_src.rstrip("\n"))
+    # Gate fleongg's pretrained-model shortcut on FLE_RETRAIN: the mounted boosters
+    # (fleongg/rogii-claude-models-pub) were fit on ALL train wells, so INFERENCE mode
+    # yields in-sample (leaky) train-well predictions and never populates the stash.
+    anc_fm = "    models_dir = _find_models()"
+    assert fsrc.count(anc_fm) == 1, "fleongg models_dir anchor not found exactly once"
+    fsrc = fsrc.replace(anc_fm, "    models_dir = None if FLE_RETRAIN else _find_models()")
     assert fsrc.startswith("def _find_models():"), "unexpected fleongg main cell head"
     fsrc = ("import numpy as _bnp_stash\n"
-            "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n" + fsrc)
+            "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n"
+            "if SMOKE:\n"
+            "    CFG.N_TRAIN_WELLS = 60   # fleongg smoke subset (first 60 wells)\n" + fsrc)
     set_src(cells[i_fm], fsrc)
-    report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash")
+    report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash "
+                  f"+ FLE_RETRAIN gate + SMOKE well cap")
 
     # 8. APPEND the BLEND-OOF diagnostic as the new LAST cell (after GEO-OOF, so every
     #    global it reads -- selector fns, train_df/ridge_oof_preds/oof_preds, _robfit,
@@ -1292,6 +1314,11 @@ def main():
     assert "n_particles=_BO_PART, n_seeds=_BO_SEEDS" in _bo_cell, \
         "BLEND-OOF selector must run at the configured production fidelity"
     assert "[BLEND-OOF-FLE]" in _bo_cell, "fleongg w_sub1 sweep missing"
+    # FLE_RETRAIN gate: fleongg must skip the leaky pretrained shortcut in diagnostic runs
+    assert "FLE_RETRAIN = " in full, "FLE_RETRAIN flag missing from SMOKE cell"
+    assert "models_dir = None if FLE_RETRAIN else _find_models()" in full, \
+        "fleongg pretrained shortcut not gated on FLE_RETRAIN"
+    assert "CFG.N_TRAIN_WELLS = 60" in full, "fleongg SMOKE well cap missing"
     assert "submission_3way_wtcn" in full, "3-way candidate export missing"
     assert "2-way fallback" in full, "2-way fallback branch missing"
     # submission.csv is written via the 3-way path (and still via 2-way in the fallback)
