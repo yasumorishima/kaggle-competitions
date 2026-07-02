@@ -40,6 +40,13 @@ SMOKE = True
 # FLE_RETRAIN=True for diagnostic runs (fleongg CV OOF + stash); False to reproduce the
 # banked pretrained-fleongg submission path exactly.
 FLE_RETRAIN = True
+# DIAG_CELLS=True appends the read-only GEO-OOF + BLEND-OOF diagnostic cells and their
+# supporting patches (LOO-honesty imputes, fleongg stash + FLE_RETRAIN gate). These cells
+# ALSO execute on the hidden-test scoring rerun and add hours, so the SUBMIT version must
+# be regenerated with DIAG_CELLS=False (recipe: SMOKE=False, FLE_RETRAIN=False,
+# DIAG_CELLS=False, kernel-metadata enable_gpu=true) -> reproduces the banked
+# pretrained-fleongg submission path with zero diagnostic overhead.
+DIAG_CELLS = True
 
 
 def src_str(cell):
@@ -1220,11 +1227,17 @@ def main():
     # 5. APPEND the GEO-OOF diagnostic as the LAST cell, so every _gold_*/lik_pf/imputer it
     #    calls is already defined and the imputers are initialised (main() has run). It is
     #    read-only (prints [GEO-OOF] only, never writes submission) and fully guarded.
+    #    Steps 5-8 are diagnostic-only and skipped entirely for the submit version
+    #    (DIAG_CELLS=False) so the scoring rerun carries zero diagnostic overhead and the
+    #    fleongg cell stays byte-identical to the banked submission path.
     _gold_cell_i = find_cell(cells, "Gold visible-prefix calibration overlay")
     assert _gold_cell_i == len(cells) - 1, \
         f"expected the gold-calibration cell to be last (at {_gold_cell_i}, n={len(cells)})"
-    cells.append(code_cell(GEO_OOF_SRC))
-    report.append(f"appended GEO-OOF diagnostic cell at {len(cells) - 1} (last)")
+    if not DIAG_CELLS:
+        report.append("DIAG_CELLS=False -> skipped GEO-OOF/BLEND-OOF cells + LOO patch + fleongg stash")
+    if DIAG_CELLS:
+        cells.append(code_cell(GEO_OOF_SRC))
+        report.append(f"appended GEO-OOF diagnostic cell at {len(cells) - 1} (last)")
 
     # 6. LOO-honesty for the GEO-OOF surface/dense candidates: _gold_surface_candidates
     #    imputes with self_wid=None, so a TRAIN query well sees its OWN structure in the
@@ -1234,13 +1247,14 @@ def main():
     #    (proper leave-one-well-out). PRODUCTION-SAFE: at test time `wid` is a TEST well,
     #    which is absent from the train-built imputer pool, so self_wid=<test wid> excludes
     #    nothing (identical to None there) -> the deployed submission is unchanged.
-    _gsrc = src_str(cells[_gold_cell_i])
-    for _old, _new in [("fi.impute(xy, self_wid=None)", "fi.impute(xy, self_wid=wid)"),
-                       ("di.impute(xy, self_wid=None)", "di.impute(xy, self_wid=wid)")]:
-        assert _gsrc.count(_old) == 1, f"expected exactly one {_old!r} in the gold cell"
-        _gsrc = _gsrc.replace(_old, _new)
-    set_src(cells[_gold_cell_i], _gsrc)
-    report.append("patched _gold_surface_candidates imputes to self_wid=wid (LOO honesty)")
+    if DIAG_CELLS:
+        _gsrc = src_str(cells[_gold_cell_i])
+        for _old, _new in [("fi.impute(xy, self_wid=None)", "fi.impute(xy, self_wid=wid)"),
+                           ("di.impute(xy, self_wid=None)", "di.impute(xy, self_wid=wid)")]:
+            assert _gsrc.count(_old) == 1, f"expected exactly one {_old!r} in the gold cell"
+            _gsrc = _gsrc.replace(_old, _new)
+        set_src(cells[_gold_cell_i], _gsrc)
+        report.append("patched _gold_surface_candidates imputes to self_wid=wid (LOO honesty)")
 
     # 7. BLEND-OOF stash: expose fleongg's per-row GroupKFold-OOF (and its blend
     #    ingredients) as the module global _BLEND_OOF_STASH so the appended BLEND-OOF
@@ -1249,48 +1263,50 @@ def main():
     #    main()'s TRAIN branch only. On the hidden-test rerun with mounted models
     #    (INFERENCE mode) the branch never runs, the sentinel stays None, and the
     #    diagnostic skips its fleongg-dependent views. submission output is untouched.
-    i_fm = find_cell(cells, "sub, cv_final = main()")
-    fsrc = src_str(cells[i_fm])
-    anc_cv = ('        cv_final = rmse(train_df["last_known_tvt"].values + y, '
-              'make_prediction(train_df, meta_oof, None))')
-    assert fsrc.count(anc_cv) == 1, "fleongg cv_final anchor not found exactly once"
-    stash_src = (
-        '        _fle_oof_tvt = make_prediction(train_df, meta_oof, None)\n'
-        '        cv_final = rmse(train_df["last_known_tvt"].values + y, _fle_oof_tvt)\n'
-        '        _pfd = train_df["pf_ancc"].values.astype(float) - train_df["last_known_tvt"].values.astype(float)\n'
-        "        globals()['_BLEND_OOF_STASH'] = {\n"
-        '            "id":   train_df["id"].astype(str).to_numpy(),\n'
-        '            "true": (train_df["last_known_tvt"].values.astype(float) + y.astype(float)),\n'
-        '            "last": train_df["last_known_tvt"].values.astype(float),\n'
-        '            "sub1": (PP.alpha * warmup(train_df["md_since"].values.astype(float), PP.tau)\n'
-        '                     * (meta_oof * (1 - PP.w_pf) + _pfd * PP.w_pf)).astype(float),\n'
-        '            "lp":   (train_df["likpf_" + PP.sub2_scale].values.astype(float)\n'
-        '                     - train_df["last_known_tvt"].values.astype(float)),\n'
-        '            "fle":  _bnp_stash.asarray(_fle_oof_tvt, dtype=float),\n'
-        '        }\n'
-    )
-    fsrc = fsrc.replace(anc_cv, stash_src.rstrip("\n"))
-    # Gate fleongg's pretrained-model shortcut on FLE_RETRAIN: the mounted boosters
-    # (fleongg/rogii-claude-models-pub) were fit on ALL train wells, so INFERENCE mode
-    # yields in-sample (leaky) train-well predictions and never populates the stash.
-    anc_fm = "    models_dir = _find_models()"
-    assert fsrc.count(anc_fm) == 1, "fleongg models_dir anchor not found exactly once"
-    fsrc = fsrc.replace(anc_fm, "    models_dir = None if FLE_RETRAIN else _find_models()")
-    assert fsrc.startswith("def _find_models():"), "unexpected fleongg main cell head"
-    fsrc = ("import numpy as _bnp_stash\n"
-            "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n"
-            "if SMOKE:\n"
-            "    CFG.N_TRAIN_WELLS = 60   # fleongg smoke subset (first 60 wells)\n"
-            "    CFG.FAST = True          # 600/800-tree GBTs so a CPU smoke stays fast\n" + fsrc)
-    set_src(cells[i_fm], fsrc)
-    report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash "
-                  f"+ FLE_RETRAIN gate + SMOKE well cap")
+    if DIAG_CELLS:
+        i_fm = find_cell(cells, "sub, cv_final = main()")
+        fsrc = src_str(cells[i_fm])
+        anc_cv = ('        cv_final = rmse(train_df["last_known_tvt"].values + y, '
+                  'make_prediction(train_df, meta_oof, None))')
+        assert fsrc.count(anc_cv) == 1, "fleongg cv_final anchor not found exactly once"
+        stash_src = (
+            '        _fle_oof_tvt = make_prediction(train_df, meta_oof, None)\n'
+            '        cv_final = rmse(train_df["last_known_tvt"].values + y, _fle_oof_tvt)\n'
+            '        _pfd = train_df["pf_ancc"].values.astype(float) - train_df["last_known_tvt"].values.astype(float)\n'
+            "        globals()['_BLEND_OOF_STASH'] = {\n"
+            '            "id":   train_df["id"].astype(str).to_numpy(),\n'
+            '            "true": (train_df["last_known_tvt"].values.astype(float) + y.astype(float)),\n'
+            '            "last": train_df["last_known_tvt"].values.astype(float),\n'
+            '            "sub1": (PP.alpha * warmup(train_df["md_since"].values.astype(float), PP.tau)\n'
+            '                     * (meta_oof * (1 - PP.w_pf) + _pfd * PP.w_pf)).astype(float),\n'
+            '            "lp":   (train_df["likpf_" + PP.sub2_scale].values.astype(float)\n'
+            '                     - train_df["last_known_tvt"].values.astype(float)),\n'
+            '            "fle":  _bnp_stash.asarray(_fle_oof_tvt, dtype=float),\n'
+            '        }\n'
+        )
+        fsrc = fsrc.replace(anc_cv, stash_src.rstrip("\n"))
+        # Gate fleongg's pretrained-model shortcut on FLE_RETRAIN: the mounted boosters
+        # (fleongg/rogii-claude-models-pub) were fit on ALL train wells, so INFERENCE mode
+        # yields in-sample (leaky) train-well predictions and never populates the stash.
+        anc_fm = "    models_dir = _find_models()"
+        assert fsrc.count(anc_fm) == 1, "fleongg models_dir anchor not found exactly once"
+        fsrc = fsrc.replace(anc_fm, "    models_dir = None if FLE_RETRAIN else _find_models()")
+        assert fsrc.startswith("def _find_models():"), "unexpected fleongg main cell head"
+        fsrc = ("import numpy as _bnp_stash\n"
+                "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n"
+                "if SMOKE:\n"
+                "    CFG.N_TRAIN_WELLS = 60   # fleongg smoke subset (first 60 wells)\n"
+                "    CFG.FAST = True          # 600/800-tree GBTs so a CPU smoke stays fast\n" + fsrc)
+        set_src(cells[i_fm], fsrc)
+        report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash "
+                      f"+ FLE_RETRAIN gate + SMOKE well cap")
 
     # 8. APPEND the BLEND-OOF diagnostic as the new LAST cell (after GEO-OOF, so every
     #    global it reads -- selector fns, train_df/ridge_oof_preds/oof_preds, _robfit,
     #    _GEO_DIR, _BLEND_OOF_STASH -- already exists). Read-only, fully guarded.
-    cells.append(code_cell(BLEND_OOF_SRC))
-    report.append(f"appended BLEND-OOF diagnostic cell at {len(cells) - 1} (last)")
+    if DIAG_CELLS:
+        cells.append(code_cell(BLEND_OOF_SRC))
+        report.append(f"appended BLEND-OOF diagnostic cell at {len(cells) - 1} (last)")
 
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
@@ -1317,17 +1333,28 @@ def main():
     assert "SMOKE = True" in full or "SMOKE = False" in full, "SMOKE flag cell missing"
     assert full.index("FORCE_RETRAIN={FORCE_RETRAIN}") < full.index("class _TCN(nn.Module)"), \
         "SMOKE cell must precede TCN cell"
-    # GEO-OOF diagnostic present, last, read-only, and scores against the true TVT toe
-    assert "[GEO-OOF] === candidate toe-RMSE" in full, "GEO-OOF diagnostic missing"
-    assert "_gold_candidate_pool(_wid, _hw, _tw" in full, "GEO-OOF must call the gold candidate pool"
-    assert "with_quality=True" in full, "GEO-OOF quality-premise probe missing"
-    assert full.rindex("[GEO-OOF]") > full.rindex("Gold visible-prefix calibration overlay"), \
-        "GEO-OOF must run after the gold-calibration cell"
-    # LOO-honesty patch applied: the two _gold_surface_candidates call sites use self_wid=wid
-    assert "fi.impute(xy, self_wid=wid)" in full and "di.impute(xy, self_wid=wid)" in full, \
-        "surface-candidate imputes not switched to self_wid=wid (LOO honesty)"
-    assert "fi.impute(xy, self_wid=None)" not in full and "di.impute(xy, self_wid=None)" not in full, \
-        "stale self_wid=None call site survived"
+    if DIAG_CELLS:
+        # GEO-OOF diagnostic present, last, read-only, and scores against the true TVT toe
+        assert "[GEO-OOF] === candidate toe-RMSE" in full, "GEO-OOF diagnostic missing"
+        assert "_gold_candidate_pool(_wid, _hw, _tw" in full, "GEO-OOF must call the gold candidate pool"
+        assert "with_quality=True" in full, "GEO-OOF quality-premise probe missing"
+        assert full.rindex("[GEO-OOF]") > full.rindex("Gold visible-prefix calibration overlay"), \
+            "GEO-OOF must run after the gold-calibration cell"
+        # LOO-honesty patch applied: the two _gold_surface_candidates call sites use self_wid=wid
+        assert "fi.impute(xy, self_wid=wid)" in full and "di.impute(xy, self_wid=wid)" in full, \
+            "surface-candidate imputes not switched to self_wid=wid (LOO honesty)"
+        assert "fi.impute(xy, self_wid=None)" not in full and "di.impute(xy, self_wid=None)" not in full, \
+            "stale self_wid=None call site survived"
+    else:
+        # submit version: no diagnostic cells, no diagnostic patches, banked fleongg path
+        assert "[GEO-OOF]" not in full, "GEO-OOF cell must be absent when DIAG_CELLS=False"
+        assert "[BLEND-OOF]" not in full, "BLEND-OOF cell must be absent when DIAG_CELLS=False"
+        assert "globals()['_BLEND_OOF_STASH']" not in full and "_BLEND_OOF_STASH = None" not in full, \
+            "fleongg stash code must be absent when DIAG_CELLS=False"
+        assert "fi.impute(xy, self_wid=None)" in full and "di.impute(xy, self_wid=None)" in full, \
+            "gold cell must keep its original self_wid=None call sites when DIAG_CELLS=False"
+        assert "models_dir = _find_models()" in full, \
+            "fleongg must keep its original pretrained shortcut when DIAG_CELLS=False"
     # DIAG cell present and placed after the Ridge stack
     assert "[DIAG] Ridge-A OOF" in full, "DIAG cell missing"
     assert full.index("ridge_oof_preds = ridge_trainer.oof_preds") < full.index("[DIAG] Ridge-A OOF"), \
@@ -1343,24 +1370,25 @@ def main():
     assert "def _weighted_submission3(" in full, "_weighted_submission3 missing"
     assert "[BLEND3-DIAG]" in full and "RMSE_vs_true" in full, "true-RMSE DIAG missing"
 
-    # BLEND-OOF: sentinel + train-branch-only stash + appended-last read-only cell
-    assert "_BLEND_OOF_STASH = None" in full, "stash sentinel missing"
-    assert full.count("globals()['_BLEND_OOF_STASH']") == 1, "stash must be assigned exactly once"
-    assert full.index("full TRAIN from scratch") < full.index("globals()['_BLEND_OOF_STASH']") \
-        < full.index("drift-aware blend"), "stash must sit inside main()'s TRAIN branch"
-    assert "[BLEND-OOF]" in full and full.rindex("[BLEND-OOF]") > full.rindex("[GEO-OOF]"), \
-        "BLEND-OOF must run after GEO-OOF"
-    _bo_cell = src_str(code[-1])
-    assert "[BLEND-OOF]" in _bo_cell, "BLEND-OOF cell must be the last cell"
-    assert "to_csv(" not in _bo_cell, "BLEND-OOF must be read-only (no csv writes)"
-    assert "n_particles=_BO_PART, n_seeds=_BO_SEEDS" in _bo_cell, \
-        "BLEND-OOF selector must run at the configured production fidelity"
-    assert "[BLEND-OOF-FLE]" in _bo_cell, "fleongg w_sub1 sweep missing"
-    # FLE_RETRAIN gate: fleongg must skip the leaky pretrained shortcut in diagnostic runs
+    if DIAG_CELLS:
+        # BLEND-OOF: sentinel + train-branch-only stash + appended-last read-only cell
+        assert "_BLEND_OOF_STASH = None" in full, "stash sentinel missing"
+        assert full.count("globals()['_BLEND_OOF_STASH']") == 1, "stash must be assigned exactly once"
+        assert full.index("full TRAIN from scratch") < full.index("globals()['_BLEND_OOF_STASH']") \
+            < full.index("drift-aware blend"), "stash must sit inside main()'s TRAIN branch"
+        assert "[BLEND-OOF]" in full and full.rindex("[BLEND-OOF]") > full.rindex("[GEO-OOF]"), \
+            "BLEND-OOF must run after GEO-OOF"
+        _bo_cell = src_str(code[-1])
+        assert "[BLEND-OOF]" in _bo_cell, "BLEND-OOF cell must be the last cell"
+        assert "to_csv(" not in _bo_cell, "BLEND-OOF must be read-only (no csv writes)"
+        assert "n_particles=_BO_PART, n_seeds=_BO_SEEDS" in _bo_cell, \
+            "BLEND-OOF selector must run at the configured production fidelity"
+        assert "[BLEND-OOF-FLE]" in _bo_cell, "fleongg w_sub1 sweep missing"
+        # FLE_RETRAIN gate: fleongg must skip the leaky pretrained shortcut in diagnostic runs
+        assert "models_dir = None if FLE_RETRAIN else _find_models()" in full, \
+            "fleongg pretrained shortcut not gated on FLE_RETRAIN"
+        assert "CFG.N_TRAIN_WELLS = 60" in full, "fleongg SMOKE well cap missing"
     assert "FLE_RETRAIN = " in full, "FLE_RETRAIN flag missing from SMOKE cell"
-    assert "models_dir = None if FLE_RETRAIN else _find_models()" in full, \
-        "fleongg pretrained shortcut not gated on FLE_RETRAIN"
-    assert "CFG.N_TRAIN_WELLS = 60" in full, "fleongg SMOKE well cap missing"
     assert "submission_3way_wtcn" in full, "3-way candidate export missing"
     assert "2-way fallback" in full, "2-way fallback branch missing"
     # submission.csv is written via the 3-way path (and still via 2-way in the fallback)
@@ -1396,7 +1424,8 @@ def main():
     assert "[GBT-DEVICE]" in full, "sp45 GBT CPU-fallback cell missing"
     assert full.index("[GBT-DEVICE]") < full.index("for i, params in enumerate(lgb_params):"), \
         "GBT CPU-fallback must precede the sp45 GBT training loop"
-    assert "CFG.FAST = True" in full, "fleongg SMOKE FAST cap missing"
+    if DIAG_CELLS:
+        assert "CFG.FAST = True" in full, "fleongg SMOKE FAST cap missing"
     # SURF-DIPBEAM feature-count DIAG line
     assert "[SURF-DIPBEAM] features added:" in full, "SURF-DIPBEAM feature-count DIAG missing"
 
