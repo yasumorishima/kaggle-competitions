@@ -36,7 +36,7 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = False
+SMOKE = True
 
 
 def src_str(cell):
@@ -893,6 +893,217 @@ else:
 '''
 
 
+# === [BLEND-OOF] full-production-blend OOF diagnostic (appended LAST, after GEO-OOF) ===
+#     GEO-OOF scores single candidates; this emulates the ENTIRE private-well path of the
+#     final blend on masked train wells so the blend knobs (inner 0.3/0.7 ridge-vs-selector,
+#     cross 0.55 sp45-vs-fleongg, w_tcn 0.15, projection on/off, fleongg w_sub1) can be
+#     tuned on a private-relevant toe-RMSE instead of the override-mirage public LB.
+#     Components: sub1 = ridge-pp GroupKFold-OOF (+sg_smooth, production recipe);
+#     sub2 = selector PF/beam at PRODUCTION fidelity (128 seeds x 500 particles -- the
+#     24x350 pool resolution would bias the argmax toward the GBT side); fleongg + TCN =
+#     GroupKFold-OOF via the _BLEND_OOF_STASH global / oof_preds['tcn']. Read-only
+#     ([BLEND-OOF] prints, no csv writes), fully guarded.
+BLEND_OOF_SRC = r'''
+import numpy as _bnp
+import pandas as _bpd
+try:
+    _BO_N     = 8   if SMOKE else 40
+    _BO_SEEDS = 24  if SMOKE else 128   # production sp45 test loop: n_seeds=128
+    _BO_PART  = 350 if SMOKE else 500   # production sp45 test loop: n_particles=500
+    _BO_INNER_GRID = (0.50, 0.60, 0.70, 0.80, 0.90)
+    _BO_SP45_GRID  = (0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70)
+    _BO_TCN_GRID   = (0.00, 0.05, 0.10, 0.15, 0.20, 0.25)
+
+    _BO_DIR = globals().get('_GEO_DIR')
+    if _BO_DIR is None:
+        _BO_DIR = (CFG.DATA / 'train') if hasattr(CFG, 'DATA') else (CFG.dataset_path / 'train')
+    _bo_wids = sorted(p.stem.replace('__horizontal_well', '')
+                      for p in _BO_DIR.glob('*__horizontal_well.csv'))
+    if len(_bo_wids) > _BO_N:                        # same deterministic stride as GEO-OOF
+        _bstep = len(_bo_wids) / float(_BO_N)
+        _bo_wids = [_bo_wids[int(_k * _bstep)] for _k in range(_BO_N)]
+
+    # --- pipeline-A sub_1: ridge-pp OOF TVT with the exact production post-processing ---
+    # (lookup dicts restricted to the selected wells: keeps the final-stage RAM footprint
+    #  small on a kernel with an OOM history)
+    _bo_wset = set(_bo_wids)
+    _bo_pfd = train_df['pf_ancc'].values.astype(float) - train_df['last_known_tvt'].values.astype(float)
+    _bo_d1 = apply_pp(train_df, ridge_oof_preds, _bo_pfd, **pp_params)
+    _bo_m = train_df['well'].astype(str).isin(_bo_wset).to_numpy()
+    _bo_a = train_df.loc[_bo_m, ['id', 'well']].copy()
+    _bo_a['pred'] = (train_df['last_known_tvt'].values.astype(float) + _bo_d1)[_bo_m]
+    _bo_a = sg_smooth(_bo_a, 'pred')
+    _bo_sub1 = dict(zip(_bo_a['id'].astype(str), _bo_a['pred'].astype(float)))
+    _bo_tcnm = dict(zip(train_df['id'].astype(str).to_numpy()[_bo_m],
+                        (train_df['last_known_tvt'].values.astype(float)
+                         + oof_preds['tcn'].values.astype(float))[_bo_m]))
+    _ST = globals().get('_BLEND_OOF_STASH')
+    _bo_fle = ({_k: _v for _k, _v in zip(_ST['id'], _ST['fle']) if _k[:8] in _bo_wset}
+               if _ST is not None else {})
+    print(f'[BLEND-OOF] wells={len(_bo_wids)} pf={_BO_SEEDS}x{_BO_PART} '
+          f'fle_stash={"yes" if _bo_fle else "NO"} tcn_oof=yes', flush=True)
+
+    _bo_wells = []
+    import time as _bo_time
+    _bo_t0 = _bo_time.time()
+    for _bi, _wid in enumerate(_bo_wids):
+        try:
+            _hw = _bpd.read_csv(_BO_DIR / (_wid + '__horizontal_well.csv'))
+            _tw = _bpd.read_csv(_BO_DIR / (_wid + '__typewell.csv'))
+            _tvt_in = _hw['TVT_input'].to_numpy(dtype=float)
+            _toe = ~_bnp.isfinite(_tvt_in)
+            if 'TVT' not in _hw.columns or int(_toe.sum()) < 20:
+                continue
+            _true = _hw['TVT'].to_numpy(dtype=float)
+            _kn = _hw[_hw['TVT_input'].notna()]
+            if len(_kn) < 30:
+                continue
+            _pf_by_scale = run_pf_lik_ensemble_scales(
+                _hw, _tw, scales=tuple(globals().get('SELECTOR_SCALES', (3.0, 5.0, 8.0, 12.0))),
+                n_particles=_BO_PART, n_seeds=_BO_SEEDS)
+            try:
+                _beam = run_beam_ensemble(_hw, _tw)
+            except Exception:
+                _beam = _pf_by_scale.get('pf_mean', next(iter(_pf_by_scale.values())))
+            _lk = float(_kn['TVT_input'].iloc[-1])
+            _variant = selector_well_code(_hw)[1]
+            _sel = _bnp.asarray(apply_selector_variant(_variant, _pf_by_scale, _beam, _lk), dtype=float)
+            _ti = _bnp.flatnonzero(_toe)
+            _ids = [f'{_wid}_{int(_i)}' for _i in _ti]
+            _s1 = _bnp.asarray([_bo_sub1.get(_x, _bnp.nan) for _x in _ids], dtype=float)
+            _fl = _bnp.asarray([_bo_fle.get(_x, _bnp.nan) for _x in _ids], dtype=float)
+            _tc = _bnp.asarray([_bo_tcnm.get(_x, _bnp.nan) for _x in _ids], dtype=float)
+            _yt = _true[_ti]
+            _s2 = _sel[_ti]
+            _mk = (_bnp.isfinite(_yt) & _bnp.isfinite(_s1) & _bnp.isfinite(_s2)
+                   & _bnp.isfinite(_tc) & (_bnp.isfinite(_fl) if _bo_fle else True))
+            if not _bo_fle:
+                _fl = _s1                              # placeholder; FINAL views are skipped
+            if int(_mk.sum()) < 20:
+                continue
+            _lr = _kn.iloc[-1]
+            _bo_wells.append(dict(
+                wid=_wid, true=_yt[_mk], s1=_s1[_mk], s2=_s2[_mk], fle=_fl[_mk], tcn=_tc[_mk],
+                Z=_hw['Z'].to_numpy(dtype=float)[_ti][_mk],
+                MD=_hw['MD'].to_numpy(dtype=float)[_ti][_mk],
+                anchor=float(_lr['TVT_input']) + float(_lr['Z']),
+                ps=float(_lr['MD']), end=float(_hw['MD'].iloc[-1]), nk=int(len(_kn))))
+            if (_bi + 1) % 10 == 0:
+                print(f'[BLEND-OOF] ... {_bi + 1}/{len(_bo_wids)} wells, '
+                      f'{_bo_time.time() - _bo_t0:.0f}s elapsed', flush=True)
+        except Exception as _eb:
+            print('[BLEND-OOF] well fail', _wid, str(_eb)[:80])
+    print(f'[BLEND-OOF] wells usable={len(_bo_wells)} ({_bo_time.time() - _bo_t0:.0f}s)', flush=True)
+
+    def _bo_proj(w, series):
+        # the production projection cell, verbatim per well (deg=4, 0.25 raw + 0.75 fit)
+        if len(series) < 5 or w['nk'] < 5:
+            return series
+        _s = (w['MD'] - w['ps']) / max(w['end'] - w['ps'], 1e-6)
+        _fit = _robfit(_s, (series + w['Z']) - w['anchor'], 4)
+        _pr = 0.25 * series + 0.75 * ((w['anchor'] + _fit) - w['Z'])
+        return _pr if bool(_bnp.all(_bnp.isfinite(_pr))) else series
+
+    def _bo_rmse(a, b):
+        return float(_bnp.sqrt(_bnp.mean((_bnp.asarray(a, dtype=float) - _bnp.asarray(b, dtype=float)) ** 2)))
+
+    def _bo_eval(pred_of):
+        # per-well RMSE list + POOLED RMSE (same aggregation as cv_final / the LB metric)
+        _errs = []
+        _ss = 0.0
+        _n = 0
+        for _w in _bo_wells:
+            _r = _bnp.asarray(pred_of(_w), dtype=float) - _w['true']
+            _errs.append(float(_bnp.sqrt(_bnp.mean(_r ** 2))))
+            _ss += float((_r ** 2).sum())
+            _n += len(_r)
+        return _bnp.asarray(_errs, dtype=float), float(_bnp.sqrt(_ss / max(_n, 1)))
+
+    def _bo_final_pred(w, inner, sp45, wtcn, proj=True):
+        _sp = inner * w['s2'] + (1.0 - inner) * w['s1']
+        if proj:
+            _sp = _bo_proj(w, _sp)
+        return (1.0 - wtcn) * (sp45 * _sp + (1.0 - sp45) * w['fle']) + wtcn * w['tcn']
+
+    def _bo_stats(e):
+        _e = _bnp.sort(_bnp.asarray(e, dtype=float))
+        _tm = float(_e[:-2].mean()) if len(_e) > 4 else float(_e.mean())
+        return float(_e.mean()), float(_bnp.median(_e)), _tm
+
+    def _bo_line(tag, e, pooled):
+        _m, _md, _tm = _bo_stats(e)
+        print(f'[BLEND-OOF] {tag:36s} pooled={pooled:7.4f} mean={_m:7.4f} '
+              f'median={_md:7.4f} trim2={_tm:7.4f}', flush=True)
+
+    if _bo_wells:
+        for _key, _lab in (('s1', 'comp sub1 ridge-pp OOF'), ('s2', 'comp sub2 selector@prod'),
+                           ('tcn', 'comp tcn OOF')):
+            _e, _pl = _bo_eval(lambda w, k=_key: w[k])
+            _bo_line(_lab, _e, _pl)
+        _e, _pl = _bo_eval(lambda w: _bo_proj(w, 0.7 * w['s2'] + 0.3 * w['s1']))
+        _bo_line('comp sp45(proj) inner=0.7', _e, _pl)
+    if _bo_wells and _bo_fle:
+        _e, _pl = _bo_eval(lambda w: w['fle'])
+        _bo_line('comp fleongg OOF', _e, _pl)
+        _ref, _refp = _bo_eval(lambda w: _bo_final_pred(w, 0.70, 0.55, 0.15))
+        _bo_line('FINAL@default 0.70/0.55/0.15', _ref, _refp)
+        _e, _pl = _bo_eval(lambda w: _bo_final_pred(w, 0.70, 0.55, 0.15, proj=False))
+        _bo_line('FINAL@default no-projection', _e, _pl)
+        _fold = _bnp.arange(len(_bo_wells)) % 2
+
+        def _bo_sweep(tag, grid, fn, defv):
+            for _v in grid:
+                _e, _pl = _bo_eval(fn(_v))
+                _m, _md, _tm = _bo_stats(_e)
+                _mA = _bo_stats(_e[_fold == 0])[0] if int((_fold == 0).sum()) else float('nan')
+                _mB = _bo_stats(_e[_fold == 1])[0] if int((_fold == 1).sum()) else float('nan')
+                _win = int((_e < _ref - 1e-9).sum())
+                _lose = int((_e > _ref + 1e-9).sum())
+                _mark = '  <-default' if abs(_v - defv) < 1e-9 else ''
+                print(f'[BLEND-OOF] {tag}={_v:.2f} pooled={_pl:7.4f} mean={_m:7.4f} '
+                      f'median={_md:7.4f} trim2={_tm:7.4f} win/lose={_win}/{_lose} '
+                      f'foldA={_mA:.4f} foldB={_mB:.4f}{_mark}', flush=True)
+
+        _bo_sweep('w_inner', _BO_INNER_GRID, lambda v: (lambda w: _bo_final_pred(w, v, 0.55, 0.15)), 0.70)
+        _bo_sweep('w_sp45 ', _BO_SP45_GRID, lambda v: (lambda w: _bo_final_pred(w, 0.70, v, 0.15)), 0.55)
+        _bo_sweep('w_tcn  ', _BO_TCN_GRID, lambda v: (lambda w: _bo_final_pred(w, 0.70, 0.55, v)), 0.15)
+        _ord = _bnp.argsort(-_ref)[:5]
+        for _i in _ord:
+            _w = _bo_wells[int(_i)]
+            print(f'[BLEND-OOF] drift {_w["wid"]} FINAL={_ref[int(_i)]:.3f} '
+                  f's1={_bo_rmse(_w["s1"], _w["true"]):.3f} s2={_bo_rmse(_w["s2"], _w["true"]):.3f} '
+                  f'fle={_bo_rmse(_w["fle"], _w["true"]):.3f} tcn={_bo_rmse(_w["tcn"], _w["true"]):.3f}',
+                  flush=True)
+    elif _bo_wells:
+        print('[BLEND-OOF] fleongg stash missing -> FINAL/sweep views skipped', flush=True)
+
+    # --- [BLEND-OOF-FLE] fleongg w_sub1 sweep on ALL train wells (OOF-only, no physics) ---
+    if _ST is not None:
+        from scipy.signal import savgol_filter as _bo_sg
+        _fid = _bpd.DataFrame({'well': _bpd.Series(_ST['id']).str[:8], 'true': _ST['true'],
+                               'last': _ST['last'], 'sub1': _ST['sub1'], 'lp': _ST['lp']})
+        for _wv in (0.40, 0.50, 0.55, 0.60, 0.68, 0.75, 0.85):
+            _pr = _fid['last'].values + _wv * _fid['sub1'].values + (1.0 - _wv) * _fid['lp'].values
+            _out = _pr.copy()
+            for _, _ix in _fid.groupby('well', sort=False).groups.items():
+                _pos = _fid.index.get_indexer(_ix)
+                _v = _pr[_pos]
+                _wl = min(PP.sg_win, len(_v))
+                if _wl % 2 == 0:
+                    _wl -= 1
+                if _wl >= PP.sg_poly + 2:
+                    _out[_pos] = _bo_sg(_v, _wl, PP.sg_poly)
+            _pw = _bpd.DataFrame({'well': _fid['well'], 'e2': (_out - _fid['true'].values) ** 2})
+            _pwr = _pw.groupby('well')['e2'].mean().pow(0.5)
+            _mark = '  <-default' if abs(_wv - float(PP.w_sub1)) < 1e-9 else ''
+            print(f'[BLEND-OOF-FLE] w_sub1={_wv:.2f} pooled={float(_bnp.sqrt(_pw["e2"].mean())):.4f} '
+                  f'perwell_mean={float(_pwr.mean()):.4f} perwell_median={float(_pwr.median()):.4f} '
+                  f'n_wells={len(_pwr)}{_mark}', flush=True)
+except Exception as _ebo:
+    print('[BLEND-OOF] SKIPPED:', str(_ebo)[:200])
+'''
+
+
 def main():
     nb = json.load(open(SRC, encoding="utf-8"))
     cells = nb["cells"]
@@ -977,6 +1188,46 @@ def main():
     set_src(cells[_gold_cell_i], _gsrc)
     report.append("patched _gold_surface_candidates imputes to self_wid=wid (LOO honesty)")
 
+    # 7. BLEND-OOF stash: expose fleongg's per-row GroupKFold-OOF (and its blend
+    #    ingredients) as the module global _BLEND_OOF_STASH so the appended BLEND-OOF
+    #    diagnostic can emulate the full final blend on masked train wells.
+    #    PRODUCTION-SAFE: the sentinel is None at module scope; the assignment sits in
+    #    main()'s TRAIN branch only. On the hidden-test rerun with mounted models
+    #    (INFERENCE mode) the branch never runs, the sentinel stays None, and the
+    #    diagnostic skips its fleongg-dependent views. submission output is untouched.
+    i_fm = find_cell(cells, "sub, cv_final = main()")
+    fsrc = src_str(cells[i_fm])
+    anc_cv = ('        cv_final = rmse(train_df["last_known_tvt"].values + y, '
+              'make_prediction(train_df, meta_oof, None))')
+    assert fsrc.count(anc_cv) == 1, "fleongg cv_final anchor not found exactly once"
+    stash_src = (
+        '        _fle_oof_tvt = make_prediction(train_df, meta_oof, None)\n'
+        '        cv_final = rmse(train_df["last_known_tvt"].values + y, _fle_oof_tvt)\n'
+        '        _pfd = train_df["pf_ancc"].values.astype(float) - train_df["last_known_tvt"].values.astype(float)\n'
+        "        globals()['_BLEND_OOF_STASH'] = {\n"
+        '            "id":   train_df["id"].astype(str).to_numpy(),\n'
+        '            "true": (train_df["last_known_tvt"].values.astype(float) + y.astype(float)),\n'
+        '            "last": train_df["last_known_tvt"].values.astype(float),\n'
+        '            "sub1": (PP.alpha * warmup(train_df["md_since"].values.astype(float), PP.tau)\n'
+        '                     * (meta_oof * (1 - PP.w_pf) + _pfd * PP.w_pf)).astype(float),\n'
+        '            "lp":   (train_df["likpf_" + PP.sub2_scale].values.astype(float)\n'
+        '                     - train_df["last_known_tvt"].values.astype(float)),\n'
+        '            "fle":  _bnp_stash.asarray(_fle_oof_tvt, dtype=float),\n'
+        '        }\n'
+    )
+    fsrc = fsrc.replace(anc_cv, stash_src.rstrip("\n"))
+    assert fsrc.startswith("def _find_models():"), "unexpected fleongg main cell head"
+    fsrc = ("import numpy as _bnp_stash\n"
+            "_BLEND_OOF_STASH = None   # populated in main()'s TRAIN branch only\n" + fsrc)
+    set_src(cells[i_fm], fsrc)
+    report.append(f"patched fleongg main cell at {i_fm}: _BLEND_OOF_STASH sentinel + train-branch stash")
+
+    # 8. APPEND the BLEND-OOF diagnostic as the new LAST cell (after GEO-OOF, so every
+    #    global it reads -- selector fns, train_df/ridge_oof_preds/oof_preds, _robfit,
+    #    _GEO_DIR, _BLEND_OOF_STASH -- already exists). Read-only, fully guarded.
+    cells.append(code_cell(BLEND_OOF_SRC))
+    report.append(f"appended BLEND-OOF diagnostic cell at {len(cells) - 1} (last)")
+
     nb.setdefault("nbformat", 4)
     nb.setdefault("nbformat_minor", 5)
     json.dump(nb, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -1027,6 +1278,20 @@ def main():
     assert "'tcn': _WORK / 'tcn_submission.csv'" in full, "_INPUT_FILES missing 'tcn'"
     assert "def _weighted_submission3(" in full, "_weighted_submission3 missing"
     assert "[BLEND3-DIAG]" in full and "RMSE_vs_true" in full, "true-RMSE DIAG missing"
+
+    # BLEND-OOF: sentinel + train-branch-only stash + appended-last read-only cell
+    assert "_BLEND_OOF_STASH = None" in full, "stash sentinel missing"
+    assert full.count("globals()['_BLEND_OOF_STASH']") == 1, "stash must be assigned exactly once"
+    assert full.index("full TRAIN from scratch") < full.index("globals()['_BLEND_OOF_STASH']") \
+        < full.index("drift-aware blend"), "stash must sit inside main()'s TRAIN branch"
+    assert "[BLEND-OOF]" in full and full.rindex("[BLEND-OOF]") > full.rindex("[GEO-OOF]"), \
+        "BLEND-OOF must run after GEO-OOF"
+    _bo_cell = src_str(code[-1])
+    assert "[BLEND-OOF]" in _bo_cell, "BLEND-OOF cell must be the last cell"
+    assert "to_csv(" not in _bo_cell, "BLEND-OOF must be read-only (no csv writes)"
+    assert "n_particles=_BO_PART, n_seeds=_BO_SEEDS" in _bo_cell, \
+        "BLEND-OOF selector must run at the configured production fidelity"
+    assert "[BLEND-OOF-FLE]" in _bo_cell, "fleongg w_sub1 sweep missing"
     assert "submission_3way_wtcn" in full, "3-way candidate export missing"
     assert "2-way fallback" in full, "2-way fallback branch missing"
     # submission.csv is written via the 3-way path (and still via 2-way in the fallback)
