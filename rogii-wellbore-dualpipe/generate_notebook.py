@@ -36,7 +36,7 @@ OUT = BASE / "rogii-dualpipe.ipynb"        # generated notebook (TCN injected)
 # Flip to False (regenerate + commit + push) for the full run.
 # Generated as SMOKE=True so the coordinator can smoke-verify the surface/dipbeam +
 # FORCE_RETRAIN path first, then flip to False for the full run.
-SMOKE = True
+SMOKE = False
 # FLE_RETRAIN=True for diagnostic runs (fleongg CV OOF + stash); False to reproduce the
 # banked pretrained-fleongg submission path exactly.
 FLE_RETRAIN = True
