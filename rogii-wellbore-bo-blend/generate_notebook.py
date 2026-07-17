@@ -46,7 +46,7 @@ SRC = DPDIR / "rogii-dualpipe.base.ipynb"      # pristine base (read-only)
 OUT = BASE / "rogii-bo-blend.ipynb"
 
 # Flip to False, regenerate, commit, push for the full-fidelity run.
-SMOKE = True
+SMOKE = False
 
 # --- import the dualpipe generator to reuse its verified cell-source blocks + helpers ----
 _spec = importlib.util.spec_from_file_location("dpgen", DPDIR / "generate_notebook.py")
