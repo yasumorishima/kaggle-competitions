@@ -43,7 +43,7 @@ BODIR = BASE.parent / "rogii-wellbore-bo-blend"
 SRC = DPDIR / "rogii-dualpipe.base.ipynb"      # pristine base (read-only)
 OUT = BASE / "rogii-pf-sweep.ipynb"
 
-SMOKE = True
+SMOKE = False
 
 # import the dualpipe generator (SRC blocks + helpers) and kernel B generator (its stash-loader
 # patch + PP stub). Both are __main__-guarded, so importing runs nothing.
