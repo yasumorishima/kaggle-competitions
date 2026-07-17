@@ -175,9 +175,9 @@ Predict True Vertical Thickness (TVT) along horizontal wellbores to automate geo
 
 | Approach | Score (RMSE, lower better) |
 |---|---|
-| Leaderboard top | ~5.35 (public LB) |
-| Medal lines (3,589 teams) | gold 6.696 / silver 7.212 / bronze 7.256 (public LB) |
-| **Dual-pipeline fork — sp45 + fleongg blend + guarded override (best submitted)** | **7.311 (public LB, rank 480 / 3,589, top 13.4%)** |
+| Leaderboard top | 4.859 (public LB, 2026-07-16) |
+| Medal lines (5,063 teams, 2026-07-16) | gold 6.118 / silver 7.043 / bronze 7.084 (public LB) |
+| **Dual-pipeline fork — sp45 + fleongg blend + guarded override (best submitted)** | **7.311 (public LB — rank 480 / 3,589 when submitted 2026-06; 1,406 / 5,063 as of 2026-07-16)** |
 | Public best (DWT/DTW-based clone group, *claimed*) | ~9.25 (public LB) |
 | Champion — surface + dip-beam aligner (this repo) | 9.978 (leak-free GroupKFold CV; not LB-submitted) |
 | GBT + TCN ensemble (this repo) | 9.905 (public LB) |
