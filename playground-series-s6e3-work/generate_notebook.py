@@ -106,6 +106,28 @@ print(f'LGB_DEVICE={LGB_DEVICE}, XGB_DEVICE={XGB_DEVICE}, CAT_TASK_TYPE={CAT_TAS
 print('All libraries loaded.')"""
 )
 
+# ── Time Budget Management ──
+add_code(
+    """# ========================================
+# Time Budget Management
+# ========================================
+T_START = time.time()
+TIME_LIMIT = 11 * 3600  # 11 hours (Kaggle 12h limit - 1h buffer)
+CHECKPOINT_TIMES = {}
+
+def time_remaining():
+    return TIME_LIMIT - (time.time() - T_START)
+
+def time_check(section_name):
+    elapsed = time.time() - T_START
+    remaining = TIME_LIMIT - elapsed
+    CHECKPOINT_TIMES[section_name] = elapsed
+    print(f'[TIME] {section_name}: {elapsed/3600:.2f}h elapsed, {remaining/3600:.2f}h remaining')
+    return remaining > 0
+
+time_check('setup_complete')"""
+)
+
 # ── W&B init ──
 add_code(
     """run = wandb.init(
@@ -114,9 +136,9 @@ add_code(
     tags=['optuna', 'stacking', 'multi-seed', '10fold', 'gpu', 'v2',
           'original-data', 'adversarial', 'pseudo-label', '5-model'],
     config={
-        'n_seeds': 2, 'n_splits': 5,
+        'n_seeds': 5, 'n_splits': 10,
         'models': ['lgb', 'xgb', 'cat', 'et', 'hgbc'],
-        'optuna_trials_gbdt': 20, 'optuna_trials_sklearn': 10,
+        'optuna_trials_gbdt': 100, 'optuna_trials_sklearn': 50,
         'strategy': 'original_data + adversarial_val + pseudo_label + 5model_stacking',
     },
 )
@@ -125,7 +147,8 @@ print(f'W&B run: {run.name}')"""
 
 # ── Load data ──
 add_code(
-    """import glob as _glob
+    """time_check('data_loading')
+import glob as _glob
 
 _slug = 'playground-series-s6e3'
 _matches = _glob.glob(f'/kaggle/input/**/{_slug}', recursive=True)
@@ -565,7 +588,8 @@ wandb.config.update({'n_features': len(feature_cols), 'feature_names': feature_c
 
 # ── Adversarial Validation ──
 add_code(
-    """# ========================================
+    """time_check('adversarial_validation')
+# ========================================
 # Adversarial Validation
 # ========================================
 # Train a classifier to distinguish train vs test samples
@@ -630,11 +654,12 @@ plt.show()"""
 
 # ── Optuna HPO for LightGBM ──
 add_code(
-    """# ========================================
+    """time_check('optuna_hpo')
+# ========================================
 # Optuna Hyperparameter Optimization
 # ========================================
-N_OPTUNA_TRIALS_GBDT = 20
-N_OPTUNA_TRIALS_SKLEARN = 10
+N_OPTUNA_TRIALS_GBDT = 100
+N_OPTUNA_TRIALS_SKLEARN = 50
 N_HPO_FOLDS = 5
 HPO_SEED = 42
 
@@ -662,12 +687,18 @@ def lgb_objective(trial):
                   callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), step=len(scores))
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
 print('Optimizing LightGBM (100 trials)...')
 t0 = time.time()
-lgb_study = optuna.create_study(direction='maximize', study_name='lgb')
-lgb_study.optimize(lgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+lgb_study = optuna.create_study(direction='maximize', study_name='lgb',
+    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=2))
+lgb_study.optimize(lgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT,
+                   timeout=min(time_remaining() * 0.15, 3600),
+                   show_progress_bar=False)
 lgb_best = lgb_study.best_params
 lgb_best_score = lgb_study.best_value
 print(f'LGB best AUC: {lgb_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -677,7 +708,8 @@ wandb.log({'lgb_optuna_best_auc': lgb_best_score, 'lgb_optuna_params': lgb_best}
 
 # ── Optuna HPO for XGBoost ──
 add_code(
-    """def xgb_objective(trial):
+    """time_check('optuna_xgb')
+def xgb_objective(trial):
     params = {
         'objective': 'binary:logistic', 'eval_metric': 'auc',
         'n_estimators': 2000, 'early_stopping_rounds': 50,
@@ -700,12 +732,18 @@ add_code(
                   sample_weight=sample_weights[tr_idx], verbose=False)
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), step=len(scores))
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
 print('Optimizing XGBoost (100 trials)...')
 t0 = time.time()
-xgb_study = optuna.create_study(direction='maximize', study_name='xgb')
-xgb_study.optimize(xgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+xgb_study = optuna.create_study(direction='maximize', study_name='xgb',
+    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=2))
+xgb_study.optimize(xgb_objective, n_trials=N_OPTUNA_TRIALS_GBDT,
+                   timeout=min(time_remaining() * 0.15, 3600),
+                   show_progress_bar=False)
 xgb_best = xgb_study.best_params
 xgb_best_score = xgb_study.best_value
 print(f'XGB best AUC: {xgb_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -715,7 +753,8 @@ wandb.log({'xgb_optuna_best_auc': xgb_best_score, 'xgb_optuna_params': xgb_best}
 
 # ── Optuna HPO for CatBoost ──
 add_code(
-    """def cat_objective(trial):
+    """time_check('optuna_cat')
+def cat_objective(trial):
     params = {
         'iterations': 2000, 'eval_metric': 'Logloss', 'verbose': 0,
         'early_stopping_rounds': 50, 'task_type': CAT_TASK_TYPE,
@@ -735,12 +774,18 @@ add_code(
                   sample_weight=sample_weights[tr_idx])
         pred = model.predict_proba(X[va_idx])[:, 1]
         scores.append(roc_auc_score(y[va_idx], pred))
+        trial.report(np.mean(scores), step=len(scores))
+        if trial.should_prune():
+            raise optuna.TrialPruned()
     return np.mean(scores)
 
 print('Optimizing CatBoost (100 trials)...')
 t0 = time.time()
-cat_study = optuna.create_study(direction='maximize', study_name='cat')
-cat_study.optimize(cat_objective, n_trials=N_OPTUNA_TRIALS_GBDT, show_progress_bar=False)
+cat_study = optuna.create_study(direction='maximize', study_name='cat',
+    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=2))
+cat_study.optimize(cat_objective, n_trials=N_OPTUNA_TRIALS_GBDT,
+                   timeout=min(time_remaining() * 0.15, 3600),
+                   show_progress_bar=False)
 cat_best = cat_study.best_params
 cat_best_score = cat_study.best_value
 print(f'CAT best AUC: {cat_best_score:.5f} ({time.time()-t0:.0f}s)')
@@ -750,67 +795,94 @@ wandb.log({'cat_optuna_best_auc': cat_best_score, 'cat_optuna_params': cat_best}
 
 # ── Optuna HPO for ExtraTrees ──
 add_code(
-    """def et_objective(trial):
-    params = {
-        'n_estimators': trial.suggest_int('n_estimators', 500, 3000),
-        'max_depth': trial.suggest_int('max_depth', 5, 30),
-        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
-        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
-        'max_features': trial.suggest_float('max_features', 0.3, 1.0),
-        'n_jobs': -1, 'random_state': HPO_SEED,
-    }
-    skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
-    scores = []
-    for tr_idx, va_idx in skf.split(X, y):
-        model = ExtraTreesClassifier(**params)
-        model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
-        pred = model.predict_proba(X[va_idx])[:, 1]
-        scores.append(roc_auc_score(y[va_idx], pred))
-    return np.mean(scores)
+    """time_check('optuna_et')
+if time_remaining() < 3600:
+    print('Skipping ET Optuna (time)')
+    et_best = {'n_estimators': 1000, 'max_depth': 15, 'min_samples_split': 5,
+               'min_samples_leaf': 2, 'max_features': 0.7}
+    et_best_score = 0.0
+else:
+    def et_objective(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 500, 3000),
+            'max_depth': trial.suggest_int('max_depth', 5, 30),
+            'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+            'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
+            'max_features': trial.suggest_float('max_features', 0.3, 1.0),
+            'n_jobs': -1, 'random_state': HPO_SEED,
+        }
+        skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
+        scores = []
+        for tr_idx, va_idx in skf.split(X, y):
+            model = ExtraTreesClassifier(**params)
+            model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
+            pred = model.predict_proba(X[va_idx])[:, 1]
+            scores.append(roc_auc_score(y[va_idx], pred))
+            trial.report(np.mean(scores), step=len(scores))
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+        return np.mean(scores)
 
-print('Optimizing ExtraTrees (50 trials)...')
-t0 = time.time()
-et_study = optuna.create_study(direction='maximize', study_name='et')
-et_study.optimize(et_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN, show_progress_bar=False)
-et_best = et_study.best_params
-et_best_score = et_study.best_value
-print(f'ET best AUC: {et_best_score:.5f} ({time.time()-t0:.0f}s)')
-print(f'Best params: {et_best}')
+    print('Optimizing ExtraTrees (50 trials)...')
+    t0 = time.time()
+    et_study = optuna.create_study(direction='maximize', study_name='et',
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=2))
+    et_study.optimize(et_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN,
+                      timeout=min(time_remaining() * 0.15, 3600),
+                      show_progress_bar=False)
+    et_best = et_study.best_params
+    et_best_score = et_study.best_value
+    print(f'ET best AUC: {et_best_score:.5f} ({time.time()-t0:.0f}s)')
+    print(f'Best params: {et_best}')
 wandb.log({'et_optuna_best_auc': et_best_score, 'et_optuna_params': et_best})"""
 )
 
 # ── Optuna HPO for HistGradientBoosting ──
 add_code(
-    """def hgbc_objective(trial):
-    params = {
-        'max_iter': trial.suggest_int('max_iter', 500, 3000),
-        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        'max_depth': trial.suggest_int('max_depth', 3, 12),
-        'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 15, 127),
-        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 5, 100),
-        'l2_regularization': trial.suggest_float('l2_regularization', 1e-8, 10.0, log=True),
-        'max_bins': trial.suggest_int('max_bins', 64, 255),
-        'early_stopping': True, 'n_iter_no_change': 50,
-        'validation_fraction': 0.15,
-        'random_state': HPO_SEED,
-    }
-    skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
-    scores = []
-    for tr_idx, va_idx in skf.split(X, y):
-        model = HistGradientBoostingClassifier(**params)
-        model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
-        pred = model.predict_proba(X[va_idx])[:, 1]
-        scores.append(roc_auc_score(y[va_idx], pred))
-    return np.mean(scores)
+    """time_check('optuna_hgbc')
+if time_remaining() < 3600:
+    print('Skipping HGBC Optuna (time)')
+    hgbc_best = {'max_iter': 1000, 'learning_rate': 0.05, 'max_depth': 6,
+                 'max_leaf_nodes': 31, 'min_samples_leaf': 20,
+                 'l2_regularization': 0.1, 'max_bins': 255}
+    hgbc_best_score = 0.0
+else:
+    def hgbc_objective(trial):
+        params = {
+            'max_iter': trial.suggest_int('max_iter', 500, 3000),
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+            'max_depth': trial.suggest_int('max_depth', 3, 12),
+            'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 15, 127),
+            'min_samples_leaf': trial.suggest_int('min_samples_leaf', 5, 100),
+            'l2_regularization': trial.suggest_float('l2_regularization', 1e-8, 10.0, log=True),
+            'max_bins': trial.suggest_int('max_bins', 64, 255),
+            'early_stopping': True, 'n_iter_no_change': 50,
+            'validation_fraction': 0.15,
+            'random_state': HPO_SEED,
+        }
+        skf = StratifiedKFold(n_splits=N_HPO_FOLDS, shuffle=True, random_state=HPO_SEED)
+        scores = []
+        for tr_idx, va_idx in skf.split(X, y):
+            model = HistGradientBoostingClassifier(**params)
+            model.fit(X[tr_idx], y[tr_idx], sample_weight=sample_weights[tr_idx])
+            pred = model.predict_proba(X[va_idx])[:, 1]
+            scores.append(roc_auc_score(y[va_idx], pred))
+            trial.report(np.mean(scores), step=len(scores))
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+        return np.mean(scores)
 
-print('Optimizing HistGradientBoosting (50 trials)...')
-t0 = time.time()
-hgbc_study = optuna.create_study(direction='maximize', study_name='hgbc')
-hgbc_study.optimize(hgbc_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN, show_progress_bar=False)
-hgbc_best = hgbc_study.best_params
-hgbc_best_score = hgbc_study.best_value
-print(f'HGBC best AUC: {hgbc_best_score:.5f} ({time.time()-t0:.0f}s)')
-print(f'Best params: {hgbc_best}')
+    print('Optimizing HistGradientBoosting (50 trials)...')
+    t0 = time.time()
+    hgbc_study = optuna.create_study(direction='maximize', study_name='hgbc',
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=2))
+    hgbc_study.optimize(hgbc_objective, n_trials=N_OPTUNA_TRIALS_SKLEARN,
+                        timeout=min(time_remaining() * 0.15, 3600),
+                        show_progress_bar=False)
+    hgbc_best = hgbc_study.best_params
+    hgbc_best_score = hgbc_study.best_value
+    print(f'HGBC best AUC: {hgbc_best_score:.5f} ({time.time()-t0:.0f}s)')
+    print(f'Best params: {hgbc_best}')
 wandb.log({'hgbc_optuna_best_auc': hgbc_best_score, 'hgbc_optuna_params': hgbc_best})
 
 print('\\n=== Optuna Summary ===')
@@ -823,11 +895,12 @@ print(f'HGBC: {hgbc_best_score:.5f}')"""
 
 # ── Multi-seed training with tuned params ──
 add_code(
-    """# ========================================
+    """time_check('multi_seed_training')
+# ========================================
 # Multi-Seed Training with Optuna-Tuned Params
 # ========================================
-SEEDS = [42, 123]
-N_SPLITS = 5
+SEEDS = [42, 123, 2024, 7, 999]
+N_SPLITS = 10
 
 def train_model_multiseed(model_type, best_params, seeds, n_splits, use_weights=True):
     all_oof = []
@@ -965,7 +1038,8 @@ for name, auc in [('LGB', lgb_auc), ('XGB', xgb_auc), ('CAT', cat_auc), ('ET', e
 
 # ── Pseudo Labeling ──
 add_code(
-    """# ========================================
+    """time_check('pseudo_labeling')
+# ========================================
 # Pseudo Labeling
 # ========================================
 # Use high-confidence predictions from initial models as pseudo labels
@@ -974,184 +1048,193 @@ print('\\n' + '=' * 60)
 print('  Pseudo Labeling')
 print('=' * 60)
 
-# Average predictions from all 5 models for pseudo label selection
-avg_test_pred = (lgb_preds + xgb_preds + cat_preds + et_preds + hgbc_preds) / 5
-
-# Select high-confidence samples
-CONF_HIGH = 0.95
-CONF_LOW = 0.05
-high_conf_pos = avg_test_pred >= CONF_HIGH
-high_conf_neg = avg_test_pred <= CONF_LOW
-n_pseudo_pos = high_conf_pos.sum()
-n_pseudo_neg = high_conf_neg.sum()
-n_pseudo = n_pseudo_pos + n_pseudo_neg
-print(f'High confidence positive (>={CONF_HIGH}): {n_pseudo_pos}')
-print(f'High confidence negative (<={CONF_LOW}): {n_pseudo_neg}')
-print(f'Total pseudo labels: {n_pseudo} / {len(X_test)} test samples ({n_pseudo/len(X_test)*100:.1f}%)')
-wandb.log({'pseudo_label_count': n_pseudo, 'pseudo_pos': int(n_pseudo_pos), 'pseudo_neg': int(n_pseudo_neg)})
-
-if n_pseudo >= 50:
-    # Create pseudo-labeled dataset
-    pseudo_mask = high_conf_pos | high_conf_neg
-    X_pseudo = X_test[pseudo_mask]
-    y_pseudo = (avg_test_pred[pseudo_mask] >= 0.5).astype(int)
-
-    # Augment training data
-    X_aug = np.vstack([X, X_pseudo])
-    y_aug = np.concatenate([y, y_pseudo])
-    # Weights: original samples keep adversarial weights, pseudo labels get lower weight (0.5)
-    w_aug = np.concatenate([sample_weights, np.full(len(X_pseudo), 0.5)])
-
-    print(f'Augmented train: X={X_aug.shape}, y distribution={np.bincount(y_aug)}')
-
-    # Retrain top 3 GBDT models with pseudo labels
-    def train_model_pseudo(model_type, best_params, seeds, n_splits, X_tr, y_tr, w_tr):
-        all_oof = []
-        all_preds = []
-
-        for seed in seeds:
-            skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
-            # OOF only for original train samples
-            oof = np.zeros(len(X))
-            preds = np.zeros(len(X_test))
-
-            for fold, (tr_idx, va_idx) in enumerate(skf.split(X_tr, y_tr)):
-                w = w_tr[tr_idx]
-
-                if model_type == 'lgb':
-                    params = {
-                        'objective': 'binary', 'metric': 'auc', 'verbosity': -1,
-                        'n_estimators': 3000, 'device': LGB_DEVICE, 'random_state': seed,
-                        **best_params,
-                    }
-                    model = lgb.LGBMClassifier(**params)
-                    model.fit(X_tr[tr_idx], y_tr[tr_idx],
-                              eval_set=[(X_tr[va_idx], y_tr[va_idx])],
-                              sample_weight=w,
-                              callbacks=[lgb.early_stopping(100), lgb.log_evaluation(0)])
-
-                elif model_type == 'xgb':
-                    params = {
-                        'objective': 'binary:logistic', 'eval_metric': 'auc',
-                        'n_estimators': 3000, 'early_stopping_rounds': 100,
-                        'verbosity': 0, 'tree_method': XGB_TREE_METHOD, 'device': XGB_DEVICE,
-                        'random_state': seed, **best_params,
-                    }
-                    model = xgb.XGBClassifier(**params)
-                    model.fit(X_tr[tr_idx], y_tr[tr_idx],
-                              eval_set=[(X_tr[va_idx], y_tr[va_idx])],
-                              sample_weight=w, verbose=False)
-
-                elif model_type == 'cat':
-                    params = {
-                        'iterations': 3000, 'eval_metric': 'Logloss', 'verbose': 0,
-                        'early_stopping_rounds': 100, 'task_type': CAT_TASK_TYPE,
-                        'random_seed': seed, **best_params,
-                    }
-                    model = CatBoostClassifier(**params)
-                    model.fit(X_tr[tr_idx], y_tr[tr_idx],
-                              eval_set=(X_tr[va_idx], y_tr[va_idx]),
-                              sample_weight=w)
-
-                # OOF for original train indices only
-                va_orig_mask = va_idx < len(X)
-                va_orig_idx = va_idx[va_orig_mask]
-                if len(va_orig_idx) > 0:
-                    oof[va_orig_idx] = model.predict_proba(X_tr[va_orig_idx])[:, 1]
-                preds += model.predict_proba(X_test)[:, 1] / n_splits
-
-            seed_auc = roc_auc_score(y, oof)
-            print(f'  {model_type.upper()}_PL seed={seed}: CV AUC = {seed_auc:.5f}')
-            all_oof.append(oof)
-            all_preds.append(preds)
-            gc.collect()
-
-        mean_oof = np.mean(all_oof, axis=0)
-        mean_preds = np.mean(all_preds, axis=0)
-        mean_auc = roc_auc_score(y, mean_oof)
-        print(f'  >>> {model_type.upper()}_PL Multi-Seed CV AUC: {mean_auc:.5f}')
-        return mean_oof, mean_preds, mean_auc
-
-    print('\\nRetraining with pseudo labels...')
-    lgb_pl_oof, lgb_pl_preds, lgb_pl_auc = train_model_pseudo('lgb', lgb_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
-    xgb_pl_oof, xgb_pl_preds, xgb_pl_auc = train_model_pseudo('xgb', xgb_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
-    cat_pl_oof, cat_pl_preds, cat_pl_auc = train_model_pseudo('cat', cat_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
-
-    wandb.log({'lgb_pl_auc': lgb_pl_auc, 'xgb_pl_auc': xgb_pl_auc, 'cat_pl_auc': cat_pl_auc})
-    has_pseudo = True
-    print(f'\\nPseudo Label improvement:')
-    print(f'  LGB: {lgb_auc:.5f} -> {lgb_pl_auc:.5f} ({"+" if lgb_pl_auc > lgb_auc else ""}{lgb_pl_auc - lgb_auc:.5f})')
-    print(f'  XGB: {xgb_auc:.5f} -> {xgb_pl_auc:.5f} ({"+" if xgb_pl_auc > xgb_auc else ""}{xgb_pl_auc - xgb_auc:.5f})')
-    print(f'  CAT: {cat_auc:.5f} -> {cat_pl_auc:.5f} ({"+" if cat_pl_auc > cat_auc else ""}{cat_pl_auc - cat_auc:.5f})')
+if time_remaining() < 1800:
+    print('Skipping pseudo label (time)')
+    has_pseudo = False
 else:
-    print('Not enough high-confidence predictions for pseudo labeling. Skipping.')
-    has_pseudo = False"""
+    # Average predictions from all 5 models for pseudo label selection
+    avg_test_pred = (lgb_preds + xgb_preds + cat_preds + et_preds + hgbc_preds) / 5
+
+    # Select high-confidence samples
+    CONF_HIGH = 0.95
+    CONF_LOW = 0.05
+    high_conf_pos = avg_test_pred >= CONF_HIGH
+    high_conf_neg = avg_test_pred <= CONF_LOW
+    n_pseudo_pos = high_conf_pos.sum()
+    n_pseudo_neg = high_conf_neg.sum()
+    n_pseudo = n_pseudo_pos + n_pseudo_neg
+    print(f'High confidence positive (>={CONF_HIGH}): {n_pseudo_pos}')
+    print(f'High confidence negative (<={CONF_LOW}): {n_pseudo_neg}')
+    print(f'Total pseudo labels: {n_pseudo} / {len(X_test)} test samples ({n_pseudo/len(X_test)*100:.1f}%)')
+    wandb.log({'pseudo_label_count': n_pseudo, 'pseudo_pos': int(n_pseudo_pos), 'pseudo_neg': int(n_pseudo_neg)})
+
+    if n_pseudo >= 50:
+        # Create pseudo-labeled dataset
+        pseudo_mask = high_conf_pos | high_conf_neg
+        X_pseudo = X_test[pseudo_mask]
+        y_pseudo = (avg_test_pred[pseudo_mask] >= 0.5).astype(int)
+
+        # Augment training data
+        X_aug = np.vstack([X, X_pseudo])
+        y_aug = np.concatenate([y, y_pseudo])
+        # Weights: original samples keep adversarial weights, pseudo labels get lower weight (0.5)
+        w_aug = np.concatenate([sample_weights, np.full(len(X_pseudo), 0.5)])
+
+        print(f'Augmented train: X={X_aug.shape}, y distribution={np.bincount(y_aug)}')
+
+        # Retrain top 3 GBDT models with pseudo labels
+        def train_model_pseudo(model_type, best_params, seeds, n_splits, X_tr, y_tr, w_tr):
+            all_oof = []
+            all_preds = []
+
+            for seed in seeds:
+                skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+                # OOF only for original train samples
+                oof = np.zeros(len(X))
+                preds = np.zeros(len(X_test))
+
+                for fold, (tr_idx, va_idx) in enumerate(skf.split(X_tr, y_tr)):
+                    w = w_tr[tr_idx]
+
+                    if model_type == 'lgb':
+                        params = {
+                            'objective': 'binary', 'metric': 'auc', 'verbosity': -1,
+                            'n_estimators': 3000, 'device': LGB_DEVICE, 'random_state': seed,
+                            **best_params,
+                        }
+                        model = lgb.LGBMClassifier(**params)
+                        model.fit(X_tr[tr_idx], y_tr[tr_idx],
+                                  eval_set=[(X_tr[va_idx], y_tr[va_idx])],
+                                  sample_weight=w,
+                                  callbacks=[lgb.early_stopping(100), lgb.log_evaluation(0)])
+
+                    elif model_type == 'xgb':
+                        params = {
+                            'objective': 'binary:logistic', 'eval_metric': 'auc',
+                            'n_estimators': 3000, 'early_stopping_rounds': 100,
+                            'verbosity': 0, 'tree_method': XGB_TREE_METHOD, 'device': XGB_DEVICE,
+                            'random_state': seed, **best_params,
+                        }
+                        model = xgb.XGBClassifier(**params)
+                        model.fit(X_tr[tr_idx], y_tr[tr_idx],
+                                  eval_set=[(X_tr[va_idx], y_tr[va_idx])],
+                                  sample_weight=w, verbose=False)
+
+                    elif model_type == 'cat':
+                        params = {
+                            'iterations': 3000, 'eval_metric': 'Logloss', 'verbose': 0,
+                            'early_stopping_rounds': 100, 'task_type': CAT_TASK_TYPE,
+                            'random_seed': seed, **best_params,
+                        }
+                        model = CatBoostClassifier(**params)
+                        model.fit(X_tr[tr_idx], y_tr[tr_idx],
+                                  eval_set=(X_tr[va_idx], y_tr[va_idx]),
+                                  sample_weight=w)
+
+                    # OOF for original train indices only
+                    va_orig_mask = va_idx < len(X)
+                    va_orig_idx = va_idx[va_orig_mask]
+                    if len(va_orig_idx) > 0:
+                        oof[va_orig_idx] = model.predict_proba(X_tr[va_orig_idx])[:, 1]
+                    preds += model.predict_proba(X_test)[:, 1] / n_splits
+
+                seed_auc = roc_auc_score(y, oof)
+                print(f'  {model_type.upper()}_PL seed={seed}: CV AUC = {seed_auc:.5f}')
+                all_oof.append(oof)
+                all_preds.append(preds)
+                gc.collect()
+
+            mean_oof = np.mean(all_oof, axis=0)
+            mean_preds = np.mean(all_preds, axis=0)
+            mean_auc = roc_auc_score(y, mean_oof)
+            print(f'  >>> {model_type.upper()}_PL Multi-Seed CV AUC: {mean_auc:.5f}')
+            return mean_oof, mean_preds, mean_auc
+
+        print('\\nRetraining with pseudo labels...')
+        lgb_pl_oof, lgb_pl_preds, lgb_pl_auc = train_model_pseudo('lgb', lgb_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
+        xgb_pl_oof, xgb_pl_preds, xgb_pl_auc = train_model_pseudo('xgb', xgb_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
+        cat_pl_oof, cat_pl_preds, cat_pl_auc = train_model_pseudo('cat', cat_best, SEEDS, N_SPLITS, X_aug, y_aug, w_aug)
+
+        wandb.log({'lgb_pl_auc': lgb_pl_auc, 'xgb_pl_auc': xgb_pl_auc, 'cat_pl_auc': cat_pl_auc})
+        has_pseudo = True
+        print(f'\\nPseudo Label improvement:')
+        print(f'  LGB: {lgb_auc:.5f} -> {lgb_pl_auc:.5f} ({"+" if lgb_pl_auc > lgb_auc else ""}{lgb_pl_auc - lgb_auc:.5f})')
+        print(f'  XGB: {xgb_auc:.5f} -> {xgb_pl_auc:.5f} ({"+" if xgb_pl_auc > xgb_auc else ""}{xgb_pl_auc - xgb_auc:.5f})')
+        print(f'  CAT: {cat_auc:.5f} -> {cat_pl_auc:.5f} ({"+" if cat_pl_auc > cat_auc else ""}{cat_pl_auc - cat_auc:.5f})')
+    else:
+        print('Not enough high-confidence predictions for pseudo labeling. Skipping.')
+        has_pseudo = False"""
 )
 
 # ── Permutation Importance Feature Selection ──
 add_code(
-    """# ========================================
-# Permutation Importance Feature Selection
-# ========================================
-# Use LGB model for feature importance check
-# Drop features with negative or zero permutation importance
-print('\\nRunning Permutation Importance analysis...')
-t0 = time.time()
-
-# Train a quick LGB model for permutation importance
-quick_lgb = lgb.LGBMClassifier(
-    objective='binary', metric='auc', verbosity=-1,
-    n_estimators=500, learning_rate=0.05, device=LGB_DEVICE,
-    **{k: v for k, v in lgb_best.items() if k != 'learning_rate'},
-)
-skf_pi = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-pi_scores = np.zeros(X.shape[1])
-pi_count = 0
-for tr_idx, va_idx in skf_pi.split(X, y):
-    quick_lgb.fit(X[tr_idx], y[tr_idx], eval_set=[(X[va_idx], y[va_idx])],
-                  callbacks=[lgb.early_stopping(30), lgb.log_evaluation(0)])
-    result = permutation_importance(quick_lgb, X[va_idx], y[va_idx],
-                                     n_repeats=3, random_state=42, scoring='roc_auc',
-                                     n_jobs=-1)
-    pi_scores += result.importances_mean
-    pi_count += 1
-
-pi_scores /= pi_count
-pi_df = pd.DataFrame({'feature': feature_cols, 'importance': pi_scores}).sort_values('importance', ascending=False)
-
-# Identify noise features (zero or negative importance)
-noise_features = pi_df[pi_df['importance'] <= 0]['feature'].tolist()
-print(f'Permutation Importance analysis done ({time.time()-t0:.0f}s)')
-print(f'Noise features (importance <= 0): {len(noise_features)}')
-if noise_features:
-    print(f'Dropping: {noise_features[:20]}{"..." if len(noise_features) > 20 else ""}')
-
-# Report top features
-print(f'\\nTop 20 features by permutation importance:')
-for _, row in pi_df.head(20).iterrows():
-    print(f'  {row["feature"]:40s} {row["importance"]:.6f}')
-
-wandb.log({'noise_features_count': len(noise_features), 'total_features_before_selection': len(feature_cols)})
-
-# Note: We keep all features for now since GBDT models handle noise well.
-# Only drop if there are many noise features (>30% of total)
-if len(noise_features) > len(feature_cols) * 0.3:
-    print(f'\\nToo many noise features ({len(noise_features)}/{len(feature_cols)}). Dropping them.')
-    keep_cols = [c for c in feature_cols if c not in noise_features]
-    keep_idx = [feature_cols.index(c) for c in keep_cols]
-    X = X[:, keep_idx]
-    X_test = X_test[:, keep_idx]
-    feature_cols = keep_cols
-    # Update sample weights size matches
-    print(f'Features after selection: {len(feature_cols)}')
-    wandb.config.update({'n_features_selected': len(feature_cols)})
+    """time_check('permutation_importance')
+if time_remaining() < 1200:
+    print('Skipping permutation importance (time)')
 else:
-    print(f'\\nKeeping all features (noise ratio {len(noise_features)/len(feature_cols)*100:.1f}% < 30%)')"""
+    # ========================================
+    # Permutation Importance Feature Selection
+    # ========================================
+    # Use LGB model for feature importance check
+    # Drop features with negative or zero permutation importance
+    print('\\nRunning Permutation Importance analysis...')
+    t0 = time.time()
+
+    # Train a quick LGB model for permutation importance
+    quick_lgb = lgb.LGBMClassifier(
+        objective='binary', metric='auc', verbosity=-1,
+        n_estimators=500, learning_rate=0.05, device=LGB_DEVICE,
+        **{k: v for k, v in lgb_best.items() if k != 'learning_rate'},
+    )
+    skf_pi = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    pi_scores = np.zeros(X.shape[1])
+    pi_count = 0
+    for tr_idx, va_idx in skf_pi.split(X, y):
+        quick_lgb.fit(X[tr_idx], y[tr_idx], eval_set=[(X[va_idx], y[va_idx])],
+                      callbacks=[lgb.early_stopping(30), lgb.log_evaluation(0)])
+        result = permutation_importance(quick_lgb, X[va_idx], y[va_idx],
+                                         n_repeats=3, random_state=42, scoring='roc_auc',
+                                         n_jobs=-1)
+        pi_scores += result.importances_mean
+        pi_count += 1
+
+    pi_scores /= pi_count
+    pi_df = pd.DataFrame({'feature': feature_cols, 'importance': pi_scores}).sort_values('importance', ascending=False)
+
+    # Identify noise features (zero or negative importance)
+    noise_features = pi_df[pi_df['importance'] <= 0]['feature'].tolist()
+    print(f'Permutation Importance analysis done ({time.time()-t0:.0f}s)')
+    print(f'Noise features (importance <= 0): {len(noise_features)}')
+    if noise_features:
+        print(f'Dropping: {noise_features[:20]}{"..." if len(noise_features) > 20 else ""}')
+
+    # Report top features
+    print(f'\\nTop 20 features by permutation importance:')
+    for _, row in pi_df.head(20).iterrows():
+        print(f'  {row["feature"]:40s} {row["importance"]:.6f}')
+
+    wandb.log({'noise_features_count': len(noise_features), 'total_features_before_selection': len(feature_cols)})
+
+    # Note: We keep all features for now since GBDT models handle noise well.
+    # Only drop if there are many noise features (>30% of total)
+    if len(noise_features) > len(feature_cols) * 0.3:
+        print(f'\\nToo many noise features ({len(noise_features)}/{len(feature_cols)}). Dropping them.')
+        keep_cols = [c for c in feature_cols if c not in noise_features]
+        keep_idx = [feature_cols.index(c) for c in keep_cols]
+        X = X[:, keep_idx]
+        X_test = X_test[:, keep_idx]
+        feature_cols = keep_cols
+        # Update sample weights size matches
+        print(f'Features after selection: {len(feature_cols)}')
+        wandb.config.update({'n_features_selected': len(feature_cols)})
+    else:
+        print(f'\\nKeeping all features (noise ratio {len(noise_features)/len(feature_cols)*100:.1f}% < 30%)')"""
 )
 
 # ── Ensemble ──
 add_code(
-    """# ========================================
+    """time_check('ensemble')
+# ========================================
 # Ensemble Methods
 # ========================================
 print('\\n' + '=' * 60)
@@ -1211,7 +1294,9 @@ def weight_objective(trial):
 print('\\nOptuna weight search...')
 t0 = time.time()
 weight_study = optuna.create_study(direction='maximize', study_name='weights')
-weight_study.optimize(weight_objective, n_trials=100, show_progress_bar=False)
+weight_study.optimize(weight_objective, n_trials=500,
+                      timeout=min(time_remaining() * 0.1, 600),
+                      show_progress_bar=False)
 opt_weights = np.array([weight_study.best_params[f'w_{name}'] for name in model_names])
 opt_weights = opt_weights / opt_weights.sum()
 
@@ -1399,7 +1484,8 @@ print(f'Mean:  {best_preds.mean():.5f}')"""
 )
 
 add_code(
-    """submission[TARGET] = best_preds
+    """time_check('submission')
+submission[TARGET] = best_preds
 submission.to_csv('submission.csv', index=False)
 print(f'Submission saved: {submission.shape}')
 print(f'Method: {best_name} (CV AUC = {best_auc:.5f})')

@@ -170,14 +170,15 @@ class MelTransform(nn.Module):
 
     @torch.no_grad()
     def forward(self, waveforms):
-        mel = self.db(self.mel(waveforms))
-        mel = F.interpolate(mel, size=self.target_size, mode='bilinear', align_corners=False)
+        mel = self.db(self.mel(waveforms))  # (B, n_mels, T)
+        mel = mel.unsqueeze(1)  # (B, 1, n_mels, T)
+        mel = F.interpolate(mel, size=self.target_size, mode='bilinear', align_corners=False)  # (B, 1, 224, 224)
         B = mel.shape[0]
         mel_flat = mel.reshape(B, -1)
-        mel_min = mel_flat.min(dim=1, keepdim=True)[0].unsqueeze(-1)
-        mel_max = mel_flat.max(dim=1, keepdim=True)[0].unsqueeze(-1)
+        mel_min = mel_flat.min(dim=1, keepdim=True)[0].view(B, 1, 1, 1)
+        mel_max = mel_flat.max(dim=1, keepdim=True)[0].view(B, 1, 1, 1)
         mel = (mel - mel_min) / (mel_max - mel_min + 1e-7)
-        return mel.unsqueeze(1).repeat(1, 3, 1, 1)
+        return mel.repeat(1, 3, 1, 1)  # (B, 3, 224, 224)
 
 mel_transform = MelTransform(cfg)
 mel_transform.eval()
