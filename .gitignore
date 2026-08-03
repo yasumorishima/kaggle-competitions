@@ -238,3 +238,14 @@ WANDB_OFFLINE_SYNC.md
 KAGGLE_WORKFLOW.md
 *_DEV_NOTE.md
 NEXT_SESSION.md
+
+# Kaggle kernel output ダウンロード / ローカル実行の生成物（いずれも再生成可能）
+# 数百MB〜GB 級になり git status を埋めるため追跡しない
+*/out/
+*/output/
+*_out/
+*/xc_cache/
+*/ens_full/
+*/ens_smoke/
+*/ens_v2_smoke/
+*/kout*/

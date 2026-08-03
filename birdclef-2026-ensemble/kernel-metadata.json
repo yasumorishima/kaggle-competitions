@@ -1,0 +1,21 @@
+{
+  "id": "yasunorim/birdclef-2026-ensemble",
+  "title": "birdclef-2026-ensemble",
+  "code_file": "birdclef-2026-ensemble.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "yasunorim/birdclef-2026-perch-v2-repro",
+    "yaroslavkholmirzayev/protossm-v18-maximum-ensemble-artifact"
+  ],
+  "competition_sources": [
+    "birdclef-2026"
+  ],
+  "model_sources": []
+}

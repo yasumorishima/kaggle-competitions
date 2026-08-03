@@ -1,0 +1,25 @@
+{
+  "id": "nihilisticneuralnet/9-251-rogii-wellbore-geology-prediction-dwt-based",
+  "id_no": 119017611,
+  "title": "9.251 ROGII-Wellbore Geology Prediction: DWT-based",
+  "code_file": "9-251-rogii-wellbore-geology-prediction-dwt-based.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "ravaghi/wellbore-geology-prediction-artifacts"
+  ],
+  "kernel_sources": [
+    "packagemanager/pm-119017611-at-05-13-2026-06-30-43"
+  ],
+  "competition_sources": [
+    "rogii-wellbore-geology-prediction"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-images/python@sha256:c370a5ff133d162d17c2dca332b50f3e85c0b0ed1471ee18e98e3009eee80b08",
+  "machine_shape": "None"
+}
