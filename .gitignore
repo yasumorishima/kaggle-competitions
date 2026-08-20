@@ -249,3 +249,6 @@ NEXT_SESSION.md
 */ens_smoke/
 */ens_v2_smoke/
 */kout*/
+
+# Kaggriculture: fetched public opponents are never redistributed from here.
+kaggriculture/opponents/

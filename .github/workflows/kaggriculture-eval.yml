@@ -56,11 +56,29 @@ jobs:
           nproc
           python -c "import kaggle_environments as k; print('kaggle_environments', k.version)"
 
+      - name: Resolve opponent
+        # `kernel:owner/slug` pulls a published competition notebook and turns
+        # its %%writefile cell into a runnable agent. Sparring against the real
+        # published agents is the only honest yardstick; `starter` is trivial.
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          b="${{ inputs.agent_b }}"
+          if [ "${b#kernel:}" != "$b" ]; then
+            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            ref="${b#kernel:}"
+            python sim/fetch_opponent.py "$ref"
+            echo "AGENT_B=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
+          else
+            echo "AGENT_B=$b" >> "$GITHUB_ENV"
+          fi
+
       - name: Evaluate
         run: |
           python sim/evaluate.py \
             --a "${{ inputs.agent_a }}" \
-            --b "${{ inputs.agent_b }}" \
+            --b "$AGENT_B" \
             --episodes "${{ inputs.episodes }}" \
             --seed0 "${{ inputs.seed0 }}" \
             --workers "$(nproc)" \
