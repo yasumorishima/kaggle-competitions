@@ -87,7 +87,10 @@ P = {
     "reserve_frac": 0.80,      # never sell under this fraction of base price
     "slice_frac": 0.92,        # ...nor push the live price below this of itself
     "dump_day": 29,
-    "land_gate": [(3, 1400), (7, 3200), (12, 7000)],
+    # (earliest day, cash floor) per quadrant. Land is what caps the whole farm,
+    # so the gates are early and the agent saves toward the next one instead of
+    # spending its last coin on livestock.
+    "land_gate": [(2, 1200), (6, 2600), (10, 5200)],
     "tile_margin": 1.15,       # plan slightly past the tiles we own
 }
 
@@ -175,22 +178,48 @@ def shed_tiles(n):
     return [(h - 1, h - 1), (h, h - 1), (h - 1, h), (h, h)]
 
 
-def town_demand(shops):
-    """Units per day the town removes from the market, per product.
+# Expected drain a *future* shop unlock adds per product per day: shops are
+# drawn uniformly with replacement, so one unlock is worth
+# (sum over shop types that want the item of 6, doubled for single-product) / 8.
+PER_UNLOCK = {}
+for _name, _items in SHOPS.items():
+    for _item in _items:
+        PER_UNLOCK[_item] = PER_UNLOCK.get(_item, 0.0) + (12.0 if len(_items) == 1 else 6.0) / 8.0
+
+# How much of that expectation to act on. A crop takes 8-16 days to pay, so it
+# has to be sown against the town the season will have, not the one it has
+# today. An animal can be bought the day its shop appears, so it barely needs
+# to speculate -- and sheep are the most expensive bet on the board.
+LOOKAHEAD = {"WHEAT": 1.0, "CARROT": 1.0, "TOMATO": 1.0, "STRAWBERRY": 1.0,
+             "MELON": 1.0, "MILK": 0.5, "EGG": 0.5, "WOOL": 0.25}
+
+
+def town_demand(shops, day):
+    """Units per day the town will remove from the market, per product.
 
     Each unlocked instance pulls one unit of each product it wants every 4
     turns (24 turns/day -> 6/day); a single-product shop pulls double. The town
-    centre takes one of every non-fertilizer product per day on top.
+    centre takes one of every non-fertilizer product per day on top. Shops keep
+    unlocking every 3 days up to 8 instances, so the slots not yet drawn are
+    added at their expectation -- otherwise day-0 demand reads as 1/day and
+    nothing slow ever gets planted in time.
     """
     d = {item: 1.0 for item in MARKET_PARAMS if item != "FERTILIZER"}
     d["FERTILIZER"] = 0.0
+    have = 0
     for name in shops or []:
         items = SHOPS.get(name)
         if not items:
             continue
+        have += 1
         mult = 2 if len(items) == 1 else 1
         for item in items:
             d[item] = d.get(item, 0.0) + 6.0 * mult
+    # Unlocks land on days 3, 6, ... until 8 instances exist.
+    to_come = max(0, min(8, max(0, (29 - day)) // 3 + 1) - 0)
+    to_come = min(to_come, 8 - have)
+    for item, per in PER_UNLOCK.items():
+        d[item] = d.get(item, 0.0) + to_come * per * LOOKAHEAD.get(item, 1.0)
     return d
 
 
@@ -275,7 +304,7 @@ def agent(obs, config=None):
     # ------------------------------------------------- production plan
     # Size each product against what the town removes and the opponent already
     # supplies, then spend the tiles we own on whatever pays most per day.
-    demand = town_demand(shops)
+    demand = town_demand(shops, day)
     plan = {}
     for item, rate in RATE.items():
         gap = demand.get(item, 1.0) * GLUT_TOL[item] - theirs.get(item, 0) * rate
@@ -346,11 +375,17 @@ def agent(obs, config=None):
 
     # 3. Land, gated on both a day and a cash floor.
     extra = len(unlocked) - 1
+    saving_for_land = 0.0
     if extra < len(LAND_PRICES) and not liquidate:
         min_day, min_money = P["land_gate"][extra]
-        if day >= min_day and money >= min_money and tiles_used > 0.7 * tiles_owned:
+        if day >= min_day and money >= min_money and tiles_used > 0.55 * tiles_owned:
             buy_orders.append(["BUY_LAND"])
             money -= LAND_PRICES[extra]
+        elif day >= min_day - 2:
+            # Hold back the price of the next quadrant instead of sinking the
+            # last coin into livestock; tiles gate everything downstream.
+            saving_for_land = min(LAND_PRICES[extra], min_money)
+    spendable = money - P["cash_buffer"] - saving_for_land
 
     # 4. Animals, best payer first. An animal bought on day 22 still has time
     #    to return its price once; later than that it is a donation.
@@ -367,8 +402,9 @@ def agent(obs, config=None):
             if payback < cost * 1.2:
                 continue
             k = 0
-            while k < need and k < room and money - P["cash_buffer"] >= cost and k < 4:
+            while k < need and k < room and spendable >= cost and k < 4:
                 k += 1
+                spendable -= cost
                 money -= cost
             if k:
                 buy_orders.append(["BUY_ANIMAL", a, k])
@@ -383,9 +419,10 @@ def agent(obs, config=None):
             short = deficit(crop) - seeds.get(crop, 0)
             short = min(short, 5)
             cost = CROPS[crop]["seed"]
-            if short > 0 and money - P["cash_buffer"] >= short * cost:
+            if short > 0 and spendable >= short * cost:
                 buy_orders.append(["BUY_SEED", crop, short])
                 money -= short * cost
+                spendable -= short * cost
 
     # 6. Emergency feed: an escaped animal costs far more than dear wheat.
     if herd and not liquidate:
@@ -498,10 +535,16 @@ def agent(obs, config=None):
             if crop:
                 out.append((price(crop) * RATE[crop] * 1.5 / (1 + d), (x, y), ("PLANT", crop)))
 
+        # A weed is worth clearing exactly as much as whatever would be planted
+        # on the tile it is squatting on; a flat low score leaves half the farm
+        # idle by mid-season.
+        weed_val = 25.0
+        if crop and len(empty_tiles) < 4:
+            weed_val = price(crop) * RATE[crop] * 1.4
         for (x, y, t) in weeds:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
-            out.append((25.0 / (1 + dist(pos, (x, y))), (x, y), "DIG"))
+            out.append((weed_val / (1 + dist(pos, (x, y))), (x, y), "DIG"))
 
         # Shed trips: fetch feed, fetch an animal, or unload a full pack.
         unfed = sum(1 for _, _, t in animals if not t.get("fed_today"))
