@@ -223,6 +223,30 @@ def town_demand(shops, day):
     return d
 
 
+def extra_from_fertilizer(tile, cd, day):
+    """Extra units one FERTILIZE buys on this plant (it lasts day..day+2).
+
+    Ongoing crops double a scheduled production from 1 to 2 on days they are
+    also watered; one-time crops get +2 instead of +1 per watered day inside
+    their bonus window. Either way the bonus is capped by the plant's max yield
+    and by how much of its life is left.
+    """
+    age = day - tile["planted_day"]
+    if cd["ongoing"]:
+        interval = max(1, cd["interval"])
+        # Productions that fall inside the 3-day window.
+        window = sum(1 for k in range(3)
+                     if (age + k - cd["first_yield_day"]) >= 0
+                     and (age + k - cd["first_yield_day"]) % interval == 0)
+        fired = max(0, (age - cd["first_yield_day"]) // interval + 1) if age >= cd["first_yield_day"] else 0
+        left = max(0, cd["max_yield"] - fired)
+        return min(window, left)
+    lo = (cd["max_yield_day"] + 1) // 2
+    days = [a for a in range(age, age + 3) if lo <= a <= cd["max_yield_day"]]
+    headroom = max(0, cd["max_yield"] - tile.get("yield_units", 0))
+    return min(len(days), headroom)
+
+
 def census(tiles):
     """Count producing tiles of a farm by the product they yield."""
     out = {}
@@ -346,11 +370,19 @@ def agent(obs, config=None):
     #    turns as the town keeps buying, so dumping a whole shed at once is
     #    strictly worse than trickling.
     wheat_keep = 0 if liquidate else herd * min(3, days_left)
+    # Fertilizer is held back for the field, not sold: one unit on a tomato is
+    # worth roughly three fruit. Only the surplus over what the standing crop
+    # can absorb in the days left goes to market.
+    fert_targets = sum(1 for _, _, t in plants
+                       if CROPS[t["crop"]]["ongoing"] and t.get("fertilized_until_day", -1) < day)
+    fert_keep = 0 if liquidate else min(40, int(fert_targets * max(1, days_left) / 3) + fert_targets)
     for item in ("MILK", "STRAWBERRY", "WOOL", "MELON", "TOMATO", "EGG",
                  "CARROT", "FERTILIZER", "WHEAT"):
         have = int(shed.get(item, 0))
         if item == "WHEAT":
             have = max(0, have - wheat_keep)
+        elif item == "FERTILIZER":
+            have = max(0, have - fert_keep)
         if have <= 0:
             continue
         if liquidate:
@@ -387,8 +419,25 @@ def agent(obs, config=None):
             saving_for_land = min(LAND_PRICES[extra], min_money)
     spendable = money - P["cash_buffer"] - saving_for_land
 
-    # 4. Animals, best payer first. An animal bought on day 22 still has time
-    #    to return its price once; later than that it is a donation.
+    # 4. Seeds first, animals second. Livestock outranks every crop per tile,
+    #    so if the purchases run the other way the herd eats the whole budget
+    #    and the farm ends up buying its own feed at $47 a bushel all season.
+    if not liquidate:
+        for crop in ("WHEAT", "STRAWBERRY", "TOMATO", "CARROT", "MELON"):
+            if day > P["plant_last_day"][crop]:
+                continue
+            short = deficit(crop) - seeds.get(crop, 0)
+            short = min(short, 5)
+            cost = CROPS[crop]["seed"]
+            if short > 0 and spendable >= short * cost:
+                buy_orders.append(["BUY_SEED", crop, short])
+                money -= short * cost
+                spendable -= short * cost
+
+    # 5. Animals, best payer first. An animal bought on day 22 still has time
+    #    to return its price once; later than that it is a donation. The herd
+    #    may not outgrow the feed the farm can actually grow.
+    feed_capacity = mine.get("WHEAT", 0) * RATE["WHEAT"]
     if day <= P["animal_buy_last_day"] and not liquidate:
         pending = shed_animals + carried_animals
         room = len(empty_tiles) + len(empty_struct) - pending
@@ -401,8 +450,15 @@ def agent(obs, config=None):
             payback = price(item) * RATE[item] * max(0, days_left - ANIMALS[a]["first_yield_day"])
             if payback < cost * 1.2:
                 continue
+            # Each extra head eats one wheat a day; buying that on the market
+            # costs more than the animal earns once the price climbs.
+            headroom = int(feed_capacity / 1.0) - (herd + pending)
+            if headroom <= 0 and prices.get("WHEAT", 25) > 32:
+                continue
             k = 0
             while k < need and k < room and spendable >= cost and k < 4:
+                if headroom <= k and prices.get("WHEAT", 25) > 32:
+                    break
                 k += 1
                 spendable -= cost
                 money -= cost
@@ -410,19 +466,6 @@ def agent(obs, config=None):
                 buy_orders.append(["BUY_ANIMAL", a, k])
                 pending += k
                 room -= k
-
-    # 5. Seeds for the crops we are short of.
-    if not liquidate:
-        for crop in ("STRAWBERRY", "TOMATO", "MELON", "CARROT", "WHEAT"):
-            if day > P["plant_last_day"][crop]:
-                continue
-            short = deficit(crop) - seeds.get(crop, 0)
-            short = min(short, 5)
-            cost = CROPS[crop]["seed"]
-            if short > 0 and spendable >= short * cost:
-                buy_orders.append(["BUY_SEED", crop, short])
-                money -= short * cost
-                spendable -= short * cost
 
     # 6. Emergency feed: an escaped animal costs far more than dear wheat.
     if herd and not liquidate:
@@ -492,12 +535,21 @@ def agent(obs, config=None):
             if t.get("fertilizer_available"):
                 out.append((fert_price / (1 + d), (x, y), "COLLECT_FERTILIZER"))
 
+        fert_held = inv.get("FERTILIZER", 0)
         for (x, y, t) in plants:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
             d = dist(pos, (x, y))
             cd = CROPS[t["crop"]]
             unit_price = price(t["crop"])
+            if fert_held > 0 and t.get("fertilized_until_day", -1) < day:
+                # Fertilizer is worth far more applied than sold: it doubles an
+                # ongoing crop's scheduled yield for three days (tomato fires
+                # daily, so one unit buys ~3 extra fruit) and doubles the daily
+                # watering bonus on a one-time crop inside its window.
+                extra = extra_from_fertilizer(t, cd, day)
+                if extra > 0:
+                    out.append((unit_price * extra / (1 + d), (x, y), "FERTILIZE"))
             if plant_ready(t):
                 out.append((t["yield_units"] * unit_price / (1 + d), (x, y), "HARVEST"))
             elif not t.get("watered_today"):
@@ -550,11 +602,15 @@ def agent(obs, config=None):
         unfed = sum(1 for _, _, t in animals if not t.get("fed_today"))
         carried = sum(v for v in inv.values() if isinstance(v, int))
         carried_wheat = sum(iv.get("WHEAT", 0) for iv in invs if isinstance(iv, dict))
+        carried_fert = sum(iv.get("FERTILIZER", 0) for iv in invs if isinstance(iv, dict))
         for st in sheds:
             d = dist(pos, st)
             if unfed > carried_wheat and unfed > wheat_held and shed.get("WHEAT", 0) > 0:
                 out.append((price("MILK") * 1.2 / (1 + d), st,
                             ("PICKUP", "WHEAT", min(8, shed.get("WHEAT", 0)))))
+            if fert_targets > carried_fert and fert_held == 0 and shed.get("FERTILIZER", 0) > 0:
+                out.append((price("STRAWBERRY") * 1.5 / (1 + d), st,
+                            ("PICKUP", "FERTILIZER", min(6, shed.get("FERTILIZER", 0)))))
             if shed_animals > carried_animals and not held_animal:
                 a = next(a for a in ANIMALS if shed.get(a, 0) > 0)
                 out.append((price(ANIMALS[a]["product"]) * 3 / (1 + d), st, ("PICKUP", a, 1)))

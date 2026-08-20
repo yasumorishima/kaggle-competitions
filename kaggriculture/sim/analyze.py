@@ -40,6 +40,7 @@ def main():
     sold = [defaultdict(int), defaultdict(int)]
     revenue = [defaultdict(float), defaultdict(float)]
     prev_shed = [None, None]
+    prev_carried = [{}, {}]
     daily = [[], []]
 
     for step_idx, state in enumerate(env.steps):
@@ -51,16 +52,25 @@ def main():
             priv = get(o, "private", {}) or {}
             shed = dict(get(priv, "shed", {}) or {})
             prices = dict(get(get(o, "market", {}), "prices", {}) or {})
+            carried = defaultdict(int)
+            for iv in (get(priv, "inventories", []) or []):
+                if isinstance(iv, dict):
+                    for item, k in iv.items():
+                        if isinstance(k, int):
+                            carried[item] += k
             if prev_shed[p] is not None:
                 for item, before in prev_shed[p].items():
                     drop = before - shed.get(item, 0)
-                    # A drop in the shed is a sale unless it is wheat eaten by
-                    # the herd; FEED takes wheat from a carried inventory, not
-                    # from the shed, so a shed drop really is a sale.
+                    # A shed drop is only a sale if the goods did not simply
+                    # move into a farmhand's arms: PICKUP (feed, fertilizer, a
+                    # goose to place) empties the shed without earning a coin.
+                    picked = carried.get(item, 0) - prev_carried[p].get(item, 0)
+                    drop -= max(0, picked)
                     if drop > 0 and item in prices:
                         sold[p][item] += drop
                         revenue[p][item] += drop * prices.get(item, 0)
             prev_shed[p] = shed
+            prev_carried[p] = dict(carried)
 
             hour = int(get(o, "hour", 0))
             if hour == 0:
