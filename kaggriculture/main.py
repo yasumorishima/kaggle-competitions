@@ -1,21 +1,24 @@
 """Kaggriculture agent.
 
-Design notes (why this shape, from the published rules + kaggriculture.py):
+The economics, measured rather than assumed (sim/analyze.py over a full
+episode of the top public agent):
 
-* Labour is nearly free. A hand costs fib(n) coins for the day (1,1,2,3,5,8,...),
-  so a dozen hands cost ~$376/day while each hand adds 24 actions. The binding
-  constraints are tiles, capital and *market depth* -- never the wage bill.
-* Geese are the engine. EGG's glut curve is `log` at target 0.20, so the price
-  only sags from $50 to ~$39 after a thousand units sold; every other premium
-  good (melon, strawberry, milk, wool) hits the $1 floor within ~100-150 units.
-  A fed+cared goose lays 2 eggs/day and hands over 1 fertilizer/day for free.
-* Fertilizer is a second income stream nobody has to grow: every surviving
-  animal makes one per day whether fed or not, and it sells at $100 base.
-* Wheat is feed, not produce. Buying it drives its own price up (`sqrt` on the
-  scarcity side), so we grow our own and only buy to cover a shortfall.
-* Selling is a scheduling problem: price is a known function of market
-  inventory, so we can compute exactly how many units can be sold before the
-  price drops under a reserve, and sell only that many.
+* The town drains the market far faster than one farm can refill it, so the
+  live regime is *scarcity*, not glut. In a measured season strawberry sold at
+  a mean $222 (base $120) and milk at $290 (base $160) while their prices rose
+  all season. Only genuinely oversupplied goods crash -- wool ended at $5.
+* So the quantity that matters is the town's drain rate per product, and it is
+  exactly computable: every unlocked shop instance pulls 1 unit of each product
+  it wants every 4 turns (single-product shops pull 2x), i.e. 6 or 12 per day,
+  plus 1 per product per day from the town center.
+* Tomato ended a measured season at $216 because none of the published agents
+  plant it. Whatever the town wants and nobody supplies is where the money is.
+* Care is not a nicety: a cared-for cow yields 3 milk per 2 days instead of 1,
+  which at scarcity prices is the single most valuable action on the farm.
+
+The agent therefore sizes production against `town_demand - opponent_supply`,
+ranks tiles by revenue per tile-day at the live price, and sells in slices that
+never push a price under its own reserve.
 """
 
 import math
@@ -35,6 +38,16 @@ ANIMALS = {
     "COW":   {"cost": 400, "structure": "PASTURE", "first_yield_day": 8, "interval": 2, "max_held": 6, "product": "MILK"},
     "SHEEP": {"cost": 500, "structure": "PASTURE", "first_yield_day": 6, "interval": 3, "max_held": 6, "product": "WOOL"},
 }
+SHOPS = {
+    "BAKERY":         ["EGG", "WHEAT"],
+    "PIZZA_SHOP":     ["MILK", "TOMATO", "WHEAT"],
+    "BRUNCH_SPOT":    ["EGG", "WHEAT", "STRAWBERRY"],
+    "YARN_STORE":     ["WOOL"],
+    "ICE_CREAM_SHOP": ["STRAWBERRY", "MILK", "WHEAT"],
+    "PET_CAFE":       ["CARROT"],
+    "SMOOTHIE_SHOP":  ["STRAWBERRY", "MILK"],
+    "FARMERS_MARKET": ["WHEAT", "CARROT", "TOMATO", "STRAWBERRY"],
+}
 MARKET_PARAMS = {
     "WHEAT":      {"base":  25, "T": 400, "below_func": "sqrt",  "below_target": 0.80, "above_func": "log",    "above_target": 0.20},
     "CARROT":     {"base":  35, "T": 450, "below_func": "hinge", "below_target": 1.00, "above_func": "sqrt",   "above_target": 0.70},
@@ -50,31 +63,32 @@ MARKET_I0 = 10000
 PRICE_FLOOR = 1
 HINGE_GAIN = 8.0
 LAND_PRICES = [1000, 2000, 4000]
-MOVES = {"NORTH": (0, -1), "SOUTH": (0, 1), "EAST": (1, 0), "WEST": (-1, 0)}
 
-# Units harvested per tile per day under daily watering, straight from the
-# rules table; used to rank crops by revenue rather than by sticker price.
-YIELD_RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.33,
-              "STRAWBERRY": 0.24, "MELON": 0.55}
+# Units per tile per day. Crops: total harvest divided by days occupied under
+# daily watering. Animals: steady state *with* daily CARE, which is how they
+# are actually run here (cow = 3 milk / 2 days, sheep = 4 wool / 3 days).
+RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.33, "STRAWBERRY": 0.24,
+        "MELON": 0.55, "EGG": 2.00, "MILK": 1.50, "WOOL": 1.33}
+PRODUCER = {"EGG": "GOOSE", "MILK": "COW", "WOOL": "SHEEP"}
 
-# Tuning knobs. Kept together so the eval harness can sweep them.
+# How far past the town's drain rate it still pays to supply a product, given
+# how hard its glut curve bites. Wool (sq 3.20) and melon (sq 3.60) punish
+# oversupply immediately; wheat and egg (log 0.20) barely notice it.
+GLUT_TOL = {"WHEAT": 2.0, "EGG": 2.0, "CARROT": 1.6, "TOMATO": 1.6,
+            "STRAWBERRY": 1.15, "MILK": 1.15, "WOOL": 0.9, "MELON": 0.9}
+
 P = {
-    "max_hands": 12,          # hands hired per day
-    "goose_target": 22,       # coops we want running
-    "cow_target": 3,
-    "sheep_target": 3,
-    "wheat_min": 8,           # feed floor before the herd exists
-    "wheat_cap": 30,
-    # Per-crop tile ceilings. These are market-depth limits, not space limits:
-    # melon and strawberry reach the $1 floor after ~100-150 units sold.
-    "crop_cap": {"WHEAT": 30, "MELON": 20, "STRAWBERRY": 8, "CARROT": 14, "TOMATO": 8},
-    "animal_buy_last_day": 20,   # after this, an animal cannot pay itself back
-    "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 19, "TOMATO": 20, "STRAWBERRY": 18},
-    "cash_buffer": 250,
-    "reserve_frac_early": 0.85,   # sell only above this fraction of base price
-    "reserve_frac_late": 0.45,
-    "dump_day": 29,               # final day: liquidate everything
-    "land_gate": [(1, 2200), (4, 4500), (7, 8500)],  # (min day, min money) per quadrant
+    "max_hands": 12,
+    "hands_early": 5,
+    "animal_buy_last_day": 22,
+    "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
+                       "TOMATO": 21, "STRAWBERRY": 19},
+    "cash_buffer": 120,
+    "reserve_frac": 0.80,      # never sell under this fraction of base price
+    "slice_frac": 0.92,        # ...nor push the live price below this of itself
+    "dump_day": 29,
+    "land_gate": [(3, 1400), (7, 3200), (12, 7000)],
+    "tile_margin": 1.15,       # plan slightly past the tiles we own
 }
 
 
@@ -121,13 +135,12 @@ def price_at(item, inv):
 
 
 def sellable_qty(item, inv, have, reserve):
-    """How many units can be sold before the marginal price falls under reserve.
+    """Units sellable before the marginal price drops under `reserve`.
 
-    The market takes one unit at a time and re-prices after each, so this walks
-    the curve instead of trusting the currently quoted price.
+    The market re-prices after every single unit, so this walks the curve
+    instead of trusting the quote.
     """
-    n = 0
-    cur = inv
+    n, cur = 0, inv
     while n < have:
         if price_at(item, cur) < reserve:
             break
@@ -136,23 +149,11 @@ def sellable_qty(item, inv, have, reserve):
     return n
 
 
-def crop_value(crop, inventory):
-    """Revenue per tile-day at the price the market is quoting right now.
-
-    Uses the live market inventory rather than the base price, so a hinge good
-    the town has drained (carrot, tomato) outranks a premium good the players
-    have already glutted.
-    """
-    inv = int(inventory.get(crop, MARKET_I0)) if inventory else MARKET_I0
-    return price_at(crop, inv) * YIELD_RATE[crop]
-
-
 def dist(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 def step_toward(fr, to):
-    """One move that reduces Manhattan distance, or None when already there."""
     if fr[0] < to[0]:
         return "EAST"
     if fr[0] > to[0]:
@@ -174,6 +175,40 @@ def shed_tiles(n):
     return [(h - 1, h - 1), (h, h - 1), (h - 1, h), (h, h)]
 
 
+def town_demand(shops):
+    """Units per day the town removes from the market, per product.
+
+    Each unlocked instance pulls one unit of each product it wants every 4
+    turns (24 turns/day -> 6/day); a single-product shop pulls double. The town
+    centre takes one of every non-fertilizer product per day on top.
+    """
+    d = {item: 1.0 for item in MARKET_PARAMS if item != "FERTILIZER"}
+    d["FERTILIZER"] = 0.0
+    for name in shops or []:
+        items = SHOPS.get(name)
+        if not items:
+            continue
+        mult = 2 if len(items) == 1 else 1
+        for item in items:
+            d[item] = d.get(item, 0.0) + 6.0 * mult
+    return d
+
+
+def census(tiles):
+    """Count producing tiles of a farm by the product they yield."""
+    out = {}
+    for row in tiles or []:
+        for t in row:
+            if not isinstance(t, dict):
+                continue
+            if t.get("kind") == "PLANT":
+                out[t["crop"]] = out.get(t["crop"], 0) + 1
+            elif "animal" in t:
+                prod = ANIMALS[t["animal"]]["product"]
+                out[prod] = out.get(prod, 0) + 1
+    return out
+
+
 # --------------------------------------------------------------- the agent
 def agent(obs, config=None):
     me = g(obs, "player", 0)
@@ -183,10 +218,13 @@ def agent(obs, config=None):
     if not farms or me >= len(farms):
         return {"farmer": ["PASS"], "hands": [], "market": []}
     farm = farms[me]
+    opp = farms[1 - me] if len(farms) > 1 else None
     private = g(obs, "private", {}) or {}
     market = g(obs, "market", {}) or {}
-    prices = g(market, "prices", {}) or {}
-    inventory = g(market, "inventory", {}) or {}
+    prices = dict(g(market, "prices", {}) or {})
+    inventory = dict(g(market, "inventory", {}) or {})
+    town = g(obs, "town", {}) or {}
+    shops = list(g(town, "unlocked_shops", []) or [])
     shed = dict(g(private, "shed", {}) or {})
     seeds = dict(g(private, "seeds", {}) or {})
     invs = g(private, "inventories", []) or []
@@ -198,158 +236,180 @@ def agent(obs, config=None):
     hands = [tuple(h) for h in (g(farm, "hands", []) or [])]
     units = [tuple(g(farm, "farmer", [0, 0]))] + hands
     last_day = 29
+    days_left = max(1, last_day - day)
+
+    def price(item):
+        inv = inventory.get(item)
+        return price_at(item, int(inv)) if inv is not None else MARKET_PARAMS[item]["base"]
 
     # ---------------------------------------------------------- farm census
     animals, plants, weeds, empty_struct, empty_tiles = [], [], [], [], []
-    counts = {"COOP": 0, "PASTURE": 0}
-    crop_counts = {c: 0 for c in CROPS}
     for y in range(n):
         for x in range(n):
             t = tiles[y][x]
-            if t == "LOCKED" or t is None:
-                if t is None:
-                    empty_tiles.append((x, y))
+            if t is None:
+                empty_tiles.append((x, y))
                 continue
             if not isinstance(t, dict):
                 continue
             kind = t.get("kind")
             if kind == "PLANT":
                 plants.append((x, y, t))
-                crop_counts[t["crop"]] = crop_counts.get(t["crop"], 0) + 1
             elif kind == "WEED":
                 weeds.append((x, y, t))
             elif kind in ("COOP", "PASTURE"):
-                counts[kind] += 1
                 if "animal" in t:
                     animals.append((x, y, t))
                 else:
                     empty_struct.append((x, y, t))
 
-    n_geese = sum(1 for _, _, t in animals if t["animal"] == "GOOSE")
-    n_cows = sum(1 for _, _, t in animals if t["animal"] == "COW")
-    n_sheep = sum(1 for _, _, t in animals if t["animal"] == "SHEEP")
+    mine = census(tiles)
+    theirs = census(g(opp, "tiles", []) if opp else [])
+    herd = len(animals)
     shed_animals = sum(shed.get(a, 0) for a in ANIMALS)
-    carried_animals = sum(sum(iv.get(a, 0) for a in ANIMALS) for iv in invs if isinstance(iv, dict))
+    carried_animals = sum(sum(iv.get(a, 0) for a in ANIMALS)
+                          for iv in invs if isinstance(iv, dict))
+    tiles_owned = 25 * len(unlocked)
+    tiles_used = len(plants) + len(animals) + len(empty_struct)
+
+    # ------------------------------------------------- production plan
+    # Size each product against what the town removes and the opponent already
+    # supplies, then spend the tiles we own on whatever pays most per day.
+    demand = town_demand(shops)
+    plan = {}
+    for item, rate in RATE.items():
+        gap = demand.get(item, 1.0) * GLUT_TOL[item] - theirs.get(item, 0) * rate
+        want = max(0.0, gap) / rate
+        plan[item] = want
+    # Wheat is feed before it is produce: the herd eats one per head per day.
+    plan["WHEAT"] = max(plan.get("WHEAT", 0.0), (herd * 1.25) / RATE["WHEAT"])
+
+    ranked = sorted(RATE, key=lambda i: -price(i) * RATE[i])
+    budget_tiles = int(tiles_owned * P["tile_margin"])
+    target = {}
+    # Feed comes off the top: wheat pays the least per tile but a starved herd
+    # loses every animal, so its ration is reserved before the ranking runs.
+    feed_tiles = int(min(budget_tiles, math.ceil(herd * 1.25 / RATE["WHEAT"])))
+    budget_tiles -= feed_tiles
+    for item in ranked:
+        if budget_tiles <= 0:
+            target[item] = 0
+            continue
+        take = int(min(plan[item], budget_tiles))
+        if item == "WHEAT":
+            take += feed_tiles
+        target[item] = take
+        budget_tiles -= take - (feed_tiles if item == "WHEAT" else 0)
+
+    def deficit(item):
+        # `mine`/`theirs` are keyed by product, so an animal tile counts under
+        # EGG/MILK/WOOL rather than under GOOSE/COW/SHEEP.
+        return target.get(item, 0) - mine.get(item, 0)
 
     # ------------------------------------------------------- market actions
     # Only 10 orders per turn are processed, so they are built in priority
-    # groups: hiring must land at dawn or the day's labour is lost, sales fund
-    # everything else and are processed before the purchases behind them.
+    # groups: hiring must land at dawn or the day's labour is lost, and sales
+    # run before the purchases they fund.
     hire_orders, sell_orders, buy_orders = [], [], []
-    orders = []
     liquidate = day >= P["dump_day"]
-    frac = P["reserve_frac_late"] if day >= 22 else P["reserve_frac_early"]
 
-    # 1. Sell produce. Wheat is feed first: only the surplus over the herd's
-    #    remaining needs is ever sold.
-    herd = n_geese + n_cows + n_sheep
-    wheat_reserve_units = 0 if liquidate else herd * max(0, min(3, last_day - day))
-    for item in ("EGG", "MILK", "WOOL", "MELON", "STRAWBERRY", "TOMATO",
+    # 1. Sell in slices. In the scarcity regime the price climbs back between
+    #    turns as the town keeps buying, so dumping a whole shed at once is
+    #    strictly worse than trickling.
+    wheat_keep = 0 if liquidate else herd * min(3, days_left)
+    for item in ("MILK", "STRAWBERRY", "WOOL", "MELON", "TOMATO", "EGG",
                  "CARROT", "FERTILIZER", "WHEAT"):
         have = int(shed.get(item, 0))
         if item == "WHEAT":
-            have = max(0, have - wheat_reserve_units)
+            have = max(0, have - wheat_keep)
         if have <= 0:
             continue
         if liquidate:
             qty = have
         else:
-            reserve = MARKET_PARAMS[item]["base"] * frac
+            now = price(item)
+            reserve = max(MARKET_PARAMS[item]["base"] * P["reserve_frac"],
+                          now * P["slice_frac"])
             qty = sellable_qty(item, int(inventory.get(item, MARKET_I0)), have, reserve)
+            # Never sit on stock the shed will discard tonight.
+            if sum(shed.values()) > 85:
+                qty = max(qty, have // 2)
         if qty > 0:
             sell_orders.append(["SELL", item, qty])
 
-    # 2. Hire. Hands are the cheapest resource in the game; hire at dawn so
-    #    they get a full day of actions.
+    # 2. Hire. A dozen hands cost ~$376 for the day and add 288 actions.
     if hour <= 1 and not liquidate:
-        want = P["max_hands"] if day >= 1 else 4
+        want = P["max_hands"] if day >= 3 else P["hands_early"]
         room = max(0, want - hires_today)
-        for _ in range(min(room, 6 if hour == 0 else 6)):
+        for _ in range(min(room, 6)):
             hire_orders.append(["HIRE"])
 
-    # 3. Land. Buying early only helps if we can afford to stock the tiles, so
-    #    each quadrant is gated on both a day and a cash floor.
+    # 3. Land, gated on both a day and a cash floor.
     extra = len(unlocked) - 1
     if extra < len(LAND_PRICES) and not liquidate:
         min_day, min_money = P["land_gate"][extra]
-        if day >= min_day and money >= min_money:
+        if day >= min_day and money >= min_money and tiles_used > 0.7 * tiles_owned:
             buy_orders.append(["BUY_LAND"])
             money -= LAND_PRICES[extra]
 
-    # 4. Animals. Each needs a structure eventually; buy while there is still
-    #    enough season left for the bird to pay for itself.
+    # 4. Animals, best payer first. An animal bought on day 22 still has time
+    #    to return its price once; later than that it is a donation.
     if day <= P["animal_buy_last_day"] and not liquidate:
         pending = shed_animals + carried_animals
-        free_tiles = len(empty_tiles) + len(empty_struct)
-        budget = money - P["cash_buffer"]
-        wish = []
-        if n_geese + pending < P["goose_target"]:
-            wish.append("GOOSE")
-        if n_cows < P["cow_target"] and day >= 2:
-            wish.append("COW")
-        if n_sheep < P["sheep_target"] and day >= 2:
-            wish.append("SHEEP")
-        for a in wish:
+        room = len(empty_tiles) + len(empty_struct) - pending
+        for item in ("MILK", "EGG", "WOOL"):
+            a = PRODUCER[item]
+            need = deficit(item) - pending
+            if need <= 0 or room <= 0:
+                continue
             cost = ANIMALS[a]["cost"]
+            payback = price(item) * RATE[item] * max(0, days_left - ANIMALS[a]["first_yield_day"])
+            if payback < cost * 1.2:
+                continue
             k = 0
-            while budget >= cost and pending + k < free_tiles and k < 3:
+            while k < need and k < room and money - P["cash_buffer"] >= cost and k < 4:
                 k += 1
-                budget -= cost
+                money -= cost
             if k:
                 buy_orders.append(["BUY_ANIMAL", a, k])
-                money = budget + P["cash_buffer"]
                 pending += k
+                room -= k
 
-    # 5. Seeds. Wheat is sized off the herd's appetite; the cash crops are
-    #    ranked by revenue per tile-day at the *current* price, which is what
-    #    makes the hinge goods (carrot, tomato) worth planting exactly when the
-    #    town has drained them and nobody else is supplying.
-    wheat_need = 0 if not herd else max(6, min(P["wheat_cap"],
-                                               int(herd * 1.3 / YIELD_RATE["WHEAT"]) + 1))
-    crop_rank = sorted(
-        (c for c in ("MELON", "STRAWBERRY", "CARROT", "TOMATO")
-         if day <= P["plant_last_day"].get(c, 25)),
-        key=lambda c: -crop_value(c, inventory))
+    # 5. Seeds for the crops we are short of.
     if not liquidate:
-        want_seeds = {"WHEAT": max(P["wheat_min"], wheat_need)}
-        for rank, c in enumerate(crop_rank):
-            want_seeds[c] = P["crop_cap"][c] if rank < 2 else max(2, P["crop_cap"][c] // 3)
-        for crop, target in want_seeds.items():
-            if day > P["plant_last_day"].get(crop, 25):
+        for crop in ("STRAWBERRY", "TOMATO", "MELON", "CARROT", "WHEAT"):
+            if day > P["plant_last_day"][crop]:
                 continue
-            deficit = target - crop_counts.get(crop, 0) - seeds.get(crop, 0)
-            deficit = min(deficit, 6)
+            short = deficit(crop) - seeds.get(crop, 0)
+            short = min(short, 5)
             cost = CROPS[crop]["seed"]
-            if deficit > 0 and money - P["cash_buffer"] >= deficit * cost:
-                buy_orders.append(["BUY_SEED", crop, deficit])
-                money -= deficit * cost
+            if short > 0 and money - P["cash_buffer"] >= short * cost:
+                buy_orders.append(["BUY_SEED", crop, short])
+                money -= short * cost
 
-    # 6. Emergency feed. Losing an animal costs far more than an expensive
-    #    wheat unit, so top up from the market when the harvest lags.
+    # 6. Emergency feed: an escaped animal costs far more than dear wheat.
     if herd and not liquidate:
         need = herd - int(shed.get("WHEAT", 0))
-        if need > 0 and prices.get("WHEAT", 25) <= 60 and money - P["cash_buffer"] > 0:
+        if need > 0 and prices.get("WHEAT", 25) <= 80 and money > P["cash_buffer"]:
             k = int(min(need, (money - P["cash_buffer"]) // max(1, prices.get("WHEAT", 25))))
             if k > 0:
                 buy_orders.append(["BUY_PRODUCT", "WHEAT", k])
 
-    # Sales run before purchases so the coins they raise are available to the
-    # buy orders queued behind them in the same turn.
     orders = (hire_orders + sell_orders + buy_orders)[:10]
 
     # ---------------------------------------------------------- unit actions
     claimed = set()
     sheds = shed_tiles(n)
     shed_here = set(sheds)
+    fert_price = price("FERTILIZER")
 
     def can_act(pos):
         return quadrant_of(pos[0], pos[1], n) in unlocked
 
     def unit_inv(i):
-        iv = invs[i] if i < len(invs) and isinstance(invs[i], dict) else {}
-        return iv
+        return invs[i] if i < len(invs) and isinstance(invs[i], dict) else {}
 
-    def plant_ready(t, x, y):
+    def plant_ready(t):
         cd = CROPS[t["crop"]]
         age = day - t["planted_day"]
         if cd["ongoing"]:
@@ -357,23 +417,19 @@ def agent(obs, config=None):
         return t.get("yield_units", 0) > 0 and age >= cd["max_yield_day"]
 
     def pick_crop():
-        """Next crop to sow: feed first, then the best revenue per tile-day."""
-        if (crop_counts.get("WHEAT", 0) < wheat_need and seeds.get("WHEAT", 0) > 0
-                and day <= P["plant_last_day"]["WHEAT"]):
-            return "WHEAT"
+        """Sow whatever is furthest under plan, weighted by what it earns."""
         best, best_val = None, 0.0
-        for crop in ("MELON", "STRAWBERRY", "CARROT", "TOMATO", "WHEAT"):
-            if seeds.get(crop, 0) <= 0 or day > P["plant_last_day"].get(crop, 25):
+        for crop in ("STRAWBERRY", "TOMATO", "MELON", "CARROT", "WHEAT"):
+            if seeds.get(crop, 0) <= 0 or day > P["plant_last_day"][crop]:
                 continue
-            if crop_counts.get(crop, 0) >= P["crop_cap"][crop]:
+            if deficit(crop) <= 0:
                 continue
-            val = crop_value(crop, inventory)
+            val = price(crop) * RATE[crop]
             if val > best_val:
                 best, best_val = crop, val
         return best
 
     def jobs_for(pos, inv):
-        """Candidate (score, target, op) for one unit, scored by value/distance."""
         out = []
         wheat_held = inv.get("WHEAT", 0)
         held_animal = next((a for a in ANIMALS if inv.get(a, 0) > 0), None)
@@ -382,106 +438,105 @@ def agent(obs, config=None):
             if (x, y) in claimed or not can_act((x, y)):
                 continue
             d = dist(pos, (x, y))
+            a = ANIMALS[t["animal"]]
+            unit_price = price(a["product"])
             if not t.get("fed_today") and wheat_held > 0:
-                # An unfed animal on its second day is gone for good.
-                urgency = 400 if t.get("consecutive_unfed", 0) >= 1 else 150
-                out.append((urgency / (1 + d), (x, y), "FEED"))
+                # Two unfed nights and the animal is gone for good.
+                urgency = 4.0 if t.get("consecutive_unfed", 0) >= 1 else 1.5
+                out.append((unit_price * urgency / (1 + d), (x, y), "FEED"))
             if t.get("yield_units", 0) > 0:
-                a = ANIMALS[t["animal"]]
-                val = t["yield_units"] * MARKET_PARAMS[a["product"]]["base"] * 0.5
+                val = t["yield_units"] * unit_price
                 if t["yield_units"] >= a["max_held"]:
-                    val *= 2  # production is being wasted while the tile is full
+                    val *= 2  # production is being thrown away while it sits full
                 out.append((val / (1 + d), (x, y), "HARVEST"))
-            if t.get("fertilizer_available"):
-                out.append((70.0 / (1 + d), (x, y), "COLLECT_FERTILIZER"))
             if t.get("fed_today") and not t.get("cared_today"):
-                out.append((45.0 / (1 + d), (x, y), "CARE"))
+                # One care day = one extra unit on the next production.
+                out.append((unit_price * 0.9 / (1 + d), (x, y), "CARE"))
+            if t.get("fertilizer_available"):
+                out.append((fert_price / (1 + d), (x, y), "COLLECT_FERTILIZER"))
 
         for (x, y, t) in plants:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
             d = dist(pos, (x, y))
-            if plant_ready(t, x, y):
-                val = t["yield_units"] * MARKET_PARAMS[t["crop"]]["base"] * 0.6
-                out.append((val / (1 + d), (x, y), "HARVEST"))
+            cd = CROPS[t["crop"]]
+            unit_price = price(t["crop"])
+            if plant_ready(t):
+                out.append((t["yield_units"] * unit_price / (1 + d), (x, y), "HARVEST"))
             elif not t.get("watered_today"):
-                cd = CROPS[t["crop"]]
                 age = day - t["planted_day"]
                 window = (cd["max_yield_day"] + 1) // 2 <= age <= cd["max_yield_day"]
-                urgency = 120 if t.get("consecutive_unwatered", 0) >= 1 else (
-                    80 if (window or cd["ongoing"]) else 35)
-                out.append((urgency / (1 + d), (x, y), "WATER"))
+                if t.get("consecutive_unwatered", 0) >= 1:
+                    val = unit_price * 3.0        # dies tonight otherwise
+                elif window or cd["ongoing"]:
+                    val = unit_price * 1.0        # this watering is a unit of yield
+                else:
+                    val = unit_price * 0.3
+                out.append((val / (1 + d), (x, y), "WATER"))
 
         if held_animal:
+            struct = ANIMALS[held_animal]["structure"]
             for (x, y, t) in empty_struct:
-                if (x, y) in claimed or not can_act((x, y)):
+                if (x, y) in claimed or not can_act((x, y)) or t["kind"] != struct:
                     continue
-                if t["kind"] != ANIMALS[held_animal]["structure"]:
-                    continue
-                out.append((300.0 / (1 + dist(pos, (x, y))), (x, y), ("PLACE", held_animal)))
+                val = price(ANIMALS[held_animal]["product"]) * RATE[ANIMALS[held_animal]["product"]] * 4
+                out.append((val / (1 + dist(pos, (x, y))), (x, y), ("PLACE", held_animal)))
 
         crop = pick_crop()
         pending_animals = shed_animals + carried_animals
+        need_coop = sum(1 for _, _, t in empty_struct if t["kind"] == "COOP")
+        need_past = sum(1 for _, _, t in empty_struct if t["kind"] == "PASTURE")
         for (x, y) in empty_tiles:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
             d = dist(pos, (x, y))
             if pending_animals > 0:
-                need_coop = sum(1 for _, _, t in empty_struct if t["kind"] == "COOP")
                 if shed.get("GOOSE", 0) + inv.get("GOOSE", 0) > need_coop:
-                    out.append((90.0 / (1 + d), (x, y), "BUILD_COOP"))
-                need_past = sum(1 for _, _, t in empty_struct if t["kind"] == "PASTURE")
+                    out.append((price("EGG") * RATE["EGG"] * 2 / (1 + d), (x, y), "BUILD_COOP"))
                 if shed.get("COW", 0) + shed.get("SHEEP", 0) > need_past:
-                    out.append((85.0 / (1 + d), (x, y), "BUILD_PASTURE"))
+                    out.append((price("MILK") * RATE["MILK"] * 2 / (1 + d), (x, y), "BUILD_PASTURE"))
             if crop:
-                gain = MARKET_PARAMS[crop]["base"] * 0.25
-                out.append((gain / (1 + d), (x, y), ("PLANT", crop)))
+                out.append((price(crop) * RATE[crop] * 1.5 / (1 + d), (x, y), ("PLANT", crop)))
 
         for (x, y, t) in weeds:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
-            out.append((12.0 / (1 + dist(pos, (x, y))), (x, y), "DIG"))
+            out.append((25.0 / (1 + dist(pos, (x, y))), (x, y), "DIG"))
 
-        # Trips to the shed: fetch feed, fetch an animal, or drop a full load.
+        # Shed trips: fetch feed, fetch an animal, or unload a full pack.
         unfed = sum(1 for _, _, t in animals if not t.get("fed_today"))
-        carried = sum(v for k, v in inv.items() if isinstance(v, int))
-        # Fetch trips are counted farm-wide: without this every idle hand walks
-        # to the shed for the same sack of wheat or the same goose.
+        carried = sum(v for v in inv.values() if isinstance(v, int))
         carried_wheat = sum(iv.get("WHEAT", 0) for iv in invs if isinstance(iv, dict))
         for st in sheds:
             d = dist(pos, st)
             if unfed > carried_wheat and unfed > wheat_held and shed.get("WHEAT", 0) > 0:
-                out.append((130.0 / (1 + d), st, ("PICKUP", "WHEAT",
-                                                  min(6, shed.get("WHEAT", 0)))))
+                out.append((price("MILK") * 1.2 / (1 + d), st,
+                            ("PICKUP", "WHEAT", min(8, shed.get("WHEAT", 0)))))
             if shed_animals > carried_animals and not held_animal:
                 a = next(a for a in ANIMALS if shed.get(a, 0) > 0)
-                out.append((160.0 / (1 + d), st, ("PICKUP", a, 1)))
-            if carried >= 8 and d <= 2:
+                out.append((price(ANIMALS[a]["product"]) * 3 / (1 + d), st, ("PICKUP", a, 1)))
+            if carried >= 6 and d <= 2:
+                # Produce only earns once it is in the shed and sellable.
                 out.append((60.0 / (1 + d), st, "DROP"))
         return out
 
-    def resolve(pos, target, op):
-        """Either walk one tile toward the job or perform it."""
-        if pos != target:
-            mv = step_toward(pos, target)
+    def resolve(pos, target_tile, op):
+        if pos != target_tile:
+            mv = step_toward(pos, target_tile)
             return [mv] if mv else ["PASS"]
-        if isinstance(op, tuple):
-            return list(op)
-        return [op]
+        return list(op) if isinstance(op, tuple) else [op]
 
     actions = []
     for i, pos in enumerate(units):
-        inv = unit_inv(i)
-        cand = jobs_for(pos, inv)
+        cand = jobs_for(pos, unit_inv(i))
         if not cand:
             actions.append(["PASS"])
             continue
         cand.sort(key=lambda c: -c[0])
-        score, target, op = cand[0]
-        # Shed tiles hold no crop, so several units may share them.
-        if target not in shed_here:
-            claimed.add(target)
-        actions.append(resolve(pos, target, op))
+        _, tile, op = cand[0]
+        if tile not in shed_here:
+            claimed.add(tile)
+        actions.append(resolve(pos, tile, op))
 
     return {"farmer": actions[0] if actions else ["PASS"],
             "hands": actions[1:],
