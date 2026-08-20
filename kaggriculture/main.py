@@ -64,6 +64,10 @@ PRICE_FLOOR = 1
 HINGE_GAIN = 8.0
 LAND_PRICES = [1000, 2000, 4000]
 
+# Per-episode scratch: the module stays loaded across the 720 turns, so unit
+# assignments can persist between calls.
+_MEM = {}
+
 # Units per tile per day. Crops: total harvest divided by days occupied under
 # daily watering. Animals: steady state *with* daily CARE, which is how they
 # are actually run here (cow = 3 milk / 2 days, sheep = 4 wool / 3 days).
@@ -99,6 +103,7 @@ P = {
     # spending its last coin on livestock.
     "land_gate": [(2, 1200), (6, 2600), (10, 5200)],
     "tile_margin": 1.15,       # plan slightly past the tiles we own
+    "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
 }
 
 
@@ -410,9 +415,17 @@ def agent(obs, config=None):
             reserve = max(MARKET_PARAMS[item]["base"] * P["reserve_frac"],
                           now * P["slice_frac"])
             qty = sellable_qty(item, int(inventory.get(item, MARKET_I0)), have, reserve)
-            # Never sit on stock the shed will discard tonight.
-            if sum(shed.values()) > 85:
+            # Holding is not free: the shed caps at 100 items and discards the
+            # rest at nightfall, and production never stops. So clear the day's
+            # stock at a steady pace regardless of the reserve -- measured
+            # against the top agent, under-selling cost more than price impact
+            # (67 sell orders against their 196, with milk piling up unsold).
+            turns_left = max(1, 24 - hour)
+            pace = -(-have // turns_left)
+            qty = max(qty, pace)
+            if sum(shed.values()) > 80:
                 qty = max(qty, have // 2)
+            qty = min(qty, have)
         if qty > 0:
             sell_orders.append(["SELL", item, qty])
 
@@ -659,17 +672,31 @@ def agent(obs, config=None):
             return [mv] if mv else ["PASS"]
         return list(op) if isinstance(op, tuple) else [op]
 
+    # Yesterday's assignments, so a hand walking across the farm keeps walking
+    # to the same tile instead of being re-aimed every turn by a job that has
+    # since been claimed. Measured against the top agent, 59% of this agent's
+    # actions were steps versus their 43%; churn was most of the difference.
+    key = (me, day)
+    if _MEM.get("key") != key:
+        _MEM["key"] = key
+        _MEM["assign"] = {}
+    prev_assign = _MEM["assign"]
+    new_assign = {}
+
     actions = []
     for i, pos in enumerate(units):
         cand = jobs_for(pos, unit_inv(i))
         if not cand:
             actions.append(["PASS"])
             continue
-        cand.sort(key=lambda c: -c[0])
+        was = prev_assign.get(i)
+        cand.sort(key=lambda c: -(c[0] * (P["stickiness"] if was == (c[1], repr(c[2])) else 1.0)))
         _, tile, op = cand[0]
         if tile not in shed_here:
             claimed.add(tile)
+        new_assign[i] = (tile, repr(op))
         actions.append(resolve(pos, tile, op))
+    _MEM["assign"] = new_assign
 
     return {"farmer": actions[0] if actions else ["PASS"],
             "hands": actions[1:],
