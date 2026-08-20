@@ -39,12 +39,25 @@ def main():
 
     sold = [defaultdict(int), defaultdict(int)]
     revenue = [defaultdict(float), defaultdict(float)]
+    ops = [defaultdict(int), defaultdict(int)]      # what the hands actually did
+    market_ops = [defaultdict(int), defaultdict(int)]
     prev_shed = [None, None]
     prev_carried = [{}, {}]
     daily = [[], []]
 
     for step_idx, state in enumerate(env.steps):
         for p in (0, 1):
+            act = getattr(state[p], "action", None)
+            if isinstance(act, dict):
+                farmer = act.get("farmer") or []
+                if farmer:
+                    ops[p][str(farmer[0])] += 1
+                for h in (act.get("hands") or []):
+                    if h:
+                        ops[p][str(h[0])] += 1
+                for m in (act.get("market") or []):
+                    if m:
+                        market_ops[p][str(m[0])] += 1
             o = obs_of(state, p)
             farms = get(o, "farms")
             if not farms:
@@ -107,6 +120,14 @@ def main():
             r = revenue[p][item]
             print(f"    {item:<11} {u:>5} @ {r / max(1, u):>7.1f} = {r:>10.0f}")
         print(f"    TOTAL revenue ~ {sum(revenue[p].values()):.0f}")
+        total_ops = sum(ops[p].values()) or 1
+        moves = sum(v for k, v in ops[p].items() if k in ("NORTH", "SOUTH", "EAST", "WEST"))
+        print(f"  unit actions ({total_ops} total, {100.0 * moves / total_ops:.0f}% walking):")
+        print("    " + "  ".join(f"{k}:{v}" for k, v in
+                                 sorted(ops[p].items(), key=lambda kv: -kv[1])))
+        print("  market orders:")
+        print("    " + "  ".join(f"{k}:{v}" for k, v in
+                                 sorted(market_ops[p].items(), key=lambda kv: -kv[1])))
 
     last = obs_of(env.steps[-1], 0)
     print("\nfinal market prices:", json.dumps(dict(get(get(last, "market", {}), "prices", {}) or {})))
