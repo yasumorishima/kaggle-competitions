@@ -84,14 +84,14 @@ P = {
     "cow_cap": 12,
     "sheep_cap": 5,
     "goose_cap": 6,
-    "tomato_cap": 12,
+    "tomato_cap": 6,
     "carrot_cap": 8,
     "melon_cap": 2,
     "animal_buy_last_day": 22,
     "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
                        "TOMATO": 21, "STRAWBERRY": 19},
     "cash_buffer": 120,
-    "reserve_frac": 0.80,      # never sell under this fraction of base price
+    "reserve_frac": 1.00,      # never sell under base: scarcity lifts prices all season
     "slice_frac": 0.92,        # ...nor push the live price below this of itself
     "dump_day": 29,
     # (earliest day, cash floor) per quadrant. Land is what caps the whole farm,
@@ -368,6 +368,9 @@ def agent(obs, config=None):
     take("CARROT", min(market_cap("CARROT"), P["carrot_cap"]) if "PET_CAFE" in shops else 0)
     take("MELON", P["melon_cap"])          # only the town centre drains melon
     take("STRAWBERRY", min(market_cap("STRAWBERRY"), budget))
+    # True while any product is still short of its target: the farm then wants
+    # every tile it can clear, weeds included.
+    want_more_tiles = any(target.get(i, 0) > mine.get(i, 0) for i in target)
 
     def deficit(item):
         # `mine`/`theirs` are keyed by product, so an animal tile counts under
@@ -618,11 +621,12 @@ def agent(obs, config=None):
                 out.append((price(crop) * RATE[crop] * 1.5 / (1 + d), (x, y), ("PLANT", crop)))
 
         # A weed is worth clearing exactly as much as whatever would be planted
-        # on the tile it is squatting on; a flat low score leaves half the farm
-        # idle by mid-season.
+        # on the tile it is squatting on. Gating this on "almost no empty tiles
+        # left" let weeds reach 26 of 100 tiles by day 27 -- a quarter of the
+        # farm sitting idle while hands walked past it.
         weed_val = 25.0
-        if crop and len(empty_tiles) < 4:
-            weed_val = price(crop) * RATE[crop] * 1.4
+        if crop and want_more_tiles:
+            weed_val = price(crop) * RATE[crop] * 1.3
         for (x, y, t) in weeds:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
