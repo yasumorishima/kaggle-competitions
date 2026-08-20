@@ -413,11 +413,15 @@ def agent(obs, config=None):
         if day >= min_day and money >= min_money and tiles_used > 0.55 * tiles_owned:
             buy_orders.append(["BUY_LAND"])
             money -= LAND_PRICES[extra]
-        elif day >= min_day - 2:
+        elif day >= min_day - 2 and money >= 0.5 * LAND_PRICES[extra]:
             # Hold back the price of the next quadrant instead of sinking the
-            # last coin into livestock; tiles gate everything downstream.
+            # last coin into livestock -- but only once the quadrant is within
+            # reach, or the farm saves itself out of seed money on day 0.
             saving_for_land = min(LAND_PRICES[extra], min_money)
+    # Seeds are exempt from the land fund: wheat costs $10 and the herd starves
+    # without it, which is how v4 lost every cow by day 9.
     spendable = money - P["cash_buffer"] - saving_for_land
+    seed_budget = money - P["cash_buffer"]
 
     # 4. Seeds first, animals second. Livestock outranks every crop per tile,
     #    so if the purchases run the other way the herd eats the whole budget
@@ -429,10 +433,11 @@ def agent(obs, config=None):
             short = deficit(crop) - seeds.get(crop, 0)
             short = min(short, 5)
             cost = CROPS[crop]["seed"]
-            if short > 0 and spendable >= short * cost:
+            if short > 0 and seed_budget >= short * cost:
                 buy_orders.append(["BUY_SEED", crop, short])
                 money -= short * cost
-                spendable -= short * cost
+                seed_budget -= short * cost
+                spendable = min(spendable, seed_budget)
 
     # 5. Animals, best payer first. An animal bought on day 22 still has time
     #    to return its price once; later than that it is a donation. The herd
@@ -452,12 +457,16 @@ def agent(obs, config=None):
                 continue
             # Each extra head eats one wheat a day; buying that on the market
             # costs more than the animal earns once the price climbs.
-            headroom = int(feed_capacity / 1.0) - (herd + pending)
-            if headroom <= 0 and prices.get("WHEAT", 25) > 32:
+            wheat_px = prices.get("WHEAT", 25)
+            headroom = int(feed_capacity) - (herd + pending)
+            # Buy anyway when the feed is genuinely affordable: a month of
+            # rations for one head is 30 wheat.
+            can_buy_feed = money > cost + 30 * wheat_px
+            if headroom <= 0 and wheat_px > 32 and not can_buy_feed:
                 continue
             k = 0
             while k < need and k < room and spendable >= cost and k < 4:
-                if headroom <= k and prices.get("WHEAT", 25) > 32:
+                if headroom <= k and wheat_px > 32 and not can_buy_feed:
                     break
                 k += 1
                 spendable -= cost
@@ -498,6 +507,12 @@ def agent(obs, config=None):
 
     def pick_crop():
         """Sow whatever is furthest under plan, weighted by what it earns."""
+        # Feed first, always: wheat is the worst tile on the farm by revenue and
+        # the only one whose absence kills the herd.
+        need_feed = math.ceil((herd + shed_animals + carried_animals) * 1.3 / RATE["WHEAT"])
+        if (mine.get("WHEAT", 0) < need_feed and seeds.get("WHEAT", 0) > 0
+                and day <= P["plant_last_day"]["WHEAT"]):
+            return "WHEAT"
         best, best_val = None, 0.0
         for crop in ("STRAWBERRY", "TOMATO", "MELON", "CARROT", "WHEAT"):
             if seeds.get(crop, 0) <= 0 or day > P["plant_last_day"][crop]:
