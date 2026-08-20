@@ -1,0 +1,85 @@
+name: Kaggriculture Sweep
+
+# Compare parameter settings of the agent on identical seeds in one job, so a
+# tuning round costs one dispatch instead of one per knob -- and so differences
+# inside the season-variance band are visible as such.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      variants:
+        description: 'JSON list, e.g. [{"name":"base","P":{}},{"name":"h16","P":{"max_hands":16}}]'
+        required: true
+        type: string
+      agent_b:
+        description: 'Opponent: builtin name or kernel:owner/slug'
+        required: false
+        default: 'starter'
+        type: string
+      episodes:
+        description: 'Seeds per variant (each played both sides)'
+        required: false
+        default: '6'
+        type: string
+      seed0:
+        required: false
+        default: '3000'
+        type: string
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install -U kaggle-environments
+
+      - name: Resolve opponent
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          b="${{ inputs.agent_b }}"
+          if [ "${b#kernel:}" != "$b" ]; then
+            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            ref="${b#kernel:}"
+            python sim/fetch_opponent.py "$ref"
+            echo "AGENT_B=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
+          else
+            echo "AGENT_B=$b" >> "$GITHUB_ENV"
+          fi
+
+      - name: Sweep
+        run: |
+          cat > /tmp/variants.json <<'JSON'
+          ${{ inputs.variants }}
+          JSON
+          python sim/sweep.py --variants /tmp/variants.json --b "$AGENT_B" \
+            --episodes "${{ inputs.episodes }}" --seed0 "${{ inputs.seed0 }}" \
+            --workers "$(nproc)" | tee /tmp/sweep.log
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture sweep"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            cat /tmp/sweep.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

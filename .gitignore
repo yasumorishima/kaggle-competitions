@@ -252,3 +252,4 @@ NEXT_SESSION.md
 
 # Kaggriculture: fetched public opponents are never redistributed from here.
 kaggriculture/opponents/
+kaggriculture/sweep_*/
