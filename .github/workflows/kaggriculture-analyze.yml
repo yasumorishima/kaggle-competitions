@@ -1,0 +1,86 @@
+name: Kaggriculture Analyze
+
+# One episode, fully broken down: daily cash, farm composition, and the units
+# and prices behind every sale for both players. Used to find out *why* an
+# opponent's number is what it is, which an eval delta never tells you.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      agent_a:
+        description: 'Agent A (path under kaggriculture/, builtin, or kernel:owner/slug)'
+        required: false
+        default: 'main.py'
+        type: string
+      agent_b:
+        description: 'Agent B (same forms)'
+        required: false
+        default: 'starter'
+        type: string
+      seed:
+        description: 'Episode seed'
+        required: false
+        default: '2000'
+        type: string
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install -U kaggle-environments
+
+      - name: Resolve agents
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          need_cli=0
+          for v in "${{ inputs.agent_a }}" "${{ inputs.agent_b }}"; do
+            case "$v" in kernel:*) need_cli=1 ;; esac
+          done
+          if [ "$need_cli" = "1" ]; then
+            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+          fi
+          resolve() {
+            case "$1" in
+              kernel:*) ref="${1#kernel:}"
+                        python sim/fetch_opponent.py "$ref" >&2
+                        echo "opponents/${ref//\//__}.py" ;;
+              *) echo "$1" ;;
+            esac
+          }
+          echo "AGENT_A=$(resolve "${{ inputs.agent_a }}")" >> "$GITHUB_ENV"
+          echo "AGENT_B=$(resolve "${{ inputs.agent_b }}")" >> "$GITHUB_ENV"
+
+      - name: Analyze
+        run: |
+          python sim/analyze.py --a "$AGENT_A" --b "$AGENT_B" \
+            --seed "${{ inputs.seed }}" | tee /tmp/analyze.log
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture analyze"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            cat /tmp/analyze.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
