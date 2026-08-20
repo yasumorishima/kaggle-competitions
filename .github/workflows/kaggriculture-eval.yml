@@ -1,0 +1,88 @@
+name: Kaggriculture Eval
+
+# Self-play evaluation for the Kaggriculture agent competition.
+# Runs on GitHub-hosted runners: this repo is public, so the minutes are free
+# and the 30h/week Kaggle GPU quota is untouched (this workload is pure CPU).
+# Results go to the job log and the step summary -- no artifacts, because the
+# account's Actions storage is over quota and any upload hard-fails the run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      agent_a:
+        description: 'Agent A (path under kaggriculture/, or builtin name)'
+        required: false
+        default: 'main.py'
+        type: string
+      agent_b:
+        description: 'Agent B (opponent): builtin name (starter/random/pass) or path'
+        required: false
+        default: 'starter'
+        type: string
+      episodes:
+        description: 'Number of seeds (each played twice, sides swapped)'
+        required: false
+        default: '12'
+        type: string
+      seed0:
+        description: 'First seed'
+        required: false
+        default: '1000'
+        type: string
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install kaggle-environments
+        run: pip install -U kaggle-environments
+
+      - name: Show runner size
+        run: |
+          nproc
+          python -c "import kaggle_environments as k; print('kaggle_environments', k.version)"
+
+      - name: Evaluate
+        run: |
+          python sim/evaluate.py \
+            --a "${{ inputs.agent_a }}" \
+            --b "${{ inputs.agent_b }}" \
+            --episodes "${{ inputs.episodes }}" \
+            --seed0 "${{ inputs.seed0 }}" \
+            --workers "$(nproc)" \
+            --jsonl /tmp/eval.jsonl | tee /tmp/eval.log
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture eval"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/eval.log || tail -5 /tmp/eval.log
+            echo '```'
+            echo ""
+            echo "<details><summary>per-episode</summary>"
+            echo ""
+            echo '```'
+            grep -E '^seed ' /tmp/eval.log || true
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
