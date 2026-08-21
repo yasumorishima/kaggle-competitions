@@ -73,15 +73,21 @@ def main():
         for i in range(args.episodes):
             for side in (0, 1):
                 jobs.append((rel, args.b, args.seed0 + i, args.steps, side))
-                owner.append(v["name"])
+                owner.append((v["name"], args.seed0 + i, side))
 
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         results = list(pool.map(play, jobs))
 
-    per = {}
-    for name, (ma, mb) in zip(owner, results):
+    # Keyed by (seed, side) as well as by variant, so a variant can be compared
+    # with the reference one *within* the same season draw. Every variant plays
+    # the identical seed list, and the season draw is what dominates the spread,
+    # so an unpaired mean and its band cannot resolve a few thousand either way.
+    per, cell = {}, {}
+    for (name, seed, side), (ma, mb) in zip(owner, results):
         per.setdefault(name, []).append((ma, mb))
+        cell[(name, seed, side)] = ma
 
+    ref = variants[0]["name"]
     rows = []
     for name, pairs in per.items():
         mine = [a for a, _ in pairs]
@@ -89,12 +95,32 @@ def main():
         m = statistics.mean(mine)
         ci = 1.96 * statistics.stdev(delta) / math.sqrt(len(delta)) if len(delta) > 1 else float("nan")
         wins = sum(1 for a, b in pairs if a > b)
-        rows.append((m, ci, wins / len(pairs), name, len(pairs)))
+        vs = [cell[(name, s, d)] - cell[(ref, s, d)]
+              for (nm, s, d) in cell if nm == name and (ref, s, d) in cell]
+        if name == ref or len(vs) < 2:
+            dm, dci = 0.0, float("nan")
+        else:
+            dm = statistics.mean(vs)
+            dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+        rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci))
     rows.sort(reverse=True)
 
-    print(f"\n{'variant':<22}{'mean money':>12}{'+/-95%':>10}{'winrate':>9}{'games':>7}")
-    for m, ci, wr, name, n in rows:
-        print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}{n:>7}")
+    head = "vs " + ref
+    print(f"\n{'variant':<22}{'mean money':>12}{'+/-95%':>10}{'winrate':>9}"
+          f"{'games':>7}{head:>16}{'+/-95%':>10}{'verdict':>9}")
+    for m, ci, wr, name, n, dm, dci in rows:
+        if name == ref:
+            mark = "ref"
+        elif dci != dci:
+            mark = "?"
+        elif dm - dci > 0:
+            mark = "BETTER"
+        elif dm + dci < 0:
+            mark = "WORSE"
+        else:
+            mark = "tie"
+        print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}"
+              f"{n:>7}{dm:>16.0f}{dci:>10.0f}{mark:>9}")
     print("\nSWEEP_BEST=" + json.dumps({"name": rows[0][3], "mean": round(rows[0][0])}))
     return 0
 
