@@ -124,6 +124,21 @@ P = {
     # spending its last coin on livestock.
     "land_gate": [(2, 1200), (6, 2600), (10, 5200)],
     "tile_margin": 1.15,       # plan slightly past the tiles we own
+    # A measured season (seed 2000 against boatlee V16-RC5) ended with 42 of
+    # 100 tiles empty or under weed while the opponent worked all 75 of its
+    # own -- and outsold this farm on strawberry, the very product the cap had
+    # closed. The five knobs below expose that finding as switchable
+    # mechanism; every default reproduces v15 exactly.
+    "max_quadrants": 4,        # quadrants the farm is allowed to own
+    "fert_cap": 40,            # fertilizer held back from market for the field
+    "fert_span": 3,            # ...spread over this many days of application
+    "opening_days": 1,         # days on which the herd outranks the seed line
+    "opening_animal_reserve": 0,   # cash the seed line may not touch until then
+    "land_save_from_day": -1,  # save toward the next quadrant only after this day
+    "wheat_floor_early": 16,   # feed tiles planned during the opening days
+    "fill_idle": False,        # plant past the town-demand cap onto idle land
+    "fill_floor": 0.75,        # ...while the product still clears this of base
+    "fill_cash_floor": 800,    # ...and only with this much cash in hand
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -396,7 +411,11 @@ def agent(obs, config=None):
         target[item] = want
         budget -= want
 
-    take("WHEAT", max(P["wheat_floor"], math.ceil((herd + pending_animals) * 1.3 / RATE["WHEAT"])))
+    # Sixteen feed tiles on day 0 is a farm sized for a herd it has not bought
+    # yet: measured, the opening put 16 of its 25 tiles and all of their
+    # watering into wheat while holding one cow.
+    wheat_floor = P["wheat_floor_early"] if day <= P["opening_days"] else P["wheat_floor"]
+    take("WHEAT", max(wheat_floor, math.ceil((herd + pending_animals) * 1.3 / RATE["WHEAT"])))
     take("MILK", min(market_cap("MILK"), P["cow_cap"]))
     # Wool pays superbly and crashes hardest: only farm it once a yarn store is
     # actually open (it is the only shop that wants wool, and it wants 12/day).
@@ -408,6 +427,28 @@ def agent(obs, config=None):
     take("CARROT", min(market_cap("CARROT"), P["carrot_cap"]) if "PET_CAFE" in shops else 0)
     take("MELON", min(market_cap("MELON"), P["melon_cap"]))
     take("STRAWBERRY", min(market_cap("STRAWBERRY"), budget))
+    # Idle land is not neutral, it is a loss: the season is fixed, weeds seed
+    # themselves onto empty tiles, and every tile the hands walk past is one
+    # they walked further for. `market_cap` is a ceiling on *supply*, but the
+    # price curve is smooth, not a wall -- 400 combined units of strawberry
+    # were sold in the measured season and the mean price stayed at $239
+    # against a $120 base. So once the plan fits inside the town's drain, the
+    # tiles that are still spare go to whatever pays most per tile-day, as
+    # long as it clears its floor and the herd's cash is not the thing paying.
+    if P["fill_idle"] and budget > 0 and money >= P["fill_cash_floor"]:
+        spare = budget
+        best = None
+        for crop in ("STRAWBERRY", "MELON", "TOMATO", "CARROT", "WHEAT"):
+            if day > P["plant_last_day"][crop]:
+                continue
+            if price(crop) < MARKET_PARAMS[crop]["base"] * P["fill_floor"]:
+                continue
+            val = price(crop) * RATE[crop]
+            if best is None or val > best[1]:
+                best = (crop, val)
+        if best:
+            target[best[0]] = target.get(best[0], 0) + spare
+            budget = 0
     # True while any product is still short of its target: the farm then wants
     # every tile it can clear, weeds included.
     want_more_tiles = any(target.get(i, 0) > mine.get(i, 0) for i in target)
@@ -433,7 +474,13 @@ def agent(obs, config=None):
     # can absorb in the days left goes to market.
     fert_targets = sum(1 for _, _, t in plants
                        if CROPS[t["crop"]]["ongoing"] and t.get("fertilized_until_day", -1) < day)
-    fert_keep = 0 if liquidate else min(40, int(fert_targets * max(1, days_left) / 3) + fert_targets)
+    # Held-back fertilizer only pays if the hands actually apply it. Measured:
+    # 153 units collected, 104 applied, and exactly 1 sold all season, while
+    # the opponent turned the same by-product into $13,857. The cap is what
+    # pins it -- the shed never reaches 40 units, so the surplus never reaches
+    # the market and is discarded at the 100-item shed cap instead.
+    fert_keep = 0 if liquidate else min(
+        P["fert_cap"], int(fert_targets * max(1, days_left) / P["fert_span"]) + fert_targets)
     for item in ("MILK", "STRAWBERRY", "WOOL", "MELON", "TOMATO", "EGG",
                  "CARROT", "FERTILIZER", "WHEAT"):
         have = int(shed.get(item, 0))
@@ -489,12 +536,13 @@ def agent(obs, config=None):
     # 3. Land, gated on both a day and a cash floor.
     extra = len(unlocked) - 1
     saving_for_land = 0.0
-    if extra < len(LAND_PRICES) and not liquidate:
+    if extra < min(len(LAND_PRICES), P["max_quadrants"] - 1) and not liquidate:
         min_day, min_money = P["land_gate"][extra]
         if day >= min_day and money >= min_money and tiles_used > 0.55 * tiles_owned:
             buy_orders.append(["BUY_LAND"])
             money -= LAND_PRICES[extra]
-        elif day >= min_day - 2 and money >= 0.5 * LAND_PRICES[extra]:
+        elif (day >= min_day - 2 and money >= 0.5 * LAND_PRICES[extra]
+              and day > P["land_save_from_day"]):
             # Hold back the price of the next quadrant instead of sinking the
             # last coin into livestock -- but only once the quadrant is within
             # reach, or the farm saves itself out of seed money on day 0.
@@ -502,7 +550,14 @@ def agent(obs, config=None):
     # Seeds are exempt from the land fund: wheat costs $10 and the herd starves
     # without it, which is how v4 lost every cow by day 9.
     spendable = money - P["cash_buffer"] - saving_for_land
+    # The opening $3000 is fought over by the seed line and the herd. A tile of
+    # seed pays from its first harvest; an animal pays on every day it lives,
+    # so the days bought earliest are the most valuable ones on the farm. The
+    # measured opening still held $977 idle on day 1 and reached four cows only
+    # on day 7, against an opponent sitting at $7 cash with nine head by day 8.
     seed_budget = money - P["cash_buffer"]
+    if day <= P["opening_days"]:
+        seed_budget -= P["opening_animal_reserve"]
 
     # 4. Seeds first, animals second. Livestock outranks every crop per tile,
     #    so if the purchases run the other way the herd eats the whole budget
@@ -518,7 +573,7 @@ def agent(obs, config=None):
                 buy_orders.append(["BUY_SEED", crop, short])
                 money -= short * cost
                 seed_budget -= short * cost
-                spendable = min(spendable, seed_budget)
+                spendable = min(spendable, money - P["cash_buffer"])
 
     # 5. Animals, best payer first. An animal bought on day 22 still has time
     #    to return its price once; later than that it is a donation. The herd
