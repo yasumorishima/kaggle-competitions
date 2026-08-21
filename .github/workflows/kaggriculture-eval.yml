@@ -73,11 +73,20 @@ jobs:
           if [ -n "$need_cli" ]; then
             pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
           fi
+          # A notebook that carries no agent file (a findings write-up, say)
+          # makes fetch_opponent print NO_AGENT_FILE and exit 1 -- but `set -e`
+          # does not abort a command substitution here, so the run went on and
+          # died 20 lines later inside the episode pool. Check for the file.
           resolve() {
             if [ "${1#kernel:}" != "$1" ]; then
               ref="${1#kernel:}"
               python sim/fetch_opponent.py --exec "$ref" >&2
-              echo "opponents/${ref//\//__}.py"
+              out="opponents/${ref//\//__}.py"
+              if [ ! -s "$out" ]; then
+                echo "no agent file in notebook $ref" >&2
+                exit 1
+              fi
+              echo "$out"
             else
               echo "$1"
             fi
