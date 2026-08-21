@@ -40,6 +40,7 @@ def main():
     sold = [defaultdict(int), defaultdict(int)]
     revenue = [defaultdict(float), defaultdict(float)]
     ops = [defaultdict(int), defaultdict(int)]      # what the hands actually did
+    husbandry = [[0, 0, 0], [0, 0, 0]]              # fed, cared, animal-days
     market_ops = [defaultdict(int), defaultdict(int)]
     prev_shed = [None, None]
     prev_carried = [{}, {}]
@@ -86,6 +87,20 @@ def main():
             prev_carried[p] = dict(carried)
 
             hour = int(get(o, "hour", 0))
+            if hour == 23:
+                # Husbandry at lights-out: an animal that ends the day unfed is
+                # one day from escaping, and one that was never cared for loses
+                # the bonus unit its next production would have carried.
+                fed = cared = total = 0
+                for row in (get(farms[p], "tiles", []) or []):
+                    for t in row:
+                        if isinstance(t, dict) and "animal" in t:
+                            total += 1
+                            fed += 1 if t.get("fed_today") else 0
+                            cared += 1 if t.get("cared_today") else 0
+                husbandry[p][0] += fed
+                husbandry[p][1] += cared
+                husbandry[p][2] += total
             if hour == 0:
                 farm = farms[p]
                 tiles = get(farm, "tiles", []) or []
@@ -120,6 +135,11 @@ def main():
             r = revenue[p][item]
             print(f"    {item:<11} {u:>5} @ {r / max(1, u):>7.1f} = {r:>10.0f}")
         print(f"    TOTAL revenue ~ {sum(revenue[p].values()):.0f}")
+        fed, cared, animal_days = husbandry[p]
+        if animal_days:
+            print(f"  husbandry: {fed}/{animal_days} animal-days fed "
+                  f"({100.0 * fed / animal_days:.0f}%), {cared}/{animal_days} cared "
+                  f"({100.0 * cared / animal_days:.0f}%)")
         total_ops = sum(ops[p].values()) or 1
         moves = sum(v for k, v in ops[p].items() if k in ("NORTH", "SOUTH", "EAST", "WEST"))
         print(f"  unit actions ({total_ops} total, {100.0 * moves / total_ops:.0f}% walking):")
