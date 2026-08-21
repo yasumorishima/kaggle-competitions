@@ -124,6 +124,7 @@ P = {
     "tile_margin": 1.15,       # plan slightly past the tiles we own
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
+    "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
 }
 
 
@@ -717,31 +718,146 @@ def agent(obs, config=None):
             return [mv] if mv else ["PASS"]
         return list(op) if isinstance(op, tuple) else [op]
 
-    # Yesterday's assignments, so a hand walking across the farm keeps walking
-    # to the same tile instead of being re-aimed every turn by a job that has
-    # since been claimed. Measured against the top agent, 59% of this agent's
-    # actions were steps versus their 43%; churn was most of the difference.
+    # ---- route planner ---------------------------------------------------
+    # Picking the single best job every turn makes hands cross the farm: 55% of
+    # this agent's actions were steps against the top agent's 43%, and 834 were
+    # idle PASSes against their 323. Planning a whole day's round per hand -- a
+    # cheapest-insertion route over the day's tasks -- lets one hand water a
+    # column, harvest on the way back and hit the shed once.
+    def tile_of(t):
+        return t[0]
+
+    def task_still_valid(tile, op):
+        x, y = tile
+        if tile in shed_here and isinstance(op, tuple) and op[0] in ("PICKUP", "DROP"):
+            return True
+        t = tiles[y][x] if 0 <= y < n and 0 <= x < n else None
+        name = op[0] if isinstance(op, tuple) else op
+        if name in ("PLANT", "BUILD_COOP", "BUILD_PASTURE"):
+            return t is None
+        if name == "DIG":
+            return isinstance(t, dict) and t.get("kind") == "WEED"
+        if name == "PLACE":
+            return isinstance(t, dict) and t.get("kind") in ("COOP", "PASTURE") and "animal" not in t
+        if not isinstance(t, dict):
+            return False
+        if name == "WATER":
+            return t.get("kind") == "PLANT" and not t.get("watered_today")
+        if name == "HARVEST":
+            return t.get("yield_units", 0) > 0
+        if name == "FEED":
+            return "animal" in t and not t.get("fed_today")
+        if name == "CARE":
+            return "animal" in t and t.get("fed_today") and not t.get("cared_today")
+        if name == "COLLECT_FERTILIZER":
+            return "animal" in t and t.get("fertilizer_available")
+        if name == "FERTILIZE":
+            return t.get("kind") == "PLANT" and t.get("fertilized_until_day", -1) < day
+        return True
+
+    def plan_routes():
+        """Cheapest-insertion assignment of the day's tasks to hands."""
+        budget = max(1, 24 - hour)
+        # One pooled task list, scored without distance so value decides the
+        # order and geography decides the owner.
+        pool, seen = [], set()
+        for pos in units[:1] + [(n // 2, n // 2)]:
+            for val, tile, op in jobs_for(pos, {}):
+                sig = (tile, repr(op))
+                if sig in seen or tile in shed_here:
+                    continue
+                seen.add(sig)
+                pool.append((val * (1 + P["dist_weight"] * dist(pos, tile)), tile, op))
+        # Feeding and fertilizing need cargo, which jobs_for only offers to a
+        # hand already carrying it; add them here against the shed stock.
+        wheat_stock = int(shed.get("WHEAT", 0))
+        fert_stock = int(shed.get("FERTILIZER", 0))
+        for (x, y, t) in animals:
+            if not t.get("fed_today") and wheat_stock > 0:
+                pool.append((price(ANIMALS[t["animal"]]["product"]) * 2.0, (x, y), "FEED"))
+                wheat_stock -= 1
+        for (x, y, t) in plants:
+            cd = CROPS[t["crop"]]
+            if fert_stock > 0 and t.get("fertilized_until_day", -1) < day:
+                extra = extra_from_fertilizer(t, cd, day)
+                if extra > 0:
+                    pool.append((price(t["crop"]) * extra, (x, y), "FERTILIZE"))
+                    fert_stock -= 1
+
+        routes = {i: [] for i in range(len(units))}
+        ends = {i: units[i] for i in range(len(units))}
+        spent = {i: 0 for i in range(len(units))}
+        for _, tile, op in sorted(pool, key=lambda c: -c[0]):
+            best, best_cost = None, None
+            for i in range(len(units)):
+                c = spent[i] + dist(ends[i], tile) + 1
+                if c <= budget and (best_cost is None or c < best_cost):
+                    best, best_cost = i, c
+            if best is None:
+                continue
+            routes[best].append((tile, op))
+            spent[best] = best_cost
+            ends[best] = tile
+
+        # Prefix a shed stop for whatever cargo the route needs.
+        for i, route in routes.items():
+            need_wheat = sum(1 for _, op in route if op == "FEED")
+            need_fert = sum(1 for _, op in route if op == "FERTILIZE")
+            inv = unit_inv(i)
+            stop = []
+            if need_wheat > inv.get("WHEAT", 0) and shed.get("WHEAT", 0) > 0:
+                stop.append(("PICKUP", "WHEAT", min(need_wheat, int(shed.get("WHEAT", 0)))))
+            if need_fert > inv.get("FERTILIZER", 0) and shed.get("FERTILIZER", 0) > 0:
+                stop.append(("PICKUP", "FERTILIZER", min(need_fert, int(shed.get("FERTILIZER", 0)))))
+            if stop:
+                st = min(sheds, key=lambda s: dist(units[i], s))
+                routes[i] = [(st, op) for op in stop] + route
+        return routes
+
     key = (me, day)
     if _MEM.get("key") != key:
         _MEM["key"] = key
+        _MEM["routes"] = {}
         _MEM["assign"] = {}
-    prev_assign = _MEM["assign"]
-    new_assign = {}
 
     actions = []
-    for i, pos in enumerate(units):
-        cand = jobs_for(pos, unit_inv(i))
-        if not cand:
-            actions.append(["PASS"])
-            continue
-        was = prev_assign.get(i)
-        cand.sort(key=lambda c: -(c[0] * (P["stickiness"] if was == (c[1], repr(c[2])) else 1.0)))
-        _, tile, op = cand[0]
-        if tile not in shed_here:
-            claimed.add(tile)
-        new_assign[i] = (tile, repr(op))
-        actions.append(resolve(pos, tile, op))
-    _MEM["assign"] = new_assign
+    if P["planner"] == "route":
+        routes = _MEM.get("routes") or {}
+        # Replan at dawn, once the roster has finished filling, and whenever the
+        # farm has run out of planned work.
+        if (hour in (3, 9, 15, 21) or len(routes) != len(units)
+                or not any(routes.get(i) for i in range(len(units)))):
+            routes = plan_routes()
+            _MEM["routes"] = routes
+        for i, pos in enumerate(units):
+            route = routes.get(i) or []
+            while route and not task_still_valid(route[0][0], route[0][1]):
+                route.pop(0)
+            if not route:
+                actions.append(["PASS"])
+                continue
+            tile, op = route[0]
+            act = resolve(pos, tile, op)
+            if pos == tile:
+                route.pop(0)
+            actions.append(act)
+            routes[i] = route
+    else:
+        prev_assign = _MEM["assign"]
+        new_assign = {}
+        for i, pos in enumerate(units):
+            cand = jobs_for(pos, unit_inv(i))
+            if not cand:
+                actions.append(["PASS"])
+                continue
+            was = prev_assign.get(i)
+            cand.sort(key=lambda c: -(c[0] * (P["stickiness"] if was == (c[1], repr(c[2])) else 1.0)))
+            _, tile, op = cand[0]
+            if tile not in shed_here:
+                claimed.add(tile)
+            new_assign[i] = (tile, repr(op))
+            actions.append(resolve(pos, tile, op))
+        _MEM["assign"] = new_assign
 
     return {"farmer": actions[0] if actions else ["PASS"],
             "hands": actions[1:],
