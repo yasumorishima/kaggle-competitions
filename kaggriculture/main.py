@@ -111,6 +111,7 @@ P = {
     "carrot_cap": 8,
     "melon_cap": 8,
     "animal_buy_last_day": 22,
+    "animal_grace_day": 0,     # days on which the feed test is waived (0 = off)
     "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
                        "TOMATO": 21, "STRAWBERRY": 19},
     "cash_buffer": 120,
@@ -541,11 +542,17 @@ def agent(obs, config=None):
             # Buy anyway when the feed is genuinely affordable: a month of
             # rations for one head is 30 wheat.
             can_buy_feed = money > cost + 30 * wheat_px
-            if headroom <= 0 and wheat_px > 32 and not can_buy_feed:
+            # An animal's worth is its producing days, and the opening days are
+            # the cheapest ones to buy: measured against the top agent this farm
+            # ran 153 animal-days to their 312. In the first days wheat is still
+            # near base and the first yield is days away, so the feed test only
+            # delays the herd.
+            grace = day <= P["animal_grace_day"]
+            if headroom <= 0 and wheat_px > 32 and not can_buy_feed and not grace:
                 continue
             k = 0
             while k < need and k < room and spendable >= cost and k < 4:
-                if headroom <= k and wheat_px > 32 and not can_buy_feed:
+                if headroom <= k and wheat_px > 32 and not can_buy_feed and not grace:
                     break
                 k += 1
                 spendable -= cost
