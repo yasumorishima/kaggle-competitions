@@ -56,28 +56,39 @@ jobs:
           nproc
           python -c "import kaggle_environments as k; print('kaggle_environments', k.version)"
 
-      - name: Resolve opponent
+      - name: Resolve agents
         # `kernel:owner/slug` pulls a published competition notebook and turns
         # its %%writefile cell into a runnable agent. Sparring against the real
         # published agents is the only honest yardstick; `starter` is trivial.
+        # Both sides accept the form, so two published agents can be put head
+        # to head -- which is how the strongest one to build on gets chosen.
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -e
-          b="${{ inputs.agent_b }}"
-          if [ "${b#kernel:}" != "$b" ]; then
+          need_cli=""
+          for v in "${{ inputs.agent_a }}" "${{ inputs.agent_b }}"; do
+            if [ "${v#kernel:}" != "$v" ]; then need_cli=1; fi
+          done
+          if [ -n "$need_cli" ]; then
             pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
-            ref="${b#kernel:}"
-            python sim/fetch_opponent.py --exec "$ref"
-            echo "AGENT_B=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
-          else
-            echo "AGENT_B=$b" >> "$GITHUB_ENV"
           fi
+          resolve() {
+            if [ "${1#kernel:}" != "$1" ]; then
+              ref="${1#kernel:}"
+              python sim/fetch_opponent.py --exec "$ref" >&2
+              echo "opponents/${ref//\//__}.py"
+            else
+              echo "$1"
+            fi
+          }
+          echo "AGENT_A=$(resolve "${{ inputs.agent_a }}")" >> "$GITHUB_ENV"
+          echo "AGENT_B=$(resolve "${{ inputs.agent_b }}")" >> "$GITHUB_ENV"
 
       - name: Evaluate
         run: |
           python sim/evaluate.py \
-            --a "${{ inputs.agent_a }}" \
+            --a "$AGENT_A" \
             --b "$AGENT_B" \
             --episodes "${{ inputs.episodes }}" \
             --seed0 "${{ inputs.seed0 }}" \
