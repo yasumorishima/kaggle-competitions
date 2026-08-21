@@ -582,17 +582,27 @@ def agent(obs, config=None):
             return t.get("yield_units", 0) > 0 and age >= cd["first_yield_day"]
         return t.get("yield_units", 0) > 0 and age >= cd["max_yield_day"]
 
+    # PLANT is validated atomically: if the hands ask for more seeds of a crop
+    # than the shed holds, the environment drops *every* plant request for that
+    # crop -- not just the surplus. With a dozen hands all aiming at the same
+    # single seed this fired constantly: a measured episode issued 894 PLANT
+    # actions against 243 harvests, so most of the sowing never happened.
+    planted_this_turn = {}
+
+    def seed_left(crop):
+        return seeds.get(crop, 0) - planted_this_turn.get(crop, 0)
+
     def pick_crop():
         """Sow whatever is furthest under plan, weighted by what it earns."""
         # Feed first, always: wheat is the worst tile on the farm by revenue and
         # the only one whose absence kills the herd.
         need_feed = math.ceil((herd + shed_animals + carried_animals) * 1.3 / RATE["WHEAT"])
-        if (mine.get("WHEAT", 0) < need_feed and seeds.get("WHEAT", 0) > 0
+        if (mine.get("WHEAT", 0) < need_feed and seed_left("WHEAT") > 0
                 and day <= P["plant_last_day"]["WHEAT"]):
             return "WHEAT"
         best, best_val = None, 0.0
         for crop in ("STRAWBERRY", "TOMATO", "MELON", "CARROT", "WHEAT"):
-            if seeds.get(crop, 0) <= 0 or day > P["plant_last_day"][crop]:
+            if seed_left(crop) <= 0 or day > P["plant_last_day"][crop]:
                 continue
             if deficit(crop) <= 0:
                 continue
@@ -855,6 +865,11 @@ def agent(obs, config=None):
             _, tile, op = cand[0]
             if tile not in shed_here:
                 claimed.add(tile)
+            # Reserve the seed the moment a hand is aimed at a tile, so the next
+            # hand is offered a different crop instead of a request the
+            # environment will throw away.
+            if isinstance(op, tuple) and op[0] == "PLANT" and pos == tile:
+                planted_this_turn[op[1]] = planted_this_turn.get(op[1], 0) + 1
             new_assign[i] = (tile, repr(op))
             actions.append(resolve(pos, tile, op))
         _MEM["assign"] = new_assign
