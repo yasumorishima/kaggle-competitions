@@ -68,11 +68,15 @@ LAND_PRICES = [1000, 2000, 4000]
 # assignments can persist between calls.
 _MEM = {}
 
-# Units per tile per day. Crops: total harvest divided by days occupied under
-# daily watering. Animals: steady state *with* daily CARE, which is how they
-# are actually run here (cow = 3 milk / 2 days, sheep = 4 wool / 3 days).
-RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.33, "STRAWBERRY": 0.24,
-        "MELON": 0.55, "EGG": 2.00, "MILK": 1.50, "WOOL": 1.33}
+# Units per tile per day, measured from full episodes rather than derived from
+# the yield tables: the paper rate assumes every animal is fed, cared for and
+# harvested on schedule, which no agent achieves. The book rate for milk (1.50)
+# was double the 0.71-0.76 both this agent and the top public one actually get,
+# and since the herd is sized as demand/rate, believing it bought half the cows
+# the town could absorb. Crops run the other way -- fertilizer lifts strawberry
+# and tomato above their unfertilized table rate.
+RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.50, "STRAWBERRY": 0.35,
+        "MELON": 0.50, "EGG": 1.20, "MILK": 0.75, "WOOL": 1.15}
 PRODUCER = {"EGG": "GOOSE", "MILK": "COW", "WOOL": "SHEEP"}
 
 # Beyond the town's drain rate there is a one-off stock allowance: the units a
@@ -100,9 +104,9 @@ P = {
     "hands_min": 3,
     "jobs_per_hand": 7,   # a hand clears roughly this many jobs in a 24-turn day
     "wheat_floor": 16,      # feed tiles kept even before the herd exists (swept)
-    "cow_cap": 12,
+    "cow_cap": 30,
     "sheep_cap": 5,
-    "goose_cap": 6,
+    "goose_cap": 10,
     "tomato_cap": 6,
     "carrot_cap": 8,
     "melon_cap": 8,
