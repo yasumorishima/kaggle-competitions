@@ -104,6 +104,7 @@ P = {
     "land_gate": [(2, 1200), (6, 2600), (10, 5200)],
     "tile_margin": 1.15,       # plan slightly past the tiles we own
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
+    "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
 }
 
 
@@ -573,17 +574,17 @@ def agent(obs, config=None):
             if not t.get("fed_today") and wheat_held > 0:
                 # Two unfed nights and the animal is gone for good.
                 urgency = 4.0 if t.get("consecutive_unfed", 0) >= 1 else 1.5
-                out.append((unit_price * urgency / (1 + d), (x, y), "FEED"))
+                out.append((unit_price * urgency / (1 + P['dist_weight'] * d), (x, y), "FEED"))
             if t.get("yield_units", 0) > 0:
                 val = t["yield_units"] * unit_price
                 if t["yield_units"] >= a["max_held"]:
                     val *= 2  # production is being thrown away while it sits full
-                out.append((val / (1 + d), (x, y), "HARVEST"))
+                out.append((val / (1 + P['dist_weight'] * d), (x, y), "HARVEST"))
             if t.get("fed_today") and not t.get("cared_today"):
                 # One care day = one extra unit on the next production.
-                out.append((unit_price * 0.9 / (1 + d), (x, y), "CARE"))
+                out.append((unit_price * 0.9 / (1 + P['dist_weight'] * d), (x, y), "CARE"))
             if t.get("fertilizer_available"):
-                out.append((fert_price / (1 + d), (x, y), "COLLECT_FERTILIZER"))
+                out.append((fert_price / (1 + P['dist_weight'] * d), (x, y), "COLLECT_FERTILIZER"))
 
         fert_held = inv.get("FERTILIZER", 0)
         for (x, y, t) in plants:
@@ -599,9 +600,9 @@ def agent(obs, config=None):
                 # watering bonus on a one-time crop inside its window.
                 extra = extra_from_fertilizer(t, cd, day)
                 if extra > 0:
-                    out.append((unit_price * extra / (1 + d), (x, y), "FERTILIZE"))
+                    out.append((unit_price * extra / (1 + P['dist_weight'] * d), (x, y), "FERTILIZE"))
             if plant_ready(t):
-                out.append((t["yield_units"] * unit_price / (1 + d), (x, y), "HARVEST"))
+                out.append((t["yield_units"] * unit_price / (1 + P['dist_weight'] * d), (x, y), "HARVEST"))
             elif not t.get("watered_today"):
                 age = day - t["planted_day"]
                 window = (cd["max_yield_day"] + 1) // 2 <= age <= cd["max_yield_day"]
@@ -611,7 +612,7 @@ def agent(obs, config=None):
                     val = unit_price * 1.0        # this watering is a unit of yield
                 else:
                     val = unit_price * 0.3
-                out.append((val / (1 + d), (x, y), "WATER"))
+                out.append((val / (1 + P['dist_weight'] * d), (x, y), "WATER"))
 
         if held_animal:
             struct = ANIMALS[held_animal]["structure"]
@@ -619,7 +620,7 @@ def agent(obs, config=None):
                 if (x, y) in claimed or not can_act((x, y)) or t["kind"] != struct:
                     continue
                 val = price(ANIMALS[held_animal]["product"]) * RATE[ANIMALS[held_animal]["product"]] * 4
-                out.append((val / (1 + dist(pos, (x, y))), (x, y), ("PLACE", held_animal)))
+                out.append((val / (1 + P['dist_weight'] * dist(pos, (x, y))), (x, y), ("PLACE", held_animal)))
 
         crop = pick_crop()
         pending_animals = shed_animals + carried_animals
@@ -631,11 +632,11 @@ def agent(obs, config=None):
             d = dist(pos, (x, y))
             if pending_animals > 0:
                 if shed.get("GOOSE", 0) + inv.get("GOOSE", 0) > need_coop:
-                    out.append((price("EGG") * RATE["EGG"] * 2 / (1 + d), (x, y), "BUILD_COOP"))
+                    out.append((price("EGG") * RATE["EGG"] * 2 / (1 + P['dist_weight'] * d), (x, y), "BUILD_COOP"))
                 if shed.get("COW", 0) + shed.get("SHEEP", 0) > need_past:
-                    out.append((price("MILK") * RATE["MILK"] * 2 / (1 + d), (x, y), "BUILD_PASTURE"))
+                    out.append((price("MILK") * RATE["MILK"] * 2 / (1 + P['dist_weight'] * d), (x, y), "BUILD_PASTURE"))
             if crop:
-                out.append((price(crop) * RATE[crop] * 1.5 / (1 + d), (x, y), ("PLANT", crop)))
+                out.append((price(crop) * RATE[crop] * 1.5 / (1 + P['dist_weight'] * d), (x, y), ("PLANT", crop)))
 
         # A weed is worth clearing exactly as much as whatever would be planted
         # on the tile it is squatting on. Gating this on "almost no empty tiles
@@ -647,7 +648,7 @@ def agent(obs, config=None):
         for (x, y, t) in weeds:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
-            out.append((weed_val / (1 + dist(pos, (x, y))), (x, y), "DIG"))
+            out.append((weed_val / (1 + P['dist_weight'] * dist(pos, (x, y))), (x, y), "DIG"))
 
         # Shed trips: fetch feed, fetch an animal, or unload a full pack.
         unfed = sum(1 for _, _, t in animals if not t.get("fed_today"))
@@ -657,17 +658,17 @@ def agent(obs, config=None):
         for st in sheds:
             d = dist(pos, st)
             if unfed > carried_wheat and unfed > wheat_held and shed.get("WHEAT", 0) > 0:
-                out.append((price("MILK") * 1.2 / (1 + d), st,
+                out.append((price("MILK") * 1.2 / (1 + P['dist_weight'] * d), st,
                             ("PICKUP", "WHEAT", min(8, shed.get("WHEAT", 0)))))
             if fert_targets > carried_fert and fert_held == 0 and shed.get("FERTILIZER", 0) > 0:
-                out.append((price("STRAWBERRY") * 1.5 / (1 + d), st,
+                out.append((price("STRAWBERRY") * 1.5 / (1 + P['dist_weight'] * d), st,
                             ("PICKUP", "FERTILIZER", min(6, shed.get("FERTILIZER", 0)))))
             if shed_animals > carried_animals and not held_animal:
                 a = next(a for a in ANIMALS if shed.get(a, 0) > 0)
-                out.append((price(ANIMALS[a]["product"]) * 3 / (1 + d), st, ("PICKUP", a, 1)))
+                out.append((price(ANIMALS[a]["product"]) * 3 / (1 + P['dist_weight'] * d), st, ("PICKUP", a, 1)))
             if carried >= 6 and d <= 2:
                 # Produce only earns once it is in the shed and sellable.
-                out.append((60.0 / (1 + d), st, "DROP"))
+                out.append((60.0 / (1 + P['dist_weight'] * d), st, "DROP"))
         return out
 
     def resolve(pos, target_tile, op):
