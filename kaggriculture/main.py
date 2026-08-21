@@ -96,7 +96,9 @@ ALLOW = {}
 
 P = {
     "max_hands": 12,
-    "hands_early": 5,
+    "hands_early": 4,
+    "hands_min": 3,
+    "jobs_per_hand": 7,   # a hand clears roughly this many jobs in a 24-turn day
     "wheat_floor": 16,      # feed tiles kept even before the herd exists (swept)
     "cow_cap": 12,
     "sheep_cap": 5,
@@ -459,7 +461,18 @@ def agent(obs, config=None):
         # them all at dawn would crowd out the sales that pay for them. (A cap
         # of 6/turn over two turns silently pinned the roster at 12, which made
         # the max_hands knob unsweepable.)
-        want = P["max_hands"] if day >= 3 else P["hands_early"]
+        # Size the roster to the work, not to the wage. Measured against the top
+        # agent this farm idled 834 actions on PASS to their 323: with fewer
+        # producing tiles, a fixed dozen hands stand around while the coins they
+        # cost are exactly what the third quadrant and the strawberry seed are
+        # short of.
+        jobs_today = (sum(1 for _, _, t in plants if not t.get("watered_today"))
+                      + sum(1 for _, _, t in plants if t.get("yield_units", 0) > 0)
+                      + 3 * len(animals)          # feed, care, collect
+                      + len(empty_tiles) + len(weeds) + len(empty_struct))
+        want = max(P["hands_min"], min(P["max_hands"], -(-jobs_today // P["jobs_per_hand"])))
+        if day < 2:
+            want = min(want, P["hands_early"])
         room = max(0, want - hires_today)
         for _ in range(min(room, 5)):
             hire_orders.append(["HIRE"])
@@ -682,10 +695,10 @@ def agent(obs, config=None):
             d = dist(pos, st)
             if unfed > carried_wheat and unfed > wheat_held and shed.get("WHEAT", 0) > 0:
                 out.append((price("MILK") * 1.2 / (1 + P['dist_weight'] * d), st,
-                            ("PICKUP", "WHEAT", min(8, shed.get("WHEAT", 0)))))
+                            ("PICKUP", "WHEAT", min(14, shed.get("WHEAT", 0)))))
             if fert_targets > carried_fert and fert_held == 0 and shed.get("FERTILIZER", 0) > 0:
                 out.append((price("STRAWBERRY") * 1.5 / (1 + P['dist_weight'] * d), st,
-                            ("PICKUP", "FERTILIZER", min(6, shed.get("FERTILIZER", 0)))))
+                            ("PICKUP", "FERTILIZER", min(10, shed.get("FERTILIZER", 0)))))
             if shed_animals > carried_animals and not held_animal:
                 a = next(a for a in ANIMALS if shed.get(a, 0) > 0)
                 out.append((price(ANIMALS[a]["product"]) * 3 / (1 + P['dist_weight'] * d), st, ("PICKUP", a, 1)))
