@@ -75,11 +75,24 @@ RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.33, "STRAWBERRY": 0.24,
         "MELON": 0.55, "EGG": 2.00, "MILK": 1.50, "WOOL": 1.33}
 PRODUCER = {"EGG": "GOOSE", "MILK": "COW", "WOOL": "SHEEP"}
 
-# How far past the town's drain rate it still pays to supply a product, given
-# how hard its glut curve bites. Wool (sq 3.20) and melon (sq 3.60) punish
-# oversupply immediately; wheat and egg (log 0.20) barely notice it.
-GLUT_TOL = {"WHEAT": 2.0, "EGG": 2.0, "CARROT": 1.6, "TOMATO": 1.6,
-            "STRAWBERRY": 1.15, "MILK": 1.15, "WOOL": 0.9, "MELON": 0.9}
+# Beyond the town's drain rate there is a one-off stock allowance: the units a
+# farm can pour into the market before the price sags under three quarters of
+# base. It is read straight off the curve instead of guessed, and it is why the
+# strong opening is sheep and melon -- wool clears ~29 units and melon ~79 at
+# healthy prices even with no shop demanding them.
+ALLOW_FRAC = 0.75
+
+
+def _stock_allowance(item):
+    base = MARKET_PARAMS[item]["base"]
+    x = 0
+    while x < 600 and price_at(item, MARKET_I0 + x + 1) >= base * ALLOW_FRAC:
+        x += 1
+    return x
+
+# Precomputed once: item -> units sellable above ALLOW_FRAC of base.
+ALLOW = {}
+
 
 P = {
     "max_hands": 12,
@@ -90,7 +103,7 @@ P = {
     "goose_cap": 6,
     "tomato_cap": 6,
     "carrot_cap": 8,
-    "melon_cap": 2,
+    "melon_cap": 8,
     "animal_buy_last_day": 22,
     "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
                        "TOMATO": 21, "STRAWBERRY": 19},
@@ -163,6 +176,9 @@ def sellable_qty(item, inv, have, reserve):
         n += 1
         cur += 1
     return n
+
+
+ALLOW.update({item: _stock_allowance(item) for item in MARKET_PARAMS})
 
 
 def dist(a, b):
@@ -345,8 +361,15 @@ def agent(obs, config=None):
     pending_animals = shed_animals + carried_animals
 
     def market_cap(item):
-        """Head/tile count whose output the market can absorb near base price."""
-        room = demand.get(item, 1.0) * GLUT_TOL[item] - theirs.get(item, 0) * RATE[item]
+        """Tiles whose output the market can absorb without the price sagging.
+
+        Two parts: what the town takes every day, and the one-off stock the
+        curve will swallow, spread over the days that are left. The opponent's
+        own tiles are subtracted -- their supply eats the same allowance.
+        """
+        room = (demand.get(item, 1.0)
+                + ALLOW[item] / max(6.0, float(days_left))
+                - theirs.get(item, 0) * RATE[item])
         return max(0, int(room / RATE[item]))
 
     # An explicit build, in the order the measured economy pays for it. A
@@ -366,13 +389,13 @@ def agent(obs, config=None):
     take("MILK", min(market_cap("MILK"), P["cow_cap"]))
     # Wool pays superbly and crashes hardest: only farm it once a yarn store is
     # actually open (it is the only shop that wants wool, and it wants 12/day).
-    take("WOOL", min(market_cap("WOOL"), P["sheep_cap"]) if "YARN_STORE" in shops else 0)
+    take("WOOL", min(market_cap("WOOL"), P["sheep_cap"]))
     take("EGG", min(market_cap("EGG"), P["goose_cap"] if demand.get("EGG", 1) >= 10 else 2))
     # Tomato and carrot sit on hinge curves: when the town drains them and
     # nobody plants them, their price runs away ($216 measured for tomato).
     take("TOMATO", min(market_cap("TOMATO"), P["tomato_cap"]))
     take("CARROT", min(market_cap("CARROT"), P["carrot_cap"]) if "PET_CAFE" in shops else 0)
-    take("MELON", P["melon_cap"])          # only the town centre drains melon
+    take("MELON", min(market_cap("MELON"), P["melon_cap"]))
     take("STRAWBERRY", min(market_cap("STRAWBERRY"), budget))
     # True while any product is still short of its target: the farm then wants
     # every tile it can clear, weeds included.
