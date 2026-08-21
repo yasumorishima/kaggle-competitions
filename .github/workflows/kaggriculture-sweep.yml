@@ -56,7 +56,7 @@ jobs:
           if [ "${b#kernel:}" != "$b" ]; then
             pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
             ref="${b#kernel:}"
-            python sim/fetch_opponent.py "$ref"
+            python sim/fetch_opponent.py --exec "$ref"
             echo "AGENT_B=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
           else
             echo "AGENT_B=$b" >> "$GITHUB_ENV"

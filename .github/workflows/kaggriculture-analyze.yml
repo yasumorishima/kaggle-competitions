@@ -59,7 +59,7 @@ jobs:
           resolve() {
             case "$1" in
               kernel:*) ref="${1#kernel:}"
-                        python sim/fetch_opponent.py "$ref" >&2
+                        python sim/fetch_opponent.py --exec "$ref" >&2
                         echo "opponents/${ref//\//__}.py" ;;
               *) echo "$1" ;;
             esac
