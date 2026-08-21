@@ -125,6 +125,8 @@ P = {
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
+    "drop_load": 6,            # carry this many items before a shed run is worth it
+    "drop_urgency": 0.10,      # weight on the value carried when scoring that run
 }
 
 
@@ -717,9 +719,15 @@ def agent(obs, config=None):
             if shed_animals > carried_animals and not held_animal:
                 a = next(a for a in ANIMALS if shed.get(a, 0) > 0)
                 out.append((price(ANIMALS[a]["product"]) * 3 / (1 + P['dist_weight'] * d), st, ("PICKUP", a, 1)))
-            if carried >= 6 and d <= 2:
-                # Produce only earns once it is in the shed and sellable.
-                out.append((60.0 / (1 + P['dist_weight'] * d), st, "DROP"))
+            if carried >= P["drop_load"]:
+                # Produce only earns once it is in the shed, because SELL draws
+                # from the shed and nothing else. Waiting for the automatic
+                # nightly drop leaves the market orders with nothing to sell --
+                # measured at 80 sell orders against the top agent's 195 -- and
+                # risks the 100-item cap discarding the day's harvest.
+                worth = sum(price(k) * v for k, v in inv.items()
+                            if k in MARKET_PARAMS and isinstance(v, int))
+                out.append((worth * P["drop_urgency"] / (1 + P['dist_weight'] * d), st, "DROP"))
         return out
 
     def resolve(pos, target_tile, op):
