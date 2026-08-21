@@ -84,7 +84,7 @@ GLUT_TOL = {"WHEAT": 2.0, "EGG": 2.0, "CARROT": 1.6, "TOMATO": 1.6,
 P = {
     "max_hands": 12,
     "hands_early": 5,
-    "wheat_floor": 10,      # feed tiles kept even before the herd exists
+    "wheat_floor": 16,      # feed tiles kept even before the herd exists (swept)
     "cow_cap": 12,
     "sheep_cap": 5,
     "goose_cap": 6,
@@ -430,10 +430,14 @@ def agent(obs, config=None):
             sell_orders.append(["SELL", item, qty])
 
     # 2. Hire. A dozen hands cost ~$376 for the day and add 288 actions.
-    if hour <= 1 and not liquidate:
+    if hour <= 2 and not liquidate:
+        # Spread over three turns: only 10 orders clear per turn, and hiring
+        # them all at dawn would crowd out the sales that pay for them. (A cap
+        # of 6/turn over two turns silently pinned the roster at 12, which made
+        # the max_hands knob unsweepable.)
         want = P["max_hands"] if day >= 3 else P["hands_early"]
         room = max(0, want - hires_today)
-        for _ in range(min(room, 6)):
+        for _ in range(min(room, 5)):
             hire_orders.append(["HIRE"])
 
     # 3. Land, gated on both a day and a cash floor.
