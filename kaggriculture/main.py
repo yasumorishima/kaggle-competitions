@@ -154,6 +154,15 @@ P = {
     # rate from the day they are sown, though a strawberry yields nothing for
     # its first ten days, so the subtraction runs high on top of that.
     "rival_supply": 1.0,
+    # Read straight off the top public agent's own plan, which ships as a
+    # decoded 720-step action list. Its labour goes CARE 967 / FEED 290 /
+    # PICKUP 135 against this farm's 169 / 122 / 408, and its opening is four
+    # sheep on day 0 with the feed *bought* rather than grown. Defaults below
+    # reproduce v16; each is switchable so the sweep decides.
+    "animal_first": "",        # "" = P["animal_order"]; else a species order
+    "animal_first_days": 1,    # ...applied while day <= this
+    "feed_buy_days": 1,        # days of rations to hold in the shed
+    "seed_priority": (),       # crops moved to the head of the seed queue
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -578,7 +587,16 @@ def agent(obs, config=None):
     #    so if the purchases run the other way the herd eats the whole budget
     #    and the farm ends up buying its own feed at $47 a bushel all season.
     if not liquidate:
-        for crop in ("WHEAT", "STRAWBERRY", "TOMATO", "CARROT", "MELON"):
+        # Melon sits last in this queue, so on the opening day -- when the cash
+        # runs out partway down it -- its seed is the one that never gets
+        # bought. The public plan buys eight melon seeds before anything else
+        # and sells 39 melons on day 10, which is what pays for its herd.
+        seed_queue = ["WHEAT", "STRAWBERRY", "TOMATO", "CARROT", "MELON"]
+        for crop in reversed(list(P["seed_priority"])):
+            if crop in seed_queue:
+                seed_queue.remove(crop)
+                seed_queue.insert(0, crop)
+        for crop in seed_queue:
             if day > P["plant_last_day"][crop]:
                 continue
             short = deficit(crop) - seeds.get(crop, 0)
@@ -608,8 +626,16 @@ def agent(obs, config=None):
             producing = max(0, days_left - a["first_yield_day"])
             return price(item) * RATE[item] * producing / a["cost"]
 
-        order = sorted(("MILK", "EGG", "WOOL"), key=roi, reverse=True) \
-            if P["animal_order"] == "roi" else ("MILK", "EGG", "WOOL")
+        if P["animal_first"] and day <= P["animal_first_days"]:
+            # Wool starts paying on day 6 against the cow's day 8, and the
+            # public plan turns four sheep into $3,400 of wool on day 7 -- which
+            # is the money its cows are bought with. Buying by payback per coin
+            # picks the cow first and never reaches that opening.
+            order = tuple(P["animal_first"])
+        elif P["animal_order"] == "roi":
+            order = sorted(("MILK", "EGG", "WOOL"), key=roi, reverse=True)
+        else:
+            order = ("MILK", "EGG", "WOOL")
         for item in order:
             a = PRODUCER[item]
             need = deficit(item) - pending
@@ -648,7 +674,11 @@ def agent(obs, config=None):
 
     # 6. Emergency feed: an escaped animal costs far more than dear wheat.
     if herd and not liquidate:
-        need = herd - int(shed.get("WHEAT", 0))
+        # One day of rations is hand to mouth: the plan has to survive the turn
+        # the price spikes, and a tile of wheat costs a season of watering that
+        # a bushel off the market does not. The public plan buys 14 bushels on
+        # day 0 for five animals and keeps buying all season.
+        need = herd * P["feed_buy_days"] - int(shed.get("WHEAT", 0))
         if need > 0 and prices.get("WHEAT", 25) <= 80 and money > P["cash_buffer"]:
             k = int(min(need, (money - P["cash_buffer"]) // max(1, prices.get("WHEAT", 25))))
             if k > 0:
