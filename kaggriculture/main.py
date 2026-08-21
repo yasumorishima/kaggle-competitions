@@ -139,6 +139,14 @@ P = {
     "fill_idle": False,        # plant past the town-demand cap onto idle land
     "fill_floor": 0.75,        # ...while the product still clears this of base
     "fill_cash_floor": 800,    # ...and only with this much cash in hand
+    # How much of the opponent's nameplate output is treated as already
+    # feeding the town. At 1.0 the farm defers a tile for every tile they own,
+    # which is what held strawberry to 21 tiles in the measured season while
+    # they worked 36 -- and the mean price stayed at $239 against a $120 base,
+    # so the town was never actually filled. Their tiles also count at full
+    # rate from the day they are sown, though a strawberry yields nothing for
+    # its first ten days, so the subtraction runs high on top of that.
+    "rival_supply": 1.0,
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -395,7 +403,7 @@ def agent(obs, config=None):
         """
         room = (demand.get(item, 1.0)
                 + ALLOW[item] / max(6.0, float(days_left))
-                - theirs.get(item, 0) * RATE[item])
+                - theirs.get(item, 0) * RATE[item] * P["rival_supply"])
         return max(0, int(room / RATE[item]))
 
     # An explicit build, in the order the measured economy pays for it. A
