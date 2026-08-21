@@ -111,7 +111,8 @@ P = {
     "carrot_cap": 8,
     "melon_cap": 8,
     "animal_buy_last_day": 22,
-    "animal_grace_day": 0,     # days on which the feed test is waived (0 = off)
+    "animal_grace_day": 0,     # days on which the feed test is waived (0 = off; measured inert)
+    "animal_order": "fixed",   # "fixed" = MILK,EGG,WOOL; "roi" = payback per coin
     "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
                        "TOMATO": 21, "STRAWBERRY": 19},
     "cash_buffer": 120,
@@ -526,7 +527,20 @@ def agent(obs, config=None):
     if day <= P["animal_buy_last_day"] and not liquidate:
         pending = shed_animals + carried_animals
         room = len(empty_tiles) + len(empty_struct) - pending
-        for item in ("MILK", "EGG", "WOOL"):
+        # Buy in order of return on the coin, not in a fixed species order.
+        # With a fixed MILK-EGG-WOOL order the opening spends itself out on
+        # cattle (first yield day 8) and never reaches sheep (day 6, and wool is
+        # worth more per unit) -- which is exactly the opening the strong public
+        # agents use. Sorting by payback per coin makes the choice follow the
+        # live price and the days that are left.
+        def roi(item):
+            a = ANIMALS[PRODUCER[item]]
+            producing = max(0, days_left - a["first_yield_day"])
+            return price(item) * RATE[item] * producing / a["cost"]
+
+        order = sorted(("MILK", "EGG", "WOOL"), key=roi, reverse=True) \
+            if P["animal_order"] == "roi" else ("MILK", "EGG", "WOOL")
+        for item in order:
             a = PRODUCER[item]
             need = deficit(item) - pending
             if need <= 0 or room <= 0:
