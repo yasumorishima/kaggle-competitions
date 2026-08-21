@@ -24,13 +24,17 @@ from concurrent.futures import ProcessPoolExecutor
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def build_variant(base_src, name, overrides, outdir):
+def build_variant(base_src, name, overrides, outdir, globals_over=None):
+    """Write a copy of the agent with `P` (and optionally module-level tables
+    such as RATE) patched at the end of the file, where the agent reads them."""
     path = os.path.join(outdir, f"variant_{name}.py")
     with open(path, "w", encoding="utf-8") as f:
         f.write(base_src)
         f.write("\n\n# --- sweep override ---\nP.update(")
         f.write(repr(overrides))
         f.write(")\n")
+        for table, patch in (globals_over or {}).items():
+            f.write(f"{table}.update({patch!r})\n")
     return path
 
 
@@ -64,7 +68,7 @@ def main():
 
     jobs, owner = [], []
     for v in variants:
-        path = build_variant(base_src, v["name"], v.get("P", {}), outdir)
+        path = build_variant(base_src, v["name"], v.get("P", {}), outdir, v.get("G"))
         rel = os.path.relpath(path, HERE)
         for i in range(args.episodes):
             for side in (0, 1):
