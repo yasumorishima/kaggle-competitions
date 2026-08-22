@@ -92,6 +92,7 @@ _MEM = {}
 # head count above, and MILK/WOOL/EGG targets are how the farm sizes pasture,
 # not a crop decision.
 CROP_KEYS = ("WHEAT", "STRAWBERRY", "MELON", "TOMATO", "CARROT")
+SPECIES_ORDER = ("COW", "SHEEP", "GOOSE")
 
 SCHEDULE = None
 
@@ -201,6 +202,10 @@ P = {
     # rate from the day they are sown, though a strawberry yields nothing for
     # its first ten days, so the subtraction runs high on top of that.
     "rival_supply": 1.0,
+    # Fraction of the calendar's outstanding herd cost held back from the
+    # seed queue. 0 = off, which is what every earlier measurement was taken
+    # under.
+    "sched_reserve": 0.0,
     # Read straight off the top public agent's own plan, which ships as a
     # decoded 720-step action list. Its labour goes CARE 967 / FEED 290 /
     # PICKUP 135 against this farm's 169 / 122 / 408, and its opening is four
@@ -748,6 +753,27 @@ def agent(obs, config=None):
     seed_budget = money - P["cash_buffer"]
     if day <= P["opening_days"]:
         seed_budget -= P["opening_animal_reserve"]
+    # A calendar that cannot be paid for is a wish. Measured on seed 2000:
+    # the calendar asked for four sheep on day 3 and the farm had them on day
+    # 15, asked for nine cows on day 7 and had them on day 13, while the
+    # opening went into eighteen tiles of seed. The opponent ends day 1 with
+    # $7 and four sheep already standing; this farm ended it with $1,092 and
+    # none, then sat between $21 and $927 for the next ten days.
+    #
+    # So the seed queue, which runs first, hands back what the herd the
+    # calendar has already committed to still costs.
+    if P["sched_reserve"]:
+        sched_now = _sched_for(day)
+        if sched_now:
+            owed = 0
+            for _a in SPECIES_ORDER:
+                _tgt = sched_now.get(_a)
+                if _tgt is None:
+                    continue
+                _have = sum(1 for _x, _y, _t in animals if _species(_t) == _a)
+                _have += int(shed.get(_a, 0))
+                owed += max(0, int(_tgt) - _have) * ANIMALS[_a]['cost']
+            seed_budget -= owed * P["sched_reserve"]
 
     # 4. Seeds first, animals second. Livestock outranks every crop per tile,
     #    so if the purchases run the other way the herd eats the whole budget

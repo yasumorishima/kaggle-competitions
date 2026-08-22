@@ -115,6 +115,32 @@ def main():
     check("100 is the policy's own choice",
           planted({"0": {"STRAWBERRY_pct": 100}}) == (base_crops, base_seeds))
 
+    print("the calendar reserves what it is about to buy")
+    # knob_bite cannot reach this one: it only exists when a calendar is
+    # active, and knob_bite loads the bare policy. Measured on seed 2000, the
+    # calendar asked for four sheep on day 3 and got them on day 15 because
+    # the seed queue, which runs first, had already spent the money.
+
+    def opening(reserve, money):
+        mod = sched_agent.load_main()
+        mod.P["sched_reserve"] = reserve
+        mod.SCHEDULE = {"0": {"COW": 1, "SHEEP": 4, "GOOSE": 0,
+                             "hands": 5, "land": 1}}
+        _n, ob = knob_bite.scene("opening", money=money, day=0, hour=6,
+                                 tiles=knob_bite.blank_tiles(), seeds={})
+        return mod.agent(copy.deepcopy(ob), None).get("market") or []
+
+    tight_off, tight_on = opening(0.0, 1800.0), opening(1.0, 1800.0)
+    print("     $1800 sheep bought  reserve0=%d  reserve1=%d"
+          % (count(tight_off, "BUY_ANIMAL", "SHEEP"),
+             count(tight_on, "BUY_ANIMAL", "SHEEP")))
+    check("a tight opening buys more herd with the reserve on",
+          count(tight_on, "BUY_ANIMAL", "SHEEP")
+          > count(tight_off, "BUY_ANIMAL", "SHEEP"))
+    check("the reserve is off by default",
+          opening(0.0, 2400.0) == opening(0.0, 2400.0)
+          and sched_agent.load_main().P["sched_reserve"] == 0.0)
+
     print("no schedule changes nothing")
     same = True
     for scene in (obs, obs2, obs3, obs4):

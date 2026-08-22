@@ -157,6 +157,25 @@ def scenes():
                      shed={"WHEAT": 24, "FERTILIZER": 6, "MILK": 4},
                      hires_today=4))
 
+    # Four sheep ready to shear in a town with no yarn store, against an
+    # opponent running four of its own. The production plan sizes WOOL as
+    # what the town takes plus the stock allowance minus the rival's supply,
+    # and all three of those say zero here -- so the target is zero, no job is
+    # ever generated, and the sheep are fed all season and never sheared.
+    # Measured on seed 2000: this farm sold no wool at all while the opponent
+    # sold 107 units for 8,924 out of exactly this town.
+    tiles = blank_tiles()
+    opp = blank_tiles()
+    for i in range(4):
+        tiles[3][i] = animal_tile('PASTURE', 'SHEEP', fed=True, cared=True,
+                                  yield_units=2)
+        opp[3][i] = animal_tile('PASTURE', 'SHEEP', fed=True, cared=True)
+    out.append(scene('wool_no_yarn_store', tiles=tiles, opp_tiles=opp,
+                     day=12, hour=9, money=2500.0,
+                     farmer=[3, 3], hands=[[0, 3], [1, 3], [2, 3]],
+                     shed={'WHEAT': 20}, hires_today=3,
+                     shops=['BAKERY', 'PIZZA_SHOP', 'SMOOTHIE_SHOP']))
+
     # Somewhere to put an animal: stock waiting in the shed, empty tiles both
     # beside the shed and out at the rim, and the hands standing at the rim.
     tiles = blank_tiles()
