@@ -115,8 +115,44 @@ def report(plan, name):
     print("bought    " + fmt(tot_buy, 12))
     print("hires     %d   peak hands %d" % (hires, max(hands.values() or [0])))
     print("actions   " + fmt(tot_ops, 14))
-    print("SHAPE     " + route_shape_line(plan))
+    print("care      " + capacity(market, ops))
+    print("SHAPE     " + route_shape_line(plan) + "   <- see note")
     print("")
+
+
+def capacity(market, ops):
+    """How much of the herd's daily care was actually delivered, and how much
+    of the rest could not have counted.
+
+    The action histogram on its own is misleading, and expensively so. An
+    animal takes one care visit a day: a second one is refused, and offering it
+    to the agent as a job cost 60,493 in a sweep because every hand parked on a
+    cared-for animal instead of working. So a plan issuing 967 CARE actions on
+    twelve animals is not caring for them eighty times each -- it is caring for
+    them once and then filling idle hands with an action that does nothing.
+
+    That matters beyond the arithmetic, because route_shape.py counts any
+    non-move, non-PASS action as work. A plan that idles on CARE therefore
+    reads as walking less and chaining more jobs per stop than a plan that
+    idles on PASS, whether or not it is doing anything. Six levers were drawn
+    off that difference and every one came back a tie or worse.
+
+    What is left once the filler is removed is the honest number: care
+    delivered as a fraction of what the herd could absorb.
+    """
+    herd, delivered, capacity_days = 0, 0, 0
+    for day in sorted(set(list(market) + list(ops))):
+        herd += sum(market.get(day, {}).get("BUY_ANIMAL", {}).values())
+        cared = sum(ops.get(day, {}).get("CARE", {}).values())
+        delivered += min(cared, herd)      # the rest cannot have counted
+        capacity_days += herd
+    issued = sum(sum(ops[d].get("CARE", {}).values()) for d in ops)
+    if not capacity_days:
+        return "no herd"
+    return ("delivered %d of %d animal-days (%.0f%%), issued %d "
+            "(%d could not have counted)"
+            % (delivered, capacity_days, 100.0 * delivered / capacity_days,
+               issued, issued - delivered))
 
 
 def route_shape_line(plan):
