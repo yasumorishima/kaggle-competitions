@@ -1,0 +1,214 @@
+name: Kaggriculture Optimize
+
+# Hill-climb the 720-step action list itself.
+#
+# The plan, not the policy, is what this competition rewards: every published
+# agent above 100k is a fixed action list with a repair layer, and eleven
+# attempts at closing the gap from inside a per-turn policy all came back a tie
+# or worse. So this job searches the list.
+#
+# Results are committed to the `kaggriculture-plans` branch rather than uploaded
+# as artifacts, because the account's Actions storage is over quota and any
+# upload hard-fails the run. Committing has a second benefit: a 6h job is not
+# long enough to converge, so the next run resumes from the branch and the climb
+# continues across jobs. The branch is rewritten as a single orphan commit each
+# time, so it never accumulates history for a file that changes every run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      minutes:
+        description: 'Climb budget in minutes (job cap is 350)'
+        required: false
+        default: '240'
+        type: string
+      resume:
+        description: 'Continue the checkpoint on the plans branch'
+        required: false
+        default: true
+        type: boolean
+      seeds:
+        description: 'Training seeds (comma separated)'
+        required: false
+        default: '3000,3001'
+        type: string
+      holdout:
+        description: 'Held-out seeds, never optimised against'
+        required: false
+        default: '3100,3101,3102,3103'
+        type: string
+      opponent:
+        description: 'Opponent to score against (builtin name or path)'
+        required: false
+        default: 'starter'
+        type: string
+      lam:
+        description: 'Candidates per generation'
+        required: false
+        default: '4'
+        type: string
+      ops:
+        description: 'Edits per candidate'
+        required: false
+        default: '6'
+        type: string
+      record_seed:
+        description: 'Seed to record the starting plan from (fresh runs only)'
+        required: false
+        default: '3000'
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kaggriculture-optimize
+  cancel-in-progress: false
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install kaggle-environments
+        run: pip install -U kaggle-environments
+
+      - name: Mutation invariants
+        # An operator that cannot fire, or that invents a hand the farm never
+        # hired, would burn the whole climb without saying so. Cheap to check
+        # here, invisible once the job is running.
+        run: python sim/test_plan_ops.py
+
+      - name: Fetch the plans branch
+        id: plans
+        working-directory: .
+        run: |
+          set -e
+          mkdir -p plans
+          if git fetch --depth=1 origin kaggriculture-plans 2>/dev/null; then
+            for f in best.json checkpoint.json climb.txt; do
+              git show "FETCH_HEAD:plans/$f" > "plans/$f" 2>/dev/null || rm -f "plans/$f"
+            done
+            ls -la plans
+            tail -3 plans/climb.txt 2>/dev/null || true
+          else
+            echo "no plans branch yet"
+          fi
+          if [ -s plans/checkpoint.json ] && [ "${{ inputs.resume }}" = "true" ]; then
+            echo "resume=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "resume=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record a starting plan
+        # Only when there is nothing to resume. The recording is the current
+        # policy's own season, so the climb starts from a plan that is at least
+        # coherent rather than from noise.
+        if: steps.plans.outputs.resume != '1'
+        run: |
+          python sim/record.py --a main.py --b "${{ inputs.opponent }}" \
+            --seed "${{ inputs.record_seed }}" --out ../plans/start.json
+
+      - name: Check that scoring is deterministic
+        # The whole design rests on this. If the same plan does not score the
+        # same money twice, then every accept below is measuring the season
+        # rather than the edit, and the climb is a random walk.
+        env:
+          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || '--plan ../plans/start.json' }}
+        run: |
+          set -e
+          echo "SRC=$SRC"
+          python sim/optimize.py $SRC --selftest \
+            --seeds "${{ inputs.seeds }}" --opponent "${{ inputs.opponent }}" \
+            --workers "$(nproc)" | tee /tmp/selftest.log
+          grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
+
+      - name: Climb
+        env:
+          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || '--plan ../plans/start.json' }}
+        run: |
+          set -e
+          python sim/optimize.py $SRC \
+            --out ../plans/best.json \
+            --checkpoint ../plans/checkpoint.json \
+            --opponent "${{ inputs.opponent }}" \
+            --seeds "${{ inputs.seeds }}" \
+            --holdout "${{ inputs.holdout }}" \
+            --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
+            --minutes "${{ inputs.minutes }}" \
+            --workers "$(nproc)" | tee /tmp/climb.log
+
+      - name: Score the result against the live agent
+        # The climb's own number is money on its training seeds. What decides
+        # whether this is worth submitting is a paired-seed match against the
+        # agent that is currently on the leaderboard, on seeds neither of them
+        # was tuned on.
+        if: always()
+        run: |
+          set -e
+          [ -s ../plans/best.json ] || exit 0
+          python sim/record.py --emit ../plans/best.json --out agents/plan_agent.py
+          python sim/evaluate.py --a agents/plan_agent.py --b main.py \
+            --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/head2head.log
+
+      - name: Commit the plan
+        if: always()
+        working-directory: .
+        run: |
+          set -e
+          [ -s plans/checkpoint.json ] || exit 0
+          grep -E '^(RESUMED|START|HOLDOUT|SUMMARY=)' /tmp/climb.log > plans/climb.txt || true
+          grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log >> plans/climb.txt 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan plans-tmp
+          git reset
+          git add -f plans/best.json plans/checkpoint.json plans/climb.txt
+          git commit -q -m "kaggriculture: plan after run ${{ github.run_number }} (${{ inputs.memo }})"
+          git push -f origin plans-tmp:kaggriculture-plans
+
+      - name: Job summary
+        if: always()
+        working-directory: .
+        run: |
+          {
+            echo "### Kaggriculture optimize"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            grep -E '^(START|RESUMED|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
+            echo ""
+            echo "-- vs the live agent --"
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
+            echo '```'
+            echo ""
+            echo "<details><summary>operators</summary>"
+            echo ""
+            echo '```'
+            sed -n '/^OPERATORS/,/^$/p' /tmp/climb.log || true
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "<details><summary>accepted generations</summary>"
+            echo ""
+            echo '```'
+            grep -E '^gen [0-9]+ ACCEPT' /tmp/climb.log | tail -60 || true
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
