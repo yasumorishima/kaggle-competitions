@@ -94,6 +94,27 @@ def main():
           % (few, many, count(orders(None, obs4), "HIRE")))
     check("a bigger roster hires more", many > few)
 
+    print("crop dial")
+    _n, obs5 = knob_bite.scene("crops", money=9000.0, day=2, hour=6)
+
+    def planted(sched):
+        act = sched_agent.make(sched)(copy.deepcopy(obs5), None)
+        units = [act.get("farmer") or ["PASS"]] + list(act.get("hands") or [])
+        crops = [str(u[1]) for u in units if u and str(u[0]) == "PLANT" and len(u) > 1]
+        seeds = count(act.get("market") or [], "BUY_SEED", "STRAWBERRY")
+        return crops, seeds
+
+    off_crops, off_seeds = planted({"0": {"STRAWBERRY_pct": 0}})
+    on_crops, on_seeds = planted({"0": {"STRAWBERRY_pct": 400}})
+    base_crops, base_seeds = planted(None)
+    print("     strawberry seeds bought  0%%=%d  policy=%d  400%%=%d"
+          % (off_seeds, base_seeds, on_seeds))
+    check("the dial reaches the plan",
+          (off_seeds, off_crops) != (on_seeds, on_crops),
+          "0%% and 400%% produced the same turn")
+    check("100 is the policy's own choice",
+          planted({"0": {"STRAWBERRY_pct": 100}}) == (base_crops, base_seeds))
+
     print("no schedule changes nothing")
     same = True
     for scene in (obs, obs2, obs3, obs4):

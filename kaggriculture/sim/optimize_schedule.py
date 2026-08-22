@@ -82,6 +82,9 @@ def _tidy(rows):
         row["land"] = max(1, min(MAX_LAND, int(row.get("land", 1))))
         for s in SPECIES:
             row[s] = max(0, int(row.get(s, 0)))
+        for c in sched_mod.CROP_KEYS:
+            if c in row:
+                row[c] = max(0, min(sched_mod.MAX_PCT, int(row[c])))
     for key in SPECIES + ("land",):
         run = rows[0][key]
         for row in rows:
@@ -240,8 +243,26 @@ def op_land_count(rows, rng):
     return "land_count"
 
 
+def op_crop_dial(rows, rng):
+    """Grow more, or less, of one crop over a stretch of days.
+
+    The remaining measured gap is crops: 1,679 units sold against 913, with
+    strawberry at 300 against 58 and melon 126 against 50. The dial is a
+    percentage of what the policy would have planted anyway, so 100 is the
+    behaviour that is already on the leaderboard and the search moves out from
+    there rather than jumping to somebody else's tile counts.
+    """
+    crop = rng.choice(sched_mod.CROP_KEYS)
+    start = rng.randrange(0, DAYS)
+    span = rng.randint(3, 14)
+    delta = rng.choice([-60, -40, -25, 25, 40, 60])
+    for row in rows[start:start + span]:
+        row[crop] = max(0, min(sched_mod.MAX_PCT, row.get(crop, 100) + delta))
+    return "crop_dial:" + crop
+
+
 OPERATORS = (op_hands_shift, op_hands_scale, op_herd_size, op_herd_when,
-             op_convert, op_land_when, op_land_count)
+             op_convert, op_land_when, op_land_count, op_crop_dial)
 
 
 def mutate(sched, rng, ops=2):
@@ -251,6 +272,8 @@ def mutate(sched, rng, ops=2):
         row.setdefault("land", 1)
         for s in SPECIES:
             row.setdefault(s, 0)
+        for c in sched_mod.CROP_KEYS:
+            row.setdefault(c, 100)
     applied = []
     for _ in range(ops):
         name = rng.choice(OPERATORS)(rows, rng)

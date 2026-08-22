@@ -88,6 +88,11 @@ _MEM = {}
 # Entries are cumulative targets that hold until the next entry, and any key
 # left out falls through to the policy. A target is a target, not an order: the
 # farm still has to afford it and still has to have somewhere to put it.
+# The crops the calendar may dial. Livestock is not here: the herd is set by
+# head count above, and MILK/WOOL/EGG targets are how the farm sizes pasture,
+# not a crop decision.
+CROP_KEYS = ("WHEAT", "STRAWBERRY", "MELON", "TOMATO", "CARROT")
+
 SCHEDULE = None
 
 
@@ -582,6 +587,27 @@ def agent(obs, config=None):
         if best:
             target[best[0]] = target.get(best[0], 0) + spare
             budget = 0
+    # The calendar's crop dial, applied last so it moves the finished plan
+    # rather than competing with the budget arithmetic above.
+    #
+    # Percentages, not tile counts. The measured crop gap is large -- 1,679
+    # units sold against 913, strawberry 300 against 58 -- but writing the
+    # other farm's tile counts in here would be copying a surface statistic,
+    # which has failed three times on this problem and the fourth time turned
+    # out to have been measuring something else entirely. A multiplier starts
+    # at 100, which is exactly today's behaviour, and lets the search move it
+    # while every step is scored.
+    sched = _sched_for(day)
+    if sched:
+        for _crop in CROP_KEYS:
+            mult = sched.get(_crop + '_pct')
+            if mult is None:
+                continue
+            base = target.get(_crop, 0)
+            if base == 0 and int(mult) > 100:
+                base = 1          # a dial above 100 may open a crop the plan skipped
+            target[_crop] = max(0, int(round(base * int(mult) / 100.0)))
+
     # True while any product is still short of its target: the farm then wants
     # every tile it can clear, weeds included.
     want_more_tiles = any(target.get(i, 0) > mine.get(i, 0) for i in target)

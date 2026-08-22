@@ -38,7 +38,13 @@ import route_shape  # noqa: E402
 
 TURNS = route_shape.TURNS
 SPECIES = ("COW", "SHEEP", "GOOSE")
-KEYS = ("hands",) + SPECIES + ("land",)
+# Crop dials are percentages of what the policy would have planted, so 100
+# is exactly current behaviour and an absent key is the same thing. They are
+# not cumulative -- a farm can plant less wheat tomorrow than today.
+CROPS = ("WHEAT", "STRAWBERRY", "MELON", "TOMATO", "CARROT")
+CROP_KEYS = tuple(c + "_pct" for c in CROPS)
+MAX_PCT = 400
+KEYS = ("hands",) + SPECIES + ("land",) + CROP_KEYS
 DAYS = 30
 
 
@@ -104,6 +110,9 @@ def validate(sched):
             assert value >= 0, "%s went negative on day %d" % (key, day)
         if "land" in row:
             assert 1 <= row["land"] <= 4, "land %d on day %d" % (row["land"], day)
+        for key in CROP_KEYS:
+            if key in row:
+                assert 0 <= row[key] <= MAX_PCT,                     "%s is %d on day %d" % (key, row[key], day)
     # Cumulative targets may not fall: the farm cannot un-buy a quadrant, and a
     # falling head count would ask it to slaughter stock it paid for.
     for key in SPECIES + ("land",):
