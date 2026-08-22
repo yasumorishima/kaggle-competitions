@@ -49,7 +49,7 @@ on:
         default: '3100,3101,3102,3103,3104,3105'
         type: string
       opponent:
-        description: 'Opponent to score against. Must be v16 or stronger -- `wins` is degenerate against `starter`, which loses to everything'
+        description: 'Opponent: a path under kaggriculture/, a builtin name, or kernel:owner/slug. Must be v16 or stronger -- `wins` is degenerate against `starter`, which loses to everything'
         required: false
         default: 'main.py'
         type: string
@@ -98,6 +98,32 @@ jobs:
       - name: Install kaggle-environments
         run: pip install -U kaggle-environments
 
+      - name: Resolve the opponent
+        # Climbing against v16 saturates: the calendar reached 12 wins out of 12
+        # on both the training and the held-out seeds in seventeen generations,
+        # after which `wins` has nothing left to say and only the tie-break
+        # margin moves. Worse, that ceiling is not near the top -- the same
+        # calendar then lost 24 games out of 24 to the published plan, 48,747
+        # against 130,842. The leaderboard is a ladder against everyone, so the
+        # bar with information left in it is the plan near the top of it.
+        #
+        # Their notebook is executed here, inside the runner, and never on the
+        # workstation; opponents/ is gitignored so it is never redistributed.
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          opp="${{ inputs.opponent }}"
+          if [ "${opp#kernel:}" != "$opp" ]; then
+            ref="${opp#kernel:}"
+            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            python sim/fetch_opponent.py --exec "$ref"
+            opp="opponents/${ref//\//__}.py"
+            [ -s "$opp" ] || { echo "no agent file in notebook $ref" >&2; exit 1; }
+          fi
+          echo "OPP=$opp" >> "$GITHUB_ENV"
+          echo "resolved opponent: $opp"
+
       - name: Calendar invariants
         # An operator that cannot fire, or one whose edit a repair pass quietly
         # undoes, would burn the whole climb without saying so. Four of the
@@ -139,7 +165,7 @@ jobs:
           set -e
           python sim/optimize_schedule.py --sched "${{ steps.sched.outputs.start }}" \
             --selftest --seeds "${{ inputs.seeds }}" \
-            --opponent "${{ inputs.opponent }}" | tee /tmp/selftest.log
+            --opponent "$OPP" | tee /tmp/selftest.log
           grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
 
       - name: Climb
@@ -148,7 +174,7 @@ jobs:
           python sim/optimize_schedule.py \
             --sched "${{ steps.sched.outputs.start }}" \
             --out ../schedules/best.json \
-            --opponent "${{ inputs.opponent }}" \
+            --opponent "$OPP" \
             --objective "${{ inputs.objective }}" \
             --seeds "${{ inputs.seeds }}" \
             --holdout "${{ inputs.holdout }}" \
@@ -169,6 +195,13 @@ jobs:
             --out agents/sched_agent_build.py
           python sim/evaluate.py --a agents/sched_agent_build.py --b main.py \
             --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/head2head.log
+          # And against whatever it actually climbed against, when that is
+          # not v16 -- beating the agent already on the leaderboard is the
+          # floor, and today it is a floor 82,000 below the top.
+          if [ "$OPP" != "main.py" ]; then
+            python sim/evaluate.py --a agents/sched_agent_build.py --b "$OPP" \
+              --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/vs_opp.log
+          fi
 
       - name: Commit the calendar
         if: always()
@@ -178,6 +211,7 @@ jobs:
           [ -s schedules/best.json ] || exit 0
           grep -E '^(CANDIDATE|CHOSE|GEN|HOLDOUT|SUMMARY=)' /tmp/climb.log > schedules/climb.txt || true
           grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log >> schedules/climb.txt 2>/dev/null || true
+          grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_opp.log >> schedules/climb.txt 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan schedules-tmp
