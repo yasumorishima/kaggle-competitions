@@ -171,6 +171,16 @@ P = {
     # hand that is already carrying.
     "pickup_min": 1,           # bushels that must be in the shed to justify a trip
     "pickup_topup": True,      # may a hand already carrying wheat go back for more
+    # Where the labour actually goes. Measured off the top public plan with
+    # sim/route_shape.py: it does 2.07 jobs every time it stops and walks 1.99
+    # steps between stops, and 58% of its trips are a single step. That is a
+    # farm laid out in a block, not a farm whose tiles were placed wherever a
+    # hand happened to be standing. Three levers, all inert at their defaults:
+    # pull new structures and new crops toward the shed when siting them, and
+    # finish the tile a unit is already standing on before walking off it.
+    "build_shed_weight": 0.0,  # how hard a new coop/pasture is pulled shedward
+    "plant_shed_weight": 0.0,  # ...and a new crop
+    "finish_tile": 1.0,        # bonus for a job on the tile the unit is on
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -812,13 +822,21 @@ def agent(obs, config=None):
             if (x, y) in claimed or not can_act((x, y)):
                 continue
             d = dist(pos, (x, y))
+            # Siting is the one decision a tile never gets to revisit: an
+            # animal placed across the farm is fed, cared for and collected
+            # from every day for the rest of the season, and its feed comes out
+            # of the shed. Scoring it only by how near the placing hand happens
+            # to be is what scatters the farm.
+            ds = min(dist((x, y), st) for st in sheds) if sheds else 0
+            near_build = 1 + P['dist_weight'] * d + P["build_shed_weight"] * ds
+            near_plant = 1 + P['dist_weight'] * d + P["plant_shed_weight"] * ds
             if pending_animals > 0:
                 if shed.get("GOOSE", 0) + inv.get("GOOSE", 0) > need_coop:
-                    out.append((price("EGG") * RATE["EGG"] * 2 / (1 + P['dist_weight'] * d), (x, y), "BUILD_COOP"))
+                    out.append((price("EGG") * RATE["EGG"] * 2 / near_build, (x, y), "BUILD_COOP"))
                 if shed.get("COW", 0) + shed.get("SHEEP", 0) > need_past:
-                    out.append((price("MILK") * RATE["MILK"] * 2 / (1 + P['dist_weight'] * d), (x, y), "BUILD_PASTURE"))
+                    out.append((price("MILK") * RATE["MILK"] * 2 / near_build, (x, y), "BUILD_PASTURE"))
             if crop:
-                out.append((price(crop) * RATE[crop] * 1.5 / (1 + P['dist_weight'] * d), (x, y), ("PLANT", crop)))
+                out.append((price(crop) * RATE[crop] * 1.5 / near_plant, (x, y), ("PLANT", crop)))
 
         # A weed is worth clearing exactly as much as whatever would be planted
         # on the tile it is squatting on. Gating this on "almost no empty tiles
@@ -1002,7 +1020,15 @@ def agent(obs, config=None):
                 actions.append(["PASS"])
                 continue
             was = prev_assign.get(i)
-            cand.sort(key=lambda c: -(c[0] * (P["stickiness"] if was == (c[1], repr(c[2])) else 1.0)))
+            # A job on the tile under a unit's feet costs no steps, so it is
+            # already favoured by the 1/(1+d) discount -- but only by the width
+            # of that discount, which a richer job two tiles away can beat. The
+            # top plan chains 2.07 jobs per stop against this farm's walking
+            # 63% of the time, and an animal wants three visits a day: feed,
+            # care, collect.
+            cand.sort(key=lambda c: -(c[0]
+                                      * (P["stickiness"] if was == (c[1], repr(c[2])) else 1.0)
+                                      * (P["finish_tile"] if c[1] == pos else 1.0)))
             _, tile, op = cand[0]
             if tile not in shed_here:
                 claimed.add(tile)
