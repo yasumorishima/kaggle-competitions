@@ -392,7 +392,9 @@ def mutate(plan, rng, n_ops):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--plan", help="starting plan JSON (from sim/record.py)")
+    ap.add_argument("--plan", help="starting plan(s), comma separated. Each may "
+                                   "be a plan JSON or an agent .py that embeds "
+                                   "one; the best on the training seeds is used")
     ap.add_argument("--resume", help="checkpoint JSON to continue from")
     ap.add_argument("--out", default="best_plan.json")
     ap.add_argument("--checkpoint", default="", help="written every generation")
@@ -424,8 +426,7 @@ def main():
         plan, gen, stats = ck["plan"], int(ck.get("gen", 0)), ck.get("stats", {})
         print("RESUMED gen=%d score=%s" % (gen, ck.get("score")), flush=True)
     elif args.plan:
-        with open(args.plan, encoding="utf-8") as f:
-            plan = json.load(f)
+        plan = None
     else:
         ap.error("one of --plan or --resume is required")
 
@@ -433,6 +434,27 @@ def main():
     pool = ProcessPoolExecutor(max_workers=args.workers) if args.workers > 1 else None
     try:
         t0 = time.time()
+        if plan is None:
+            # A plan recorded on one season is that season's plan: it knows
+            # where those weeds were and which shops opened, and the first
+            # smoke run scored 78,083 on the seed it was recorded from against
+            # 28,908 on seeds it had never seen. Which recording a climb starts
+            # from therefore decides most of where it can get to, so several
+            # are scored on the training seeds and the most transferable one
+            # wins the start.
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import route_shape
+            best = None
+            for path in [p.strip() for p in args.plan.split(",") if p.strip()]:
+                cand = route_shape.load_plan(path)
+                s, vs = score(pool, cand, args.opponent, seeds, sides,
+                              args.steps, args.repair)
+                print("CANDIDATE %-28s score=%.0f values=%s"
+                      % (path, s, [round(v) for v in vs]), flush=True)
+                if best is None or s > best[0]:
+                    best = (s, cand, path)
+            plan, chosen = best[1], best[2]
+            print("CHOSE " + chosen, flush=True)
         base, vals = score(pool, plan, args.opponent, seeds, sides, args.steps, args.repair)
         per = (time.time() - t0) / max(1, len(vals))
         print("START score=%.0f per-episode=%.1fs values=%s"
@@ -452,8 +474,12 @@ def main():
             print("VERDICT=" + ("DETERMINISTIC" if ok else "STOCHASTIC"))
             return 0
 
-        hold, _ = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
-        print("HOLDOUT gen=%d score=%.0f" % (gen, hold), flush=True)
+        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
+        # The per-seed values, not just their mean: a plan that scores 78,000
+        # on one season and 29,000 on the next is not a 53,000 plan, and the
+        # mean is the one number that hides which of the two it is.
+        print("HOLDOUT gen=%d score=%.0f values=%s"
+              % (gen, hold, [round(v) for v in hvals]), flush=True)
 
         deadline = time.time() + args.minutes * 60.0
         best_hold = hold
@@ -489,11 +515,11 @@ def main():
                       flush=True)
 
             if gen % args.confirm_every == 0:
-                hold, _ = score(pool, plan, args.opponent, holdout, sides,
-                                args.steps, args.repair)
+                hold, hvals = score(pool, plan, args.opponent, holdout, sides,
+                                    args.steps, args.repair)
                 best_hold = max(best_hold, hold)
-                print("HOLDOUT gen=%d score=%.0f train=%.0f" % (gen, hold, base),
-                      flush=True)
+                print("HOLDOUT gen=%d score=%.0f train=%.0f values=%s"
+                      % (gen, hold, base, [round(v) for v in hvals]), flush=True)
 
             if args.checkpoint:
                 with open(args.checkpoint, "w", encoding="utf-8") as f:
@@ -502,7 +528,9 @@ def main():
 
         with open(args.out, "w", encoding="utf-8") as f:
             json.dump(plan, f)
-        hold, _ = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
+        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
+        print("HOLDOUT gen=%d score=%.0f values=%s"
+              % (gen, hold, [round(v) for v in hvals]), flush=True)
         print("\nOPERATORS (tried/kept/mean gain when kept)", flush=True)
         for nm in sorted(stats, key=lambda k: -stats[k]["gain"]):
             s = stats[nm]

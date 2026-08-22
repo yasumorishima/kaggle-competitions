@@ -34,7 +34,7 @@ on:
       seeds:
         description: 'Training seeds (comma separated)'
         required: false
-        default: '3000,3001'
+        default: '3000,3001,3002,3003'
         type: string
       holdout:
         description: 'Held-out seeds, never optimised against'
@@ -56,10 +56,15 @@ on:
         required: false
         default: '6'
         type: string
-      record_seed:
-        description: 'Seed to record the starting plan from (fresh runs only)'
+      record_seeds:
+        description: 'Seeds to record starting plans from (the best is used)'
         required: false
-        default: '3000'
+        default: '3000,3001,3002'
+        type: string
+      start_agent:
+        description: 'Also offer this agent plan as a start: path or kernel:owner/slug'
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -113,21 +118,50 @@ jobs:
             echo "resume=0" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Record a starting plan
-        # Only when there is nothing to resume. The recording is the current
-        # policy's own season, so the climb starts from a plan that is at least
-        # coherent rather than from noise.
+      - name: Record the starting plans
+        # Only when there is nothing to resume. One recording per seed, because
+        # a plan recorded on a single season carries that season in it: the
+        # first smoke run scored 78,083 on the seed it was recorded from and
+        # 28,908 on seeds it had never seen. optimize.py scores every candidate
+        # on the training seeds and starts from whichever transfers best.
+        id: starts
         if: steps.plans.outputs.resume != '1'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          START_AGENT: ${{ inputs.start_agent }}
         run: |
-          python sim/record.py --a main.py --b "${{ inputs.opponent }}" \
-            --seed "${{ inputs.record_seed }}" --out ../plans/start.json
+          set -e
+          list=""
+          for seed in $(echo "${{ inputs.record_seeds }}" | tr ',' ' '); do
+            python sim/record.py --a main.py --b "${{ inputs.opponent }}" --seed "$seed" --out "../plans/start_$seed.json"
+            list="$list,../plans/start_$seed.json"
+          done
+          if [ -n "$START_AGENT" ]; then
+            # A published plan, read as data. route_shape.load_plan pulls the
+            # embedded action list straight out of the file, so their module is
+            # never imported -- and scoring it under *this* replay is what says
+            # how much of a published score is the plan itself and how much is
+            # the repair layer wrapped around it.
+            extra="$START_AGENT"
+            case "$extra" in
+              kernel:*)
+                ref="${extra#kernel:}"
+                pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+                python sim/fetch_opponent.py --exec "$ref"
+                extra="opponents/${ref//\//__}.py"
+                ;;
+            esac
+            [ -s "$extra" ] || { echo "no agent file at $extra" >&2; exit 1; }
+            list="$list,$extra"
+          fi
+          echo "plans=${list#,}" >> "$GITHUB_OUTPUT"
 
       - name: Check that scoring is deterministic
         # The whole design rests on this. If the same plan does not score the
         # same money twice, then every accept below is measuring the season
         # rather than the edit, and the climb is a random walk.
         env:
-          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || '--plan ../plans/start.json' }}
+          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || format('--plan {0}', steps.starts.outputs.plans) }}
         run: |
           set -e
           echo "SRC=$SRC"
@@ -138,7 +172,7 @@ jobs:
 
       - name: Climb
         env:
-          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || '--plan ../plans/start.json' }}
+          SRC: ${{ steps.plans.outputs.resume == '1' && '--resume ../plans/checkpoint.json' || format('--plan {0}', steps.starts.outputs.plans) }}
         run: |
           set -e
           python sim/optimize.py $SRC \
@@ -170,7 +204,7 @@ jobs:
         run: |
           set -e
           [ -s plans/checkpoint.json ] || exit 0
-          grep -E '^(RESUMED|START|HOLDOUT|SUMMARY=)' /tmp/climb.log > plans/climb.txt || true
+          grep -E '^(RESUMED|CANDIDATE|CHOSE|START|HOLDOUT|SUMMARY=)' /tmp/climb.log > plans/climb.txt || true
           grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log >> plans/climb.txt 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -190,7 +224,7 @@ jobs:
             echo "memo: ${{ inputs.memo }}"
             echo ""
             echo '```'
-            grep -E '^(START|RESUMED|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
+            grep -E '^(CANDIDATE|CHOSE|START|RESUMED|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
             echo ""
             echo "-- vs the live agent --"
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
