@@ -163,6 +163,14 @@ P = {
     "animal_first_days": 1,    # ...applied while day <= this
     "feed_buy_days": 1,        # days of rations to hold in the shed
     "seed_priority": (),       # crops moved to the head of the seed queue
+    # This farm issued 408 PICKUP actions against the public plan's 135 while
+    # feeding 122 times against its 290. The shed rarely holds more than a
+    # bushel or two -- wheat is grown thin and sold -- so a hand walks the whole
+    # way for one ration, feeds one animal and walks back. Two rules stop that:
+    # do not make the trip for less than a useful load, and do not top up a
+    # hand that is already carrying.
+    "pickup_min": 1,           # bushels that must be in the shed to justify a trip
+    "pickup_topup": True,      # may a hand already carrying wheat go back for more
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -831,9 +839,13 @@ def agent(obs, config=None):
         carried_fert = sum(iv.get("FERTILIZER", 0) for iv in invs if isinstance(iv, dict))
         for st in sheds:
             d = dist(pos, st)
-            if unfed > carried_wheat and unfed > wheat_held and shed.get("WHEAT", 0) > 0:
+            stock = int(shed.get("WHEAT", 0))
+            worth_the_walk = stock >= min(unfed, P["pickup_min"]) if unfed else stock > 0
+            may_top_up = P["pickup_topup"] or wheat_held <= 0
+            if (unfed > carried_wheat and unfed > wheat_held and stock > 0
+                    and worth_the_walk and may_top_up):
                 out.append((price("MILK") * 1.2 / (1 + P['dist_weight'] * d), st,
-                            ("PICKUP", "WHEAT", min(14, shed.get("WHEAT", 0)))))
+                            ("PICKUP", "WHEAT", min(14, stock))))
             if fert_targets > carried_fert and fert_held == 0 and shed.get("FERTILIZER", 0) > 0:
                 out.append((price("STRAWBERRY") * 1.5 / (1 + P['dist_weight'] * d), st,
                             ("PICKUP", "FERTILIZER", min(10, shed.get("FERTILIZER", 0)))))
