@@ -93,16 +93,25 @@ def record(agent_a, agent_b, seed, steps, a_side):
     order = [agent_a, agent_b] if a_side == 0 else [agent_b, agent_a]
     env = make("kaggriculture", configuration={"episodeSteps": steps, "seed": seed})
     env.run(order)
-    plan = []
-    for state in env.steps:
-        action = getattr(state[a_side], "action", None)
-        if not isinstance(action, dict):
-            action = {"farmer": ["PASS"], "hands": [], "market": []}
-        plan.append({
-            "farmer": list(action.get("farmer") or ["PASS"]),
-            "hands": [list(h) for h in (action.get("hands") or [])],
-            "market": [list(o) for o in (action.get("market") or [])],
-        })
+    # `env.steps[t][i].action` is the action that *produced* state t, so it was
+    # decided while looking at state t-1. Recording it at index t shifts the
+    # whole plan a turn late, and a turn late is fatal rather than merely
+    # worse: sowing lands after the seed is gone, watering after the day has
+    # rolled, and the farm earns nothing while the roster still gets hired --
+    # which is how a replay of a 78,083 season finished on exactly zero. The
+    # tell is that index 0 carries no action at all, because nothing preceded
+    # the initial state.
+    def as_action(state):
+        raw = getattr(state[a_side], "action", None)
+        if not isinstance(raw, dict):
+            return {"farmer": ["PASS"], "hands": [], "market": []}
+        return {"farmer": list(raw.get("farmer") or ["PASS"]),
+                "hands": [list(h) for h in (raw.get("hands") or [])],
+                "market": [list(o) for o in (raw.get("market") or [])]}
+
+    plan = [as_action(s) for s in env.steps[1:]]
+    # The final state's own action was never taken, so the last turn is idle.
+    plan.append({"farmer": ["PASS"], "hands": [], "market": []})
     money = float(env.steps[-1][a_side].reward or 0)
     return plan, money
 
