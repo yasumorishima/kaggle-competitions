@@ -112,6 +112,7 @@ P = {
     "melon_cap": 8,
     "animal_buy_last_day": 22,
     "animal_grace_day": 0,     # days on which the feed test is waived (0 = off; measured inert)
+    "herd_cap": 0,             # 0 = no ceiling; else max head the farm will own
     "animal_order": "fixed",   # "fixed" = MILK,EGG,WOOL; "roi" = payback per coin
     "plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 17,
                        "TOMATO": 21, "STRAWBERRY": 19},
@@ -686,6 +687,18 @@ def agent(obs, config=None):
     if day <= P["animal_buy_last_day"] and not liquidate:
         pending = shed_animals + carried_animals
         room = len(empty_tiles) + len(empty_struct) - pending
+        # A ceiling on the herd, because sizing it by demand/rate is circular.
+        # Measured off the two action lists: the top plan keeps twelve animals
+        # and spends 967 CARE actions on them -- about eighty visits per head
+        # in a season -- while this farm buys twenty-seven and spends 320,
+        # which is twelve each. The care bonus is exactly what lifts an animal
+        # from the 0.71 milk a real episode delivers to the table's 1.50, so
+        # believing the low rate buys more cattle, which spreads the same
+        # labour thinner, which keeps the rate low. Capping the herd is the
+        # only way to test whether the rate is a fact about the environment or
+        # a consequence of the herd's size.
+        if P["herd_cap"]:
+            room = min(room, P["herd_cap"] - herd - pending)
         # Buy in order of return on the coin, not in a fixed species order.
         # With a fixed MILK-EGG-WOOL order the opening spends itself out on
         # cattle (first yield day 8) and never reaches sheep (day 6, and wool is
