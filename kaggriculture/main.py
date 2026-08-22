@@ -221,6 +221,7 @@ P = {
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
     "stand_first": 0,          # 1 = a unit gets first refusal on its own tile
+    "care_repeat": 0,          # 1 = offer CARE again on an animal already cared today
     "drop_load": 6,            # carry this many items before a shed run is worth it
     "drop_urgency": 0.10,      # weight on the value carried when scoring that run
 }
@@ -839,7 +840,14 @@ def agent(obs, config=None):
                 if t["yield_units"] >= a["max_held"]:
                     val *= 2  # production is being thrown away while it sits full
                 out.append((val / (1 + P['dist_weight'] * d), (x, y), "HARVEST"))
-            if t.get("fed_today") and not t.get("cared_today"):
+            # The gate below caps care at one visit per animal per day, which
+            # bounds a twelve-head farm at 360 CARE actions in a season. The
+            # top plan issues 967 on twelve animals -- 2.7 per animal-day. So
+            # either the bonus accrues per visit and this gate throws most of
+            # it away, or two thirds of their labour is landing on an animal
+            # already cared for and costs them nothing. `care_repeat` is how
+            # that gets decided rather than argued.
+            if t.get("fed_today") and (P["care_repeat"] or not t.get("cared_today")):
                 # One care day = one extra unit on the next production.
                 out.append((unit_price * 0.9 / (1 + P['dist_weight'] * d), (x, y), "CARE"))
             if t.get("fertilizer_available"):

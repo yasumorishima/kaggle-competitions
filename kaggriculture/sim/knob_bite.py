@@ -137,6 +137,26 @@ def scenes():
                            "STRAWBERRY": 6},
                      hires_today=4))
 
+    # A herd that has already had its one visit today, with hands standing on
+    # it and nothing else pressing. Every other scene leaves `cared_today`
+    # false, so the gate that caps care at one visit per animal per day is
+    # never reached and any knob touching it reads as inert. The top plan
+    # issues 967 CARE actions on twelve animals -- 2.7 per animal-day, which
+    # that gate makes impossible -- so this is the scene that decides whether
+    # the extra visits are worth anything or are landing on an animal that has
+    # already been seen to.
+    tiles = blank_tiles()
+    for (x, y) in ((4, 4), (5, 4), (4, 5), (3, 4)):
+        # No standing yield: a harvest on the same tile is worth more than a
+        # second care visit, so leaving one there makes both settings pick
+        # HARVEST and the scene decides nothing.
+        tiles[y][x] = animal_tile("PASTURE", "COW", fed=True, cared=True,
+                                  yield_units=0)
+    out.append(scene("cared_herd", tiles=tiles, day=14, hour=10, money=3000.0,
+                     farmer=[4, 4], hands=[[5, 4], [4, 5], [3, 4], [2, 2]],
+                     shed={"WHEAT": 24, "FERTILIZER": 6, "MILK": 4},
+                     hires_today=4))
+
     # Somewhere to put an animal: stock waiting in the shed, empty tiles both
     # beside the shed and out at the rim, and the hands standing at the rim.
     tiles = blank_tiles()
