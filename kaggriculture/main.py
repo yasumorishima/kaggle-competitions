@@ -266,7 +266,21 @@ P = {
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
-    "stand_first": 0,          # 1 = a unit gets first refusal on its own tile
+    # 1 = a unit gets first refusal on its own tile. Turned on 2026-08-22 after
+    # the capital changed under it: at 27 animals this was +662, a tie, and it
+    # was shelved. With the calendar holding the herd at twelve it is
+    # +16,529 +/- 5,897 on seeds 6000-6007 and +11,683 +/- 6,829 on 7000-7013,
+    # both against the top published plan, both paired within the season.
+    #
+    # It is walking that it buys back. Counted off the two action lists, this
+    # farm spends 4,390 actions moving to their 2,855 and picks items up 425
+    # times to their 135, while doing *fewer* productive actions from a larger
+    # roster -- the hands were crossing the farm past work they could have done
+    # standing still.
+    #
+    # wheat_floor 16->4 measured +12,101 on its own and then vanished once this
+    # was on (+653): the same bottleneck reached by two roads, not two gains.
+    "stand_first": 1,
     "care_repeat": 0,          # 1 = offer CARE again on an animal already cared today
     "drop_load": 6,            # carry this many items before a shed run is worth it
     "drop_urgency": 0.10,      # weight on the value carried when scoring that run
