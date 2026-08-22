@@ -40,8 +40,24 @@ def play(job):
     final = env.steps[-1]
     money = [float(final[0].reward or 0), float(final[1].reward or 0)]
     ma, mb = money[a_side], money[1 - a_side]
+    # A side that errored or timed out scores a clean zero, which reads exactly
+    # like a farm that played badly. Carry the status and the first thing the
+    # environment logged, so a broken agent announces itself instead of being
+    # mistaken for a weak one.
+    status = [str(getattr(final[i], "status", "")) for i in (0, 1)]
+    err = ""
+    for entry in (getattr(env, "logs", None) or []):
+        for side in (entry if isinstance(entry, list) else [entry]):
+            text = str((side or {}).get("stderr", "") or "").strip()
+            if text:
+                err = text.splitlines()[-1][:200]
+                break
+        if err:
+            break
     return {"seed": seed, "a_side": a_side, "a": ma, "b": mb,
-            "delta": ma - mb, "secs": round(time.time() - t0, 1)}
+            "delta": ma - mb, "secs": round(time.time() - t0, 1),
+            "a_status": status[a_side], "b_status": status[1 - a_side],
+            "err": err}
 
 
 def mean_ci(xs):
@@ -98,7 +114,22 @@ def main():
         "winrate": round(wins / len(rows), 3) if rows else 0.0,
         "wall_s": round(wall, 1),
     }
+    bad = [r for r in rows if r.get("a_status") not in ("", "DONE", "ACTIVE")]
+    if bad:
+        summary["a_broken_games"] = len(bad)
+        summary["a_status"] = bad[0]["a_status"]
+        if bad[0].get("err"):
+            summary["a_err"] = bad[0]["err"]
     print("\nSUMMARY=" + json.dumps(summary), flush=True)
+    if bad:
+        # Do not let a dead agent be reported as a weak one: an agent the
+        # environment stopped scores zero, which is indistinguishable from a
+        # farm that simply earned nothing.
+        print(f"AGENT_BROKEN a={args.a} status={bad[0]['a_status']} "
+              f"in {len(bad)}/{len(rows)} games "
+              f"{bad[0].get('err', '')}".strip(), flush=True)
+        print("VERDICT=A_BROKEN")
+        return 0
     # A delta whose CI still spans 0 is noise, not an improvement.
     verdict = "INCONCLUSIVE" if not (abs(dm) > dci) else ("A_BETTER" if dm > 0 else "B_BETTER")
     print("VERDICT=" + verdict)
