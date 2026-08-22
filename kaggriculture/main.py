@@ -181,6 +181,16 @@ P = {
     "build_shed_weight": 0.0,  # how hard a new coop/pasture is pulled shedward
     "plant_shed_weight": 0.0,  # ...and a new crop
     "finish_tile": 1.0,        # bonus for a job on the tile the unit is on
+    # The wage is fib(n) for the n-th hire of a day, so the roster is cheap
+    # until it is suddenly not: three hands cost $4 a day, eight cost $54, and
+    # twelve cost $376. Sizing the roster to the work available puts twelve
+    # hands on the farm from day 2, which is $3,008 over days 2-9 -- while the
+    # top public plan spends $123 across the same stretch by hiring
+    # 5,1,2,3,4,3,4,7,6,7 and only reaching fourteen on day 10 once its melons
+    # and wool are selling. The difference is seven cows, and it is spent in
+    # exactly the days this farm is measured sitting at $2 unable to buy one.
+    "hands_cap_by_day": (),    # ((until_day, cap), ...) applied before max_hands
+    "hands_cash_floor": 0,     # below this, hire only hands_min
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -571,6 +581,12 @@ def agent(obs, config=None):
         want = max(P["hands_min"], min(P["max_hands"], -(-jobs_today // P["jobs_per_hand"])))
         if day < 2:
             want = min(want, P["hands_early"])
+        for until_day, cap in P["hands_cap_by_day"]:
+            if day <= until_day:
+                want = max(P["hands_min"], min(want, cap))
+                break
+        if P["hands_cash_floor"] and money < P["hands_cash_floor"]:
+            want = min(want, P["hands_min"])
         room = max(0, want - hires_today)
         for _ in range(min(room, 5)):
             hire_orders.append(["HIRE"])

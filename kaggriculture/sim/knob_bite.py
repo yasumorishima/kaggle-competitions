@@ -190,6 +190,22 @@ def scenes():
                      quads=["NW", "NE", "SW"], farmer=[4, 4],
                      hands=[[0, 2], [6, 1], [2, 6]],
                      shed={"WHEAT": 18, "FERTILIZER": 8}, hires_today=3))
+
+    # Dawn, with plenty of work and almost no money: hiring is only offered in
+    # the first three hours of a day, so nothing above reaches it. This is the
+    # turn where the roster is sized, and the wage curve makes that the most
+    # expensive decision on the farm.
+    tiles = blank_tiles(("NW", "NE"))
+    for i in range(28):
+        x, y = (i % 10), (i // 10)
+        if y < 5:
+            tiles[y][x] = plant_tile("STRAWBERRY", day=3, yield_units=1)
+    for (x, y) in ((4, 4), (5, 4)):
+        tiles[y][x] = animal_tile("PASTURE", "COW", fed=False)
+    out.append(scene("dawn_broke", tiles=tiles, day=6, hour=1, money=400.0,
+                     quads=["NW", "NE"], farmer=[4, 4],
+                     hands=[[4, 5], [1, 1]],
+                     shed={"WHEAT": 6, "FERTILIZER": 2}, hires_today=8))
     return out
 
 
