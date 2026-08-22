@@ -34,7 +34,11 @@ from optimize import objective, summarise       # noqa: E402
 SPECIES = sched_mod.SPECIES
 DAYS = sched_mod.DAYS
 MAX_HANDS = 20
-MAX_LAND = 4
+# Three, not four: main.py refuses the fourth quadrant (P["max_quadrants"]),
+# so a calendar asking for it would quietly behave as three and the search
+# would spend its moves on a state it can never reach. Four was swept under
+# the old land gate and came back 6,233 worse.
+MAX_LAND = 3
 
 
 # --------------------------------------------------------------------------
