@@ -191,6 +191,31 @@ P = {
     # exactly the days this farm is measured sitting at $2 unable to buy one.
     "hands_cap_by_day": (),    # ((until_day, cap), ...) applied before max_hands
     "hands_cash_floor": 0,     # below this, hire only hands_min
+    # Late in the season the good crops stop being plantable -- strawberry by
+    # day 19, melon by 17 -- and every tile they vacate stands empty for the
+    # rest of the run. Wheat is the only thing that still finishes: sown, it
+    # yields on day 2 and tops out on day 4. The top public plan turns its farm
+    # over to it, going 24 -> 56 wheat tiles across days 21-27 and selling 309
+    # bushels for $11,364 against this farm's 192 for $7,013. Off by default.
+    "wheat_fill_from_day": 99,
+    # The one difference that measurement actually found. Same物差し on both
+    # plans: this farm does 1.33 jobs every time it stops and walks 2.53 steps
+    # to the next one; the top public plan does 2.07 and walks 1.99. The farms
+    # are laid out alike -- 51% of this one's work happens within two tiles of
+    # the shed against 55% of theirs -- so it is not siting. It is that a unit
+    # here is drawn to the single best job, and the single best job is usually
+    # alone on its tile. An animal is worth three visits a day (feed, care,
+    # collect) and a watered plant one, so a tile's pull should be what is
+    # waiting there in total, not just its best item.
+    "bundle_weight": 0.0,      # weight on the other jobs waiting on a tile
+    # A crop past its last sowing day still takes budget in the plan, and
+    # strawberry is taken last with `budget` itself as its cap -- so from day 20
+    # the whole spare farm is allotted to a crop that can no longer be sown,
+    # `pick_crop` skips it for being out of season, and the tiles stay bare.
+    # The measured season ends with 42 of 100 tiles empty or under weed. With
+    # this on, a crop that cannot be sown is planned only for what is already
+    # in the ground, and the budget flows past it.
+    "respect_last_sow_day": False,
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
@@ -459,6 +484,9 @@ def agent(obs, config=None):
 
     def take(item, want):
         nonlocal budget
+        if (P["respect_last_sow_day"] and item in P["plant_last_day"]
+                and day > P["plant_last_day"][item]):
+            want = min(want, mine.get(item, 0))
         want = max(0, min(int(want), budget))
         target[item] = want
         budget -= want
@@ -479,6 +507,15 @@ def agent(obs, config=None):
     take("CARROT", min(market_cap("CARROT"), P["carrot_cap"]) if "PET_CAFE" in shops else 0)
     take("MELON", min(market_cap("MELON"), P["melon_cap"]))
     take("STRAWBERRY", min(market_cap("STRAWBERRY"), budget))
+    # Wheat as the closing crop, not as feed: this is a different question from
+    # `fill_idle`, which ranks every crop by revenue per tile-day and late in
+    # the season picks whatever is nominally dearest even though it can no
+    # longer ripen. Here the only claim is that a tile which cannot grow
+    # anything else should grow wheat.
+    if (budget > 0 and day >= P["wheat_fill_from_day"]
+            and day <= P["plant_last_day"]["WHEAT"]):
+        target["WHEAT"] = target.get("WHEAT", 0) + budget
+        budget = 0
     # Idle land is not neutral, it is a loss: the season is fixed, weeds seed
     # themselves onto empty tiles, and every tile the hands walk past is one
     # they walked further for. `market_cap` is a ceiling on *supply*, but the
@@ -895,6 +932,17 @@ def agent(obs, config=None):
                 worth = sum(price(k) * v for k, v in inv.items()
                             if k in MARKET_PARAMS and isinstance(v, int))
                 out.append((worth * P["drop_urgency"] / (1 + P['dist_weight'] * d), st, "DROP"))
+
+        if P["bundle_weight"] and out:
+            # Credit each candidate with what else is waiting where it stands.
+            # The unit that walks there will still be there next turn, so the
+            # rest of that tile's queue costs it no steps at all -- which is
+            # exactly the difference between 1.33 jobs per arrival and 2.07.
+            by_tile = {}
+            for value, tile, _op in out:
+                by_tile[tile] = by_tile.get(tile, 0.0) + value
+            out = [(value + P["bundle_weight"] * (by_tile[tile] - value), tile, op)
+                   for value, tile, op in out]
         return out
 
     def resolve(pos, target_tile, op):

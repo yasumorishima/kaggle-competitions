@@ -206,6 +206,22 @@ def scenes():
                      quads=["NW", "NE"], farmer=[4, 4],
                      hands=[[4, 5], [1, 1]],
                      shed={"WHEAT": 6, "FERTILIZER": 2}, hires_today=8))
+
+    # Day 23: strawberry, melon and tomato are all past their last sowing day,
+    # the feed target is already met, and a third of the farm is bare. Either
+    # those tiles grow wheat or they grow nothing for the rest of the season.
+    tiles = blank_tiles(("NW", "NE", "SW"))
+    for i in range(20):
+        tiles[i // 10][i % 10] = plant_tile("WHEAT", day=21, yield_units=1)
+    for (x, y) in ((4, 4), (5, 4), (3, 4), (4, 3)):
+        tiles[y][x] = animal_tile("PASTURE", "COW", fed=True, yield_units=2)
+    out.append(scene("closing", tiles=tiles, day=23, hour=5, money=12000.0,
+                     quads=["NW", "NE", "SW"], farmer=[2, 3],
+                     hands=[[4, 4], [0, 6], [7, 1]],
+                     seeds={"WHEAT": 6, "STRAWBERRY": 0, "MELON": 0,
+                            "TOMATO": 0, "CARROT": 0},
+                     shed={"WHEAT": 40, "FERTILIZER": 12, "MILK": 8},
+                     hires_today=3))
     return out
 
 
