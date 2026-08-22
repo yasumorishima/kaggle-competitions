@@ -1,0 +1,204 @@
+name: Kaggriculture Schedule
+
+# Hill-climb the capital calendar -- what the farm owns, day by day -- and let
+# main.py's policy keep the field work.
+#
+# This exists because the sibling workflow's genome did not transfer. Climbing
+# the 720-step action list for four hours moved the training win count from 7
+# to 8 out of 12 while the held-out count sat at 1 the entire run, and the
+# result lost 24 games out of 24 to the live agent. A recorded list is welded
+# to the season it was recorded in: most of what it stores is which tile
+# happened to need water at hour 9.
+#
+# What is not welded to the season is the capital, and the capital is the whole
+# measured difference between this farm and a strong published one: 12 animals
+# against 27, care delivered on 100% of animal-days against 62%, 1,010
+# waterings against 595, wheat net +290 against net -55, quadrants bought on
+# days 6 and 10 against day 8 alone. "Carry eight cows and buy the second
+# quadrant on day 6" is as true of the next season as of this one.
+#
+# Results go to the `kaggriculture-schedules` branch. Deliberately not the
+# `kaggriculture-plans` branch: that one is rewritten as a single orphan commit
+# each run, so sharing it would have the two searches delete each other.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      minutes:
+        description: 'Climb budget in minutes (job cap is 350)'
+        required: false
+        default: '240'
+        type: string
+      resume:
+        description: 'Continue from the calendar on the schedules branch'
+        required: false
+        default: true
+        type: boolean
+      seeds:
+        description: 'Training seeds (comma separated)'
+        required: false
+        default: '3000,3001,3002,3003,3004,3005'
+        type: string
+      holdout:
+        description: 'Held-out seeds, never optimised against'
+        required: false
+        default: '3100,3101,3102,3103,3104,3105'
+        type: string
+      opponent:
+        description: 'Opponent to score against. Must be v16 or stronger -- `wins` is degenerate against `starter`, which loses to everything'
+        required: false
+        default: 'main.py'
+        type: string
+      objective:
+        description: 'wins | mean | min'
+        required: false
+        default: 'wins'
+        type: string
+      lam:
+        description: 'Candidates per generation'
+        required: false
+        default: '4'
+        type: string
+      ops:
+        description: 'Edits per candidate'
+        required: false
+        default: '2'
+        type: string
+      start:
+        description: 'Starting calendars, comma separated, relative to kaggriculture/'
+        required: false
+        default: 'schedules/blueprint.json,schedules/ours.json'
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kaggriculture-schedule
+  cancel-in-progress: false
+
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install kaggle-environments
+        run: pip install -U kaggle-environments
+
+      - name: Calendar invariants
+        # An operator that cannot fire, or one whose edit a repair pass quietly
+        # undoes, would burn the whole climb without saying so. Four of the
+        # seven were exactly that when first written: the cumulative columns
+        # may not fall, so every decrease was being put back.
+        run: python sim/test_sched_ops.py
+
+      - name: Does the calendar bite
+        # The three hooks sit inside main.py's purchase logic. If one of them
+        # silently failed to reach the orders, nothing would crash -- the climb
+        # would simply spend four hours accepting mutations on season noise.
+        run: python sim/sched_bite.py
+
+      - name: Fetch the schedules branch
+        id: sched
+        working-directory: .
+        run: |
+          set -e
+          mkdir -p schedules
+          if git fetch --depth=1 origin kaggriculture-schedules 2>/dev/null; then
+            git show FETCH_HEAD:schedules/best.json > schedules/best.json 2>/dev/null \
+              || rm -f schedules/best.json
+            tail -3 schedules/climb.txt 2>/dev/null || true
+          else
+            echo "no schedules branch yet"
+          fi
+          if [ -s schedules/best.json ] && [ "${{ inputs.resume }}" = "true" ]; then
+            echo "start=../schedules/best.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "start=${{ inputs.start }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check that scoring is deterministic
+        # The whole design rests on this. If the same calendar does not score
+        # the same money twice, every accept below is measuring the season
+        # rather than the edit, and the climb is a random walk. Unlike a replay
+        # the policy is live here, so this is a real question, not a formality.
+        run: |
+          set -e
+          python sim/optimize_schedule.py --sched "${{ steps.sched.outputs.start }}" \
+            --selftest --seeds "${{ inputs.seeds }}" \
+            --opponent "${{ inputs.opponent }}" | tee /tmp/selftest.log
+          grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
+
+      - name: Climb
+        run: |
+          set -e
+          python sim/optimize_schedule.py \
+            --sched "${{ steps.sched.outputs.start }}" \
+            --out ../schedules/best.json \
+            --opponent "${{ inputs.opponent }}" \
+            --objective "${{ inputs.objective }}" \
+            --seeds "${{ inputs.seeds }}" \
+            --holdout "${{ inputs.holdout }}" \
+            --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
+            --minutes "${{ inputs.minutes }}" \
+            --workers "$(nproc)" | tee /tmp/climb.log
+
+      - name: Score the result against the live agent
+        # The climb's own number is measured on its training seeds. What decides
+        # whether this is worth submitting is a paired-seed match against the
+        # agent currently on the leaderboard, on seeds neither was tuned on.
+        if: always()
+        run: |
+          set -e
+          [ -s ../schedules/best.json ] || exit 0
+          python sim/emit_sched.py ../schedules/best.json \
+            --note "run ${{ github.run_number }}: ${{ inputs.memo }}" \
+            --out agents/sched_agent_build.py
+          python sim/evaluate.py --a agents/sched_agent_build.py --b main.py \
+            --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/head2head.log
+
+      - name: Commit the calendar
+        if: always()
+        working-directory: .
+        run: |
+          set -e
+          [ -s schedules/best.json ] || exit 0
+          grep -E '^(CANDIDATE|CHOSE|GEN|HOLDOUT|SUMMARY=)' /tmp/climb.log > schedules/climb.txt || true
+          grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log >> schedules/climb.txt 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan schedules-tmp
+          git reset
+          git add -f schedules/best.json schedules/climb.txt
+          git commit -q -m "kaggriculture: calendar after run ${{ github.run_number }} (${{ inputs.memo }})"
+          git push -f origin schedules-tmp:kaggriculture-schedules
+
+      - name: Job summary
+        if: always()
+        working-directory: .
+        run: |
+          {
+            echo "### Kaggriculture schedule"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            grep -E '^(CANDIDATE|CHOSE|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
+            echo ""
+            echo "-- vs the live agent --"
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

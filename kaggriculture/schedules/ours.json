@@ -1,0 +1,121 @@
+{
+ "0": {
+  "COW": 4,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 4,
+  "land": 1
+ },
+ "10": {
+  "COW": 5,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 10,
+  "land": 2
+ },
+ "11": {
+  "COW": 6,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 12,
+  "land": 2
+ },
+ "12": {
+  "COW": 8,
+  "GOOSE": 4,
+  "SHEEP": 0,
+  "hands": 12,
+  "land": 3
+ },
+ "13": {
+  "COW": 8,
+  "GOOSE": 5,
+  "SHEEP": 0,
+  "hands": 11,
+  "land": 3
+ },
+ "14": {
+  "COW": 8,
+  "GOOSE": 5,
+  "SHEEP": 3,
+  "hands": 12,
+  "land": 3
+ },
+ "15": {
+  "COW": 9,
+  "GOOSE": 5,
+  "SHEEP": 3,
+  "hands": 12,
+  "land": 3
+ },
+ "16": {
+  "COW": 11,
+  "GOOSE": 5,
+  "SHEEP": 3,
+  "hands": 12,
+  "land": 3
+ },
+ "17": {
+  "COW": 11,
+  "GOOSE": 5,
+  "SHEEP": 5,
+  "hands": 12,
+  "land": 3
+ },
+ "18": {
+  "COW": 12,
+  "GOOSE": 6,
+  "SHEEP": 5,
+  "hands": 12,
+  "land": 3
+ },
+ "19": {
+  "COW": 12,
+  "GOOSE": 7,
+  "SHEEP": 5,
+  "hands": 12,
+  "land": 3
+ },
+ "2": {
+  "COW": 4,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 6,
+  "land": 1
+ },
+ "20": {
+  "COW": 12,
+  "GOOSE": 9,
+  "SHEEP": 6,
+  "hands": 12,
+  "land": 3
+ },
+ "29": {
+  "COW": 12,
+  "GOOSE": 9,
+  "SHEEP": 6,
+  "hands": 0,
+  "land": 3
+ },
+ "3": {
+  "COW": 4,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 7,
+  "land": 1
+ },
+ "8": {
+  "COW": 5,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 8,
+  "land": 2
+ },
+ "9": {
+  "COW": 5,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 11,
+  "land": 2
+ }
+}

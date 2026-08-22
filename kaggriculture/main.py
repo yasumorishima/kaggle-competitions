@@ -68,6 +68,47 @@ LAND_PRICES = [1000, 2000, 4000]
 # assignments can persist between calls.
 _MEM = {}
 
+# A capital schedule, or None for the policy's own judgement. Set by
+# sim/sched_agent.py and left alone everywhere else.
+#
+# Recording this agent and hill-climbing the resulting 720-step list did not
+# transfer: the same list earned 60k on the seeds it was climbed on and 25k on
+# held-out ones, while a published list scored 156k and 171k on the same two
+# sets. A recording of a reactive policy is welded to its own season, because
+# most of what it stores is which tile happened to need water at hour 9.
+#
+# What is not welded to the season is the capital: how many hands to carry,
+# how big a herd, when to buy the second quadrant. Those are the whole measured
+# difference between the two farms -- 12 animals against 27, land on days 6 and
+# 10 against day 8 alone, 1,010 waterings against 595 -- and they are decisions
+# a calendar can hold. So the calendar is what gets searched, and the policy
+# keeps the field work it is already good at.
+#
+# Format: {"<day>": {"hands": n, "COW": n, "SHEEP": n, "GOOSE": n, "land": n}}.
+# Entries are cumulative targets that hold until the next entry, and any key
+# left out falls through to the policy. A target is a target, not an order: the
+# farm still has to afford it and still has to have somewhere to put it.
+SCHEDULE = None
+
+
+def _sched_for(day):
+    """The schedule entry in force on `day`, or None."""
+    if not SCHEDULE:
+        return None
+    live = None
+    for key in sorted(SCHEDULE, key=lambda k: int(k)):
+        if int(key) <= day:
+            live = SCHEDULE[key]
+    return live
+
+
+def _species(tile):
+    """Which animal stands on a tile, tolerating either shape of the field."""
+    a = tile.get("animal")
+    if isinstance(a, dict):
+        a = a.get("kind") or a.get("type") or a.get("species")
+    return str(a) if a else ""
+
 # Units per tile per day. Crops carry their *measured* rate, which fertilizer
 # lifts above the unfertilized table value; livestock keeps the table rate even
 # though real episodes deliver 0.71-0.76 milk against the table's 1.50. That
@@ -627,6 +668,9 @@ def agent(obs, config=None):
                 break
         if P["hands_cash_floor"] and money < P["hands_cash_floor"]:
             want = min(want, P["hands_min"])
+        sched = _sched_for(day)
+        if sched and sched.get('hands') is not None:
+            want = max(P['hands_min'], int(sched['hands']))
         room = max(0, want - hires_today)
         for _ in range(min(room, 5)):
             hire_orders.append(["HIRE"])
@@ -635,7 +679,15 @@ def agent(obs, config=None):
     extra = len(unlocked) - 1
     saving_for_land = 0.0
     if extra < min(len(LAND_PRICES), P["max_quadrants"] - 1) and not liquidate:
-        min_day, min_money = P["land_gate"][extra]
+        sched = _sched_for(day)
+        if sched and sched.get('land') is not None:
+            # The calendar has decided; the gate is what it replaces.
+            if len(unlocked) < int(sched['land']) and money >= LAND_PRICES[extra]:
+                buy_orders.append(["BUY_LAND"])
+                money -= LAND_PRICES[extra]
+            min_day, min_money = 99, 10 ** 9
+        else:
+            min_day, min_money = P["land_gate"][extra]
         if day >= min_day and money >= min_money and tiles_used > 0.55 * tiles_owned:
             buy_orders.append(["BUY_LAND"])
             money -= LAND_PRICES[extra]
@@ -699,7 +751,7 @@ def agent(obs, config=None):
         # labour thinner, which keeps the rate low. Capping the herd is the
         # only way to test whether the rate is a fact about the environment or
         # a consequence of the herd's size.
-        if P["herd_cap"]:
+        if P["herd_cap"] and not _sched_for(day):
             room = min(room, P["herd_cap"] - herd - pending)
         # Buy in order of return on the coin, not in a fixed species order.
         # With a fixed MILK-EGG-WOOL order the opening spends itself out on
@@ -722,14 +774,24 @@ def agent(obs, config=None):
             order = sorted(("MILK", "EGG", "WOOL"), key=roi, reverse=True)
         else:
             order = ("MILK", "EGG", "WOOL")
+        sched = _sched_for(day)
         for item in order:
             a = PRODUCER[item]
-            need = deficit(item) - pending
+            # A scheduled head count replaces the demand estimate, and the
+            # guards that protect the estimate go with it: whether the herd
+            # pays for itself is the question the search is asking, so the
+            # policy must not answer it here and refuse to buy.
+            sched_forced = bool(sched and sched.get(a) is not None)
+            if sched_forced:
+                have = sum(1 for _x, _y, _t in animals if _species(_t) == a)
+                need = int(sched[a]) - have - int(shed.get(a, 0)) - pending
+            else:
+                need = deficit(item) - pending
             if need <= 0 or room <= 0:
                 continue
             cost = ANIMALS[a]["cost"]
             payback = price(item) * RATE[item] * max(0, days_left - ANIMALS[a]["first_yield_day"])
-            if payback < cost * 1.2:
+            if payback < cost * 1.2 and not sched_forced:
                 continue
             # Each extra head eats one wheat a day; buying that on the market
             # costs more than the animal earns once the price climbs.
@@ -743,7 +805,7 @@ def agent(obs, config=None):
             # ran 153 animal-days to their 312. In the first days wheat is still
             # near base and the first yield is days away, so the feed test only
             # delays the herd.
-            grace = day <= P["animal_grace_day"]
+            grace = day <= P["animal_grace_day"] or sched_forced
             if headroom <= 0 and wheat_px > 32 and not can_buy_feed and not grace:
                 continue
             k = 0
