@@ -488,7 +488,7 @@ def main():
     ap.add_argument("--opponent", default="starter")
     ap.add_argument("--seeds", default="3000,3001", help="training seeds")
     ap.add_argument("--holdout", default="3100,3101,3102,3103")
-    ap.add_argument("--sides", default="0", help="seats to score, e.g. 0,1")
+    ap.add_argument("--sides", default="0,1", help="seats to score, e.g. 0,1")
     ap.add_argument("--steps", type=int, default=720)
     ap.add_argument("--repair", default="dig", choices=("dig", "none"))
     ap.add_argument("--objective", default="wins", choices=("wins", "mean", "min"),
