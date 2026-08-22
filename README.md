@@ -167,6 +167,41 @@ gh workflow run "EXP to Kaggle Submit" \
 
 ## 🏆 Competition Results
 
+### Kaggriculture (Active)
+
+**Competition:** [Kaggriculture](https://www.kaggle.com/competitions/kaggriculture) | **Deadline:** 2026-09-30 | **Prize:** $50,000 | **Metric:** ladder rating
+
+Two players run neighbouring farms for 30 days of 24 turns, buying land, hiring hands, sowing, tending livestock and selling into a shared market. No GPU is involved, so a whole season simulates in 3–4 seconds and the bottleneck is experiment design rather than compute. Code lives in [`kaggriculture/`](kaggriculture); every episode runs in GitHub Actions (`Kaggriculture Eval` / `Analyze` / `Sweep` / `Record`), never locally.
+
+**The score is a rating, not money.** Downloading the leaderboard shows the field spans −129 to 3,172, so an agent's own final cash says nothing about where it stands; only paired head-to-head play does.
+
+#### What the environment actually pays for (read off the published environment source, then confirmed in play)
+
+- **The town's drain rate is exactly computable.** Each unlocked shop instance consumes 1 unit of each product it wants every 4 turns (2× for single-product shops), plus 1 of everything per day from the town centre. Demand outruns what one farm can grow, so the live regime is scarcity: over a measured season strawberry averaged $222 against a $120 base and milk $290 against $160, and prices *rose* all season. Only genuinely oversupplied goods crash.
+- **The published per-tile rates are what perfect husbandry pays, not a typical yield.** A cow's care bonus accumulates and is released on its production day, so a fed-and-cared cow yields 3 milk per 2 days — exactly the tabular 1.50 — while an uncared one yields 0.50. Sheep and geese work out the same way. Measured yields of 0.71–0.76 are husbandry completeness, not a hidden penalty.
+- **Labour is priced on a Fibonacci curve.** The n-th hire of a day costs `fib(n)`: three hands cost $4 a day, eight cost $54, twelve cost $376 and fourteen cost $986. Twelve is the knee, and hands cannot be substituted for land.
+- **Two bugs found by putting our own action breakdown beside a strong opponent's.** `PLANT` is validated atomically — if the turn's requests for a crop exceed the seeds held, the environment drops *every* request for that crop, so a dozen hands aiming at one seed sowed nothing at all (894 `PLANT` actions against 243 harvests). And `SELL` draws only from the shed, so produce still in a hand's pack cannot be sold; shed runs had to be scheduled explicitly. Fixing both took the agent from 28,170 to 40,796 against the same opponent.
+
+#### Measuring instead of guessing (`kaggriculture/sim/`)
+
+| Tool | What it answers |
+|---|---|
+| `evaluate.py` | Paired-seed head-to-head — every seed played twice with sides swapped, so the season draw cancels. Reports the delta's 95% CI, and refuses to score a side the environment stopped |
+| `sweep.py` | Many settings over one identical seed list, each compared with the reference **within** the same season draw. A change is adopted only when that paired CI clears 0 |
+| `knob_bite.py` | Before spending a sweep: does this setting change what the agent returns, on eight representative boards? |
+| `record.py` | Records an episode as an action list and emits an agent that replays it — plus the plan's own labour density |
+| `route_shape.py` / `layout.py` | How many jobs a plan does per stop and how far it walks between them; and, by integrating spawns and moves, which tiles it works |
+| `analyze.py` | One episode broken down: daily cash, farm composition, per-product sale prices, action mix, husbandry rates |
+
+#### Findings
+
+- **A season's variance dwarfs the effects being chased, so unpaired means are useless here.** The sweep originally reported each variant's own spread; switching to a within-seed paired comparison is what made a ±2,000 effect readable at all. Two changes that topped a sweep (+5,364) failed to replicate on fresh seeds (+2,353 ± 4,346) and were dropped.
+- **Bundling knobs hides good changes inside bad ones.** A three-part opening change measured −4,971 and was nearly discarded; split apart, it was +17,928 and −3,399 mixed together.
+- **A knob that does nothing looks exactly like a knob that does nothing useful.** Four settings came back from 40-game sweeps with a delta of precisely zero — the same actions every step. `knob_bite.py` now catches that in a second, and immediately found that one weight was inert at 1.0 because it cancelled the distance discount exactly, only biting from 3.0.
+- **A dead agent looks exactly like a weak one.** A replay scoring precisely $0 with the opponent's score identical to the decimal across every game is not a bad farm; it is an agent the environment stopped. Two separate causes hid behind that signature — and the second was an off-by-one: `env.steps[t].action` is the action that *produced* state t, so recording it at index t replays every action one turn late, which is fatal rather than merely worse.
+- **The strongest published agents are not policies at all.** They ship a fixed 720-step action list, compressed into the notebook, and replay it with a thin repair layer for the weeds and roster the season randomises. Decoding one gives its whole plan: where its animals sit, what it buys on each day, when it sells.
+- **Where the gap actually is.** Measured on both plans with the same instrument: this agent does 1.33 jobs each time it stops and walks 2.53 steps to the next; a strong published plan does 2.07 and walks 1.99. Farm layout is *not* the difference — 51% of this farm's work happens within two tiles of the shed against 55% of theirs. Eleven attempts to close it inside the reactive policy all came back tie-or-worse, and they agree on why: cutting the roster loses badly (labour is saturated and worth its wage), and freeing 42 idle tiles is worth +282 ± 462 (there were never spare hands to work them).
+
 ### ROGII - Wellbore Geology Prediction (Active)
 
 **Competition:** [ROGII - Wellbore Geology Prediction](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction) | **Deadline:** 2026-08-05 | **Prize:** $50,000 | **Metric:** RMSE
