@@ -142,7 +142,12 @@ def make_replay(plan, repair="dig"):
 
 
 def play(job):
-    """One episode. job = (plan, opponent, seed, steps, side, repair) -> money."""
+    """One episode. job = (plan, opponent, seed, steps, side, repair).
+
+    Returns both sides' money. The opponent's number is not decoration: the
+    leaderboard is a ladder rating, so what a season is worth is whether it was
+    won, and that cannot be read off one side alone.
+    """
     from kaggle_environments import make
 
     plan, opponent, seed, steps, side, repair = job
@@ -150,15 +155,45 @@ def play(job):
     order = [me, opponent] if side == 0 else [opponent, me]
     env = make("kaggriculture", configuration={"episodeSteps": steps, "seed": seed})
     env.run(order)
-    return float(env.steps[-1][side].reward or 0)
+    final = env.steps[-1]
+    return (float(final[side].reward or 0), float(final[1 - side].reward or 0))
 
 
-def score(pool, plan, opponent, seeds, sides, steps, repair):
+def objective(vals, kind):
+    """Turn a list of (mine, theirs) into the one number the climb maximises.
+
+    `wins` is the default because it is what the competition pays. A four-hour
+    climb on `mean` raised its own money 9% on the training seeds while its
+    win rate against the live agent sat at 0.542 and its average season was
+    10,000 behind -- it had learned to win narrowly and lose catastrophically,
+    which a mean punishes and a ladder does not. Wins first, margin only to
+    break ties between plans that win the same seasons.
+
+    `min` is the blunt instrument against overfitting: the same climb took one
+    held-out season from 74,696 to 6,538 and kept the change, because three
+    other seeds paid for it. A worst-case objective cannot make that trade.
+    """
+    if kind == "mean":
+        return sum(m for m, _t in vals) / len(vals)
+    if kind == "min":
+        return min(m for m, _t in vals)
+    wins = sum(1 for m, t in vals if m > t)
+    margin = sum(m - t for m, t in vals) / len(vals)
+    return wins + 1e-9 * margin
+
+
+def summarise(vals):
+    wins = sum(1 for m, t in vals if m > t)
+    return "%d/%d won, mine=%s theirs=%s" % (
+        wins, len(vals), [round(m) for m, _t in vals], [round(t) for _m, t in vals])
+
+
+def score(pool, plan, opponent, seeds, sides, steps, repair, kind="wins"):
     jobs = [(plan, opponent, s, steps, side, repair)
             for s in seeds for side in sides]
     mapper = pool.map if pool is not None else map
     vals = list(mapper(play, jobs))
-    return sum(vals) / len(vals), vals
+    return objective(vals, kind), vals
 
 
 # --------------------------------------------------------------------------
@@ -456,6 +491,9 @@ def main():
     ap.add_argument("--sides", default="0", help="seats to score, e.g. 0,1")
     ap.add_argument("--steps", type=int, default=720)
     ap.add_argument("--repair", default="dig", choices=("dig", "none"))
+    ap.add_argument("--objective", default="wins", choices=("wins", "mean", "min"),
+                    help="wins: games won, margin as tie-break (matches the "
+                         "ladder). mean: own money. min: worst season.")
     ap.add_argument("--lam", type=int, default=4, help="candidates per generation")
     ap.add_argument("--ops", type=int, default=6, help="edits per candidate")
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 2)
@@ -500,17 +538,18 @@ def main():
             for path in [p.strip() for p in args.plan.split(",") if p.strip()]:
                 cand = route_shape.load_plan(path)
                 s, vs = score(pool, cand, args.opponent, seeds, sides,
-                              args.steps, args.repair)
-                print("CANDIDATE %-28s score=%.0f values=%s"
-                      % (path, s, [round(v) for v in vs]), flush=True)
+                              args.steps, args.repair, args.objective)
+                print("CANDIDATE %-28s score=%.4f %s"
+                      % (path, s, summarise(vs)), flush=True)
                 if best is None or s > best[0]:
                     best = (s, cand, path)
             plan, chosen = best[1], best[2]
             print("CHOSE " + chosen, flush=True)
-        base, vals = score(pool, plan, args.opponent, seeds, sides, args.steps, args.repair)
+        base, vals = score(pool, plan, args.opponent, seeds, sides, args.steps,
+                           args.repair, args.objective)
         per = (time.time() - t0) / max(1, len(vals))
-        print("START score=%.0f per-episode=%.1fs values=%s"
-              % (base, per, [round(v) for v in vals]), flush=True)
+        print("START score=%.4f per-episode=%.1fs %s"
+              % (base, per, summarise(vals)), flush=True)
 
         if args.selftest:
             # If the same plan does not score the same money twice, every
@@ -518,20 +557,20 @@ def main():
             # and the whole design has to change. Cheap to check, fatal to
             # assume.
             again, vals2 = score(pool, plan, args.opponent, seeds, sides,
-                                 args.steps, args.repair)
-            ok = all(abs(a - b) < 1e-6 for a, b in zip(vals, vals2))
-            print("SELFTEST deterministic=%s first=%s second=%s"
-                  % (ok, [round(v) for v in vals], [round(v) for v in vals2]),
-                  flush=True)
+                                 args.steps, args.repair, args.objective)
+            ok = all(abs(a - b) < 1e-6 and abs(c - d) < 1e-6
+                     for (a, c), (b, d) in zip(vals, vals2))
+            print("SELFTEST deterministic=%s first=[%s] second=[%s]"
+                  % (ok, summarise(vals), summarise(vals2)), flush=True)
             print("VERDICT=" + ("DETERMINISTIC" if ok else "STOCHASTIC"))
             return 0
 
-        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
-        # The per-seed values, not just their mean: a plan that scores 78,000
-        # on one season and 29,000 on the next is not a 53,000 plan, and the
-        # mean is the one number that hides which of the two it is.
-        print("HOLDOUT gen=%d score=%.0f values=%s"
-              % (gen, hold, [round(v) for v in hvals]), flush=True)
+        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps,
+                            args.repair, args.objective)
+        # The per-seed values, not just their summary: a plan that scores 78,000
+        # on one season and 29,000 on the next is not a 53,000 plan, and one
+        # number is exactly what hides which of the two it is.
+        print("HOLDOUT gen=%d score=%.4f %s" % (gen, hold, summarise(hvals)), flush=True)
 
         deadline = time.time() + args.minutes * 60.0
         best_hold = hold
@@ -543,7 +582,7 @@ def main():
             mapper = pool.map if pool is not None else map
             flat = list(mapper(play, jobs))
             per_kid = len(seeds) * len(sides)
-            scores = [sum(flat[i * per_kid:(i + 1) * per_kid]) / per_kid
+            scores = [objective(flat[i * per_kid:(i + 1) * per_kid], args.objective)
                       for i in range(len(kids))]
 
             top = max(range(len(kids)), key=lambda i: scores[i])
@@ -557,21 +596,21 @@ def main():
 
             if scores[top] > base:
                 plan, base = kids[top][0], scores[top]
-                print("gen %d ACCEPT score=%.0f ops=%s"
+                print("gen %d ACCEPT score=%.4f ops=%s"
                       % (gen, base, "+".join(sorted(set(kids[top][1])))), flush=True)
                 with open(args.out, "w", encoding="utf-8") as f:
                     json.dump(plan, f)
             elif gen % 10 == 0:
-                print("gen %d score=%.0f best-child=%.0f (%.0f min left)"
+                print("gen %d score=%.4f best-child=%.4f (%.0f min left)"
                       % (gen, base, scores[top], (deadline - time.time()) / 60),
                       flush=True)
 
             if gen % args.confirm_every == 0:
                 hold, hvals = score(pool, plan, args.opponent, holdout, sides,
-                                    args.steps, args.repair)
+                                    args.steps, args.repair, args.objective)
                 best_hold = max(best_hold, hold)
-                print("HOLDOUT gen=%d score=%.0f train=%.0f values=%s"
-                      % (gen, hold, base, [round(v) for v in hvals]), flush=True)
+                print("HOLDOUT gen=%d score=%.4f train=%.4f %s"
+                      % (gen, hold, base, summarise(hvals)), flush=True)
 
             if args.checkpoint:
                 with open(args.checkpoint, "w", encoding="utf-8") as f:
@@ -580,17 +619,18 @@ def main():
 
         with open(args.out, "w", encoding="utf-8") as f:
             json.dump(plan, f)
-        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps, args.repair)
-        print("HOLDOUT gen=%d score=%.0f values=%s"
-              % (gen, hold, [round(v) for v in hvals]), flush=True)
+        hold, hvals = score(pool, plan, args.opponent, holdout, sides, args.steps,
+                            args.repair, args.objective)
+        print("HOLDOUT gen=%d score=%.4f %s" % (gen, hold, summarise(hvals)), flush=True)
         print("\nOPERATORS (tried/kept/mean gain when kept)", flush=True)
         for nm in sorted(stats, key=lambda k: -stats[k]["gain"]):
             s = stats[nm]
             avg = s["gain"] / s["kept"] if s["kept"] else 0.0
             print("  %-22s %5d %4d %+9.0f" % (nm, s["tried"], s["kept"], avg))
         print("\nSUMMARY=" + json.dumps({
-            "gen": gen, "train": round(base, 1), "holdout": round(hold, 1),
-            "best_holdout": round(best_hold, 1), "out": args.out,
+            "gen": gen, "train": round(base, 4), "holdout": round(hold, 4),
+            "best_holdout": round(best_hold, 4), "out": args.out,
+            "objective": args.objective,
             "seeds": seeds, "holdout_seeds": holdout, "repair": args.repair}),
             flush=True)
     finally:
