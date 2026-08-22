@@ -356,6 +356,56 @@ def op_market_drop(plan, rng):
     return "market_drop"
 
 
+def op_market_add(plan, rng):
+    """Copy an order the plan already places onto a step that has room.
+
+    Without this the order list can only ever shrink -- shift, resize and drop
+    all leave the count the same or smaller -- so the search is a ratchet that
+    can spend a herd but never buy one. The copied order is one the plan
+    already issues, so it stays an order the farm knows how to place.
+    """
+    steps = _market_steps(plan)
+    if not steps:
+        return None
+    src = rng.choice(steps)
+    order = list(rng.choice(plan[src]["market"]))
+    t = rng.randrange(0, len(plan))
+    dest = plan[t].setdefault("market", [])
+    if len(dest) >= MARKET_CAP:
+        return None
+    dest.append(order)
+    return "market_add/%s" % order[0]
+
+
+def op_market_retarget(plan, rng):
+    """Point an order at a different item of the same kind.
+
+    This is the one operator that can change the shape of the economy rather
+    than its timing: BUY_ANIMAL GOOSE becomes BUY_ANIMAL COW, and the season
+    that follows is a different farm. Everything else here retimes what the
+    plan already decided, which is why the herd could never move.
+
+    Items are only ever swapped for items the plan uses under the same verb, so
+    an order stays one the environment will accept.
+    """
+    vocab = {}
+    for action in plan:
+        for order in action.get("market") or []:
+            if len(order) >= 2 and isinstance(order[1], str):
+                vocab.setdefault(order[0], set()).add(order[1])
+    steps = [t for t in _market_steps(plan)
+             if any(len(o) >= 2 and len(vocab.get(o[0], ())) > 1
+                    for o in plan[t]["market"])]
+    if not steps:
+        return None
+    t = rng.choice(steps)
+    cands = [o for o in plan[t]["market"]
+             if len(o) >= 2 and len(vocab.get(o[0], ())) > 1]
+    order = rng.choice(cands)
+    order[1] = rng.choice(sorted(vocab[order[0]] - {order[1]}))
+    return "market_retarget/%s" % order[0]
+
+
 MUTATIONS = [
     (op_delay, 3),
     (op_advance, 4),
@@ -364,6 +414,8 @@ MUTATIONS = [
     (op_market_shift, 3),
     (op_market_qty, 2),
     (op_market_drop, 1),
+    (op_market_add, 3),
+    (op_market_retarget, 3),
 ]
 
 
