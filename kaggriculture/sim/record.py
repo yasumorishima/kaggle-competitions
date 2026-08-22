@@ -137,6 +137,51 @@ def describe(plan):
             f"market-orders={orders} first-active={first} last-active={last}")
 
 
+def shape(plan):
+    """The labour's density, in the same terms the published plans were read in.
+
+    Reported here so a recording says at once how it compares: the top public
+    plan does 2.07 jobs every time it stops, walks 1.99 steps between stops and
+    spends 43% of its actions walking, with its animals ringed one or two tiles
+    from the shed.
+    """
+    import statistics
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import route_shape
+    import layout
+
+    streams = route_shape.unit_streams(plan)
+    work, move = [], []
+    for ops in streams.values():
+        work += route_shape.runs(
+            ops, lambda o: o not in route_shape.MOVES and o not in route_shape.IDLE)
+        move += route_shape.runs(ops, lambda o: o in route_shape.MOVES)
+    total = sum(len(o) for o in streams.values())
+    moves = sum(1 for ops in streams.values() for o in ops if o in route_shape.MOVES)
+    idle = sum(1 for ops in streams.values() for o in ops if o in route_shape.IDLE)
+
+    access = set(layout.shed_access())
+    centre = (4.5, 4.5)
+    near, far = 0, 0
+    for _s, _i, pos, op, _a in layout.walk(plan):
+        if op in route_shape.MOVES or op in route_shape.IDLE:
+            continue
+        d = max(abs(pos[0] - centre[0]), abs(pos[1] - centre[1]))
+        if d <= 2.5 or pos in access:
+            near += 1
+        else:
+            far += 1
+
+    def mean(xs):
+        return statistics.mean(xs) if xs else float("nan")
+
+    worked = near + far
+    return (f"jobs-per-arrival={mean(work):.2f} steps-per-trip={mean(move):.2f} "
+            f"walking={100.0 * moves / max(1, total):.0f}% "
+            f"idle={100.0 * idle / max(1, total):.0f}% "
+            f"work-within-2-of-shed={100.0 * near / max(1, worked):.0f}%")
+
+
 def emit(plan, out_path):
     body = REPLAY_TEMPLATE.replace("__PLAN__", json.dumps(plan))
     with open(out_path, "w", encoding="utf-8") as f:
@@ -170,6 +215,7 @@ def main():
         json.dump(plan, f)
     print(f"RECORDED money={money:.0f} -> {args.out}")
     print("PLAN " + describe(plan))
+    print("SHAPE " + shape(plan))
     return 0
 
 
