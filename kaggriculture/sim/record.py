@@ -97,6 +97,27 @@ def record(agent_a, agent_b, seed, steps, a_side):
     return plan, money
 
 
+def describe(plan):
+    """What is actually in a recorded plan.
+
+    A replay that scores zero looks the same whether the recording came out
+    empty or the template is broken, and the two need opposite fixes. These
+    counts separate them: a plan whose every step is a bare PASS with no market
+    orders was never recorded, however many steps long it is.
+    """
+    filled = sum(1 for a in plan if (a.get("farmer") or ["PASS"])[0] != "PASS")
+    hands = sum(len(a.get("hands") or []) for a in plan)
+    orders = sum(len(a.get("market") or []) for a in plan)
+    first = next((i for i, a in enumerate(plan)
+                  if (a.get("farmer") or ["PASS"])[0] != "PASS"
+                  or (a.get("market") or [])), None)
+    last = next((len(plan) - 1 - i for i, a in enumerate(reversed(plan))
+                 if (a.get("farmer") or ["PASS"])[0] != "PASS"
+                 or (a.get("market") or [])), None)
+    return (f"steps={len(plan)} farmer-acting={filled} hand-slots={hands} "
+            f"market-orders={orders} first-active={first} last-active={last}")
+
+
 def emit(plan, out_path):
     body = REPLAY_TEMPLATE.replace("__PLAN__", json.dumps(plan))
     with open(out_path, "w", encoding="utf-8") as f:
@@ -128,7 +149,8 @@ def main():
         args.steps, args.side)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(plan, f)
-    print(f"RECORDED steps={len(plan)} money={money:.0f} -> {args.out}")
+    print(f"RECORDED money={money:.0f} -> {args.out}")
+    print("PLAN " + describe(plan))
     return 0
 
 
