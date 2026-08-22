@@ -1,0 +1,184 @@
+{
+ "0": {
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 5,
+  "land": 1
+ },
+ "1": {
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 1,
+  "land": 1
+ },
+ "10": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 14,
+  "land": 2
+ },
+ "11": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "12": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 9,
+  "land": 2
+ },
+ "13": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "14": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 9,
+  "land": 2
+ },
+ "15": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "16": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "17": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 2
+ },
+ "18": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "19": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 9,
+  "land": 2
+ },
+ "2": {
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 2,
+  "land": 1
+ },
+ "20": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "22": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 8,
+  "land": 2
+ },
+ "23": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 12,
+  "land": 2
+ },
+ "25": {
+  "COW": 11,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 12,
+  "land": 2
+ },
+ "27": {
+  "COW": 11,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "28": {
+  "COW": 11,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "3": {
+  "COW": 2,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "4": {
+  "COW": 4,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "5": {
+  "COW": 5,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 2
+ },
+ "6": {
+  "COW": 7,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 2
+ },
+ "7": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "8": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 6,
+  "land": 2
+ },
+ "9": {
+  "COW": 11,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ }
+}
