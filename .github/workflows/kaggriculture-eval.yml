@@ -91,8 +91,20 @@ jobs:
               echo "$1"
             fi
           }
-          echo "AGENT_A=$(resolve "${{ inputs.agent_a }}")" >> "$GITHUB_ENV"
-          echo "AGENT_B=$(resolve "${{ inputs.agent_b }}")" >> "$GITHUB_ENV"
+          # `exit 1` inside resolve() leaves the command substitution, not this
+          # script, so assigning straight into GITHUB_ENV wrote an empty value
+          # and the run carried on to report a meaningless result. Capture
+          # first, then check here, in the parent shell.
+          a=$(resolve "${{ inputs.agent_a }}") || true
+          b=$(resolve "${{ inputs.agent_b }}") || true
+          for pair in "agent_a:$a" "agent_b:$b"; do
+            if [ -z "${pair#*:}" ]; then
+              echo "could not resolve ${pair%%:*} -- the notebook carries no agent file" >&2
+              exit 1
+            fi
+          done
+          echo "AGENT_A=$a" >> "$GITHUB_ENV"
+          echo "AGENT_B=$b" >> "$GITHUB_ENV"
 
       - name: Evaluate
         run: |
