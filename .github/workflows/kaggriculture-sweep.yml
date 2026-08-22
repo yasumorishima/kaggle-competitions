@@ -15,6 +15,11 @@ on:
         description: 'JSON list, e.g. [{"name":"base","P":{}},{"name":"h16","P":{"max_hands":16}}]'
         required: true
         type: string
+      agent_a:
+        description: 'Agent to sweep on top of: a path under kaggriculture/. Use an emitted calendar agent to sweep the policy under the capital it actually runs'
+        required: false
+        default: 'main.py'
+        type: string
       agent_b:
         description: 'Opponent: builtin name or kernel:owner/slug'
         required: false
@@ -68,6 +73,7 @@ jobs:
           ${{ inputs.variants }}
           JSON
           python sim/sweep.py --variants /tmp/variants.json --b "$AGENT_B" \
+            --agent "${{ inputs.agent_a }}" \
             --episodes "${{ inputs.episodes }}" --seed0 "${{ inputs.seed0 }}" \
             --workers "$(nproc)" | tee /tmp/sweep.log
 
