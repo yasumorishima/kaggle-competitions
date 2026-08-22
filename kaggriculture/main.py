@@ -220,6 +220,7 @@ P = {
     "stickiness": 1.6,         # bonus for keeping a hand on the tile it set out for
     "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
+    "stand_first": 0,          # 1 = a unit gets first refusal on its own tile
     "drop_load": 6,            # carry this many items before a shed run is worth it
     "drop_urgency": 0.10,      # weight on the value carried when scoring that run
 }
@@ -1091,8 +1092,43 @@ def agent(obs, config=None):
     else:
         prev_assign = _MEM["assign"]
         new_assign = {}
+        # First refusal on the ground under your feet.
+        #
+        # A unit already standing on a tile is the cheapest possible worker for
+        # whatever is left there -- an animal wants feeding, then care, then its
+        # fertilizer collected, and none of that costs a step. But units are
+        # served in roster order and each one claims its tile, so the farmer and
+        # the low-numbered hands take the best tiles on the whole farm first,
+        # and a hand parked on a half-finished animal is told to walk away from
+        # it. `finish_tile` cannot reach this: it is a weight applied while a
+        # unit sorts its candidates, and a tile another unit has already claimed
+        # never becomes a candidate at all -- which is why raising it past 3.0
+        # changes nothing (measured with knob_bite: it bites at 1.5 and
+        # saturates at 3.0).
+        #
+        # Measured off the two action lists, this farm chains 1.49 jobs per
+        # arrival against the top plan's 2.07, and walks 60% of its actions
+        # against 43%.
+        prestaked = {}
+        if P["stand_first"]:
+            for i, pos in enumerate(units):
+                if not can_act(pos):
+                    continue
+                here = [c for c in jobs_for(pos, unit_inv(i)) if c[1] == pos]
+                if not here:
+                    continue
+                here.sort(key=lambda c: -c[0])
+                prestaked[i] = here[0]
+                if pos not in shed_here:
+                    claimed.add(pos)
+
         for i, pos in enumerate(units):
             cand = jobs_for(pos, unit_inv(i))
+            # The pre-pass claimed this unit's own tile, so jobs_for no longer
+            # offers it; hand it back, and let the ordinary sort (with
+            # finish_tile) decide whether standing still beats walking.
+            if i in prestaked:
+                cand = [prestaked[i]] + cand
             if not cand:
                 actions.append(["PASS"])
                 continue
