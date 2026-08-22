@@ -1,0 +1,110 @@
+name: Kaggriculture Record
+
+# Record one episode's action list from an agent, turn it into a replay agent,
+# and play the replay back against the same opponent. The point is the second
+# number: a replay that scores what the policy scored means the recording is
+# faithful, which is the precondition for optimising the plan itself. Every
+# strong published agent in this competition is such a replay.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      agent_a:
+        description: 'Agent to record (path under kaggriculture/, or kernel:owner/slug)'
+        required: false
+        default: 'main.py'
+        type: string
+      agent_b:
+        description: 'Opponent (path, builtin, or kernel:owner/slug)'
+        required: false
+        default: 'starter'
+        type: string
+      seed:
+        description: 'Seed to record on'
+        required: false
+        default: '3000'
+        type: string
+      check_seeds:
+        description: 'Seeds to replay the recording against (paired both sides)'
+        required: false
+        default: '6'
+        type: string
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install -U kaggle-environments
+
+      - name: Resolve agents
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          need_cli=""
+          for v in "${{ inputs.agent_a }}" "${{ inputs.agent_b }}"; do
+            if [ "${v#kernel:}" != "$v" ]; then need_cli=1; fi
+          done
+          if [ -n "$need_cli" ]; then
+            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+          fi
+          resolve() {
+            if [ "${1#kernel:}" != "$1" ]; then
+              ref="${1#kernel:}"
+              python sim/fetch_opponent.py --exec "$ref" >&2
+              out="opponents/${ref//\//__}.py"
+              if [ ! -s "$out" ]; then
+                echo "no agent file in notebook $ref" >&2
+                exit 1
+              fi
+              echo "$out"
+            else
+              echo "$1"
+            fi
+          }
+          echo "AGENT_A=$(resolve "${{ inputs.agent_a }}")" >> "$GITHUB_ENV"
+          echo "AGENT_B=$(resolve "${{ inputs.agent_b }}")" >> "$GITHUB_ENV"
+
+      - name: Record and emit
+        run: |
+          python sim/record.py --a "$AGENT_A" --b "$AGENT_B" \
+            --seed "${{ inputs.seed }}" --out /tmp/plan.json | tee /tmp/record.log
+          python sim/record.py --emit /tmp/plan.json --out replay_agent.py \
+            | tee -a /tmp/record.log
+
+      - name: Replay it back
+        run: |
+          python sim/evaluate.py --a replay_agent.py --b "$AGENT_B" \
+            --episodes "${{ inputs.check_seeds }}" --seed0 "${{ inputs.seed }}" \
+            --workers "$(nproc)" | tee /tmp/replay.log
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture record"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo "recorded on seed ${{ inputs.seed }}: \`$AGENT_A\` vs \`$AGENT_B\`"
+            echo ""
+            echo '```'
+            cat /tmp/record.log
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/replay.log || tail -5 /tmp/replay.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
