@@ -12,6 +12,7 @@ Run: python sim/test_sched_ops.py
 """
 import os
 import random
+import statistics
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -128,6 +129,47 @@ def ruler():
         check("a real edit survives both stages", got["accepted"],
               "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
         check("and it is the right child", opt.key_of(got["child"]) == real)
+
+        print("the screen prefers a tight edit to a volatile one")
+        # The volatile child reads three times better on the screen and is
+        # worth nothing; the tight child is worth +2,000 every episode. A
+        # plain argmax takes the volatile one, which is what the first climb
+        # under the new rule was seen doing -- screen +7,247, confirmed
+        # -8,965. Measured per operator, spread and harm go together here.
+        volatile, tight = opt.key_of(kids[0][0]), opt.key_of(kids[3][0])
+
+        # Half the screening seeds rich, half poor, so the volatile child's
+        # screen mean lands above the tight child's while its spread is an
+        # order of magnitude wider.
+        seen_seeds = sorted({seed for seed, _side in screen})
+        rich = set(seen_seeds[:len(seen_seeds) - 1])
+
+        def two_kinds(sched, seed):
+            k = opt.key_of(sched)
+            if k == volatile:
+                return 30000 if seed in rich else -40000
+            return 2000 if k == tight else 0
+
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             two_kinds)
+        arena = opt.Arena(None, "x", 721)
+        vals = {}
+        for name, key in (("volatile", volatile), ("tight", tight)):
+            cal = next(c for c, _a in kids if opt.key_of(c) == key)
+            d = [m - b for (m, _t), (b, _bt) in
+                 zip(arena.values(cal, screen), arena.values(BASE, screen))]
+            vals[name] = (statistics.fmean(d), opt.lower_bound(d))
+        check("the volatile child does read better on the mean",
+              vals["volatile"][0] > vals["tight"][0],
+              "volatile %+.0f vs tight %+.0f" % (vals["volatile"][0],
+                                                 vals["tight"][0]))
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        check("the pessimistic screen picks the tight one anyway",
+              opt.key_of(got["child"]) == tight,
+              "floors: volatile %+.0f tight %+.0f" % (vals["volatile"][1],
+                                                      vals["tight"][1]))
+        check("and it is accepted", got["accepted"],
+              "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
 
         print("nothing at all is not an improvement")
         opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,

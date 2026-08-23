@@ -173,20 +173,44 @@ def draw(rng, seed_pool, n_screen, n_confirm, sides):
     return screen, confirm
 
 
+def lower_bound(d):
+    """The mean, docked one standard error -- a pessimistic reading.
+
+    A plain argmax over a noisy screen does not pick the child with the best
+    mean, it picks the child with the widest spread: over twelve episodes a
+    volatile child has the better chance of topping the list by luck alone.
+    That would be a nuisance if spread and quality were unrelated here. They
+    are not. Measured one operator at a time (run 32668088485), the widest
+    edits are the destructive ones -- hands_scale swings 16,670 an episode to
+    average -4,761, land_count swings 7,418 to average -4,615 across three of
+    three children -- while what is worth having is tight: task_dial:PLANT_w
+    moved +1,841 with a spread of 2,512, which is t=+3.28 on twenty episodes.
+    So the plain screen was systematically handing the confirmation the worst
+    candidate of the four. Docking a standard error puts them back in order,
+    and costs nothing: the confirmation still decides.
+    """
+    mean = statistics.fmean(d)
+    if len(d) < 2:
+        return mean
+    return mean - statistics.stdev(d) / len(d) ** 0.5
+
+
 def race(arena, sched, children, screen, confirm, kind, z):
     """Screen, then confirm the survivor on episodes it was not chosen on."""
     base = per_episode(arena.values(sched, screen), kind)
     best = None
     for child, applied in children:
         got = per_episode(arena.values(child, screen), kind)
-        mean, _t, _n = paired_t(got, base)
-        if best is None or mean > best[0]:
-            best = (mean, child, applied)
-    seen, child, applied = best
+        d = [c - b for c, b in zip(got, base)]
+        rank = lower_bound(d)
+        if best is None or rank > best[0]:
+            best = (rank, child, applied, statistics.fmean(d))
+    seen, child, applied = best[3], best[1], best[2]
+    floor = best[0]
     got = per_episode(arena.values(child, confirm), kind)
     mean, t, _n = paired_t(got, per_episode(arena.values(sched, confirm), kind))
-    return dict(child=child, applied=applied, seen=seen, mean=mean, t=t,
-                accepted=(mean > 0 and t >= z))
+    return dict(child=child, applied=applied, seen=seen, floor=floor,
+                mean=mean, t=t, accepted=(mean > 0 and t >= z))
 
 
 # --------------------------------------------------------------------------
@@ -624,10 +648,11 @@ def main():
             # Every generation prints, accepted or not. A rejection is the
             # thing the old loop could not say, and the rate of them is how
             # you tell a working test from a broken one.
-            print("GEN %d %s screen=%+.1f confirm=%+.1f t=%+.2f ep=%d via %s"
+            print("GEN %d %s screen=%+.1f(floor%+.1f) confirm=%+.1f t=%+.2f"
+                  " ep=%d via %s"
                   % (gen, "ACCEPT" if got["accepted"] else "reject",
-                     got["seen"], got["mean"], got["t"], arena.played,
-                     ",".join(got["applied"]) or "-"), flush=True)
+                     got["seen"], got["floor"], got["mean"], got["t"],
+                     arena.played, ",".join(got["applied"]) or "-"), flush=True)
             arena.keep_only([sched, start])
         if gen % args.confirm_every == 0:
             hold, hvals = score(pool, sched, args.opponent, holdout, sides,

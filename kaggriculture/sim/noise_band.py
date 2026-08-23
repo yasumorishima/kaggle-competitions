@@ -92,7 +92,10 @@ def collect(args):
     rng = random.Random(args.seed)
     cals = [("parent", parent, [])]
     if args.per_op:
-        cals.extend(one_operator_each(parent, rng, args.children))
+        wanted = [o for o in opt.OPERATORS
+                  if not args.only or o.__name__[3:] in args.only]
+        assert wanted, "--only matched no operator"
+        cals.extend(one_operator_each(parent, rng, args.children, wanted))
     else:
         for i in range(args.children):
             child, applied = opt.mutate(parent, rng, args.ops)
@@ -130,7 +133,7 @@ def collect(args):
     }
 
 
-def one_operator_each(parent, rng, per_op):
+def one_operator_each(parent, rng, per_op, operators=None):
     """`per_op` children from each operator alone, so effects are attributable.
 
     The mixed sample says how a generation behaves; it cannot say which edit
@@ -144,7 +147,7 @@ def one_operator_each(parent, rng, per_op):
     child is recorded as a no-op -- which is itself the finding.
     """
     out = []
-    for op in opt.OPERATORS:
+    for op in operators:
         for i in range(per_op):
             child, applied = parent, []
             for _ in range(8):
@@ -357,6 +360,8 @@ def main():
     ap.add_argument("--opponent", default="main.py")
     ap.add_argument("--children", type=int, default=8,
                     help="per-op: how many children from each operator")
+    ap.add_argument("--only", default="",
+                    help="per-op: measure only these operators, comma separated")
     ap.add_argument("--per-op", action="store_true",
                     help="one operator per child, so effects are attributable")
     ap.add_argument("--ops", type=int, default=2)
@@ -375,6 +380,7 @@ def main():
     ap.add_argument("--zs", default="0,1,1.5")
     ap.add_argument("--trials", type=int, default=400)
     args = ap.parse_args()
+    args.only = [o.strip() for o in args.only.split(",") if o.strip()]
     args.confirms = [int(c) for c in args.confirms.split(",") if c.strip()]
     args.zs = [float(z) for z in args.zs.split(",") if z.strip()]
 
