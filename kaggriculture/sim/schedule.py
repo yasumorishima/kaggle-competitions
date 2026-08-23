@@ -44,7 +44,19 @@ SPECIES = ("COW", "SHEEP", "GOOSE")
 CROPS = ("WHEAT", "STRAWBERRY", "MELON", "TOMATO", "CARROT")
 CROP_KEYS = tuple(c + "_pct" for c in CROPS)
 MAX_PCT = 400
-KEYS = ("hands",) + SPECIES + ("land",) + CROP_KEYS
+# Labour dials: how much the day's hands should want each kind of work, as a
+# percentage of what the policy already wants. Same convention as the crop
+# dials -- 100 is current behaviour, an absent key is the same thing -- but
+# these are the other half of the calendar. Capital says what the farm owns;
+# these say what it does with the day. The capital family measured out to tie
+# or worse against the plan near the top of the ladder while the farm still
+# turns comparable capital into less than half the money, which puts the
+# remaining difference in the labour, not the balance sheet.
+TASKS = ("WATER", "HARVEST", "CARE", "FEED", "FERTILIZE",
+         "COLLECT_FERTILIZER", "PLANT", "DIG", "PLACE", "PICKUP",
+         "DROP", "BUILD_COOP", "BUILD_PASTURE")
+TASK_KEYS = tuple(t + "_w" for t in TASKS)
+KEYS = ("hands",) + SPECIES + ("land",) + CROP_KEYS + TASK_KEYS
 DAYS = 30
 
 
@@ -110,7 +122,7 @@ def validate(sched):
             assert value >= 0, "%s went negative on day %d" % (key, day)
         if "land" in row:
             assert 1 <= row["land"] <= 4, "land %d on day %d" % (row["land"], day)
-        for key in CROP_KEYS:
+        for key in CROP_KEYS + TASK_KEYS:
             if key in row:
                 assert 0 <= row[key] <= MAX_PCT,                     "%s is %d on day %d" % (key, row[key], day)
     # Cumulative targets may not fall: the farm cannot un-buy a quadrant, and a

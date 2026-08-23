@@ -82,7 +82,7 @@ def _tidy(rows):
         row["land"] = max(1, min(MAX_LAND, int(row.get("land", 1))))
         for s in SPECIES:
             row[s] = max(0, int(row.get(s, 0)))
-        for c in sched_mod.CROP_KEYS:
+        for c in sched_mod.CROP_KEYS + sched_mod.TASK_KEYS:
             if c in row:
                 row[c] = max(0, min(sched_mod.MAX_PCT, int(row[c])))
     for key in SPECIES + ("land",):
@@ -261,8 +261,33 @@ def op_crop_dial(rows, rng):
     return "crop_dial:" + crop
 
 
+def op_task_dial(rows, rng):
+    """Push one kind of work up or down over a stretch of days.
+
+    The capital family is swept out -- herd, land, hands and the crop dial all
+    came back tie or worse against the plan near the top of the ladder -- and
+    the farm still turns comparable capital into 58k where that plan turns it
+    into 129k. So the difference left is not the balance sheet, it is the day:
+    the policy scores every job by price and distance under one rule for all
+    thirty days, and a season whose first week is clearing and sowing and whose
+    last is harvesting and selling cannot be well served by one number. A
+    global knob cannot say that; a per-day multiplier can.
+
+    Spans are drawn the way the crop dial draws them, because the unit of a
+    useful answer here is a phase of the season, not a single day.
+    """
+    task = rng.choice(sched_mod.TASK_KEYS)
+    start = rng.randrange(0, DAYS)
+    span = rng.randint(3, 14)
+    delta = rng.choice([-60, -40, -25, 25, 40, 60])
+    for row in rows[start:start + span]:
+        row[task] = max(0, min(sched_mod.MAX_PCT, row.get(task, 100) + delta))
+    return "task_dial:" + task
+
+
 OPERATORS = (op_hands_shift, op_hands_scale, op_herd_size, op_herd_when,
-             op_convert, op_land_when, op_land_count, op_crop_dial)
+             op_convert, op_land_when, op_land_count, op_crop_dial,
+             op_task_dial)
 
 
 def mutate(sched, rng, ops=2):
@@ -272,7 +297,7 @@ def mutate(sched, rng, ops=2):
         row.setdefault("land", 1)
         for s in SPECIES:
             row.setdefault(s, 0)
-        for c in sched_mod.CROP_KEYS:
+        for c in sched_mod.CROP_KEYS + sched_mod.TASK_KEYS:
             row.setdefault(c, 100)
     applied = []
     for _ in range(ops):

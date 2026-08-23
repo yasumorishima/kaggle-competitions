@@ -115,6 +115,39 @@ def main():
     check("100 is the policy's own choice",
           planted({"0": {"STRAWBERRY_pct": 100}}) == (base_crops, base_seeds))
 
+    print("labour dial")
+    # A mid-season farm with both kinds of work standing open at once: two
+    # plants wanting water and two animals wanting care. Under one scoring rule
+    # the hands pick whichever price says, and the point of the dial is that
+    # the day gets to overrule that. A dial that could not change this turn
+    # would be indistinguishable from one that is inert.
+    tiles = knob_bite.blank_tiles()
+    tiles[4][4] = knob_bite.animal_tile("PASTURE", "COW", fed=True, yield_units=0)
+    tiles[4][5] = knob_bite.animal_tile("PASTURE", "COW", fed=True, yield_units=0)
+    tiles[3][1] = knob_bite.plant_tile("STRAWBERRY", day=6, watered=False, yield_units=0)
+    tiles[3][2] = knob_bite.plant_tile("MELON", day=6, watered=False, yield_units=0)
+    _n, obs6 = knob_bite.scene("labour", tiles=tiles, day=9, hour=8, money=1500.0,
+                               farmer=[4, 3], hands=[[4, 4], [2, 3], [5, 4]],
+                               shed={"WHEAT": 20, "FERTILIZER": 0},
+                               hires_today=3)
+
+    def work(sched):
+        act = sched_agent.make(sched)(copy.deepcopy(obs6), None)
+        units = [act.get("farmer") or ["PASS"]] + list(act.get("hands") or [])
+        return sorted(str(u[0]) for u in units if u)
+
+    plain_work = work(None)
+    water_up = work({"0": {"WATER_w": 400, "CARE_w": 0}})
+    care_up = work({"0": {"CARE_w": 400, "WATER_w": 0}})
+    print("     policy=%s" % ",".join(plain_work))
+    print("     water-first=%s" % ",".join(water_up))
+    print("     care-first=%s" % ",".join(care_up))
+    check("the labour dial reaches the hands", water_up != care_up,
+          "both extremes produced the same turn")
+    check("100 everywhere is the policy's own choice",
+          work({"0": {"WATER_w": 100, "CARE_w": 100, "HARVEST_w": 100}}) == plain_work)
+    check("an empty calendar entry changes nothing", work({"0": {}}) == plain_work)
+
     print("the calendar reserves what it is about to buy")
     # knob_bite cannot reach this one: it only exists when a calendar is
     # active, and knob_bite loads the bare policy. Measured on seed 2000, the
