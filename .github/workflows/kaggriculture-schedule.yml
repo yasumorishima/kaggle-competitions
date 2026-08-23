@@ -28,6 +28,22 @@ on:
         description: 'この実行の意図（必須）'
         required: true
         type: string
+      mode:
+        description: 'climb = hill-climb the calendar. calibrate = measure the ruler (paired noise band, winner curse, acceptance rules) and climb nothing'
+        required: false
+        default: 'climb'
+        type: choice
+        options: [climb, calibrate]
+      children:
+        description: 'calibrate only: how many mutated children to measure'
+        required: false
+        default: '8'
+        type: string
+      nseeds:
+        description: 'calibrate only: seeds per calendar, each played both sides'
+        required: false
+        default: '48'
+        type: string
       minutes:
         description: 'Climb budget in minutes (job cap is 350)'
         required: false
@@ -146,6 +162,8 @@ jobs:
           if git fetch --depth=1 origin kaggriculture-schedules 2>/dev/null; then
             git show FETCH_HEAD:schedules/best.json > schedules/best.json 2>/dev/null \
               || rm -f schedules/best.json
+            git show FETCH_HEAD:schedules/climb.txt > schedules/climb.txt 2>/dev/null \
+              || rm -f schedules/climb.txt
             tail -3 schedules/climb.txt 2>/dev/null || true
           else
             echo "no schedules branch yet"
@@ -168,7 +186,27 @@ jobs:
             --opponent "$OPP" | tee /tmp/selftest.log
           grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
 
+      - name: Calibrate the ruler
+        # Before believing any accept, find out what an accept can see. Same
+        # incumbent, eight mutated children, all of them on the same seeds --
+        # which gives the paired spread of a real edit, the number of episodes
+        # needed to resolve one, and how much of a best-of-four pick survives
+        # on episodes it was not picked on. That last number is what the climb
+        # has been banking every generation.
+        if: inputs.mode == 'calibrate'
+        run: |
+          set -e
+          python sim/noise_band.py \
+            --sched "${{ steps.sched.outputs.start }}" \
+            --opponent "$OPP" \
+            --children "${{ inputs.children }}" \
+            --ops "${{ inputs.ops }}" \
+            --nseeds "${{ inputs.nseeds }}" \
+            --out ../schedules/band.json \
+            --workers "$(nproc)" | tee /tmp/band.log
+
       - name: Climb
+        if: inputs.mode == 'climb'
         run: |
           set -e
           python sim/optimize_schedule.py \
@@ -186,7 +224,7 @@ jobs:
         # The climb's own number is measured on its training seeds. What decides
         # whether this is worth submitting is a paired-seed match against the
         # agent currently on the leaderboard, on seeds neither was tuned on.
-        if: always()
+        if: always() && inputs.mode == 'climb'
         run: |
           set -e
           [ -s ../schedules/best.json ] || exit 0
@@ -208,15 +246,22 @@ jobs:
         working-directory: .
         run: |
           set -e
-          [ -s schedules/best.json ] || exit 0
-          grep -E '^(CANDIDATE|CHOSE|GEN|HOLDOUT|SUMMARY=)' /tmp/climb.log > schedules/climb.txt || true
-          grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log >> schedules/climb.txt 2>/dev/null || true
-          grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_opp.log >> schedules/climb.txt 2>/dev/null || true
+          [ -s schedules/best.json ] || [ -s schedules/band.json ] || exit 0
+          if [ -s /tmp/climb.log ]; then
+            grep -E '^(CANDIDATE|CHOSE|GEN|HOLDOUT|SUMMARY=)' /tmp/climb.log \
+              > schedules/climb.txt || true
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log \
+              >> schedules/climb.txt 2>/dev/null || true
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_opp.log \
+              >> schedules/climb.txt 2>/dev/null || true
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan schedules-tmp
           git reset
-          git add -f schedules/best.json schedules/climb.txt
+          git add -f schedules/best.json schedules/climb.txt 2>/dev/null || true
+          git add -f schedules/band.json 2>/dev/null || true
+          git diff --cached --quiet && exit 0
           git commit -q -m "kaggriculture: calendar after run ${{ github.run_number }} (${{ inputs.memo }})"
           git push -f origin schedules-tmp:kaggriculture-schedules
 
@@ -230,7 +275,12 @@ jobs:
             echo "memo: ${{ inputs.memo }}"
             echo ""
             echo '```'
-            grep -E '^(CANDIDATE|CHOSE|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
+            if [ -s /tmp/band.log ]; then
+              sed -n '/== per-child/,$p' /tmp/band.log
+            else
+              grep -E '^(CANDIDATE|CHOSE|HOLDOUT|SUMMARY=)' /tmp/climb.log \
+                || tail -5 /tmp/climb.log
+            fi
             echo ""
             echo "-- vs the live agent --"
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
