@@ -56,7 +56,14 @@ TASKS = ("WATER", "HARVEST", "CARE", "FEED", "FERTILIZE",
          "COLLECT_FERTILIZER", "PLANT", "DIG", "PLACE", "PICKUP",
          "DROP", "BUILD_COOP", "BUILD_PASTURE")
 TASK_KEYS = tuple(t + "_w" for t in TASKS)
-KEYS = ("hands",) + SPECIES + ("land",) + CROP_KEYS + TASK_KEYS
+# Structures the farm should have standing, cumulative like the herd it
+# serves. Without this the policy only ever builds a pasture once animals are
+# already waiting in the shed, which serialises the whole thing: buy, wait,
+# walk, build, walk back, carry, place. Measured, that costs a third of the
+# herd's working life -- 229 animal-days against the published plan's 312.
+STRUCTS = ("PASTURE", "COOP")
+MAX_STRUCT = 25
+KEYS = ("hands",) + SPECIES + ("land",) + CROP_KEYS + TASK_KEYS + STRUCTS
 DAYS = 30
 
 
@@ -125,9 +132,12 @@ def validate(sched):
         for key in CROP_KEYS + TASK_KEYS:
             if key in row:
                 assert 0 <= row[key] <= MAX_PCT,                     "%s is %d on day %d" % (key, row[key], day)
+        for key in STRUCTS:
+            if key in row:
+                assert row[key] <= MAX_STRUCT, "%s is %d on day %d" % (key, row[key], day)
     # Cumulative targets may not fall: the farm cannot un-buy a quadrant, and a
     # falling head count would ask it to slaughter stock it paid for.
-    for key in SPECIES + ("land",):
+    for key in SPECIES + ("land",) + STRUCTS:
         seen = [r[key] for r in rows if key in r]
         for a, b in zip(seen, seen[1:]):
             assert b >= a, "%s falls from %d to %d" % (key, a, b)

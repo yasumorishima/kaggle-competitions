@@ -156,6 +156,24 @@ def _task_weights(day):
     return out or None
 
 
+def _struct_target(day):
+    """How many pastures and coops the calendar wants standing on `day`.
+
+    Empty dict when the calendar is silent about structures, which is the
+    condition the build-ahead path is gated on -- so a calendar written before
+    this column existed leaves the farm behaving exactly as it did.
+    """
+    sched = _sched_for(day)
+    if not sched:
+        return {}
+    out = {}
+    for name in ("PASTURE", "COOP"):
+        want = sched.get(name)
+        if want is not None and int(want) > 0:
+            out[name] = int(want)
+    return out
+
+
 def _op_family(op):
     """WATER -> WATER, ("PLANT", "MELON") -> PLANT."""
     return op[0] if isinstance(op, tuple) else op
@@ -967,6 +985,15 @@ def agent(obs, config=None):
     shed_here = set(sheds)
     fert_price = price("FERTILIZER")
     task_w = _task_weights(day)
+    # Structures standing today, occupied or not. The calendar's target is
+    # counted against this rather than against empty ones, because a pasture
+    # with a cow on it is a pasture the farm already paid for and does not
+    # need again.
+    have_past = (sum(1 for _, _, t in animals if t.get("kind") == "PASTURE")
+                 + sum(1 for _, _, t in empty_struct if t.get("kind") == "PASTURE"))
+    have_coop = (sum(1 for _, _, t in animals if t.get("kind") == "COOP")
+                 + sum(1 for _, _, t in empty_struct if t.get("kind") == "COOP"))
+    struct_target = _struct_target(day)
 
     def can_act(pos):
         return quadrant_of(pos[0], pos[1], n) in unlocked
@@ -1083,6 +1110,23 @@ def agent(obs, config=None):
         pending_animals = shed_animals + carried_animals
         need_coop = sum(1 for _, _, t in empty_struct if t["kind"] == "COOP")
         need_past = sum(1 for _, _, t in empty_struct if t["kind"] == "PASTURE")
+        # Offer the build-ahead job on at most as many tiles as the target is
+        # short. Every empty tile would otherwise carry the offer, and with a
+        # dozen hands bidding, a shortfall of two pastures buys twelve.
+        #
+        # Which tiles, and not just how many: the shortlist is the sites
+        # nearest the shed, because siting is the one decision a tile never
+        # revisits -- an animal placed across the farm is walked to every day
+        # for the rest of the season. Taking the first N in scan order would
+        # put the herd in whatever corner the loop happens to start in.
+        short_past = max(0, struct_target.get("PASTURE", 0) - have_past)
+        short_coop = max(0, struct_target.get("COOP", 0) - have_coop)
+        build_ahead = set()
+        if short_past or short_coop:
+            sites = [(x, y) for (x, y) in empty_tiles if can_act((x, y))]
+            if sheds:
+                sites.sort(key=lambda p: min(dist(p, st) for st in sheds))
+            build_ahead = set(sites[:max(short_past, short_coop)])
         for (x, y) in empty_tiles:
             if (x, y) in claimed or not can_act((x, y)):
                 continue
@@ -1099,6 +1143,29 @@ def agent(obs, config=None):
                 if shed.get("GOOSE", 0) + inv.get("GOOSE", 0) > need_coop:
                     out.append((price("EGG") * RATE["EGG"] * 2 / near_build, (x, y), "BUILD_COOP"))
                 if shed.get("COW", 0) + shed.get("SHEEP", 0) > need_past:
+                    out.append((price("MILK") * RATE["MILK"] * 2 / near_build, (x, y), "BUILD_PASTURE"))
+            # Building ahead of the herd, when the calendar asks for it.
+            #
+            # The gate above is the whole reason this farm's animals are idle.
+            # A pasture is only ever offered once animals are *already* sitting
+            # in the shed, so the season serialises: buy the cow, let it wait,
+            # walk a hand over, build, walk back, carry, place. Measured, that
+            # costs the farm a third of its herd's working life -- 229
+            # animal-days against the published plan's 312, which is 64% of
+            # what a twelve-head farm can deliver against their 87% -- and an
+            # animal-day lost is lost for good, because the milk that day is
+            # simply never produced. It also explains why BUILD_PASTURE_w
+            # measured positive but heterogeneous across seed groups: a weight
+            # can only reorder jobs that are offered, and this one is offered
+            # in some seasons and not others.
+            #
+            # So the structure target joins the calendar as its own cumulative
+            # column, next to the head count it serves. Absent, nothing below
+            # fires and the farm behaves exactly as before.
+            if (x, y) in build_ahead:
+                if short_coop > 0:
+                    out.append((price("EGG") * RATE["EGG"] * 2 / near_build, (x, y), "BUILD_COOP"))
+                if short_past > 0:
                     out.append((price("MILK") * RATE["MILK"] * 2 / near_build, (x, y), "BUILD_PASTURE"))
             if crop:
                 out.append((price(crop) * RATE[crop] * 1.5 / near_plant, (x, y), ("PLANT", crop)))

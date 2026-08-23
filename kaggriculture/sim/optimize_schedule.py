@@ -85,7 +85,12 @@ def _tidy(rows):
         for c in sched_mod.CROP_KEYS + sched_mod.TASK_KEYS:
             if c in row:
                 row[c] = max(0, min(sched_mod.MAX_PCT, int(row[c])))
-    for key in SPECIES + ("land",):
+        # Unconditional, like the species columns: the non-decreasing pass
+        # below indexes every row, so a row that never grew the key would take
+        # the repair down with a KeyError rather than a wrong calendar.
+        for s in sched_mod.STRUCTS:
+            row[s] = max(0, min(sched_mod.MAX_STRUCT, int(row.get(s, 0))))
+    for key in SPECIES + ("land",) + sched_mod.STRUCTS:
         run = rows[0][key]
         for row in rows:
             run = max(run, row[key])
@@ -285,9 +290,30 @@ def op_task_dial(rows, rng):
     return "task_dial:" + task
 
 
+def op_struct_when(rows, rng):
+    """Have the pens standing earlier, or more of them.
+
+    The policy only offers to build a pasture once animals are already waiting
+    in the shed, so the season serialises -- buy, wait, walk, build, walk back,
+    carry, place -- and the measured cost is a third of the herd's working
+    life: 229 animal-days against the published plan's 312. A structure target
+    lets the calendar have the pen ready before the cow arrives.
+
+    Mutated as a step change from a day onward, like the land column, because
+    "nine pens standing by day five" is the shape of a useful answer. The
+    repair pass then makes it non-decreasing: a farm cannot un-build a pen.
+    """
+    struct = rng.choice(sched_mod.STRUCTS)
+    start = rng.randrange(0, DAYS)
+    delta = rng.choice([-3, -2, -1, 1, 2, 3, 4])
+    for row in rows[start:]:
+        row[struct] = max(0, min(sched_mod.MAX_STRUCT, row.get(struct, 0) + delta))
+    return "struct_when:" + struct
+
+
 OPERATORS = (op_hands_shift, op_hands_scale, op_herd_size, op_herd_when,
              op_convert, op_land_when, op_land_count, op_crop_dial,
-             op_task_dial)
+             op_task_dial, op_struct_when)
 
 
 def mutate(sched, rng, ops=2):
@@ -299,6 +325,11 @@ def mutate(sched, rng, ops=2):
             row.setdefault(s, 0)
         for c in sched_mod.CROP_KEYS + sched_mod.TASK_KEYS:
             row.setdefault(c, 100)
+        # Zero means the calendar says nothing about structures, which leaves
+        # the policy's own build gate in charge -- so an untouched calendar is
+        # the behaviour that is already measured.
+        for s in sched_mod.STRUCTS:
+            row.setdefault(s, 0)
     applied = []
     for _ in range(ops):
         name = rng.choice(OPERATORS)(rows, rng)

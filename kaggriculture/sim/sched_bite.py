@@ -148,6 +148,34 @@ def main():
           work({"0": {"WATER_w": 100, "CARE_w": 100, "HARVEST_w": 100}}) == plain_work)
     check("an empty calendar entry changes nothing", work({"0": {}}) == plain_work)
 
+    print("pens standing before the herd arrives")
+    # An opening farm with money and no animals anywhere. The policy's own gate
+    # asks for a pasture only when animals are already waiting in the shed, so
+    # this turn it builds nothing -- which is the serialisation the structure
+    # target exists to break.
+    _n, obs7 = knob_bite.scene("build_ahead", money=6000.0, day=0, hour=6,
+                               tiles=knob_bite.blank_tiles(),
+                               shed={"WHEAT": 0, "FERTILIZER": 0})
+
+    def builds(sched):
+        act = sched_agent.make(sched)(copy.deepcopy(obs7), None)
+        units = [act.get("farmer") or ["PASS"]] + list(act.get("hands") or [])
+        return sum(1 for u in units if u and str(u[0]) == "BUILD_PASTURE")
+
+    plain_b = builds(None)
+    ahead_b = builds({"0": {"PASTURE": 6}})
+    zero_b = builds({"0": {"PASTURE": 0}})
+    print("     pastures built with no animals on the farm  policy=%d  target6=%d"
+          % (plain_b, ahead_b))
+    check("the policy alone will not build ahead of the herd", plain_b == 0)
+    check("a structure target builds before the animals arrive", ahead_b > 0)
+    check("a zero target is the policy's own choice", zero_b == plain_b)
+    # The cap matters as much as the target: a dozen hands all bidding on every
+    # empty tile would answer a shortfall of two pens with twelve.
+    print("     target 2 builds %d" % builds({"0": {"PASTURE": 2}}))
+    check("the build-ahead offer is capped by the shortfall",
+          builds({"0": {"PASTURE": 2}}) <= 2)
+
     print("the calendar reserves what it is about to buy")
     # knob_bite cannot reach this one: it only exists when a calendar is
     # active, and knob_bite loads the bare policy. Measured on seed 2000, the
