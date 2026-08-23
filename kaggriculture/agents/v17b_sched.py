@@ -94,6 +94,36 @@ _MEM = {}
 CROP_KEYS = ("WHEAT", "STRAWBERRY", "MELON", "TOMATO", "CARROT")
 SPECIES_ORDER = ("COW", "SHEEP", "GOOSE")
 
+# The labour side of the calendar: how much a day's hands should want each
+# kind of work, as a percentage of what the policy already wants.
+#
+# Why this exists. The capital calendar answers "what should the farm own",
+# and searching it transferred -- seventeen generations took both the training
+# and the held-out seeds to 12 wins out of 12, where climbing the 720-step
+# action list had moved the held-out count not at all in 137. But the capital
+# family is now swept out: herd, land, hands and the crop dial were all
+# measured against the plan near the top of the ladder and came back tie or
+# worse, and the farm still turns roughly the same capital into 58k where that
+# plan turns it into 129k. What is left is not what the farm owns, it is what
+# its hands spend the day doing.
+#
+# Every candidate job in jobs_for is already scored `value / (1 + dist*d)`,
+# with `value` derived once and for all from price and units. That is a single
+# rule for a thirty-day game whose first week (clear, sow, build) and last week
+# (harvest, sell) have nothing in common, and no global knob can say so: a
+# sweep can only pick one number for the whole season. A per-day multiplier
+# can, and it is season-independent in exactly the way capital is -- "on day 3
+# care matters more than digging" is as true of one season as the next, while
+# "water the tile at (3,7)" is true of exactly one.
+#
+# 100 is today's behaviour and an absent key is the same thing, the same
+# discipline the crop dial uses. Ops arrive either as a bare string or as a
+# tuple whose head names the family, so PLANT/PICKUP/PLACE are keyed by head.
+TASK_KEYS = ("WATER", "HARVEST", "CARE", "FEED", "FERTILIZE",
+             "COLLECT_FERTILIZER", "PLANT", "DIG", "PLACE", "PICKUP",
+             "DROP", "BUILD_COOP", "BUILD_PASTURE")
+TASK_SUFFIX = "_w"
+
 SCHEDULE = None
 
 
@@ -106,6 +136,37 @@ def _sched_for(day):
         if int(key) <= day:
             live = SCHEDULE[key]
     return live
+
+
+def _task_weights(day):
+    """The day's labour multipliers, or None when the calendar is silent.
+
+    Returned as plain floats keyed by op family so the hot loop does a dict
+    lookup and a multiply, not a string parse per candidate per hand per turn.
+    """
+    sched = _sched_for(day)
+    if not sched:
+        return None
+    out = {}
+    for name in TASK_KEYS:
+        mult = sched.get(name + TASK_SUFFIX)
+        if mult is None or int(mult) == 100:
+            continue
+        out[name] = int(mult) / 100.0
+    return out or None
+
+
+def _op_family(op):
+    """WATER -> WATER, ("PLANT", "MELON") -> PLANT."""
+    return op[0] if isinstance(op, tuple) else op
+
+
+def _weigh(out, weights):
+    """Scale a candidate list by the day's labour multipliers."""
+    if not weights:
+        return out
+    return [(value * weights.get(_op_family(op), 1.0), tile, op)
+            for value, tile, op in out]
 
 
 def _species(tile):
@@ -905,6 +966,7 @@ def agent(obs, config=None):
     sheds = shed_tiles(n)
     shed_here = set(sheds)
     fert_price = price("FERTILIZER")
+    task_w = _task_weights(day)
 
     def can_act(pos):
         return quadrant_of(pos[0], pos[1], n) in unlocked
@@ -1083,6 +1145,10 @@ def agent(obs, config=None):
                             if k in MARKET_PARAMS and isinstance(v, int))
                 out.append((worth * P["drop_urgency"] / (1 + P['dist_weight'] * d), st, "DROP"))
 
+        # Applied before bundling, so a tile's queue is credited with what the
+        # day actually wants done there rather than with the unweighted total.
+        out = _weigh(out, task_w)
+
         if P["bundle_weight"] and out:
             # Credit each candidate with what else is waiting where it stands.
             # The unit that walks there will still be there next turn, so the
@@ -1155,16 +1221,20 @@ def agent(obs, config=None):
         # hand already carrying it; add them here against the shed stock.
         wheat_stock = int(shed.get("WHEAT", 0))
         fert_stock = int(shed.get("FERTILIZER", 0))
+        # Weighted like the rest: a day that wants less feeding has to mean it
+        # here too, or the route planner quietly restores what jobs_for cut.
+        feed_w = (task_w or {}).get("FEED", 1.0)
+        fert_w = (task_w or {}).get("FERTILIZE", 1.0)
         for (x, y, t) in animals:
             if not t.get("fed_today") and wheat_stock > 0:
-                pool.append((price(ANIMALS[t["animal"]]["product"]) * 2.0, (x, y), "FEED"))
+                pool.append((price(ANIMALS[t["animal"]]["product"]) * 2.0 * feed_w, (x, y), "FEED"))
                 wheat_stock -= 1
         for (x, y, t) in plants:
             cd = CROPS[t["crop"]]
             if fert_stock > 0 and t.get("fertilized_until_day", -1) < day:
                 extra = extra_from_fertilizer(t, cd, day)
                 if extra > 0:
-                    pool.append((price(t["crop"]) * extra, (x, y), "FERTILIZE"))
+                    pool.append((price(t["crop"]) * extra * fert_w, (x, y), "FERTILIZE"))
                     fert_stock -= 1
 
         routes = {i: [] for i in range(len(units))}
