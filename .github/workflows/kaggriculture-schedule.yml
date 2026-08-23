@@ -44,6 +44,11 @@ on:
         required: false
         default: false
         type: boolean
+      only:
+        description: 'calibrate + per_op: measure only these operators, comma separated (e.g. herd_when,land_when,struct_when)'
+        required: false
+        default: ''
+        type: string
       nseeds:
         description: 'calibrate only: seeds per calendar, each played both sides'
         required: false
@@ -233,6 +238,7 @@ jobs:
             --children "${{ inputs.children }}" \
             --ops "${{ inputs.ops }}" \
             ${{ inputs.per_op && '--per-op' || '' }} \
+            --only "${{ inputs.only }}" \
             --nseeds "${{ inputs.nseeds }}" \
             --out ../schedules/band.json \
             --workers "$(nproc)" | tee /tmp/band.log
