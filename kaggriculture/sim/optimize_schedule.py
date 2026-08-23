@@ -195,6 +195,42 @@ def lower_bound(d):
     return mean - statistics.stdev(d) / len(d) ** 0.5
 
 
+def live_children(arena, rng, sched, lam, ops, probe, tries=4):
+    """`lam` mutations that actually change how the season plays.
+
+    A third of mutations leave a calendar that reads differently and behaves
+    identically. The timing operators are the worst of it: measured one
+    operator at a time across nineteen children (runs 32668088485 and
+    32671320007), herd_when changed the outcome once, struct_when twice,
+    land_when three times -- the rest scored the incumbent's money to the
+    cent on every episode. The likely reason is that the farm is money-bound
+    rather than schedule-bound, so moving a purchase target a few days does
+    not move the purchase.
+
+    Left alone, such a child costs a whole generation. It cannot be spotted
+    from the calendar, because the calendar really did change; and the
+    pessimistic screen prefers it to anything negative, since a spread of
+    zero is docked nothing. One generation of the first climb under the new
+    rule went exactly that way: screen +0.0, confirm +0.0, 86 episodes spent
+    proving that nothing is worth nothing.
+
+    One episode settles it. If a child scores the incumbent's number on the
+    probe it is dropped and another is drawn; the probe is the first episode
+    of the screening draw, so a child that survives has already paid for it.
+    """
+    base = arena.values(sched, probe)
+    kept, skipped = [], 0
+    for _ in range(lam * tries):
+        if len(kept) >= lam:
+            break
+        child, applied = mutate(sched, rng, ops)
+        if arena.values(child, probe) == base:
+            skipped += 1
+            continue
+        kept.append((child, applied))
+    return kept, skipped
+
+
 def race(arena, sched, children, screen, confirm, kind, z):
     """Screen, then confirm the survivor on episodes it was not chosen on."""
     base = per_episode(arena.values(sched, screen), kind)
@@ -637,7 +673,12 @@ def main():
         else:
             screen, confirm = draw(rng, args.pool_list, args.screen,
                                    args.confirm, sides)
-            children = [mutate(sched, rng, args.ops) for _ in range(args.lam)]
+            children, skipped = live_children(arena, rng, sched, args.lam,
+                                              args.ops, screen[:1])
+            if not children:
+                print("GEN %d no live mutation in %d tries"
+                      % (gen, args.lam * 4), flush=True)
+                continue
             got = race(arena, sched, children, screen, confirm,
                        args.objective, args.z)
             if got["accepted"]:
@@ -649,10 +690,11 @@ def main():
             # thing the old loop could not say, and the rate of them is how
             # you tell a working test from a broken one.
             print("GEN %d %s screen=%+.1f(floor%+.1f) confirm=%+.1f t=%+.2f"
-                  " ep=%d via %s"
+                  " ep=%d dead=%d via %s"
                   % (gen, "ACCEPT" if got["accepted"] else "reject",
                      got["seen"], got["floor"], got["mean"], got["t"],
-                     arena.played, ",".join(got["applied"]) or "-"), flush=True)
+                     arena.played, skipped,
+                     ",".join(got["applied"]) or "-"), flush=True)
             arena.keep_only([sched, start])
         if gen % args.confirm_every == 0:
             hold, hvals = score(pool, sched, args.opponent, holdout, sides,

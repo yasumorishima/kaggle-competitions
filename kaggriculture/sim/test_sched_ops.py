@@ -171,6 +171,37 @@ def ruler():
         check("and it is accepted", got["accepted"],
               "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
 
+        print("a child that plays the same season is dropped for one episode")
+        # Two calendars in three behave identically here. The probe costs one
+        # episode; leaving them in costs the generation.
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             lambda sched, seed: 0)
+        arena = opt.Arena(None, "x", 721)
+        kept, skipped = opt.live_children(arena, random.Random(5), BASE, 4, 2,
+                                          screen[:1])
+        check("every dead mutation is skipped", kept == [] and skipped == 16,
+              "kept %d, skipped %d" % (len(kept), skipped))
+        # At most one episode per attempt plus the incumbent's -- fewer when a
+        # mutation happens to reproduce a calendar already in the cache.
+        check("at most one probe episode each", arena.played <= 17,
+              "played %d" % arena.played)
+
+        marked = {}
+
+        def only_marked(sched, seed):
+            return 3000 if opt.key_of(sched) in marked else 0
+
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             only_marked)
+        arena = opt.Arena(None, "x", 721)
+        rng2 = random.Random(5)
+        for _ in range(64):                    # mark every calendar this seed makes
+            marked[opt.key_of(opt.mutate(BASE, rng2, 2)[0])] = True
+        kept, skipped = opt.live_children(arena, random.Random(5), BASE, 4, 2,
+                                          screen[:1])
+        check("live mutations are kept", len(kept) == 4 and skipped == 0,
+              "kept %d, skipped %d" % (len(kept), skipped))
+
         print("nothing at all is not an improvement")
         opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
                              lambda sched, seed: 0)
