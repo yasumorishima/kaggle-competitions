@@ -91,9 +91,12 @@ def collect(args):
     _, parent = opt.load(args.sched)[0]
     rng = random.Random(args.seed)
     cals = [("parent", parent, [])]
-    for i in range(args.children):
-        child, applied = opt.mutate(parent, rng, args.ops)
-        cals.append(("child%02d" % i, child, applied))
+    if args.per_op:
+        cals.extend(one_operator_each(parent, rng, args.children))
+    else:
+        for i in range(args.children):
+            child, applied = opt.mutate(parent, rng, args.ops)
+            cals.append(("child%02d" % i, child, applied))
 
     seeds = [args.seed0 + i for i in range(args.nseeds)]
     sides = [int(s) for s in args.sides.split(",") if s.strip()]
@@ -125,6 +128,61 @@ def collect(args):
         "applied": {name: applied for name, _c, applied in cals},
         "rows": rows,
     }
+
+
+def one_operator_each(parent, rng, per_op):
+    """`per_op` children from each operator alone, so effects are attributable.
+
+    The mixed sample says how a generation behaves; it cannot say which edit
+    did the work, and the first eight children measured included one whose two
+    operators between them moved the score by exactly zero on all 96 episodes.
+    An operator that cannot bite is a slot in every generation spent on
+    nothing, and the search has no way to notice.
+
+    An operator is allowed to decline (several return None when the calendar
+    gives them nothing to do), so a firing is retried a few times before the
+    child is recorded as a no-op -- which is itself the finding.
+    """
+    out = []
+    for op in opt.OPERATORS:
+        for i in range(per_op):
+            child, applied = parent, []
+            for _ in range(8):
+                child, applied = opt.mutate(parent, rng, 1, (op,))
+                if applied and child != parent:
+                    break
+            out.append(("%s#%d" % (op.__name__[3:], i), child, applied or ["(declined)"]))
+    return out
+
+
+def per_operator_report(band):
+    """One line per operator: how often it bit, and how far it moved things."""
+    groups = {}
+    for name in children_of(band):
+        groups.setdefault(name.split("#")[0], []).append(name)
+    n = len(band["episodes"])
+    print("\n== per operator ==")
+    print("   %-18s %6s %9s %10s %10s %10s"
+          % ("operator", "bit", "swing", "mean", "best", "worst"))
+    rows = []
+    for op in sorted(groups):
+        per = [diffs(band, k, stat_mine) for k in groups[op]]
+        effects = [statistics.fmean(d) for d in per]
+        swing = statistics.fmean(
+            [statistics.stdev(d) if len(d) > 1 else 0.0 for d in per])
+        bit = sum(1 for d in per if any(abs(x) > 1e-9 for x in d))
+        rows.append((swing, op, bit, len(per), effects))
+    for swing, op, bit, total, effects in sorted(rows, reverse=True):
+        print("   %-18s %3d/%-2d %9.0f %+10.0f %+10.0f %+10.0f"
+              % (op, bit, total, swing, statistics.fmean(effects),
+                 max(effects), min(effects)))
+    print("\n   swing = how far one episode moves when this operator fires, in"
+          "\n   the farm's own money. It is what a noisy screen actually selects"
+          "\n   on, so it predicts what a generation will pick up. mean is the"
+          "\n   average of the per-child effects, each measured over %d episodes"
+          "\n   (so a child's own mean carries about +/-%d of noise); an operator"
+          "\n   that never bites is a slot spent on nothing every generation."
+          % (n, int(1.96 * 9130 / (n ** 0.5))))
 
 
 # --------------------------------------------------------------------------
@@ -297,7 +355,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sched", default="", help="incumbent calendar JSON")
     ap.add_argument("--opponent", default="main.py")
-    ap.add_argument("--children", type=int, default=8)
+    ap.add_argument("--children", type=int, default=8,
+                    help="per-op: how many children from each operator")
+    ap.add_argument("--per-op", action="store_true",
+                    help="one operator per child, so effects are attributable")
     ap.add_argument("--ops", type=int, default=2)
     ap.add_argument("--seed0", type=int, default=5000)
     ap.add_argument("--nseeds", type=int, default=48)
@@ -328,6 +389,8 @@ def main():
             json.dump(band, f, separators=(",", ":"), sort_keys=True)
         print("wrote " + args.out)
 
+    if any("#" in k for k in band["rows"]):
+        per_operator_report(band)
     report_band(band)
     for stat in ([args.stat] if args.replay else [s for s, _ in STATS]):
         args.stat = stat

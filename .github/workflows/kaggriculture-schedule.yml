@@ -35,10 +35,15 @@ on:
         type: choice
         options: [climb, calibrate]
       children:
-        description: 'calibrate only: how many mutated children to measure'
+        description: 'calibrate only: mutated children to measure (with per_op, this many from each operator)'
         required: false
         default: '8'
         type: string
+      per_op:
+        description: 'calibrate only: give each child exactly one operator, so the effect can be attributed to it'
+        required: false
+        default: false
+        type: boolean
       nseeds:
         description: 'calibrate only: seeds per calendar, each played both sides'
         required: false
@@ -227,6 +232,7 @@ jobs:
             --opponent "$OPP" \
             --children "${{ inputs.children }}" \
             --ops "${{ inputs.ops }}" \
+            ${{ inputs.per_op && '--per-op' || '' }} \
             --nseeds "${{ inputs.nseeds }}" \
             --out ../schedules/band.json \
             --workers "$(nproc)" | tee /tmp/band.log

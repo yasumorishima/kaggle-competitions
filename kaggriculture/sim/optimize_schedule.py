@@ -440,7 +440,7 @@ OPERATORS = (op_hands_shift, op_hands_scale, op_herd_size, op_herd_when,
              op_task_dial, op_struct_when)
 
 
-def mutate(sched, rng, ops=2):
+def mutate(sched, rng, ops=2, operators=OPERATORS):
     rows = sched_mod.expand(sched)
     for row in rows:                      # every operator wants complete rows
         row.setdefault("hands", 0)
@@ -456,7 +456,7 @@ def mutate(sched, rng, ops=2):
             row.setdefault(s, 0)
     applied = []
     for _ in range(ops):
-        name = rng.choice(OPERATORS)(rows, rng)
+        name = rng.choice(operators)(rows, rng)
         if name:
             applied.append(name)
     _tidy(rows)
