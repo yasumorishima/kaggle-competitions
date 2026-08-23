@@ -35,6 +35,33 @@ Three things come out of that matrix.
 The matrix is written out whole, so acceptance rules can be replayed against
 real episodes offline (--replay) instead of costing a fresh run each time.
 
+What it measured, first run, 2026-08-23 (climbed_g17 against the published
+plan, eight children, 48 seeds from both sides = 96 episodes each; the matrix
+is on the kaggriculture-schedules branch as schedules/band.json):
+
+* Paired spread of an edit, per episode: 9,130 on the farm's own money, 8,050
+  on the margin. Pairing on the seed removes 44% of the raw spread and the
+  control variate removes another 12%. Twelve episodes therefore resolve
+  nothing smaller than about +/-5,200, and the edits on offer are worth a few
+  hundred: measured over 96 episodes the eight children came in between -5,774
+  and +1,066.
+
+* `wins` is not merely wide here, it is flat. Every one of the 96 episodes was
+  a loss for the incumbent and for all eight children alike, so the paired
+  spread is exactly zero and the objective has no gradient at all. main() now
+  refuses it rather than climbing it.
+
+* The winner's curse, on the money objective: best of four on twelve episodes
+  reads +1,940 and is worth +66. A factor of thirty. Best of *eight* is worth
+  -238 -- widening the search made it worse, which is the signature of picking
+  on noise rather than a shortage of candidates.
+
+* Screening and then confirming on a disjoint draw is positive at every
+  setting tried, and the confirmation threshold does what it is meant to: at
+  lambda=4, 12 screening episodes and 16 confirming ones, z=0 accepts 65% of
+  generations worth +288 each and z=1 accepts 34% worth +646 each. That
+  setting is also the most gain per episode of the grid, so it is the default.
+
 Usage:
     python sim/noise_band.py --sched ../schedules/best.json --opponent main.py \\
         --children 8 --nseeds 48 --out band.json

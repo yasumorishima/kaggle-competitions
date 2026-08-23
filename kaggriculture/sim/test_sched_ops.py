@@ -46,6 +46,108 @@ def rows_of(sched):
     return rows
 
 
+def fake_play(seed_effect, cal_effect):
+    """Stand in for the environment: no game, just a number we control.
+
+    seed_effect(seed, side) is the season -- the part both farms share and the
+    part that swamps everything real. cal_effect(sched, seed) is what the
+    calendar is actually worth. Splitting them is the only way to ask whether
+    an acceptance rule can tell one from the other.
+    """
+    def play(job):
+        sched, _opponent, seed, _steps, side = job
+        mine = seed_effect(seed, side) + cal_effect(sched, seed)
+        return (float(mine), float(seed_effect(seed, side)))
+    return play
+
+
+def ruler():
+    """The acceptance rule, with the environment replaced by arithmetic."""
+    print("the ruler: seeds are drawn fresh and the two draws never overlap")
+    rng = random.Random(4)
+    pool = opt.parse_pool("3000-3095")
+    overlap = wrong_size = 0
+    for _ in range(500):
+        screen, confirm = opt.draw(rng, pool, 3, 8, [0, 1])
+        if set(s for s, _ in screen) & set(s for s, _ in confirm):
+            overlap += 1
+        if len(screen) != 6 or len(confirm) != 16:
+            wrong_size += 1
+    check("screen and confirm are disjoint", overlap == 0, "%d overlaps" % overlap)
+    check("both sides of every drawn seed are played", wrong_size == 0)
+    check("a pool refuses a repeated seed",
+          _raises(lambda: opt.parse_pool("3000,3000")))
+
+    print("episodes are never played twice")
+    saved = opt.play
+    try:
+        opt.play = fake_play(lambda seed, side: seed * 10 + side,
+                             lambda sched, seed: 0)
+        arena = opt.Arena(None, "x", 721)
+        eps = [(3000, 0), (3000, 1), (3001, 0)]
+        first = arena.values(BASE, eps)
+        again = arena.values(BASE, eps + [(3001, 1)])
+        check("the cache returns the same episodes", first == again[:3])
+        check("only the new episode was played", arena.played == 4,
+              "played %d" % arena.played)
+        other, _ = opt.mutate(BASE, random.Random(2), 2)
+        arena.values(other, eps)
+        arena.keep_only([BASE])
+        check("forgetting a calendar drops its episodes",
+              all(k[0] == opt.key_of(BASE) for k in arena.seen))
+
+        print("a child that is only lucky on the screening seeds is rejected")
+        # Worth +80,000 on exactly the six episodes the screen will draw, and
+        # worth nothing anywhere else. The old rule would take it every time;
+        # this is the whole reason the confirmation set is disjoint.
+        rng = random.Random(8)
+        screen, confirm = opt.draw(rng, pool, 3, 8, [0, 1])
+        lucky_seeds = set(seed for seed, _ in screen)
+        kids = [opt.mutate(BASE, rng, 2) for _ in range(4)]
+        chosen = opt.key_of(kids[2][0])
+
+        def only_on_screen(sched, seed):
+            return 80000 if (opt.key_of(sched) == chosen
+                             and seed in lucky_seeds) else 0
+
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             only_on_screen)
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        check("the screen does pick the lucky child", got["seen"] > 0,
+              "screen saw %+.1f" % got["seen"])
+        check("the confirmation throws it out", not got["accepted"],
+              "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
+
+        print("a child that is better everywhere is accepted")
+        real = opt.key_of(kids[1][0])
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             lambda sched, seed: 5000 * (opt.key_of(sched) == real))
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        check("a real edit survives both stages", got["accepted"],
+              "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
+        check("and it is the right child", opt.key_of(got["child"]) == real)
+
+        print("nothing at all is not an improvement")
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             lambda sched, seed: 0)
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        check("an edit worth zero is rejected", not got["accepted"],
+              "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
+    finally:
+        opt.play = saved
+
+
+def _raises(fn):
+    try:
+        fn()
+    except Exception:
+        return True
+    return False
+
+
 def main():
     sched_mod.validate(BASE)
     print("operators (each must fire, and each must change the calendar)")
@@ -113,6 +215,8 @@ def main():
     rebuilt = sched_mod.compress({str(d): r for d, r in enumerate(rows_of(BASE))})
     check("expand then compress is identity",
           sched_mod.expand(rebuilt) == sched_mod.expand(BASE))
+
+    ruler()
 
     print("")
     if FAILED:

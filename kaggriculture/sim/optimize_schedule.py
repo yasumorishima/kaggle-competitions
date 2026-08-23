@@ -18,9 +18,11 @@ Usage:
     python sim/optimize_schedule.py --sched a.json,b.json --selftest
 """
 import argparse
+import hashlib
 import json
 import os
 import random
+import statistics
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -62,7 +64,129 @@ def score(pool, sched, opponent, seeds, sides, steps, kind="wins"):
     jobs = [(sched, opponent, s, steps, side) for s in seeds for side in sides]
     mapper = pool.map if pool is not None else map
     vals = list(mapper(play, jobs))
-    return objective(vals, kind), vals
+    return summary_objective(vals, kind), vals
+
+
+def summary_objective(vals, kind):
+    if kind == "margin":
+        return statistics.fmean([m - t for m, t in vals])
+    return objective(vals, kind)
+
+
+# --------------------------------------------------------------------------
+# the ruler
+#
+# What the climb used to do: score a child on six fixed seeds from both sides,
+# compare that number against the incumbent's number on the same twelve
+# episodes, keep the child if it leads. Two things are wrong with it and they
+# compound.
+#
+# The first is width. The paired spread of an edit over those twelve episodes
+# is wide enough that an edit worth nothing wins a good share of the time,
+# and the edits worth having are worth less than the spread. See
+# sim/noise_band.py, which measures both rather than assuming them.
+#
+# The second is the ratchet. The incumbent's number is whatever it scored on
+# those same twelve episodes on the day it was accepted -- which is to say, a
+# number chosen for being high. Every later comparison is against that lucky
+# reading on those same seeds, on the same seeds forever. That is how a climb
+# memorises a season without ever being told to, and it is exactly the shape
+# of the failure: training rising, held-out flat.
+#
+# So: draw fresh seeds every generation, screen candidates cheaply on one
+# draw, and re-measure the survivor against the incumbent on a second draw it
+# was not chosen on, with a paired t-test deciding. A candidate picked for
+# being lucky on the screening episodes is lucky on those episodes only, so
+# the confirmation is unbiased for the candidate that reaches it. Nothing is
+# ever compared against a remembered number.
+
+
+def key_of(sched):
+    return hashlib.sha1(
+        json.dumps(sched, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+class Arena:
+    """Plays episodes, remembers them, never plays one twice.
+
+    Exact, not an approximation: the environment is deterministic given a seed
+    and --selftest asserts that on every run, so an episode is a pure function
+    of (calendar, seed, side). It earns its keep because rotating seeds means
+    re-measuring the incumbent constantly, and the cache makes every seed it
+    has already met free.
+    """
+
+    def __init__(self, pool, opponent, steps):
+        self.pool, self.opponent, self.steps = pool, opponent, steps
+        self.seen = {}
+        self.played = 0
+
+    def values(self, sched, episodes):
+        key = key_of(sched)
+        want = [e for e in episodes if (key,) + e not in self.seen]
+        if want:
+            jobs = [(sched, self.opponent, seed, self.steps, side)
+                    for seed, side in want]
+            mapper = self.pool.map if self.pool is not None else map
+            for episode, val in zip(want, mapper(play, jobs)):
+                self.seen[(key,) + episode] = val
+            self.played += len(want)
+        return [self.seen[(key,) + e] for e in episodes]
+
+    def keep_only(self, scheds):
+        """Forget everything but these calendars. Children are one-generation."""
+        alive = {key_of(c) for c in scheds}
+        self.seen = {k: v for k, v in self.seen.items() if k[0] in alive}
+
+
+def per_episode(vals, kind):
+    """The objective, one episode at a time -- what a paired test needs.
+
+    `min` has no per-episode form, so it is not offered here; --accept plain
+    still has it.
+    """
+    if kind == "wins":
+        return [1.0 if m > t else 0.0 for m, t in vals]
+    if kind == "margin":
+        return [m - t for m, t in vals]
+    return [m for m, _t in vals]
+
+
+def paired_t(child, base):
+    """Mean paired difference and its t. Returns (mean, t, n)."""
+    d = [c - b for c, b in zip(child, base)]
+    if len(d) < 2:
+        return (d[0] if d else 0.0), 0.0, len(d)
+    mean = statistics.fmean(d)
+    sd = statistics.stdev(d)
+    if sd <= 0:
+        return mean, (float("inf") if mean > 0 else 0.0), len(d)
+    return mean, mean / (sd / len(d) ** 0.5), len(d)
+
+
+def draw(rng, seed_pool, n_screen, n_confirm, sides):
+    """Two disjoint seed sets, fresh this generation."""
+    picked = rng.sample(seed_pool, n_screen + n_confirm)
+    screen = [(s, side) for s in picked[:n_screen] for side in sides]
+    confirm = [(s, side) for s in picked[n_screen:] for side in sides]
+    return screen, confirm
+
+
+def race(arena, sched, children, screen, confirm, kind, z):
+    """Screen, then confirm the survivor on episodes it was not chosen on."""
+    base = per_episode(arena.values(sched, screen), kind)
+    best = None
+    for child, applied in children:
+        got = per_episode(arena.values(child, screen), kind)
+        mean, _t, _n = paired_t(got, base)
+        if best is None or mean > best[0]:
+            best = (mean, child, applied)
+    seen, child, applied = best
+    got = per_episode(arena.values(child, confirm), kind)
+    mean, t, _n = paired_t(got, per_episode(arena.values(sched, confirm), kind))
+    return dict(child=child, applied=applied, seen=seen, mean=mean, t=t,
+                accepted=(mean > 0 and t >= z))
 
 
 # --------------------------------------------------------------------------
@@ -344,6 +468,23 @@ def mutate(sched, rng, ops=2):
 # --------------------------------------------------------------------------
 
 
+def parse_pool(spec):
+    """`3000-3095` or a comma list, either way a list of seeds."""
+    out = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part.lstrip("-"):
+            lo, hi = part.split("-", 1)
+            out.extend(range(int(lo), int(hi) + 1))
+        else:
+            out.append(int(part))
+    assert out, "empty seed pool"
+    assert len(set(out)) == len(out), "a seed appears twice in the pool"
+    return out
+
+
 def load(paths):
     out = []
     for path in [p for p in paths.split(",") if p.strip()]:
@@ -369,14 +510,25 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sched", required=True, help="one or more calendar JSONs")
     ap.add_argument("--opponent", default="main.py")
-    ap.add_argument("--seeds", default="3000,3001,3002,3003")
+    ap.add_argument("--seeds", default="3000,3001,3002,3003",
+                    help="race: only picks which starting calendar to climb")
     ap.add_argument("--holdout", default="3100,3101,3102,3103")
+    ap.add_argument("--accept", default="race", choices=("race", "plain"))
+    ap.add_argument("--pool", default="3000-3095",
+                    help="seeds the race draws from, `a-b` or a comma list")
+    ap.add_argument("--screen", type=int, default=3,
+                    help="seeds per screening draw (both sides each)")
+    ap.add_argument("--confirm", type=int, default=8,
+                    help="seeds per confirmation draw, disjoint from the screen")
+    ap.add_argument("--z", type=float, default=1.0,
+                    help="t the confirmation must reach before an accept")
     ap.add_argument("--sides", default="0,1")
     ap.add_argument("--steps", type=int, default=721)
     ap.add_argument("--minutes", type=float, default=60.0)
     ap.add_argument("--lam", type=int, default=4)
     ap.add_argument("--ops", type=int, default=2)
-    ap.add_argument("--objective", default="wins", choices=("wins", "mean", "min"))
+    ap.add_argument("--objective", default="wins",
+                    choices=("wins", "mean", "min", "margin"))
     ap.add_argument("--confirm-every", type=int, default=15)
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--seed", type=int, default=7)
@@ -385,10 +537,22 @@ def main():
     args = ap.parse_args()
 
     args.seeds_list = [int(s) for s in args.seeds.split(",") if s.strip()]
+    args.pool_list = parse_pool(args.pool)
     holdout = [int(s) for s in args.holdout.split(",") if s.strip()]
     sides = [int(s) for s in args.sides.split(",") if s.strip()]
     if args.selftest:
         return selftest(args)
+
+    if args.accept == "race":
+        if args.objective == "min":
+            ap.error("--objective min has no per-episode form; use --accept plain")
+        need = args.screen + args.confirm
+        if len(args.pool_list) < need:
+            ap.error("--pool has %d seeds, a generation draws %d"
+                     % (len(args.pool_list), need))
+        clash = sorted(set(args.pool_list) & set(holdout))
+        if clash:
+            ap.error("held-out seeds are inside the training pool: %s" % clash)
 
     rng = random.Random(args.seed)
     workers = args.workers or min(8, (os.cpu_count() or 2))
@@ -407,29 +571,81 @@ def main():
                         args.objective)
     print("HOLDOUT gen=0 score=%.4f %s" % (hold, summarise(hvals)), flush=True)
 
+    # A `wins` objective against an opponent this farm never beats is flat: an
+    # edit has to flip a whole episode to register at all, and measured against
+    # the plan near the top of the ladder every one of 96 episodes was a loss
+    # for the incumbent and for all eight of its children alike -- paired
+    # spread exactly zero. Four hours of that is four hours of nothing, so it
+    # is an error rather than a warning.
+    if args.objective == "wins":
+        won = sum(1 for m, t in hvals if m > t)
+        if won in (0, len(hvals)):
+            print("OBJECTIVE=FLAT won %d of %d -- `wins` has no gradient here;"
+                  " use --objective mean (or margin)" % (won, len(hvals)),
+                  flush=True)
+            if pool is not None:
+                pool.shutdown()
+            return 2
+
     deadline = time.time() + args.minutes * 60
+    arena = Arena(pool, args.opponent, args.steps)
+    start = sched
+    accepts = 0
     gen = 0
     while time.time() < deadline:
         gen += 1
-        best_child = None
-        for _ in range(args.lam):
-            child, applied = mutate(sched, rng, args.ops)
-            s, vals = score(pool, child, args.opponent, args.seeds_list, sides,
-                            args.steps, args.objective)
-            if best_child is None or s > best_child[0]:
-                best_child = (s, child, applied, vals)
-        if best_child[0] > base:
-            base, sched = best_child[0], best_child[1]
-            print("GEN %d accepted %.4f via %s  %s"
-                  % (gen, base, ",".join(best_child[2]), summarise(best_child[3])),
-                  flush=True)
-            with open(args.out, "w", encoding="utf-8") as f:
-                json.dump(sched, f, indent=1, sort_keys=True)
+        if args.accept == "plain":
+            best_child = None
+            for _ in range(args.lam):
+                child, applied = mutate(sched, rng, args.ops)
+                s, vals = score(pool, child, args.opponent, args.seeds_list,
+                                sides, args.steps, args.objective)
+                if best_child is None or s > best_child[0]:
+                    best_child = (s, child, applied, vals)
+            if best_child[0] > base:
+                base, sched = best_child[0], best_child[1]
+                accepts += 1
+                print("GEN %d accepted %.4f via %s  %s"
+                      % (gen, base, ",".join(best_child[2]),
+                         summarise(best_child[3])), flush=True)
+                with open(args.out, "w", encoding="utf-8") as f:
+                    json.dump(sched, f, indent=1, sort_keys=True)
+        else:
+            screen, confirm = draw(rng, args.pool_list, args.screen,
+                                   args.confirm, sides)
+            children = [mutate(sched, rng, args.ops) for _ in range(args.lam)]
+            got = race(arena, sched, children, screen, confirm,
+                       args.objective, args.z)
+            if got["accepted"]:
+                sched = got["child"]
+                accepts += 1
+                with open(args.out, "w", encoding="utf-8") as f:
+                    json.dump(sched, f, indent=1, sort_keys=True)
+            # Every generation prints, accepted or not. A rejection is the
+            # thing the old loop could not say, and the rate of them is how
+            # you tell a working test from a broken one.
+            print("GEN %d %s screen=%+.1f confirm=%+.1f t=%+.2f ep=%d via %s"
+                  % (gen, "ACCEPT" if got["accepted"] else "reject",
+                     got["seen"], got["mean"], got["t"], arena.played,
+                     ",".join(got["applied"]) or "-"), flush=True)
+            arena.keep_only([sched, start])
         if gen % args.confirm_every == 0:
             hold, hvals = score(pool, sched, args.opponent, holdout, sides,
                                 args.steps, args.objective)
-            print("HOLDOUT gen=%d score=%.4f train=%.4f %s"
-                  % (gen, hold, base, summarise(hvals)), flush=True)
+            # Absolute, and paired against the calendar this run started from.
+            # The pairing is what makes the line readable: the held-out spread
+            # across seeds is far wider than the distance a climb travels, so
+            # an absolute number moves mostly with which seeds are in the set.
+            moved = ""
+            if args.accept == "race" and sched is not start:
+                held = [(s, side) for s in holdout for side in sides]
+                mean, t, _n = paired_t(
+                    per_episode(arena.values(sched, held), args.objective),
+                    per_episode(arena.values(start, held), args.objective))
+                moved = " vs-start=%+.1f t=%+.2f" % (mean, t)
+            print("HOLDOUT gen=%d score=%.4f train=%.4f accepts=%d%s %s"
+                  % (gen, hold, base, accepts, moved, summarise(hvals)),
+                  flush=True)
 
     hold, hvals = score(pool, sched, args.opponent, holdout, sides, args.steps,
                         args.objective)
@@ -438,9 +654,12 @@ def main():
         json.dump(sched, f, indent=1, sort_keys=True)
     sched_mod.dump(sched, args.out)
     print("SUMMARY=" + json.dumps({
-        "gen": gen, "train": base, "holdout": hold, "out": args.out,
-        "objective": args.objective, "seeds": args.seeds_list,
-        "holdout_seeds": holdout}))
+        "gen": gen, "accepts": accepts, "train": base, "holdout": hold,
+        "out": args.out, "accept": args.accept, "objective": args.objective,
+        "episodes": arena.played, "z": args.z,
+        "screen": args.screen, "confirm": args.confirm,
+        "pool": [min(args.pool_list), max(args.pool_list)],
+        "seeds": args.seeds_list, "holdout_seeds": holdout}))
     if pool is not None:
         pool.shutdown()
     return 0

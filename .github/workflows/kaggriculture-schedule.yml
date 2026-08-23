@@ -54,8 +54,34 @@ on:
         required: false
         default: true
         type: boolean
+      accept:
+        description: 'race = screen cheap then confirm the survivor on seeds it was not chosen on. plain = the old best-of-lambda on fixed seeds'
+        required: false
+        default: 'race'
+        type: choice
+        options: [race, plain]
+      pool:
+        description: 'race: the seeds a generation draws from, `a-b` or a list. Must not touch the held-out seeds'
+        required: false
+        default: '3000-3095'
+        type: string
+      screen:
+        description: 'race: seeds in the screening draw (each played both sides)'
+        required: false
+        default: '3'
+        type: string
+      confirm:
+        description: 'race: seeds in the confirmation draw, disjoint from the screen'
+        required: false
+        default: '8'
+        type: string
+      z:
+        description: 'race: the t the confirmation must reach before an accept'
+        required: false
+        default: '1.0'
+        type: string
       seeds:
-        description: 'Training seeds (comma separated)'
+        description: 'Training seeds. Under race these only pick which starting calendar to climb'
         required: false
         default: '3000,3001,3002,3003,3004,3005'
         type: string
@@ -216,6 +242,11 @@ jobs:
             --objective "${{ inputs.objective }}" \
             --seeds "${{ inputs.seeds }}" \
             --holdout "${{ inputs.holdout }}" \
+            --accept "${{ inputs.accept }}" \
+            --pool "${{ inputs.pool }}" \
+            --screen "${{ inputs.screen }}" \
+            --confirm "${{ inputs.confirm }}" \
+            --z "${{ inputs.z }}" \
             --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
             --minutes "${{ inputs.minutes }}" \
             --workers "$(nproc)" | tee /tmp/climb.log
@@ -280,6 +311,10 @@ jobs:
             else
               grep -E '^(CANDIDATE|CHOSE|HOLDOUT|SUMMARY=)' /tmp/climb.log \
                 || tail -5 /tmp/climb.log
+              echo ""
+              gens=$(grep -c '^GEN ' /tmp/climb.log || true)
+              took=$(grep -c 'ACCEPT' /tmp/climb.log || true)
+              echo "accepted ${took:-0} of ${gens:-0} generations"
             fi
             echo ""
             echo "-- vs the live agent --"
