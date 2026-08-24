@@ -200,6 +200,12 @@ jobs:
               || rm -f schedules/best.json
             git show FETCH_HEAD:schedules/climb.txt > schedules/climb.txt 2>/dev/null \
               || rm -f schedules/climb.txt
+            # The commit below rewrites this branch as a single orphan commit,
+            # so anything not restored here is deleted by the next run. The
+            # calibration matrix was lost exactly that way: a climb carries no
+            # band.json, and one climb was enough to drop it.
+            git show FETCH_HEAD:schedules/band.json > schedules/band.json 2>/dev/null \
+              || rm -f schedules/band.json
             tail -3 schedules/climb.txt 2>/dev/null || true
           else
             echo "no schedules branch yet"
