@@ -27,6 +27,10 @@ BASE = {
     "20": {"hands": 12, "COW": 8, "SHEEP": 4, "GOOSE": 0, "land": 3},
 }
 
+# A cut no fake child can exceed, so the older invariants still ask what
+# they were written to ask.
+WIDE = 1e12
+
 FAILED = []
 
 
@@ -114,7 +118,7 @@ def ruler():
         opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
                              only_on_screen)
         arena = opt.Arena(None, "x", 721)
-        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE)
         check("the screen does pick the lucky child", got["seen"] > 0,
               "screen saw %+.1f" % got["seen"])
         check("the confirmation throws it out", not got["accepted"],
@@ -125,7 +129,7 @@ def ruler():
         opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
                              lambda sched, seed: 5000 * (opt.key_of(sched) == real))
         arena = opt.Arena(None, "x", 721)
-        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE)
         check("a real edit survives both stages", got["accepted"],
               "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
         check("and it is the right child", opt.key_of(got["child"]) == real)
@@ -163,7 +167,7 @@ def ruler():
               vals["volatile"][0] > vals["tight"][0],
               "volatile %+.0f vs tight %+.0f" % (vals["volatile"][0],
                                                  vals["tight"][0]))
-        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE)
         check("the pessimistic screen picks the tight one anyway",
               opt.key_of(got["child"]) == tight,
               "floors: volatile %+.0f tight %+.0f" % (vals["volatile"][1],
@@ -202,11 +206,45 @@ def ruler():
         check("live mutations are kept", len(kept) == 4 and skipped == 0,
               "kept %d, skipped %d" % (len(kept), skipped))
 
+        print("a child too wide to measure is refused, not judged")
+        # Same two children as above. The volatile one reads better on the
+        # mean and is the one a screen picks by luck; at a cut it cannot
+        # clear, it never reaches the confirmation at all.
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             two_kinds)
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 0.0, 5000)
+        check("the wide child is counted out", got["wild"] >= 1,
+              "wild=%d" % got["wild"])
+        check("and the tight one is what gets confirmed",
+              got["child"] is not None and opt.key_of(got["child"]) == tight)
+
+        # Every child swinging with the season, none of them measurable.
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             lambda sched, seed: 0
+                             if opt.key_of(sched) == opt.key_of(BASE)
+                             else (seed % 5) * 20000 - 40000)
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 0.0, 1000)
+        check("when every child is too wide, nothing is accepted",
+              got["child"] is None and not got["accepted"],
+              "child=%s" % (got["child"] is not None))
+        check("and all of them are counted", got["wild"] == len(kids),
+              "wild=%d of %d" % (got["wild"], len(kids)))
+
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             two_kinds)
+        arena = opt.Arena(None, "x", 721)
+
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 0.0, WIDE)
+        check("a generous cut refuses nobody", got["wild"] == 0,
+              "wild=%d" % got["wild"])
+
         print("nothing at all is not an improvement")
         opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
                              lambda sched, seed: 0)
         arena = opt.Arena(None, "x", 721)
-        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE)
         check("an edit worth zero is rejected", not got["accepted"],
               "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
     finally:

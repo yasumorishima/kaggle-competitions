@@ -231,22 +231,54 @@ def live_children(arena, rng, sched, lam, ops, probe, tries=4):
     return kept, skipped
 
 
-def race(arena, sched, children, screen, confirm, kind, z):
+def race(arena, sched, children, screen, confirm, kind, z, cut):
+    """Screen, refuse the unmeasurable, confirm the survivor.
+
+    The refusal is the part that was missing, and without it the whole rule
+    loses money. Measured: fifty one generations under screen-then-confirm
+    accepted eleven edits whose confirmations summed to +56,290, and the
+    same two calendars played on ninety six fresh episodes came out
+    -3,419 +/- 3,691 apart -- the climb had spent four hours going backwards.
+
+    Replaying the stored matrix explains it without spending an episode. A
+    child's spread is not a property of the search, it is a property of the
+    child: `task_dial` edits came back at +263 with a standard deviation of
+    1,119, while a rescheduled quadrant swung 15,000 an episode. Twelve
+    screening episodes cannot tell a +250 edit from noise at that width, so
+    a wide child reaching the confirmation is a coin, and a coin that lands
+    well is accepted. Conditioning on `t >= z` does not fix it: the
+    confirmation is unbiased for a candidate named in advance, and accepting
+    on the strength of that same confirmation names it afterwards.
+
+    Raising the bar does not fix it either -- it converges on accepting
+    nothing, which is where the measurement put it: no threshold made the
+    accepted set worth having, while dropping the children the screen cannot
+    measure turned the true value of an accept from -129 to +209 and the
+    value of a generation from -28 to +105. So the bar changed from
+    significance to measurability: judge only what can be judged, and having
+    dropped what cannot, the t-bar is spending accepts to buy nothing.
+    """
     """Screen, then confirm the survivor on episodes it was not chosen on."""
     base = per_episode(arena.values(sched, screen), kind)
-    best = None
+    best, wild = None, 0
     for child, applied in children:
         got = per_episode(arena.values(child, screen), kind)
         d = [c - b for c, b in zip(got, base)]
+        if len(d) > 1 and statistics.stdev(d) > cut:
+            wild += 1
+            continue
         rank = lower_bound(d)
         if best is None or rank > best[0]:
             best = (rank, child, applied, statistics.fmean(d))
+    if best is None:
+        return dict(child=None, applied=[], seen=0.0, floor=0.0, mean=0.0,
+                    t=0.0, accepted=False, wild=wild)
     seen, child, applied = best[3], best[1], best[2]
     floor = best[0]
     got = per_episode(arena.values(child, confirm), kind)
     mean, t, _n = paired_t(got, per_episode(arena.values(sched, confirm), kind))
     return dict(child=child, applied=applied, seen=seen, floor=floor,
-                mean=mean, t=t, accepted=(mean > 0 and t >= z))
+                mean=mean, t=t, accepted=(mean > 0 and t >= z), wild=wild)
 
 
 # --------------------------------------------------------------------------
@@ -649,13 +681,27 @@ def main():
                     help="race: only picks which starting calendar to climb")
     ap.add_argument("--holdout", default="3100,3101,3102,3103")
     ap.add_argument("--accept", default="race", choices=("race", "plain"))
+    # Above this the screen is not measuring the child, it is measuring the
+    # season. Chosen on the replayed matrix, where every cut from 2,000 to
+    # 12,000 came back positive and 4,000 / 6,000 / 8,000 returned +92 /
+    # +99 / +105 a generation -- a plateau, not a peak, so the number is not
+    # load-bearing. Re-read it whenever the calendar changes: the incumbent's
+    # own paired spread went from 9,130 to 12,457 over one climb.
+    ap.add_argument("--spread-cut", type=float, default=8000.0,
+                    dest="spread_cut",
+                    help="race: drop a child whose screening spread exceeds"
+                         " this, rather than judging what cannot be judged")
     ap.add_argument("--pool", default="3000-3095",
                     help="seeds the race draws from, `a-b` or a comma list")
     ap.add_argument("--screen", type=int, default=3,
                     help="seeds per screening draw (both sides each)")
     ap.add_argument("--confirm", type=int, default=8,
                     help="seeds per confirmation draw, disjoint from the screen")
-    ap.add_argument("--z", type=float, default=1.0,
+    # Zero, because the spread cut already removed what a threshold was
+    # there to catch. Measured on the stored matrix, gated: z=0.0 returns
+    # +105 a generation, z=0.5 returns +68, z=1.0 returns +27 -- the bar
+    # only rejects the small real gains, which is the shape the edits have.
+    ap.add_argument("--z", type=float, default=0.0,
                     help="t the confirmation must reach before an accept")
     ap.add_argument("--sides", default="0,1")
     ap.add_argument("--steps", type=int, default=721)
@@ -755,7 +801,11 @@ def main():
                       % (gen, args.lam * 4), flush=True)
                 continue
             got = race(arena, sched, children, screen, confirm,
-                       args.objective, args.z)
+                       args.objective, args.z, args.spread_cut)
+            if got["child"] is None:
+                print("GEN %d all %d children too wide to judge (cut %.0f)"
+                      % (gen, got["wild"], args.spread_cut), flush=True)
+                continue
             if got["accepted"]:
                 sched = got["child"]
                 accepts += 1
@@ -765,10 +815,10 @@ def main():
             # thing the old loop could not say, and the rate of them is how
             # you tell a working test from a broken one.
             print("GEN %d %s screen=%+.1f(floor%+.1f) confirm=%+.1f t=%+.2f"
-                  " ep=%d dead=%d via %s"
+                  " ep=%d dead=%d wild=%d via %s"
                   % (gen, "ACCEPT" if got["accepted"] else "reject",
                      got["seen"], got["floor"], got["mean"], got["t"],
-                     arena.played, skipped,
+                     arena.played, skipped, got["wild"],
                      ",".join(got["applied"]) or "-"), flush=True)
             arena.keep_only([sched, start])
         if gen % args.confirm_every == 0:

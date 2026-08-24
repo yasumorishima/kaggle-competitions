@@ -315,6 +315,41 @@ def rule_race(rng, band, kids, fn, lam, screen, confirm, z):
                 seen=m, truth=statistics.fmean([ds[best][i] for i in rest]))
 
 
+def rule_gate(rng, band, kids, fn, lam, screen, confirm, z, cut=8000.0):
+    """The climb's rule: refuse the unmeasurable, then pick pessimistically.
+
+    Two differences from rule_race, and the pair of them is the difference
+    between losing money and not. The pick is `mean - standard error` rather
+    than the mean, because an argmax over a noisy screen selects for spread
+    and here the wide edits are the destructive ones. And a child whose
+    screening spread is above `cut` is dropped rather than ranked: twelve
+    episodes cannot say anything about it, so letting it reach the
+    confirmation is letting a coin reach the confirmation.
+
+    Replayed on the calibration of 2026-08-24, over the 22 children that
+    actually changed the season: ungated, the true value of an accept was
+    -111 and of a generation -62; gated at 8,000 they were +209 and +105.
+    """
+    picks = rng.sample(kids, lam)
+    ds = {k: diffs(band, k, fn) for k in picks}
+    order = list(range(len(band["episodes"])))
+    rng.shuffle(order)
+    scr = order[:screen]
+    con = order[screen:screen + confirm]
+    rest = order[screen + confirm:]
+    live = [k for k in picks
+            if statistics.stdev([ds[k][i] for i in scr]) <= cut]
+    cost = lam * screen + 2 * confirm
+    if not live:
+        return dict(cost=cost, accepted=False, seen=0.0, truth=0.0)
+    best = max(live, key=lambda k: statistics.fmean([ds[k][i] for i in scr])
+               - sem([ds[k][i] for i in scr]))
+    got = [ds[best][i] for i in con]
+    m, e = statistics.fmean(got), sem(got)
+    return dict(cost=cost, accepted=m > z * e, seen=m,
+                truth=statistics.fmean([ds[best][i] for i in rest]))
+
+
 def replay(band, args):
     kids = children_of(band)
     n = len(band["episodes"])
@@ -330,6 +365,14 @@ def replay(band, args):
         for z in args.zs:
             specs.append(("race %d+%d z=%.1f" % (args.screen, confirm, z),
                           rule_race, args.screen, confirm, z))
+    for confirm in args.confirms:
+        for z in args.zs:
+            for cut in args.cuts:
+                specs.append(("gate<=%d %d+%d z=%.1f"
+                              % (cut, args.screen, confirm, z),
+                              lambda r, b, k, f, l, s_, c_, z_, _cut=cut:
+                              rule_gate(r, b, k, f, l, s_, c_, z_, _cut),
+                              args.screen, confirm, z))
     for label, rule, screen, confirm, z in specs:
         if screen + confirm >= n:
             print("   %-26s (needs %d episodes, have %d)"
@@ -360,6 +403,8 @@ def main():
     ap.add_argument("--opponent", default="main.py")
     ap.add_argument("--children", type=int, default=8,
                     help="per-op: how many children from each operator")
+    ap.add_argument("--cuts", default="4000,8000,12000",
+                    help="replay: screening-spread cuts to try, comma separated")
     ap.add_argument("--only", default="",
                     help="per-op: measure only these operators, comma separated")
     ap.add_argument("--per-op", action="store_true",
@@ -381,6 +426,7 @@ def main():
     ap.add_argument("--trials", type=int, default=400)
     args = ap.parse_args()
     args.only = [o.strip() for o in args.only.split(",") if o.strip()]
+    args.cuts = [float(c) for c in args.cuts.split(",") if c.strip()]
     args.confirms = [int(c) for c in args.confirms.split(",") if c.strip()]
     args.zs = [float(z) for z in args.zs.split(",") if z.strip()]
 

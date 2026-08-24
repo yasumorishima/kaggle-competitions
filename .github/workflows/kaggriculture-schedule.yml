@@ -86,9 +86,14 @@ on:
         default: '8'
         type: string
       z:
-        description: 'race: the t the confirmation must reach before an accept'
+        description: 'race: the t the confirmation must reach before an accept. 0 = accept a positive confirmation, which is what the spread cut leaves room for'
         required: false
-        default: '1.0'
+        default: '0.0'
+        type: string
+      spread_cut:
+        description: 'race: drop a child whose screening spread is above this rather than judging what cannot be judged'
+        required: false
+        default: '8000'
         type: string
       seeds:
         description: 'Training seeds. Under race these only pick which starting calendar to climb'
@@ -291,6 +296,7 @@ jobs:
             --screen "${{ inputs.screen }}" \
             --confirm "${{ inputs.confirm }}" \
             --z "${{ inputs.z }}" \
+            --spread-cut "${{ inputs.spread_cut }}" \
             --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
             --minutes "${{ inputs.minutes }}" \
             --workers "$(nproc)" | tee /tmp/climb.log
