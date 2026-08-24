@@ -41,6 +41,8 @@ import base64
 import json
 import os
 import statistics as st
+import time
+import urllib.error
 import urllib.request
 
 SLUG = "kaggriculture"
@@ -60,9 +62,29 @@ def _auth():
     return "Basic " + base64.b64encode(f"{k['username']}:{k['key']}".encode()).decode()
 
 
+# The episode service rate-limits at somewhere under one call a second sustained,
+# and answers a burst with 429 rather than a slower 200. A crawl of a few dozen
+# submissions will hit it, so every call backs off and retries instead of ending
+# the run on a traceback -- the numbers this file exists to print are worth a
+# wait, and a half-finished report is worse than a slow one.
+RETRY_WAITS = (5, 15, 45, 90)
+
+
+def _open(req, what):
+    for i, wait in enumerate(RETRY_WAITS + (None,)):
+        try:
+            return json.loads(urllib.request.urlopen(req, timeout=90).read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or wait is None:
+                raise
+            print(f"  rate limited on {what}; waiting {wait}s "
+                  f"(attempt {i + 1}/{len(RETRY_WAITS)})")
+            time.sleep(wait)
+
+
 def _get(url, auth):
     req = urllib.request.Request(url, headers={"Authorization": auth, "User-Agent": "kg"})
-    return json.loads(urllib.request.urlopen(req, timeout=90).read().decode())
+    return _open(req, url.rsplit("/", 1)[-1])
 
 
 def _post(url, body, auth):
@@ -70,7 +92,7 @@ def _post(url, body, auth):
         url, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", "Authorization": auth,
                  "User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest"})
-    return json.loads(urllib.request.urlopen(req, timeout=90).read().decode())
+    return _open(req, json.dumps(body))
 
 
 def submissions(auth):
@@ -176,13 +198,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", help="write the raw rows here")
     ap.add_argument("--limit", type=int, default=4, help="most recent N submissions")
+    ap.add_argument("--pause", type=float, default=2.0,
+                    help="seconds between submissions, to stay under the rate limit")
     args = ap.parse_args()
 
     auth = _auth()
     subs = submissions(auth)[: args.limit]
     dump = {}
     pooled = []
-    for s in subs:
+    for n, s in enumerate(subs):
+        if n:
+            time.sleep(args.pause)
         rows = episodes_for(s["id"], auth)
         dump[str(s["id"])] = rows
         describe(rows, f"submission {s['id']}  LB {s['score']}  {s['desc']}")
