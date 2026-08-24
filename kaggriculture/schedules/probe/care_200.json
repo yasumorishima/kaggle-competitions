@@ -1,0 +1,210 @@
+{
+ "0": {
+  "CARE_w": 200,
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 5,
+  "land": 1
+ },
+ "1": {
+  "CARE_w": 200,
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 1,
+  "land": 1
+ },
+ "10": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 14,
+  "land": 2
+ },
+ "11": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "13": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 8,
+  "land": 2
+ },
+ "14": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "15": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 8,
+  "land": 2
+ },
+ "16": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 12,
+  "land": 2
+ },
+ "17": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 5,
+  "land": 2
+ },
+ "18": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 8,
+  "land": 2
+ },
+ "19": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "2": {
+  "CARE_w": 200,
+  "COW": 1,
+  "GOOSE": 0,
+  "SHEEP": 0,
+  "hands": 2,
+  "land": 1
+ },
+ "20": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "21": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "22": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "23": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "25": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 12,
+  "land": 2
+ },
+ "27": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 11,
+  "land": 2
+ },
+ "28": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 2,
+  "SHEEP": 4,
+  "hands": 10,
+  "land": 2
+ },
+ "3": {
+  "CARE_w": 200,
+  "COW": 2,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "4": {
+  "CARE_w": 200,
+  "COW": 4,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "5": {
+  "CARE_w": 200,
+  "COW": 5,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "6": {
+  "CARE_w": 200,
+  "COW": 7,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 4,
+  "land": 1
+ },
+ "7": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ },
+ "8": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 6,
+  "land": 2
+ },
+ "9": {
+  "CARE_w": 200,
+  "COW": 9,
+  "GOOSE": 0,
+  "SHEEP": 4,
+  "hands": 7,
+  "land": 2
+ }
+}
