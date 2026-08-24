@@ -29,11 +29,11 @@ on:
         required: true
         type: string
       mode:
-        description: 'climb = hill-climb the calendar. calibrate = measure the ruler (paired noise band, winner curse, acceptance rules) and climb nothing'
+        description: 'climb = hill-climb the calendar. calibrate = measure the ruler (paired noise band, winner curse, acceptance rules). score = play the calendars in `start` on the `seeds`, side by side, and write nothing'
         required: false
         default: 'climb'
         type: choice
-        options: [climb, calibrate]
+        options: [climb, calibrate, score]
       children:
         description: 'calibrate only: mutated children to measure (with per_op, this many from each operator)'
         required: false
@@ -243,6 +243,32 @@ jobs:
             --out ../schedules/band.json \
             --workers "$(nproc)" | tee /tmp/band.log
 
+      - name: Score calendars side by side
+        # One question, and nothing written down: given these calendars and
+        # these seeds, what does each earn, episode by episode?
+        #
+        # It exists because a climb's own arithmetic stopped adding up. Fifty
+        # one generations under the race rule accepted eleven edits whose
+        # confirmations summed to +56,290, and the held-out score moved
+        # +3,270 with t = +0.73. Twelve held-out episodes cannot tell +3,270
+        # from +56,290; ninety-six can. The climb already prints exactly the
+        # per-episode numbers needed, as its CANDIDATE lines, so this is the
+        # climb with a zero budget -- and its output pointed at a scratch
+        # file, because the branch's calendar must not move when all that
+        # happened was a measurement.
+        if: inputs.mode == 'score'
+        run: |
+          set -e
+          python sim/optimize_schedule.py \
+            --sched "${{ inputs.start }}" \
+            --out /tmp/scored.json \
+            --opponent "$OPP" \
+            --objective "${{ inputs.objective }}" \
+            --seeds "${{ inputs.seeds }}" \
+            --holdout "${{ inputs.holdout }}" \
+            --minutes 0 \
+            --workers "$(nproc)" | tee /tmp/score.log
+
       - name: Climb
         if: inputs.mode == 'climb'
         run: |
@@ -320,6 +346,8 @@ jobs:
             echo '```'
             if [ -s /tmp/band.log ]; then
               sed -n '/== per-child/,$p' /tmp/band.log
+            elif [ -s /tmp/score.log ]; then
+              grep -E '^(CANDIDATE|CHOSE)' /tmp/score.log || tail -5 /tmp/score.log
             else
               grep -E '^(CANDIDATE|CHOSE|HOLDOUT|SUMMARY=)' /tmp/climb.log \
                 || tail -5 /tmp/climb.log
