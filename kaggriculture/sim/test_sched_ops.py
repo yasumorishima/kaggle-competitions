@@ -242,6 +242,73 @@ def main():
         check("%-22s changes it" % op.__name__, changed >= fired * 0.9,
               "changed %d of %d firings" % (changed, fired))
 
+    print("the budget goes where the measurement says")
+    rng = random.Random(29)
+    drawn = {}
+    for _ in range(20000):
+        name = opt.draw_operator(rng, opt.OPERATORS).__name__
+        drawn[name] = drawn.get(name, 0) + 1
+    total = float(sum(opt.OPERATOR_WEIGHTS.values()))
+    worst = max(abs(drawn.get(k, 0) / 20000.0 - w / total)
+                for k, w in opt.OPERATOR_WEIGHTS.items())
+    check("draws match the weights", worst < 0.01, "off by %.4f" % worst)
+    check("the measured lever outdraws the measured loser",
+          drawn["op_task_dial"] > 8 * drawn["op_hands_scale"],
+          "task_dial %d, hands_scale %d"
+          % (drawn["op_task_dial"], drawn["op_hands_scale"]))
+    # --only hands one operator to the same draw, and per-op calibration
+    # would measure nothing at all if that came back empty.
+    only = opt.draw_operator(random.Random(1), (opt.op_land_count,))
+    check("a single operator is still drawable", only is opt.op_land_count)
+
+    print("a rescheduled purchase clears the wait")
+    rng = random.Random(31)
+    far = near = 0
+    for _ in range(4000):
+        got = opt._nearby(12, 0, rng)
+        if abs(got - 12) > 4:
+            far += 1
+        else:
+            near += 1
+    check("most moves reach past the old four days", far > 2 * near,
+          "far %d, near %d" % (far, near))
+    check("short moves are still drawn", near > 200, "near %d" % near)
+    rng = random.Random(32)
+    moved = []
+    for _ in range(400):
+        rows = rows_of(BASE)
+        before = [r["land"] for r in rows]
+        if opt.op_land_when(rows, rng) is None:
+            continue
+        opt._tidy(rows)
+        after = [r["land"] for r in rows]
+        if before != after:
+            moved.append(max(abs(a - b) for a, b in zip(before, after)))
+    check("land_when still fires and still moves the column",
+          len(moved) > 200, "moved %d of 400" % len(moved))
+
+    print("a dial the climb liked gets refined")
+    rows = rows_of(BASE)
+    for row in rows:
+        row["PLANT_w"] = 160
+        row["DIG_w"] = 40
+    rng = random.Random(37)
+    picks = [opt._task_key(rows, rng) for _ in range(4000)]
+    hit = sum(1 for k in picks if k in ("PLANT_w", "DIG_w"))
+    share = hit / 4000.0
+    # Half the draws come from the two touched dials, the other half uniform
+    # over thirteen: 0.5 + 0.5 * 2/13 = 0.577.
+    check("touched dials take about four draws in seven",
+          0.53 < share < 0.62, "share %.3f" % share)
+    check("every dial is still reachable",
+          len(set(picks)) == len(sched_mod.TASK_KEYS),
+          "reached %d of %d" % (len(set(picks)), len(sched_mod.TASK_KEYS)))
+    fresh = rows_of(BASE)
+    rng = random.Random(41)
+    picks = [opt._task_key(fresh, rng) for _ in range(2000)]
+    top = max(picks.count(k) for k in set(picks)) / 2000.0
+    check("an untouched calendar draws evenly", top < 0.12, "top %.3f" % top)
+
     print("mutation keeps the calendar followable")
     rng = random.Random(3)
     bad = 0

@@ -308,12 +308,25 @@ def _put(rows, key, incs):
         row[key] = run
 
 
-def _nearby(day, floor, rng, span=4):
+def _nearby(day, floor, rng, span=DAYS):
     """A different day within `span`, or None if the calendar has no room.
 
     Drawing a shift and clamping it looks equivalent and is not: at the edges
     the clamp lands back on the day it started from, and the mutation silently
     does nothing.
+
+    The span used to be four days, and four days is inside the slack.
+    Measured one operator at a time over nineteen children (runs 32668088485
+    and 32671320007), thirteen of them scored the incumbent's money to the
+    cent on every episode: the farm is money-bound, not schedule-bound -- it
+    buys the cow on the day it can afford the cow -- so a target that moves
+    within the wait is not a target that moved at all. A move bites when it
+    clears the wait, and the wait is the size of the season.
+
+    So the new day is drawn from the whole season. Short moves are not
+    forbidden and do not need to be: about a quarter of the draws still land
+    within four days, purely because thirty days is not many, which is the
+    right amount of attention to pay a distance that measured out at nothing.
     """
     options = [d for d in range(max(floor, day - span), min(DAYS - 1, day + span) + 1)
                if d != day]
@@ -450,6 +463,29 @@ def op_crop_dial(rows, rng):
     return "crop_dial:" + crop
 
 
+def _task_key(rows, rng):
+    """Which kind of work to push, half the time one the climb already moved.
+
+    Thirteen kinds of work share one operator among ten, so a named dial is
+    drawn under one draw in a hundred and a generation of four children with
+    two operators each reaches it about once in sixteen generations. That is
+    the lever the measurement liked -- PLANT_w came back +1,841 with a paired
+    standard deviation of 2,512 over twenty episodes, t = +3.28 -- and the
+    search was buying a ticket for it.
+
+    Refining a dial the calendar has already been moved off 100 costs no
+    prior about which dial that is: the climb's own accepted history says it,
+    and a dial that was never any good never gets into the history. The other
+    half of the draws stay uniform so the season can still find its first
+    good dial and change its mind about an old one.
+    """
+    touched = sorted({k for row in rows for k in sched_mod.TASK_KEYS
+                      if row.get(k, 100) != 100})
+    if touched and rng.random() < 0.5:
+        return rng.choice(touched)
+    return rng.choice(sched_mod.TASK_KEYS)
+
+
 def op_task_dial(rows, rng):
     """Push one kind of work up or down over a stretch of days.
 
@@ -465,7 +501,7 @@ def op_task_dial(rows, rng):
     Spans are drawn the way the crop dial draws them, because the unit of a
     useful answer here is a phase of the season, not a single day.
     """
-    task = rng.choice(sched_mod.TASK_KEYS)
+    task = _task_key(rows, rng)
     start = rng.randrange(0, DAYS)
     span = rng.randint(3, 14)
     delta = rng.choice([-60, -40, -25, 25, 40, 60])
@@ -499,6 +535,45 @@ OPERATORS = (op_hands_shift, op_hands_scale, op_herd_size, op_herd_when,
              op_convert, op_land_when, op_land_count, op_crop_dial,
              op_task_dial, op_struct_when)
 
+# An even draw over ten operators is an even draw over effects that are not
+# even. Measured one operator at a time, twenty episodes a child (run
+# 32668088485): task_dial +560 a child and herd_size +916, against land_count
+# -4,615 with all three children individually significant and hands_scale
+# -4,761 on a swing of 16,670. A generation is four children; spending three
+# of them on the columns that are known to cost money is why the climb reads
+# so little for eighty-six episodes.
+#
+# The weights are the measurement, not a hunch, and they are re-measured the
+# same way after any change to an operator:
+#     mode=calibrate per_op=true only=<names>
+# Nothing is dropped to zero. The losing columns are losing from this
+# calendar, at this point on the ladder, and the race rule is what keeps a
+# bad child out -- the weight only decides how much of the budget finds out.
+OPERATOR_WEIGHTS = {
+    "op_task_dial": 5.0,
+    "op_herd_size": 3.0,
+    "op_crop_dial": 2.0,
+    "op_convert": 2.0,
+    "op_struct_when": 1.5,
+    "op_hands_shift": 1.0,
+    "op_land_when": 1.0,
+    "op_herd_when": 1.0,
+    "op_land_count": 0.5,
+    "op_hands_scale": 0.5,
+}
+
+
+def draw_operator(rng, operators):
+    """One operator, drawn in proportion to what it has been worth."""
+    weights = [OPERATOR_WEIGHTS.get(o.__name__, 1.0) for o in operators]
+    total = sum(weights)
+    mark = rng.random() * total
+    for op, w in zip(operators, weights):
+        mark -= w
+        if mark < 0:
+            return op
+    return operators[-1]
+
 
 def mutate(sched, rng, ops=2, operators=OPERATORS):
     rows = sched_mod.expand(sched)
@@ -516,7 +591,7 @@ def mutate(sched, rng, ops=2, operators=OPERATORS):
             row.setdefault(s, 0)
     applied = []
     for _ in range(ops):
-        name = rng.choice(operators)(rows, rng)
+        name = draw_operator(rng, operators)(rows, rng)
         if name:
             applied.append(name)
     _tidy(rows)
