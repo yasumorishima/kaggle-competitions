@@ -554,10 +554,24 @@ def op_struct_when(rows, rng):
     Mutated as a step change from a day onward, like the land column, because
     "nine pens standing by day five" is the shape of a useful answer. The
     repair pass then makes it non-decreasing: a farm cannot un-build a pen.
+
+    The day is drawn early and the step reaches further up than it used to,
+    because of how the target is spent. main.py builds against
+    `max(0, target - already standing)`, and its reactive path already puts
+    up a pen the moment an animal is waiting -- so a step placed late in the
+    season asks for something that has happened anyway. Measured one
+    operator at a time over forty episodes, both PASTURE children came back
+    identical to the incumbent to the cent, while the COOP children moved:
+    two geese need one coop, so a target of three was still above the farm,
+    and fourteen cows and sheep had long since outrun a target of four.
+
+    So `start` is the smaller of two draws -- early, without forbidding a
+    late one -- and the step goes to eight, which is above what the herd
+    pulls up on its own.
     """
     struct = rng.choice(sched_mod.STRUCTS)
-    start = rng.randrange(0, DAYS)
-    delta = rng.choice([-3, -2, -1, 1, 2, 3, 4])
+    start = min(rng.randrange(0, DAYS), rng.randrange(0, DAYS))
+    delta = rng.choice([-3, -2, -1, 1, 2, 3, 4, 6, 8])
     for row in rows[start:]:
         row[struct] = max(0, min(sched_mod.MAX_STRUCT, row.get(struct, 0) + delta))
     return "struct_when:" + struct

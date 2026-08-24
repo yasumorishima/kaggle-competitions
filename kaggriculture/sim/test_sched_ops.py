@@ -280,6 +280,31 @@ def main():
         check("%-22s changes it" % op.__name__, changed >= fired * 0.9,
               "changed %d of %d firings" % (changed, fired))
 
+    print("a pen is asked for while asking can still change something")
+    rng = random.Random(43)
+    starts, tops = [], []
+    for _ in range(2000):
+        rows = rows_of(BASE)
+        name = opt.op_struct_when(rows, rng)
+        if name is None:
+            continue
+        opt._tidy(rows)
+        key = name.split(":")[1]
+        col = [r.get(key, 0) for r in rows]
+        raised = [d for d in range(sched_mod.DAYS) if col[d] > 0]
+        if raised:
+            starts.append(raised[0])
+            tops.append(max(col))
+    check("most targets start in the first half of the season",
+          sum(1 for d in starts if d < sched_mod.DAYS // 2) > 0.6 * len(starts),
+          "%d of %d" % (sum(1 for d in starts if d < sched_mod.DAYS // 2), len(starts)))
+    check("a late start is still possible", max(starts) >= sched_mod.DAYS - 5,
+          "latest %d" % max(starts))
+    # Fourteen cows and sheep pull up more pens than four on their own, so a
+    # target that stops at four is a target the farm has already met.
+    check("the target can outrun what the herd builds by itself",
+          max(tops) >= 8, "highest target %d" % max(tops))
+
     print("the budget goes where the measurement says")
     rng = random.Random(29)
     drawn = {}
