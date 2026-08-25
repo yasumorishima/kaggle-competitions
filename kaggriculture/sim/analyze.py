@@ -186,6 +186,29 @@ def main():
 
     final = env.steps[-1]
     print(f"seed {args.seed}: A={args.a}  B={args.b}")
+
+    # An agent the environment threw out reads as an agent that played badly.
+    # mix_labour finished on exactly 3,000 -- the starting cash, never hired,
+    # never bought -- and every number downstream of that was a measurement of
+    # nothing. The environment knows which it was and says so in `status`, and
+    # its stderr carries the traceback; neither was ever printed.
+    for p, name in ((0, args.a), (1, args.b)):
+        seen = {}
+        for t, st in enumerate(env.steps):
+            s = get(st[p], "status", "") or ""
+            if s and s != "ACTIVE":
+                seen.setdefault(s, t)
+        if seen:
+            where = ", ".join(f"{s} from step {t}" for s, t in sorted(seen.items(),
+                                                                     key=lambda kv: kv[1]))
+            print(f"!! player {p} ({name}) was not ACTIVE for the whole episode: {where}")
+    for lg, name in zip(getattr(env, "logs", None) or [], (args.a, args.b)):
+        for entry in (lg if isinstance(lg, list) else [lg]):
+            err = (entry or {}).get("stderr") if isinstance(entry, dict) else None
+            if err and err.strip():
+                print(f"!! stderr from an agent: {err.strip()[:1500]}")
+                break
+
     for p, name in ((0, args.a), (1, args.b)):
         print(f"\n=== player {p} ({name})  final money {final[p].reward:.0f}")
         print("  day  money  quads  farm")
