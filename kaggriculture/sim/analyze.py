@@ -58,11 +58,19 @@ def main():
     # there is income neither farm asked for.
     cash = [defaultdict(float), defaultdict(float)]
     prev_money = [None, None]
+    # Units named in SELL orders, and what the quote was when they were named.
+    # An order can be rejected (nothing in the shed, or the town's book is
+    # full), so this is what the farm *asked* to sell; the shed figure above is
+    # what visibly left. The truth is between them, and the cash ledger says
+    # which end it sits nearer.
+    ordered = [defaultdict(int), defaultdict(int)]
+    ordered_val = [defaultdict(float), defaultdict(float)]
 
     for step_idx, state in enumerate(env.steps):
         for p in (0, 1):
             act = getattr(state[p], "action", None)
             kinds = set()
+            sells_now = []
             if isinstance(act, dict):
                 farmer = act.get("farmer") or []
                 if farmer:
@@ -74,6 +82,17 @@ def main():
                     if m:
                         market_ops[p][str(m[0])] += 1
                         kinds.add(str(m[0]))
+                        # Read the sale off the order rather than off the shed.
+                        # The shed method under-counts whoever harvests most --
+                        # on seed 5100 it credited the top replay with 131,091
+                        # against a cash ledger of 187,490, a third of its
+                        # season invisible -- because a harvest refills in the
+                        # same step the sale empties.
+                        if str(m[0]) == "SELL" and len(m) >= 3:
+                            try:
+                                sells_now.append((str(m[1]), int(m[2])))
+                            except (TypeError, ValueError):
+                                pass
             o = obs_of(state, p)
             farms = get(o, "farms")
             if not farms:
@@ -97,6 +116,9 @@ def main():
             priv = get(o, "private", {}) or {}
             shed = dict(get(priv, "shed", {}) or {})
             prices = dict(get(get(o, "market", {}), "prices", {}) or {})
+            for item, qty in sells_now:
+                ordered[p][item] += qty
+                ordered_val[p][item] += qty * prices.get(item, 0)
             carried = defaultdict(int)
             for iv in (get(priv, "inventories", []) or []):
                 if isinstance(iv, dict):
@@ -166,6 +188,12 @@ def main():
             r = revenue[p][item]
             print(f"    {item:<11} {u:>5} @ {r / max(1, u):>7.1f} = {r:>10.0f}")
         print(f"    TOTAL revenue ~ {sum(revenue[p].values()):.0f}")
+        if ordered[p]:
+            print("  SELL orders placed (units @ quote when placed = asked):")
+            for item, u in sorted(ordered[p].items(), key=lambda kv: -ordered_val[p][kv[0]]):
+                v = ordered_val[p][item]
+                print(f"    {item:<11} {u:>5} @ {v / max(1, u):>7.1f} = {v:>10.0f}")
+            print(f"    TOTAL asked ~ {sum(ordered_val[p].values()):.0f}")
         if cash[p]:
             print("  cash ledger (money moved, by the orders on the wire that turn):")
             for label, amount in sorted(cash[p].items(), key=lambda kv: -abs(kv[1])):
