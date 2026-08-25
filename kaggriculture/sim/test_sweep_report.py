@@ -121,6 +121,22 @@ check("and it held", blob.get("verdict") == "HELD", str(blob))
 check("the fresh band is disjoint from the sweep's own",
       "1400-1403" in out3, out3.split("replicating")[-1].splitlines()[0])
 
+print("\na knob the agent does not have is refused, not measured")
+try:
+    run([{"name": "base", "P": {}},
+         {"name": "ghost", "P": {"no_such_knob_at_all": 3}}], money2)
+    check("sweeping a missing knob raises", False, "it ran anyway")
+except SystemExit as e:
+    check("sweeping a missing knob raises", True)
+    check("and it names the knob", "no_such_knob_at_all" in str(e), str(e))
+    check("and the variant that asked for it", "ghost" in str(e), str(e))
+try:
+    run([{"name": "base", "P": {}},
+         {"name": "real", "P": {"dist_weight": 0.5}}], money2)
+    check("a knob the agent does have is allowed", True)
+except SystemExit as e:
+    check("a knob the agent does have is allowed", False, str(e))
+
 print("\none worker means the stub is actually used")
 check("no episode escaped to a subprocess", len(calls) > 0)
 

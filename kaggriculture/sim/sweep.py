@@ -16,12 +16,38 @@ import argparse
 import json
 import math
 import os
+import re
 import statistics
 import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def check_keys(base_src, variants, agent):
+    """Refuse to sweep a knob the agent does not have.
+
+    `P.update()` happily adds a key nobody reads, so sweeping a knob against
+    an agent emitted before that knob existed spends the whole job measuring
+    nothing -- and it does not look like nothing, it looks like a clean tie.
+    On 2026-08-25 six `sched_hands_scale` arms were run against v31, which
+    predates the knob, and came back byte-identical to each other: same mean,
+    same interval, same winrate, six times. That is the only fingerprint it
+    leaves, and it is easy to read as "the knob does not matter".
+    """
+    have = set(re.findall(r'^\s*"([A-Za-z_]+)"\s*:', base_src, re.M))
+    missing = {}
+    for v in variants:
+        for k in (v.get("P") or {}):
+            if k not in have:
+                missing.setdefault(k, []).append(v["name"])
+    if missing:
+        lines = ", ".join(f"{k} (in {', '.join(n)})" for k, n in missing.items())
+        raise SystemExit(
+            f"{agent} has no such knob: {lines}\n"
+            "Emitted agents are frozen copies -- re-emit one from the current "
+            "main.py before sweeping a knob that was added after it.")
 
 
 def build_variant(base_src, name, overrides, outdir, globals_over=None):
@@ -92,6 +118,7 @@ def main():
     variants = json.loads(open(spec, encoding="utf-8").read()
                           if os.path.exists(spec) else spec)
     base_src = open(os.path.join(HERE, args.agent), encoding="utf-8").read()
+    check_keys(base_src, variants, args.agent)
     outdir = tempfile.mkdtemp(prefix="sweep_", dir=HERE)
 
     jobs, owner = [], []
