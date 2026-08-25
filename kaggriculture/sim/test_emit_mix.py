@@ -92,6 +92,19 @@ def main():
     check("the two halves differ", a != b)
     check("neither half is just the policy", a != base and b != base)
 
+    # The loader's own rule, pinned. kaggle_environments takes the module's
+    # last-inserted callable, and a rebound name keeps its original slot -- so
+    # `agent` defined at the end of a file that already had one is NOT last,
+    # and the helper above it gets called with (observation, configuration)
+    # instead. That killed every episode at step 2 while the file imported and
+    # answered correctly outside the environment, and it read as an agent that
+    # scores its starting cash rather than as an agent that was never asked.
+    for mod, label in ((lab, "labour"), (mkt, "market")):
+        names = [k for k, v in vars(mod).items()
+                 if callable(v) and getattr(v, "__module__", None) == mod.__name__]
+        check(f"{label}: the last callable in the module is `agent`",
+              names[-1] == "agent", f"last is {names[-1]}")
+
     # A plan shorter than the season must not wrap around to step 0; the
     # replay clamps to the last step instead.
     short = load_src(emit_mix.emit(plan[:5], "market"), "mix_short")

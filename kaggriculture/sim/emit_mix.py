@@ -55,6 +55,17 @@ TAIL = '''
 # HALF = "market": the reverse, as the control.
 import json as _json          # main.py imports math and nothing else
 _POLICY_AGENT = agent
+# kaggle_environments picks the module's LAST-INSERTED callable as the agent,
+# and a name that already exists keeps its original position in the namespace
+# dict -- rebinding `agent` at the end of the file does not move it. So the
+# helper defined below would be picked instead, and called with (observation,
+# configuration): `turns_per_day` became a Struct and every episode died at
+# step 2 with the farm still empty, reading as an agent that scores exactly
+# its starting cash. Dropping the name first makes the definition below a
+# fresh insertion, which puts it last where the loader looks.
+#
+# emit_sched.py does not hit this because it appends no callables at all.
+del agent
 HALF = "__HALF__"
 _PLAN = _json.loads(r\'\'\'__PLAN__\'\'\')
 __NOTE__
