@@ -125,6 +125,11 @@ on:
         required: false
         default: '2'
         type: string
+      incumbent:
+        description: 'The agent actually on the leaderboard, to score the result against. NOT main.py -- its SCHEDULE is None, so beating it says nothing about whether this is submittable'
+        required: false
+        default: 'agents/v34_sched.py'
+        type: string
       start:
         description: 'Starting calendars, comma separated, relative to kaggriculture/'
         required: false
@@ -328,26 +333,55 @@ jobs:
             --minutes "${{ inputs.minutes }}" \
             --workers "$(nproc)" | tee /tmp/climb.log
 
-      - name: Score the result against the live agent
-        # The climb's own number is measured on its training seeds. What decides
-        # whether this is worth submitting is a paired-seed match against the
-        # agent currently on the leaderboard, on seeds neither was tuned on.
+      - name: Score the result against the incumbent and against its own start
+        # Two questions, and until 2026-08-25 this step answered neither.
+        #
+        # It played the climbed calendar against `main.py`, under a comment
+        # calling that "the agent currently on the leaderboard". main.py's
+        # SCHEDULE is None -- it is the calendar-less fallback policy, while
+        # the submitted agent is an emitted calendar. Run 32831078928 read
+        # +4,961 +/- 3,330 against it at a winrate of 0.792, and then lost to
+        # the actual incumbent by -6,377 +/- 1,214 over 96 paired games.
+        #
+        # So ask both: `start` is the calendar this climb began from, which
+        # says whether the climb moved at all, and `incumbent` is the agent on
+        # the leaderboard, which says whether the result is worth submitting.
+        # A climb that resumes a poisoned checkpoint passes the first and fails
+        # the second, which is exactly what happened.
         if: always() && inputs.mode == 'climb'
         run: |
           set -e
           [ -s ../schedules/best.json ] || exit 0
+          out=/tmp
           python sim/emit_sched.py ../schedules/best.json \
             --note "run ${{ github.run_number }}: ${{ inputs.memo }}" \
             --out agents/sched_agent_build.py
-          python sim/evaluate.py --a agents/sched_agent_build.py --b main.py \
-            --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/head2head.log
-          # And against whatever it actually climbed against, when that is
-          # not v16 -- beating the agent already on the leaderboard is the
-          # floor, and today it is a floor 82,000 below the top.
-          if [ "$OPP" != "main.py" ]; then
-            python sim/evaluate.py --a agents/sched_agent_build.py --b "$OPP" \
-              --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/vs_opp.log
+
+          # The calendar the climb chose to start from, named by its own log.
+          started=$(grep -m1 '^CHOSE ' "$out/climb.log" | awk '{print $2}' || true)
+          if [ -n "$started" ] && [ -s "$started" ]; then
+            python sim/emit_sched.py "$started" --out agents/sched_agent_start.py
+            echo "-- against its own starting calendar ($started) --"
+            python sim/evaluate.py --a agents/sched_agent_build.py \
+              --b agents/sched_agent_start.py \
+              --episodes 12 --seed0 4000 --workers "$(nproc)" | tee "$out/vs_start.log"
+          else
+            echo "no CHOSE line in the climb log; cannot score against the start" \
+              | tee "$out/vs_start.log"
           fi
+
+          echo "-- against the incumbent (${{ inputs.incumbent }}) --"
+          python sim/evaluate.py --a agents/sched_agent_build.py \
+            --b "${{ inputs.incumbent }}" \
+            --episodes 24 --seed0 4000 --workers "$(nproc)" | tee "$out/head2head.log"
+
+          # And against whatever it actually climbed against, when that is
+          # neither of the above.
+          case "$OPP" in
+            main.py|"${{ inputs.incumbent }}") ;;
+            *) python sim/evaluate.py --a agents/sched_agent_build.py --b "$OPP" \
+                 --episodes 12 --seed0 4000 --workers "$(nproc)" | tee "$out/vs_opp.log" ;;
+          esac
 
       - name: Commit the calendar
         if: always()
@@ -358,6 +392,8 @@ jobs:
           if [ -s /tmp/climb.log ]; then
             grep -E '^(CANDIDATE|CHOSE|GEN|HOLDOUT|SUMMARY=)' /tmp/climb.log \
               > schedules/climb.txt || true
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_start.log \
+              >> schedules/climb.txt 2>/dev/null || true
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log \
               >> schedules/climb.txt 2>/dev/null || true
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_opp.log \
@@ -401,7 +437,10 @@ jobs:
               echo "accepted ${took:-0} of ${gens:-0} generations"
             fi
             echo ""
-            echo "-- vs the live agent --"
+            echo "-- vs the calendar this climb started from (did it move?) --"
+            grep -E '^(SUMMARY=|VERDICT=)' /tmp/vs_start.log 2>/dev/null || true
+            echo ""
+            echo "-- vs the incumbent (is it submittable?) --"
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
