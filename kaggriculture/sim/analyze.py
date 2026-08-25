@@ -197,7 +197,25 @@ def main():
             u = sold[p][item]
             r = revenue[p][item]
             print(f"    {item:<11} {u:>5} @ {r / max(1, u):>7.1f} = {r:>10.0f}")
-        print(f"    TOTAL revenue ~ {sum(revenue[p].values()):.0f}")
+        recon = sum(revenue[p].values())
+        print(f"    TOTAL revenue ~ {recon:.0f}")
+        # This total is a LOWER BOUND, and the printout has to say so out loud.
+        # It is reconstructed from shed drops, so a farm that harvests into the
+        # shed and sells out of it in the same step shows only the net change.
+        # The bias is not uniform: it grows with how much a farm harvests, so
+        # comparing two farms' reconstructions can invert the true ordering.
+        # On 2026-08-25 that is exactly what happened -- 52,677 against 65,591
+        # read as "the gap is spending, not sales", while the ledger below said
+        # the gross inflow was 50k against 104k and sales were the whole story.
+        gross = sum(v for v in cash[p].values() if v > 0)
+        net = sum(cash[p].values())
+        print(f"    ...but the ledger's positive turns total {gross:.0f} "
+              f"(net {net:+.0f}). The reconstruction covers "
+              f"{100.0 * recon / gross if gross else float('nan'):.0f}% of that.")
+        if gross and recon < 0.85 * gross:
+            print("    ^^ READ THE LEDGER, NOT THE RECONSTRUCTION: this farm "
+                  "sells out of the same step it harvests into, so the line "
+                  "above under-counts it and is not comparable across farms.")
         if ordered[p]:
             print("  SELL orders placed (units @ quote when placed = asked):")
             for item, u in sorted(ordered[p].items(), key=lambda kv: -ordered_val[p][kv[0]]):
