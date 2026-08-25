@@ -64,6 +64,7 @@ def main():
     # what visibly left. The truth is between them, and the cash ledger says
     # which end it sits nearer.
     ordered = [defaultdict(int), defaultdict(int)]
+    price_track = []
     ordered_val = [defaultdict(float), defaultdict(float)]
 
     for step_idx, state in enumerate(env.steps):
@@ -173,6 +174,15 @@ def main():
                     "quads": len(get(farm, "unlocked_quadrants", []) or []),
                     "comp": dict(comp),
                 })
+                if p == 0:
+                    # The town's quote at dawn, day by day. Both farms see the
+                    # same book, so this belongs to the episode rather than to
+                    # a player. It is here to settle whether holding stock is
+                    # worth anything: cash sits idle on this farm from about
+                    # day 20, and if the scarcity regime really does carry
+                    # prices upward all season then buying late and selling
+                    # later is income that costs no labour at all.
+                    price_track.append((int(get(o, "day", 0)), dict(prices)))
 
     final = env.steps[-1]
     print(f"seed {args.seed}: A={args.a}  B={args.b}")
@@ -216,6 +226,13 @@ def main():
     last = obs_of(env.steps[-1], 0)
     print("\nfinal market prices:", json.dumps(dict(get(get(last, "market", {}), "prices", {}) or {})))
     print("final market inventory:", json.dumps(dict(get(get(last, "market", {}), "inventory", {}) or {})))
+    if price_track:
+        items = ["WHEAT", "TOMATO", "CARROT", "MELON", "STRAWBERRY", "EGG", "MILK",
+                 "WOOL", "FERTILIZER"]
+        print("\nthe town's quote at dawn")
+        print("  day  " + "".join(f"{i[:5]:>7}" for i in items))
+        for day, pr in price_track:
+            print(f"  {day:>3}  " + "".join(f"{pr.get(i, 0):>7.0f}" for i in items))
     print("town shops:", json.dumps(list(get(get(last, "town", {}), "unlocked_shops", []) or [])))
 
 
