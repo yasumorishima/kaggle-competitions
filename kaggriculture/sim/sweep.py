@@ -160,18 +160,25 @@ def main():
         gs = [gap[(name, s, d)] - gap[(ref, s, d)]
               for (nm, s, d) in gap if nm == name and (ref, s, d) in gap]
         if name == ref or len(vs) < 2:
-            dm, dci, gm = 0.0, float("nan"), 0.0
+            dm, dci, gm, gci = 0.0, float("nan"), 0.0, float("nan")
         else:
             dm = statistics.mean(vs)
             dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            # Its own interval, because the first table that carried this
+            # column had all six arms negative and it was tempting to read a
+            # pattern into six numbers that had never been asked how wide
+            # they were.
             gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
-        rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci, gm))
+            gci = (1.96 * statistics.stdev(gs) / math.sqrt(len(gs))
+                   if len(gs) > 1 else float("nan"))
+        rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci, gm, gci))
     rows.sort(reverse=True)
 
     head = "vs " + ref
     print(f"\n{'variant':<22}{'mean money':>12}{'+/-95%':>10}{'winrate':>9}"
-          f"{'games':>7}{head:>16}{'+/-95%':>10}{'margin':>10}{'verdict':>9}")
-    for m, ci, wr, name, n, dm, dci, gm in rows:
+          f"{'games':>7}{head:>16}{'+/-95%':>10}{'margin':>10}{'+/-95%':>9}"
+          f"{'verdict':>9}")
+    for m, ci, wr, name, n, dm, dci, gm, gci in rows:
         if name == ref:
             mark = "ref"
         elif dci != dci:
@@ -183,8 +190,10 @@ def main():
         else:
             mark = "tie"
         gtxt = "-" if gm != gm else f"{gm:.0f}"
+        gctxt = "-" if gci != gci else f"{gci:.0f}"
         print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}"
-              f"{n:>7}{dm:>16.0f}{dci:>10.0f}{gtxt:>10}{mark:>9}")
+              f"{n:>7}{dm:>16.0f}{dci:>10.0f}{gtxt:>10}{gctxt:>9}"
+              f"{mark:>9}")
     print("\nSWEEP_BEST=" + json.dumps({"name": rows[0][3], "mean": round(rows[0][0])}))
 
     winner = rows[0][3]
