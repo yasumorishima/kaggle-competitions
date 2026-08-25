@@ -1,0 +1,55 @@
+name: Kaggriculture Tests
+
+# The invariant tests decide what this project is allowed to believe: the
+# acceptance rule that says whether a climb's edit is real, and the reporting
+# path that says whether a sweep's winner is real. Until now nothing ran them
+# except a person remembering to -- every other workflow here is dispatch-only,
+# so a push could quietly break the ruler and the next measurement would carry
+# the damage without saying anything.
+#
+# They need no kaggle_environments and no secrets: the environment is replaced
+# by arithmetic and `play` is stubbed, which is the whole point of them. That
+# makes this a seconds-long job on free public-repo minutes.
+
+on:
+  push:
+    paths:
+      - 'kaggriculture/**'
+      - '.github/workflows/kaggriculture-tests.yml'
+  pull_request:
+    paths:
+      - 'kaggriculture/**'
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（cron 併用ではないので任意）'
+        required: false
+        type: string
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Plan operators
+        run: python sim/test_plan_ops.py
+
+      - name: Calendar operators and the acceptance rule
+        run: python sim/test_sched_ops.py
+
+      - name: Sweep reporting
+        run: python sim/test_sweep_report.py
+
+      - name: Every agent and tool still compiles
+        # An emitted agent is a frozen copy, so a syntax error in one of them
+        # is invisible until a sweep spends an hour discovering it.
+        run: python -m py_compile main.py agents/*.py sim/*.py
