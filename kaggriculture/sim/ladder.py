@@ -67,18 +67,29 @@ def _auth():
 # submissions will hit it, so every call backs off and retries instead of ending
 # the run on a traceback -- the numbers this file exists to print are worth a
 # wait, and a half-finished report is worse than a slow one.
-RETRY_WAITS = (5, 15, 45, 90)
+#
+# The window is sliding and a rejected call still spends quota, so guessing the
+# wait makes it worse: a 5s-then-15s ladder kept the bucket empty and never
+# recovered. The 429 carries `Retry-After` (30s as of 2026-08-25) and that is the
+# only number worth obeying -- wait at least that long, never less.
+RETRIES = 8
+MIN_WAIT = 30
 
 
 def _open(req, what):
-    for i, wait in enumerate(RETRY_WAITS + (None,)):
+    for i in range(RETRIES + 1):
         try:
             return json.loads(urllib.request.urlopen(req, timeout=90).read().decode())
         except urllib.error.HTTPError as e:
-            if e.code != 429 or wait is None:
+            if e.code != 429 or i == RETRIES:
                 raise
+            try:
+                wait = max(MIN_WAIT, int(e.headers.get("Retry-After", MIN_WAIT)))
+            except (TypeError, ValueError):
+                wait = MIN_WAIT
+            wait += 5 * i  # creep upward in case the window is longer than advertised
             print(f"  rate limited on {what}; waiting {wait}s "
-                  f"(attempt {i + 1}/{len(RETRY_WAITS)})")
+                  f"(attempt {i + 1}/{RETRIES})")
             time.sleep(wait)
 
 
@@ -198,7 +209,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", help="write the raw rows here")
     ap.add_argument("--limit", type=int, default=4, help="most recent N submissions")
-    ap.add_argument("--pause", type=float, default=2.0,
+    ap.add_argument("--pause", type=float, default=35.0,
                     help="seconds between submissions, to stay under the rate limit")
     args = ap.parse_args()
 
