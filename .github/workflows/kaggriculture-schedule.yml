@@ -211,6 +211,16 @@ jobs:
             # band.json, and one climb was enough to drop it.
             git show FETCH_HEAD:schedules/band.json > schedules/band.json 2>/dev/null \
               || rm -f schedules/band.json
+            # Each run also leaves a copy under its own number, because
+            # `best.json` is a single slot: a second climb started from a
+            # different calendar overwrites the first one's product with its
+            # own, and the branch keeps no history to recover it from. Two
+            # independent climbs were queued on 2026-08-25 and the second
+            # would have quietly eaten the first while nobody was watching.
+            git ls-tree --name-only FETCH_HEAD schedules/ 2>/dev/null \
+              | grep -E 'schedules/run-[0-9]+\.json$' | while read -r f; do
+                git show "FETCH_HEAD:$f" > "$f" 2>/dev/null || true
+              done
             tail -3 schedules/climb.txt 2>/dev/null || true
           else
             echo "no schedules branch yet"
@@ -340,8 +350,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan schedules-tmp
           git reset
+          # Keep this run's own copy alongside the shared slot, so the next
+          # climb's `best.json` cannot be the only surviving calendar.
+          [ -s schedules/best.json ] \
+            && cp schedules/best.json "schedules/run-${{ github.run_number }}.json"
           git add -f schedules/best.json schedules/climb.txt 2>/dev/null || true
           git add -f schedules/band.json 2>/dev/null || true
+          git add -f schedules/run-*.json 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -q -m "kaggriculture: calendar after run ${{ github.run_number }} (${{ inputs.memo }})"
           git push -f origin schedules-tmp:kaggriculture-schedules
