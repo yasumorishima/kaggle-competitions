@@ -449,6 +449,11 @@ P = {
     # -- 36 strawberry plants against our 17, 243 units sold against 110, at a
     # price the town held at 238 for both of us.
     "crop_pct_scale": {},      # {"STRAWBERRY": 2.0, "WHEAT": 0.5, ...}
+    # Order the tile budget is handed to the cash crops in. A list names it
+    # explicitly; "value" sorts by price * yield at today's quote. The default
+    # is the order that was written by hand, kept as the default only because
+    # every verdict before 2026-08-25 was measured under it.
+    "crop_order": ["TOMATO", "CARROT", "MELON", "STRAWBERRY"],
     "stand_first": 1,
     "care_repeat": 0,          # 1 = offer CARE again on an animal already cared today
     "drop_load": 6,            # carry this many items before a shed run is worth it
@@ -733,12 +738,31 @@ def agent(obs, config=None):
     # actually open (it is the only shop that wants wool, and it wants 12/day).
     take("WOOL", min(market_cap("WOOL"), P["sheep_cap"]))
     take("EGG", min(market_cap("EGG"), P["goose_cap"] if demand.get("EGG", 1) >= 10 else 2))
-    # Tomato and carrot sit on hinge curves: when the town drains them and
-    # nobody plants them, their price runs away ($216 measured for tomato).
-    take("TOMATO", min(market_cap("TOMATO"), P["tomato_cap"]))
-    take("CARROT", min(market_cap("CARROT"), P["carrot_cap"]) if "PET_CAFE" in shops else 0)
-    take("MELON", min(market_cap("MELON"), P["melon_cap"]))
-    take("STRAWBERRY", min(market_cap("STRAWBERRY"), budget))
+    # The four cash crops, in an order the tile budget is spent in. The order
+    # is the whole question: `take` hands out a fixed budget in sequence, so
+    # whatever comes last gets the remainder, and strawberry -- the dearest
+    # thing the farm can grow, $250 against tomato's $67 -- was written last.
+    # A season measured against the top replay on seed 5100 shows what that
+    # costs: 11-17 strawberry plants standing against their 36, 110 units sold
+    # against 243, in a town holding the price at $238 for both of us. Tomato
+    # took its cap ahead of it and returned 29 units for $1,617 all season.
+    #
+    # "value" sorts them by what a tile of each is worth at today's price
+    # instead. Livestock is deliberately not in the sort: it outbids every
+    # crop per tile and eating the whole budget with it starved the farm when
+    # that was tried.
+    cash_crops = {
+        "TOMATO": lambda: min(market_cap("TOMATO"), P["tomato_cap"]),
+        "CARROT": lambda: (min(market_cap("CARROT"), P["carrot_cap"])
+                           if "PET_CAFE" in shops else 0),
+        "MELON": lambda: min(market_cap("MELON"), P["melon_cap"]),
+        "STRAWBERRY": lambda: min(market_cap("STRAWBERRY"), budget),
+    }
+    order = P["crop_order"]
+    if order == "value":
+        order = sorted(cash_crops, key=lambda c: -price(c) * RATE[c])
+    for _crop in order:
+        take(_crop, cash_crops[_crop]())
     # Wheat as the closing crop, not as feed: this is a different question from
     # `fill_idle`, which ranks every crop by revenue per tile-day and late in
     # the season picks whatever is nominally dearest even though it can no
