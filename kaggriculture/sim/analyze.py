@@ -45,10 +45,24 @@ def main():
     prev_shed = [None, None]
     prev_carried = [{}, {}]
     daily = [[], []]
+    # Where the money came in and went out, by the orders standing on the turn
+    # it moved. The sales figure above is reconstructed from shed decreases,
+    # and on seed 5100 it left a hole: the top replay ends on 185,294 while its
+    # reconstructed revenue is 131,091. A shed that is refilled by a harvest in
+    # the same step it is sold from shows only the net drop, so a farm that
+    # harvests more is under-counted more -- which fits, but fitting is not
+    # measuring. This ledger takes the money field itself and attributes each
+    # turn's change to the kinds of order that were on the wire, which
+    # separates "the reconstruction under-counts" from "there is a channel we
+    # have not found". `no orders` is the line that matters: money appearing
+    # there is income neither farm asked for.
+    cash = [defaultdict(float), defaultdict(float)]
+    prev_money = [None, None]
 
     for step_idx, state in enumerate(env.steps):
         for p in (0, 1):
             act = getattr(state[p], "action", None)
+            kinds = set()
             if isinstance(act, dict):
                 farmer = act.get("farmer") or []
                 if farmer:
@@ -59,10 +73,27 @@ def main():
                 for m in (act.get("market") or []):
                     if m:
                         market_ops[p][str(m[0])] += 1
+                        kinds.add(str(m[0]))
             o = obs_of(state, p)
             farms = get(o, "farms")
             if not farms:
                 continue
+            money_now = int(get(farms[p], "money", 0))
+            if prev_money[p] is not None:
+                d = money_now - prev_money[p]
+                if d:
+                    if not kinds:
+                        label = "no orders"
+                    elif kinds == {"SELL"}:
+                        label = "SELL only"
+                    elif kinds == {"HIRE"}:
+                        label = "HIRE only"
+                    elif not (kinds & {"SELL"}):
+                        label = "buys/hires only"
+                    else:
+                        label = "SELL + " + ",".join(sorted(kinds - {"SELL"}))
+                    cash[p][label] += d
+            prev_money[p] = money_now
             priv = get(o, "private", {}) or {}
             shed = dict(get(priv, "shed", {}) or {})
             prices = dict(get(get(o, "market", {}), "prices", {}) or {})
@@ -135,6 +166,11 @@ def main():
             r = revenue[p][item]
             print(f"    {item:<11} {u:>5} @ {r / max(1, u):>7.1f} = {r:>10.0f}")
         print(f"    TOTAL revenue ~ {sum(revenue[p].values()):.0f}")
+        if cash[p]:
+            print("  cash ledger (money moved, by the orders on the wire that turn):")
+            for label, amount in sorted(cash[p].items(), key=lambda kv: -abs(kv[1])):
+                print(f"    {label:<28} {amount:>+11.0f}")
+            print(f"    {'NET':<28} {sum(cash[p].values()):>+11.0f}")
         fed, cared, animal_days = husbandry[p]
         if animal_days:
             print(f"  husbandry: {fed}/{animal_days} animal-days fed "
