@@ -221,6 +221,23 @@ jobs:
               | grep -E 'schedules/run-[0-9]+\.json$' | while read -r f; do
                 git show "FETCH_HEAD:$f" > "$f" 2>/dev/null || true
               done
+            # ...and keep one generation of the shared slot regardless, which
+            # is what covers the calendar a run *older than this rule* left
+            # behind: it wrote no numbered copy, so without this the next
+            # climb is still the last thing that ever saw it.
+            if [ -s schedules/best.json ]; then
+              # The very first calendar to arrive here was written by a run
+              # from before the numbered copies existed, so it owns no slot of
+              # its own and `prev.json` would only shelter it until the climb
+              # after next. Give it one, once.
+              if ! ls schedules/run-*.json >/dev/null 2>&1; then
+                cp schedules/best.json schedules/run-0.json
+              fi
+              cp schedules/best.json schedules/prev.json
+            else
+              git show FETCH_HEAD:schedules/prev.json > schedules/prev.json \
+                2>/dev/null || rm -f schedules/prev.json
+            fi
             tail -3 schedules/climb.txt 2>/dev/null || true
           else
             echo "no schedules branch yet"
@@ -356,7 +373,7 @@ jobs:
             && cp schedules/best.json "schedules/run-${{ github.run_number }}.json"
           git add -f schedules/best.json schedules/climb.txt 2>/dev/null || true
           git add -f schedules/band.json 2>/dev/null || true
-          git add -f schedules/run-*.json 2>/dev/null || true
+          git add -f schedules/run-*.json schedules/prev.json 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -q -m "kaggriculture: calendar after run ${{ github.run_number }} (${{ inputs.memo }})"
           git push -f origin schedules-tmp:kaggriculture-schedules
