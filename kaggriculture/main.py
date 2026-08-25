@@ -247,6 +247,17 @@ P = {
     "cash_buffer": 120,
     "reserve_frac": 1.00,      # never sell under base: scarcity lifts prices all season
     "reserve_by_item": {},     # ...except where it does not: {"FERTILIZER": 0.0, "MELON": 0.0}
+    # 0 = off, and off is what every sweep of `reserve_frac` was measured
+    # under. The reserve is not a floor: `qty = max(qty, pace)` below runs
+    # whatever the price is, and the reserve itself is
+    # `max(base * frac, now * slice_frac)` -- the second term follows the
+    # falling price down, so neither term is anchored to anything absolute.
+    # Measured on seed 3000 against the top plan, this farm put five units of
+    # wool on the wire at a mean quote of 3.8 against a base of 200, which is
+    # the price floor of the environment: not patience lost, goods given away.
+    # This is the one direction the six sell-floor sweeps never went -- they
+    # all loosened `reserve_frac`, a number the pace fallback overrides.
+    "pace_floor_frac": 0.0,    # pace may not sell under base * this
     "slice_frac": 0.92,        # ...nor push the live price below this of itself
     "dump_day": 29,
     # (earliest day, cash floor) per quadrant. Land is what caps the whole farm,
@@ -892,7 +903,12 @@ def agent(obs, config=None):
             # (67 sell orders against their 196, with milk piling up unsold).
             turns_left = max(1, TURNS_PER_DAY - hour)
             pace = -(-have // turns_left)
-            qty = max(qty, pace)
+            # The shed still overflows at nightfall whatever the price is, so
+            # the floor holds the pace back but never the overflow dump: the
+            # choice there is between a bad price and no price at all.
+            hard = MARKET_PARAMS[item]["base"] * P["pace_floor_frac"]
+            if not hard or now >= hard:
+                qty = max(qty, pace)
             if sum(shed.values()) > 80:
                 qty = max(qty, have // 2)
             qty = min(qty, have)

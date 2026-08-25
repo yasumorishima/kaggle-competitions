@@ -49,6 +49,9 @@ jobs:
       - name: Sweep reporting
         run: python sim/test_sweep_report.py
 
+      - name: The pace fallback obeys its floor
+        run: python sim/test_pace_floor.py
+
       - name: Every agent and tool still compiles
         # An emitted agent is a frozen copy, so a syntax error in one of them
         # is invisible until a sweep spends an hour discovering it.
