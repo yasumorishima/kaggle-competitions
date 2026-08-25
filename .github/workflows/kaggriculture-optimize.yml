@@ -46,6 +46,12 @@ on:
         required: false
         default: 'starter'
         type: string
+      objective:
+        description: 'wins | mean | min. `wins` is flat at zero while you lose every game, and its tie-break falls back on a margin dominated by the opponent -- a 137-generation run never left 1 of 12. Prefer `mean` unless the opponent is genuinely beatable'
+        required: false
+        default: 'mean'
+        type: choice
+        options: ['mean', 'wins', 'min']
       lam:
         description: 'Candidates per generation'
         required: false
@@ -179,6 +185,7 @@ jobs:
             --out ../plans/best.json \
             --checkpoint ../plans/checkpoint.json \
             --opponent "${{ inputs.opponent }}" \
+            --objective "${{ inputs.objective }}" \
             --seeds "${{ inputs.seeds }}" \
             --holdout "${{ inputs.holdout }}" \
             --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
