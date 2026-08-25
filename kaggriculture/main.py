@@ -367,7 +367,20 @@ P = {
     # global rule -- that is, under "roster" -- turning it off is -295, a tie,
     # so this is not a change that stands on its own.
     "stickiness": 1.0,         # bonus for keeping a hand on the tile it set out for
-    "dist_weight": 1.0,        # how steeply travel discounts a job; higher keeps hands local
+    # How steeply travel discounts a job -- a job d tiles away is worth
+    # value/(1 + dist_weight * d). Lowered from 1.0 on 2026-08-25 after three
+    # disjoint seed bands against the ladder-representative opponent, 96 games
+    # each, put the same interior peak in the same place: +4,626 +/- 2,144
+    # (4700), +5,438 +/- 2,753 (4900), +2,411 +/- 2,964 (5300), inverse-variance
+    # +4,313 +/- 1,469. The neighbours are not a plateau -- 0.5 and 0.9 sit
+    # about 3,000 below 0.7 in both bands that measured them -- so this is a
+    # located optimum and not a maximum re-picked out of noise. Nor is it a
+    # licence to ignore distance: 0.2 is -9,549 and 0.0 is -45,939, the agent
+    # simply thrashing. Under the global assignment rule the value is what
+    # decides whether the matcher may send a hand across the farm for a big
+    # job, which is why the old measurement (taken under the roster rule, and
+    # bundled with stand_first off) never settled.
+    "dist_weight": 0.7,
     "planner": "greedy",       # "greedy" = per-turn pick, "route" = day rounds
     # 1 = a unit gets first refusal on its own tile. Turned on 2026-08-22 after
     # the capital changed under it: at 27 animals this was +662, a tie, and it
