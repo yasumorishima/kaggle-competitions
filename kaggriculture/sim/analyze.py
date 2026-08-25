@@ -202,12 +202,18 @@ def main():
             where = ", ".join(f"{s} from step {t}" for s, t in sorted(seen.items(),
                                                                      key=lambda kv: kv[1]))
             print(f"!! player {p} ({name}) was not ACTIVE for the whole episode: {where}")
-    for lg, name in zip(getattr(env, "logs", None) or [], (args.a, args.b)):
-        for entry in (lg if isinstance(lg, list) else [lg]):
+    # env.logs is one list per step, each holding one entry per agent -- not
+    # one entry per agent overall, which is how this was read the first time
+    # and why the traceback that would have ended the hunt never printed.
+    shown = set()
+    for t, per_step in enumerate(getattr(env, "logs", None) or []):
+        for p, entry in enumerate(per_step if isinstance(per_step, list) else [per_step]):
             err = (entry or {}).get("stderr") if isinstance(entry, dict) else None
-            if err and err.strip():
-                print(f"!! stderr from an agent: {err.strip()[:1500]}")
-                break
+            if err and err.strip() and p not in shown:
+                shown.add(p)
+                name = (args.a, args.b)[p] if p < 2 else f"agent {p}"
+                print(f"!! stderr from player {p} ({name}) at step {t}:\n"
+                      + "\n".join("   " + ln for ln in err.strip().splitlines()[-25:]))
 
     for p, name in ((0, args.a), (1, args.b)):
         print(f"\n=== player {p} ({name})  final money {final[p].reward:.0f}")
