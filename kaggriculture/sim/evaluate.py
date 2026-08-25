@@ -44,7 +44,17 @@ def play(job):
     # like a farm that played badly. Carry the status and the first thing the
     # environment logged, so a broken agent announces itself instead of being
     # mistaken for a weak one.
-    status = [str(getattr(final[i], "status", "")) for i in (0, 1)]
+    #
+    # Read every step, not the last one. The environment writes DONE over the
+    # final step for both players whatever happened before it, so an agent
+    # that died at step 2 ends the episode reading DONE -- which is how this
+    # guard stayed silent while mix_labour sat on its starting cash for thirty
+    # days across 96 games and was reported as B_BETTER by -82,957.
+    status = []
+    for i in (0, 1):
+        seen = [str(getattr(st[i], "status", "") or "") for st in env.steps]
+        broken = next((s for s in seen if s not in ("", "ACTIVE", "DONE", "INACTIVE")), "")
+        status.append(broken or str(getattr(final[i], "status", "")))
     err = ""
     for entry in (getattr(env, "logs", None) or []):
         for side in (entry if isinstance(entry, list) else [entry]):
