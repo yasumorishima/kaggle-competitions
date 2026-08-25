@@ -49,6 +49,21 @@ def play(job):
     return money[a_side], money[1 - a_side]
 
 
+def run_all(jobs, workers):
+    """Play every job, in this process when asked for one worker.
+
+    The pool pickles `play` by reference and Windows re-imports the module in
+    each child, so a stubbed `play` never reaches them -- which left the whole
+    reporting path, the part that decides what gets adopted, only ever
+    exercised by a sixty-minute job on a runner. One worker means one process
+    and a stub that actually takes effect.
+    """
+    if workers <= 1:
+        return [play(j) for j in jobs]
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(play, jobs))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", required=True, help="JSON file or inline JSON list")
@@ -88,17 +103,22 @@ def main():
                 jobs.append((rel, args.b, args.seed0 + i, args.steps, side))
                 owner.append((v["name"], args.seed0 + i, side))
 
-    with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        results = list(pool.map(play, jobs))
+    results = run_all(jobs, args.workers)
 
     # Keyed by (seed, side) as well as by variant, so a variant can be compared
     # with the reference one *within* the same season draw. Every variant plays
     # the identical seed list, and the season draw is what dominates the spread,
     # so an unpaired mean and its band cannot resolve a few thousand either way.
-    per, cell = {}, {}
+    per, cell, gap = {}, {}, {}
     for (name, seed, side), (ma, mb) in zip(owner, results):
         per.setdefault(name, []).append((ma, mb))
         cell[(name, seed, side)] = ma
+        # The episode is not won by earning; it is won by out-earning. A
+        # variant that lifts our own money while lifting the town's price
+        # floor for both farms can read BETTER on `vs ref` and still lose the
+        # game it was measured in, and the ladder pays for the game. Free to
+        # record: both sides already come back from every episode.
+        gap[(name, seed, side)] = ma - mb
 
     ref = variants[0]["name"]
     rows = []
@@ -110,18 +130,21 @@ def main():
         wins = sum(1 for a, b in pairs if a > b)
         vs = [cell[(name, s, d)] - cell[(ref, s, d)]
               for (nm, s, d) in cell if nm == name and (ref, s, d) in cell]
+        gs = [gap[(name, s, d)] - gap[(ref, s, d)]
+              for (nm, s, d) in gap if nm == name and (ref, s, d) in gap]
         if name == ref or len(vs) < 2:
-            dm, dci = 0.0, float("nan")
+            dm, dci, gm = 0.0, float("nan"), 0.0
         else:
             dm = statistics.mean(vs)
             dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
-        rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci))
+            gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
+        rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci, gm))
     rows.sort(reverse=True)
 
     head = "vs " + ref
     print(f"\n{'variant':<22}{'mean money':>12}{'+/-95%':>10}{'winrate':>9}"
-          f"{'games':>7}{head:>16}{'+/-95%':>10}{'verdict':>9}")
-    for m, ci, wr, name, n, dm, dci in rows:
+          f"{'games':>7}{head:>16}{'+/-95%':>10}{'margin':>10}{'verdict':>9}")
+    for m, ci, wr, name, n, dm, dci, gm in rows:
         if name == ref:
             mark = "ref"
         elif dci != dci:
@@ -132,8 +155,9 @@ def main():
             mark = "WORSE"
         else:
             mark = "tie"
+        gtxt = "-" if gm != gm else f"{gm:.0f}"
         print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}"
-              f"{n:>7}{dm:>16.0f}{dci:>10.0f}{mark:>9}")
+              f"{n:>7}{dm:>16.0f}{dci:>10.0f}{gtxt:>10}{mark:>9}")
     print("\nSWEEP_BEST=" + json.dumps({"name": rows[0][3], "mean": round(rows[0][0])}))
 
     winner = rows[0][3]
@@ -152,21 +176,24 @@ def main():
                 for side in (0, 1):
                     jobs2.append((rel, args.b, seed1 + i, args.steps, side))
                     owner2.append((nm, seed1 + i, side))
-        with ProcessPoolExecutor(max_workers=args.workers) as pool:
-            res2 = list(pool.map(play, jobs2))
+        res2 = run_all(jobs2, args.workers)
         cell2 = {k: ma for k, (ma, _mb) in zip(owner2, res2)}
+        gap2 = {k: ma - mb for k, (ma, mb) in zip(owner2, res2)}
         vs = [cell2[(winner, sd, si)] - cell2[(ref, sd, si)]
               for (nm, sd, si) in cell2 if nm == winner and (ref, sd, si) in cell2]
+        gs = [gap2[(winner, sd, si)] - gap2[(ref, sd, si)]
+              for (nm, sd, si) in gap2 if nm == winner and (ref, sd, si) in gap2]
         if len(vs) > 1:
             dm = statistics.mean(vs)
             dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
             held = ("HELD" if dm - dci > 0 else
                     "REVERSED" if dm + dci < 0 else "NOT CONFIRMED")
             print(f"  {winner} vs {ref}: {dm:+.0f} +/- {dci:.0f} "
-                  f"over {len(vs)} games -> {held}")
+                  f"over {len(vs)} games (margin {gm:+.0f}) -> {held}")
             print("SWEEP_REPLICATE=" + json.dumps(
                 {"name": winner, "delta": round(dm), "ci95": round(dci),
-                 "games": len(vs), "verdict": held}))
+                 "margin": round(gm), "games": len(vs), "verdict": held}))
     return 0
 
 
