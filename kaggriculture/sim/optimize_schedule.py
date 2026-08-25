@@ -165,12 +165,18 @@ def paired_t(child, base):
     return mean, mean / (sd / len(d) ** 0.5), len(d)
 
 
-def draw(rng, seed_pool, n_screen, n_confirm, sides):
-    """Two disjoint seed sets, fresh this generation."""
-    picked = rng.sample(seed_pool, n_screen + n_confirm)
+def draw(rng, seed_pool, n_screen, n_confirm, sides, n_rep=0):
+    """Three disjoint seed sets, fresh this generation.
+
+    The third one only gets played when a child has already passed the other
+    two, so it costs nothing on the generations that reject.
+    """
+    picked = rng.sample(seed_pool, n_screen + n_confirm + n_rep)
     screen = [(s, side) for s in picked[:n_screen] for side in sides]
-    confirm = [(s, side) for s in picked[n_screen:] for side in sides]
-    return screen, confirm
+    confirm = [(s, side) for s in picked[n_screen:n_screen + n_confirm]
+               for side in sides]
+    rep = [(s, side) for s in picked[n_screen + n_confirm:] for side in sides]
+    return screen, confirm, rep
 
 
 def lower_bound(d):
@@ -231,7 +237,7 @@ def live_children(arena, rng, sched, lam, ops, probe, tries=4):
     return kept, skipped
 
 
-def race(arena, sched, children, screen, confirm, kind, z, cut):
+def race(arena, sched, children, screen, confirm, kind, z, cut, rep=()):
     """Screen, refuse the unmeasurable, confirm the survivor.
 
     The refusal is the part that was missing, and without it the whole rule
@@ -272,13 +278,31 @@ def race(arena, sched, children, screen, confirm, kind, z, cut):
             best = (rank, child, applied, statistics.fmean(d))
     if best is None:
         return dict(child=None, applied=[], seen=0.0, floor=0.0, mean=0.0,
-                    t=0.0, accepted=False, wild=wild)
+                    t=0.0, accepted=False, wild=wild, rep=float("nan"))
     seen, child, applied = best[3], best[1], best[2]
     floor = best[0]
     got = per_episode(arena.values(child, confirm), kind)
     mean, t, _n = paired_t(got, per_episode(arena.values(sched, confirm), kind))
+    ok = mean > 0 and t >= z
+    # The confirmation is unbiased for a child named in advance, and the
+    # screen does name it in advance -- but accepting only when the
+    # confirmation comes out positive names it again, afterwards, and the
+    # accepted set is the upper half of whatever the confirmation happened to
+    # say. For a child that is truly worth zero that is a coin, so a run of
+    # them is a random walk with the calendar as the walker: run 22 spent
+    # fifty five generations and twenty seven accepts to arrive at +529 +/-
+    # 2,696 over ninety six fresh games, which is what a random walk looks
+    # like. The third draw is the same medicine `sweep.py --replicate` got on
+    # 2026-08-25, and it costs episodes only on the generations that would
+    # otherwise have accepted.
+    rep_mean = float("nan")
+    if ok and rep:
+        rgot = per_episode(arena.values(child, rep), kind)
+        rep_mean, _rt, _rn = paired_t(
+            rgot, per_episode(arena.values(sched, rep), kind))
+        ok = rep_mean > 0
     return dict(child=child, applied=applied, seen=seen, floor=floor,
-                mean=mean, t=t, accepted=(mean > 0 and t >= z), wild=wild)
+                mean=mean, t=t, accepted=ok, wild=wild, rep=rep_mean)
 
 
 # --------------------------------------------------------------------------
@@ -715,6 +739,10 @@ def main():
     # there to catch. Measured on the stored matrix, gated: z=0.0 returns
     # +105 a generation, z=0.5 returns +68, z=1.0 returns +27 -- the bar
     # only rejects the small real gains, which is the shape the edits have.
+    ap.add_argument("--replicate", type=int, default=6,
+                    help="seeds for a third, disjoint check before an accept "
+                         "is committed (0 = off). Only played when screen and "
+                         "confirm have both already passed")
     ap.add_argument("--z", type=float, default=0.0,
                     help="t the confirmation must reach before an accept")
     ap.add_argument("--sides", default="0,1")
@@ -806,8 +834,8 @@ def main():
                 with open(args.out, "w", encoding="utf-8") as f:
                     json.dump(sched, f, indent=1, sort_keys=True)
         else:
-            screen, confirm = draw(rng, args.pool_list, args.screen,
-                                   args.confirm, sides)
+            screen, confirm, rep = draw(rng, args.pool_list, args.screen,
+                                        args.confirm, sides, args.replicate)
             children, skipped = live_children(arena, rng, sched, args.lam,
                                               args.ops, screen[:1])
             if not children:
@@ -815,7 +843,7 @@ def main():
                       % (gen, args.lam * 4), flush=True)
                 continue
             got = race(arena, sched, children, screen, confirm,
-                       args.objective, args.z, args.spread_cut)
+                       args.objective, args.z, args.spread_cut, rep)
             if got["child"] is None:
                 print("GEN %d all %d children too wide to judge (cut %.0f)"
                       % (gen, got["wild"], args.spread_cut), flush=True)
@@ -828,10 +856,12 @@ def main():
             # Every generation prints, accepted or not. A rejection is the
             # thing the old loop could not say, and the rate of them is how
             # you tell a working test from a broken one.
+            rp = got.get("rep", float("nan"))
             print("GEN %d %s screen=%+.1f(floor%+.1f) confirm=%+.1f t=%+.2f"
-                  " ep=%d dead=%d wild=%d via %s"
+                  " rep=%s ep=%d dead=%d wild=%d via %s"
                   % (gen, "ACCEPT" if got["accepted"] else "reject",
                      got["seen"], got["floor"], got["mean"], got["t"],
+                     "-" if rp != rp else "%+.1f" % rp,
                      arena.played, skipped, got["wild"],
                      ",".join(got["applied"]) or "-"), flush=True)
             arena.keep_only([sched, start])

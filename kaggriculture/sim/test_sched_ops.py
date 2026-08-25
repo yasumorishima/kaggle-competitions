@@ -73,7 +73,7 @@ def ruler():
     pool = opt.parse_pool("3000-3095")
     overlap = wrong_size = 0
     for _ in range(500):
-        screen, confirm = opt.draw(rng, pool, 3, 8, [0, 1])
+        screen, confirm, _rep = opt.draw(rng, pool, 3, 8, [0, 1])
         if set(s for s, _ in screen) & set(s for s, _ in confirm):
             overlap += 1
         if len(screen) != 6 or len(confirm) != 16:
@@ -106,7 +106,7 @@ def ruler():
         # worth nothing anywhere else. The old rule would take it every time;
         # this is the whole reason the confirmation set is disjoint.
         rng = random.Random(8)
-        screen, confirm = opt.draw(rng, pool, 3, 8, [0, 1])
+        screen, confirm, _rep = opt.draw(rng, pool, 3, 8, [0, 1])
         lucky_seeds = set(seed for seed, _ in screen)
         kids = [opt.mutate(BASE, rng, 2) for _ in range(4)]
         chosen = opt.key_of(kids[2][0])
@@ -133,6 +133,55 @@ def ruler():
         check("a real edit survives both stages", got["accepted"],
               "confirm=%+.1f t=%+.2f" % (got["mean"], got["t"]))
         check("and it is the right child", opt.key_of(got["child"]) == real)
+
+        print("a child lucky on screen AND confirm is vetoed by the third draw")
+        # The confirmation is unbiased for a child the screen named, but
+        # accepting only when it comes out positive names the child a second
+        # time, on the confirmation's own number. This is the child that
+        # exploits exactly that: worth a fortune on the two sets the accept
+        # rule looks at, worth nothing on the one it does not.
+        rng = random.Random(11)
+        screen, confirm, rep = opt.draw(rng, pool, 3, 8, [0, 1], 6)
+        seen_seeds = set(s for s, _ in screen) | set(s for s, _ in confirm)
+        rep_seeds = set(s for s, _ in rep)
+        check("the third set is disjoint from the other two",
+              not (rep_seeds & seen_seeds))
+        kids = [opt.mutate(BASE, rng, 2) for _ in range(4)]
+        fluke = opt.key_of(kids[0][0])
+        opt.play = fake_play(
+            lambda seed, side: (seed % 7) * 9000 + side * 400,
+            lambda sched, seed: (80000 if opt.key_of(sched) == fluke
+                                 and seed in seen_seeds else 0))
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE)
+        check("without the third draw it is accepted", got["accepted"],
+              "confirm=%+.1f" % got["mean"])
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE,
+                       rep)
+        check("with it the accept is withdrawn", not got["accepted"],
+              "confirm=%+.1f rep=%+.1f" % (got["mean"], got["rep"]))
+        check("and the reason is reported", got["rep"] <= 0,
+              "rep=%+.1f" % got["rep"])
+
+        print("the third draw does not veto an edit that is real")
+        opt.play = fake_play(
+            lambda seed, side: (seed % 7) * 9000 + side * 400,
+            lambda sched, seed: 5000 * (opt.key_of(sched) == fluke))
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 1.0, WIDE,
+                       rep)
+        check("a real edit still passes three stages", got["accepted"],
+              "confirm=%+.1f rep=%+.1f" % (got["mean"], got["rep"]))
+
+        print("a rejected child never pays for the third draw")
+        opt.play = fake_play(lambda seed, side: (seed % 7) * 9000 + side * 400,
+                             lambda sched, seed: 0)
+        arena = opt.Arena(None, "x", 721)
+        got = opt.race(arena, BASE, kids, screen, confirm, "mean", 9.0, WIDE,
+                       rep)
+        check("no accept, no third draw", not got["accepted"]
+              and got["rep"] != got["rep"], "rep=%s" % got["rep"])
 
         print("the screen prefers a tight edit to a volatile one")
         # The volatile child reads three times better on the screen and is
