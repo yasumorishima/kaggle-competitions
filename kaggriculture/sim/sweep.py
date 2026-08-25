@@ -58,6 +58,19 @@ def main():
     ap.add_argument("--seed0", type=int, default=3000)
     ap.add_argument("--steps", type=int, default=720)
     ap.add_argument("--workers", type=int, default=4)
+    # Re-run the winner, alone against the reference, on a seed band the
+    # sweep never touched. On 2026-08-25 three separate sweeps produced a
+    # BETTER of +3,750, +2,731 and +1,075 and all three came back at or
+    # below zero when asked again -- with a paired interval near 2,000 over
+    # 96 games, the maximum of six or seven variants is worth about +3,000
+    # before any of them does anything. The only knob that survived was the
+    # one checked against its own neighbours and held over four bands. So
+    # the sweep asks the second question itself now, for the price of two
+    # more variants.
+    ap.add_argument("--replicate", type=int, default=0,
+                    help="episodes to re-test the winner on a fresh band (0 = off)")
+    ap.add_argument("--replicate-gap", type=int, default=2000,
+                    help="how far from seed0 the fresh band starts")
     args = ap.parse_args()
 
     spec = args.variants
@@ -122,6 +135,38 @@ def main():
         print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}"
               f"{n:>7}{dm:>16.0f}{dci:>10.0f}{mark:>9}")
     print("\nSWEEP_BEST=" + json.dumps({"name": rows[0][3], "mean": round(rows[0][0])}))
+
+    winner = rows[0][3]
+    if args.replicate and winner != ref:
+        seed1 = args.seed0 + args.replicate_gap
+        print()
+        print(f"replicating {winner!r} against {ref!r} on seeds "
+              f"{seed1}-{seed1 + args.replicate - 1}, both sides")
+        pick = {v["name"]: v for v in variants}
+        jobs2, owner2 = [], []
+        for nm in (ref, winner):
+            v = pick[nm]
+            path = build_variant(base_src, "rep_" + nm, v.get("P", {}), outdir, v.get("G"))
+            rel = os.path.relpath(path, HERE)
+            for i in range(args.replicate):
+                for side in (0, 1):
+                    jobs2.append((rel, args.b, seed1 + i, args.steps, side))
+                    owner2.append((nm, seed1 + i, side))
+        with ProcessPoolExecutor(max_workers=args.workers) as pool:
+            res2 = list(pool.map(play, jobs2))
+        cell2 = {k: ma for k, (ma, _mb) in zip(owner2, res2)}
+        vs = [cell2[(winner, sd, si)] - cell2[(ref, sd, si)]
+              for (nm, sd, si) in cell2 if nm == winner and (ref, sd, si) in cell2]
+        if len(vs) > 1:
+            dm = statistics.mean(vs)
+            dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            held = ("HELD" if dm - dci > 0 else
+                    "REVERSED" if dm + dci < 0 else "NOT CONFIRMED")
+            print(f"  {winner} vs {ref}: {dm:+.0f} +/- {dci:.0f} "
+                  f"over {len(vs)} games -> {held}")
+            print("SWEEP_REPLICATE=" + json.dumps(
+                {"name": winner, "delta": round(dm), "ci95": round(dci),
+                 "games": len(vs), "verdict": held}))
     return 0
 
 

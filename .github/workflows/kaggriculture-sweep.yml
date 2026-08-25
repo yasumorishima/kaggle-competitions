@@ -34,6 +34,11 @@ on:
         required: false
         default: '3000'
         type: string
+      replicate:
+        description: '勝った変種を別 seed 帯で引き直す episode 数（0 で無効）。単発の BETTER は仮説にすぎない'
+        required: false
+        default: '32'
+        type: string
 
 jobs:
   sweep:
@@ -75,6 +80,7 @@ jobs:
           python sim/sweep.py --variants /tmp/variants.json --b "$AGENT_B" \
             --agent "${{ inputs.agent_a }}" \
             --episodes "${{ inputs.episodes }}" --seed0 "${{ inputs.seed0 }}" \
+            --replicate "${{ inputs.replicate }}" \
             --workers "$(nproc)" | tee /tmp/sweep.log
 
       - name: Job summary
