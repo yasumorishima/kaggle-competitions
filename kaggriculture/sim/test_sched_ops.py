@@ -308,6 +308,43 @@ def _raises(fn):
     return False
 
 
+def steering():
+    """The two columns the climb is steered by.
+
+    Both were wrong until 2026-08-26. The objective defaulted to the farm's own
+    money, and the arena played one fixed opponent -- and this game is not
+    transitive, so those two choices compound. dist_weight 0.7 was adopted on
+    exactly that pair: +3,443 +/- 1,136 over 512 games against a common third
+    party, and the agent carrying it then lost the direct contest with its
+    predecessor by -3,037 and -3,906 and rated 634.1 against 669.5.
+    """
+    print("the objective and the opponent pool")
+
+    vals = [(100.0, 40.0), (50.0, 90.0)]
+    check("margin is our money minus theirs",
+          opt.per_episode(vals, "margin") == [60.0, -40.0])
+    check("mean is our money alone",
+          opt.per_episode(vals, "mean") == [100.0, 50.0])
+    check("...and on this pair the two disagree in sign",
+          opt.per_episode(vals, "margin")[1] < 0 < opt.per_episode(vals, "mean")[1])
+
+    arena = opt.Arena(None, "a.py,b.py,c.py", 720)
+    check("a comma list becomes a pool", arena.opponents == ["a.py", "b.py", "c.py"])
+    check("the opponent is a function of the seed",
+          [arena.opponent_for(s) for s in (3000, 3001, 3002, 3003)]
+          == ["a.py", "b.py", "c.py", "a.py"])
+    check("so the incumbent and every child meet the same mix",
+          all(arena.opponent_for(s) == arena.opponent_for(s)
+              for s in range(3000, 3020)))
+    check("a single opponent still works",
+          opt.Arena(None, "main.py", 720).opponents == ["main.py"])
+
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "optimize_schedule.py"), encoding="utf-8").read()
+    check("the climb's default objective is margin, not own money",
+          'ap.add_argument("--objective", default="margin"' in src)
+
+
 def main():
     sched_mod.validate(BASE)
     print("operators (each must fire, and each must change the calendar)")
@@ -469,6 +506,7 @@ def main():
           sched_mod.expand(rebuilt) == sched_mod.expand(BASE))
 
     ruler()
+    steering()
 
     print("")
     if FAILED:

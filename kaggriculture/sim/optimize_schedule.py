@@ -61,7 +61,10 @@ def play(job):
 
 
 def score(pool, sched, opponent, seeds, sides, steps, kind="wins"):
-    jobs = [(sched, opponent, s, steps, side) for s in seeds for side in sides]
+    opps = ([o.strip() for o in opponent.split(",") if o.strip()]
+            if isinstance(opponent, str) else list(opponent))
+    jobs = [(sched, opps[s % len(opps)], s, steps, side)
+            for s in seeds for side in sides]
     mapper = pool.map if pool is not None else map
     vals = list(mapper(play, jobs))
     return summary_objective(vals, kind), vals
@@ -118,15 +121,32 @@ class Arena:
     """
 
     def __init__(self, pool, opponent, steps):
-        self.pool, self.opponent, self.steps = pool, opponent, steps
+        # One opponent or several. With several, the opponent is a function of
+        # the seed, so a candidate and the incumbent meet exactly the same
+        # (seed, side, opponent) triples and the paired test still holds --
+        # robustness across opponents for free, at no extra episodes.
+        #
+        # It is worth having because this game is not transitive. dist_weight
+        # 0.7 out-earned 1.0 against a common third party by +3,443 over 512
+        # games and lost the direct contest with it by -3,037 and -3,906. A
+        # calendar climbed against one opponent is a best response to that
+        # opponent, and the ladder does not send that opponent.
+        self.opponents = ([o.strip() for o in opponent.split(",") if o.strip()]
+                          if isinstance(opponent, str) else list(opponent))
+        assert self.opponents, "no opponent"
+        self.opponent = self.opponents[0]
+        self.pool, self.steps = pool, steps
         self.seen = {}
         self.played = 0
+
+    def opponent_for(self, seed):
+        return self.opponents[seed % len(self.opponents)]
 
     def values(self, sched, episodes):
         key = key_of(sched)
         want = [e for e in episodes if (key,) + e not in self.seen]
         if want:
-            jobs = [(sched, self.opponent, seed, self.steps, side)
+            jobs = [(sched, self.opponent_for(seed), seed, self.steps, side)
                     for seed, side in want]
             mapper = self.pool.map if self.pool is not None else map
             for episode, val in zip(want, mapper(play, jobs)):
@@ -704,8 +724,9 @@ def load(paths):
 def selftest(args):
     """The one property the whole climb rests on: same calendar, same money."""
     _, sched = load(args.sched)[0]
-    a = play((sched, args.opponent, args.seeds_list[0], args.steps, 0))
-    b = play((sched, args.opponent, args.seeds_list[0], args.steps, 0))
+    first = args.opponent.split(",")[0].strip()
+    a = play((sched, first, args.seeds_list[0], args.steps, 0))
+    b = play((sched, first, args.seeds_list[0], args.steps, 0))
     print("run1=%s run2=%s" % (a, b))
     print("VERDICT=%s" % ("DETERMINISTIC" if a == b else "NOISY"))
     return 0 if a == b else 1
@@ -714,6 +735,8 @@ def selftest(args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sched", required=True, help="one or more calendar JSONs")
+    # Comma-separated for a pool. The opponent is picked by seed, so the
+    # incumbent and every candidate meet the same mix.
     ap.add_argument("--opponent", default="main.py")
     ap.add_argument("--seeds", default="3000,3001,3002,3003",
                     help="race: only picks which starting calendar to climb")
@@ -750,8 +773,15 @@ def main():
     ap.add_argument("--minutes", type=float, default=60.0)
     ap.add_argument("--lam", type=int, default=4)
     ap.add_argument("--ops", type=int, default=2)
-    ap.add_argument("--objective", default="wins",
-                    choices=("wins", "mean", "min", "margin"))
+    # `margin` -- our money minus theirs in the same episode -- is what wins a
+    # game, and it is what the ladder scores. `mean` is our money alone, and
+    # the market is shared: a calendar can lift its own money while handing the
+    # opponent more. dist_weight 0.7 was adopted on exactly that column,
+    # +3,443 +/- 1,136 over 512 games against a third party, and the agent
+    # carrying it lost the direct contest with its predecessor by -3,037 and
+    # -3,906 and rated 634.1 against 669.5.
+    ap.add_argument("--objective", default="margin",
+                    choices=("margin", "wins", "mean", "min"))
     ap.add_argument("--confirm-every", type=int, default=15)
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--seed", type=int, default=7)

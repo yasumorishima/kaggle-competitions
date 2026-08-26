@@ -111,10 +111,11 @@ on:
         default: 'main.py'
         type: string
       objective:
-        description: 'wins | mean | min'
+        description: 'margin | mean | wins | min. `margin` is what wins a game -- our money minus theirs in the same episode. `mean` is our money alone, and in a shared elastic market a calendar can lift its own money while handing the opponent more: dist_weight 0.7 was adopted that way, on +3,443 against a third party, and then lost the direct contest with its predecessor and cost 35 rating points. `wins` is flat at zero while you lose every game'
         required: false
-        default: 'wins'
-        type: string
+        default: 'margin'
+        type: choice
+        options: ['margin', 'mean', 'wins', 'min']
       lam:
         description: 'Candidates per generation'
         required: false
