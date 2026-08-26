@@ -1,0 +1,69 @@
+CANDIDATE schedules/climbed_from_g45.json score=90250.0000 11/12 won, mine=[78137, 83643, 95694, 101426, 96826, 96826, 64523, 83233, 93540, 88682, 100772, 99698] theirs=[63792, 74756, 75435, 75715, 74250, 74250, 67321, 62764, 74605, 73061, 75993, 71799]
+CHOSE schedules/climbed_from_g45.json
+HOLDOUT gen=0 score=62738.3333 12/12 won, mine=[74826, 78632, 58210, 58210, 65963, 65963, 78785, 84693, 42873, 42873, 50916, 50916] theirs=[53159, 48831, 55380, 55380, 62223, 62223, 73266, 69109, 35649, 35649, 43067, 43067]
+GEN 1 reject screen=-3012.5(floor-5254.7) confirm=-16926.3 t=-4.62 rep=- ep=62 dead=0 wild=3 via hands_scale,crop_dial:WHEAT_pct
+GEN 2 ACCEPT screen=+3008.0(floor+1190.7) confirm=+4806.0 t=+0.81 rep=+15980.5 ep=142 dead=0 wild=0 via herd_size:SHEEP,struct_when:PASTURE
+GEN 3 reject screen=+2250.7(floor+968.7) confirm=-1282.7 t=-1.76 rep=- ep=200 dead=0 wild=1 via crop_dial:CARROT_pct,task_dial:PICKUP_w
+GEN 4 reject screen=-482.0(floor-3635.2) confirm=+34.8 t=+0.05 rep=-575.4 ep=278 dead=0 wild=2 via task_dial:CARE_w,crop_dial:TOMATO_pct
+GEN 5 reject screen=+4810.2(floor+1594.6) confirm=-1527.0 t=-0.81 rep=- ep=328 dead=0 wild=3 via herd_size:COW,task_dial:HARVEST_w
+GEN 6 ACCEPT screen=+588.8(floor-1992.4) confirm=+3516.9 t=+1.43 rep=+455.8 ep=398 dead=0 wild=2 via task_dial:DIG_w,herd_size:SHEEP
+GEN 7 reject screen=+1839.8(floor-393.8) confirm=-3128.4 t=-1.00 rep=- ep=459 dead=1 wild=2 via struct_when:COOP,task_dial:BUILD_PASTURE_w
+GEN 8 reject screen=-256.3(floor-990.0) confirm=-286.6 t=-2.25 rep=- ep=511 dead=0 wild=3 via struct_when:PASTURE,hands_shift
+GEN 9 all 4 children too wide to judge (cut 8000)
+GEN 10 all 4 children too wide to judge (cut 8000)
+GEN 11 reject screen=-56.7(floor-73.1) confirm=-95.9 t=-13.63 rep=- ep=622 dead=0 wild=3 via crop_dial:WHEAT_pct,task_dial:BUILD_COOP_w
+GEN 12 reject screen=+4330.2(floor+1354.0) confirm=+947.1 t=+0.18 rep=-748.2 ep=700 dead=0 wild=2 via task_dial:PICKUP_w,land_when
+GEN 13 reject screen=-28954.3(floor-31403.8) confirm=-3172.0 t=-0.71 rep=- ep=750 dead=0 wild=3 via task_dial:DROP_w,land_count
+GEN 14 reject screen=+1620.5(floor+437.2) confirm=-1109.6 t=-2.40 rep=- ep=802 dead=0 wild=1 via herd_size:SHEEP,hands_shift
+GEN 15 reject screen=-978.2(floor-3549.6) confirm=-2872.6 t=-0.81 rep=- ep=846 dead=2 wild=0 via convert:SHEEP->COW,crop_dial:MELON_pct
+HOLDOUT gen=15 score=75869.9167 train=90250.0000 accepts=2 vs-start=+13131.6 t=+2.56 10/12 won, mine=[100360, 97339, 101229, 101229, 71937, 70729, 70811, 70811, 46233, 46233, 66764, 66764] theirs=[80601, 77979, 93027, 93027, 54897, 42478, 61200, 61200, 46911, 46911, 49903, 49903]
+GEN 16 reject screen=+147.5(floor-2443.0) confirm=+427.8 t=+0.36 rep=-772.2 ep=928 dead=0 wild=3 via herd_when:SHEEP,task_dial:DIG_w
+GEN 17 reject screen=+3126.2(floor+141.1) confirm=-7220.9 t=-2.68 rep=- ep=974 dead=0 wild=2 via convert:SHEEP->COW,task_dial:COLLECT_FERTILIZER_w
+GEN 18 reject screen=-348.5(floor-464.1) confirm=+270.6 t=+1.14 rep=-262.5 ep=1039 dead=1 wild=2 via task_dial:HARVEST_w
+GEN 19 ACCEPT screen=+113.3(floor+48.2) confirm=+91.5 t=+1.75 rep=+55.3 ep=1102 dead=1 wild=3 via task_dial:COLLECT_FERTILIZER_w
+GEN 20 reject screen=+152.7(floor-1040.5) confirm=-4277.4 t=-1.70 rep=- ep=1164 dead=0 wild=3 via crop_dial:WHEAT_pct,herd_size:SHEEP
+GEN 21 reject screen=+4321.5(floor+1414.9) confirm=-622.4 t=-0.19 rep=- ep=1218 dead=0 wild=3 via struct_when:COOP,task_dial:PLANT_w
+GEN 22 all 4 children too wide to judge (cut 8000)
+GEN 23 reject screen=-1414.0(floor-2596.0) confirm=-538.8 t=-1.77 rep=- ep=1303 dead=0 wild=3 via land_when,task_dial:HARVEST_w
+GEN 24 reject screen=-6139.3(floor-9052.8) confirm=-7362.3 t=-2.22 rep=- ep=1357 dead=0 wild=3 via task_dial:HARVEST_w,crop_dial:WHEAT_pct
+GEN 25 reject screen=+581.5(floor-2069.6) confirm=+1309.5 t=+0.44 rep=-471.7 ep=1420 dead=1 wild=0 via struct_when:PASTURE
+GEN 26 reject screen=-354.2(floor-375.6) confirm=-183.1 t=-3.09 rep=- ep=1470 dead=0 wild=3 via hands_shift,crop_dial:TOMATO_pct
+GEN 27 reject screen=-298.2(floor-2233.0) confirm=-839.4 t=-0.48 rep=- ep=1514 dead=0 wild=1 via hands_shift,task_dial:FERTILIZE_w
+GEN 28 reject screen=+188.2(floor-102.0) confirm=+313.4 t=+1.31 rep=-68.8 ep=1583 dead=1 wild=2 via task_dial:HARVEST_w
+GEN 29 reject screen=-2921.7(floor-5959.8) confirm=+2365.1 t=+0.88 rep=-8971.8 ep=1647 dead=0 wild=2 via task_dial:PICKUP_w,land_when
+GEN 30 ACCEPT screen=+5723.2(floor+3798.8) confirm=+2175.8 t=+1.20 rep=+4705.4 ep=1710 dead=1 wild=2 via convert:SHEEP->COW,crop_dial:MELON_pct
+HOLDOUT gen=30 score=79269.0000 train=90250.0000 accepts=4 vs-start=+16530.7 t=+8.85 10/12 won, mine=[91631, 91631, 80517, 80517, 82019, 76995, 93992, 91444, 69258, 69258, 61983, 61983] theirs=[72671, 72671, 87169, 87169, 66695, 46896, 72294, 73847, 68745, 68745, 60084, 60084]
+GEN 31 reject screen=+668.7(floor-959.8) confirm=-3085.4 t=-1.16 rep=- ep=1781 dead=1 wild=2 via task_dial:BUILD_COOP_w,herd_size:COW
+GEN 32 reject screen=-4467.2(floor-5589.8) confirm=-2515.7 t=-2.75 rep=- ep=1835 dead=0 wild=3 via crop_dial:MELON_pct,herd_size:GOOSE
+GEN 33 ACCEPT screen=-1101.3(floor-3780.6) confirm=+3704.0 t=+2.05 rep=+2533.5 ep=1909 dead=0 wild=2 via herd_when:SHEEP,crop_dial:WHEAT_pct
+GEN 34 reject screen=+2532.2(floor-205.0) confirm=-2152.1 t=-1.67 rep=- ep=1969 dead=0 wild=3 via task_dial:COLLECT_FERTILIZER_w,task_dial:DROP_w
+GEN 35 reject screen=+4909.7(floor+3712.8) confirm=+2657.8 t=+0.97 rep=-1348.5 ep=2047 dead=0 wild=2 via land_when,herd_size:SHEEP
+GEN 36 reject screen=+343.2(floor-1417.9) confirm=+2592.5 t=+1.47 rep=-5841.0 ep=2121 dead=0 wild=3 via task_dial:COLLECT_FERTILIZER_w,convert:COW->SHEEP
+GEN 37 reject screen=-26104.7(floor-27990.2) confirm=-10021.6 t=-2.76 rep=- ep=2171 dead=0 wild=3 via land_when,crop_dial:TOMATO_pct
+GEN 38 reject screen=+1811.2(floor+1013.9) confirm=+1501.0 t=+1.37 rep=-382.0 ep=2242 dead=1 wild=0 via task_dial:FERTILIZE_w
+GEN 39 reject screen=-3117.2(floor-3682.8) confirm=-2237.7 t=-1.01 rep=- ep=2292 dead=0 wild=2 via herd_when:COW,task_dial:PICKUP_w
+GEN 40 ACCEPT screen=+183.8(floor-1146.9) confirm=+1681.8 t=+0.80 rep=+2765.1 ep=2352 dead=0 wild=2 via herd_size:SHEEP,task_dial:DIG_w
+GEN 41 reject screen=-619.3(floor-2586.9) confirm=-885.2 t=-0.28 rep=- ep=2412 dead=0 wild=2 via convert:COW->GOOSE,crop_dial:WHEAT_pct
+GEN 42 reject screen=+583.3(floor-2026.7) confirm=+1824.8 t=+0.75 rep=-10024.3 ep=2493 dead=1 wild=2 via task_dial:WATER_w,task_dial:PICKUP_w
+GEN 43 reject screen=-2572.0(floor-4148.6) confirm=-6968.8 t=-2.96 rep=- ep=2545 dead=0 wild=1 via herd_size:COW,task_dial:DIG_w
+GEN 44 reject screen=-711.7(floor-1629.4) confirm=-295.8 t=-0.92 rep=- ep=2595 dead=0 wild=2 via task_dial:COLLECT_FERTILIZER_w
+GEN 45 reject screen=+1408.3(floor+0.3) confirm=+56.2 t=+0.03 rep=-2876.6 ep=2658 dead=1 wild=1 via convert:SHEEP->COW,task_dial:DROP_w
+HOLDOUT gen=45 score=82009.5833 train=90250.0000 accepts=6 vs-start=+19271.2 t=+7.42 11/12 won, mine=[86472, 86472, 91028, 88672, 83852, 74014, 94360, 92663, 68478, 68478, 74813, 74813] theirs=[69902, 69902, 87191, 90312, 69774, 58705, 76574, 74499, 65984, 65984, 68847, 68847]
+GEN 46 reject screen=-18266.2(floor-20614.7) confirm=-9766.6 t=-2.90 rep=- ep=2718 dead=0 wild=2 via land_when,herd_size:COW
+GEN 47 reject screen=-27.2(floor-54.6) confirm=-171.9 t=-4.38 rep=- ep=2771 dead=1 wild=2 via task_dial:BUILD_PASTURE_w,crop_dial:CARROT_pct
+GEN 48 reject screen=+308.0(floor-1080.3) confirm=-157.3 t=-0.06 rep=- ep=2816 dead=1 wild=1 via task_dial:WATER_w,herd_size:SHEEP
+GEN 49 reject screen=+2149.2(floor+831.3) confirm=-311.6 t=-0.43 rep=- ep=2862 dead=0 wild=1 via task_dial:HARVEST_w
+GEN 50 ACCEPT screen=-945.2(floor-1212.2) confirm=+1090.6 t=+1.55 rep=+1224.8 ep=2920 dead=0 wild=1 via herd_size:SHEEP,task_dial:CARE_w
+GEN 51 reject screen=+1063.2(floor-2037.7) confirm=-1272.4 t=-0.44 rep=- ep=2980 dead=0 wild=2 via hands_shift,herd_size:SHEEP
+GEN 52 reject screen=+55.2(floor-15.4) confirm=-355.4 t=-1.51 rep=- ep=3032 dead=0 wild=0 via crop_dial:TOMATO_pct
+GEN 53 reject screen=-316.7(floor-1458.0) confirm=-1539.0 t=-3.72 rep=- ep=3091 dead=3 wild=2 via hands_shift,hands_shift
+GEN 54 reject screen=-2657.3(floor-5623.6) confirm=-3488.0 t=-2.37 rep=- ep=3143 dead=0 wild=3 via task_dial:HARVEST_w,herd_when:COW
+GEN 55 reject screen=+206.3(floor-1369.8) confirm=-2837.9 t=-1.47 rep=- ep=3197 dead=0 wild=2 via herd_size:GOOSE,herd_size:GOOSE
+GEN 56 reject screen=-7011.0(floor-9683.8) confirm=-2691.7 t=-0.86 rep=- ep=3247 dead=0 wild=3 via convert:SHEEP->COW,crop_dial:MELON_pct
+GEN 57 reject screen=-5231.2(floor-6916.2) confirm=-5875.2 t=-2.03 rep=- ep=3305 dead=0 wild=1 via herd_size:SHEEP,task_dial:PICKUP_w
+HOLDOUT gen=57 score=79788.2500 8/12 won, mine=[90620, 90620, 85116, 87015, 84798, 73235, 91846, 91964, 62622, 62563, 68530, 68530] theirs=[72520, 72520, 87633, 87238, 75100, 59650, 75480, 72300, 66333, 66349, 66456, 66456]
+SUMMARY={"gen": 57, "accepts": 7, "train": 90250.0, "holdout": 79788.25, "out": "../schedules/best.json", "accept": "race", "objective": "mean", "episodes": 3305, "z": 0.0, "screen": 3, "confirm": 8, "pool": [3000, 3095], "seeds": [3000, 3001, 3002, 3003, 3004, 3005], "holdout_seeds": [3100, 3101, 3102, 3103, 3104, 3105]}
+SUMMARY={"a": "agents/sched_agent_build.py", "b": "agents/sched_agent_start.py", "games": 24, "a_mean": 78634.2, "b_mean": 78479.3, "delta_mean": 154.9, "delta_ci95": 1781.0, "winrate": 0.583, "wall_s": 94.5}
+VERDICT=INCONCLUSIVE
+SUMMARY={"a": "agents/sched_agent_build.py", "b": "agents/v36_sched.py", "games": 48, "a_mean": 72269.8, "b_mean": 72879.1, "delta_mean": -609.3, "delta_ci95": 1845.5, "winrate": 0.542, "wall_s": 186.8}
+VERDICT=INCONCLUSIVE
