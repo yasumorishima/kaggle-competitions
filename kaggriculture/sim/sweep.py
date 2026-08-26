@@ -172,20 +172,34 @@ def main():
             gci = (1.96 * statistics.stdev(gs) / math.sqrt(len(gs))
                    if len(gs) > 1 else float("nan"))
         rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci, gm, gci))
-    rows.sort(reverse=True)
+    # Rank on the margin against the reference, not on our own money. The two
+    # disagree whenever a variant lifts both farms, which the shared elastic
+    # market makes easy -- and it is the margin that decides the game, and the
+    # ladder. The reference sits at exactly 0 by construction, so this puts
+    # every variant that beats it above the line. Ties fall back to own money.
+    rows.sort(key=lambda r: (0.0 if r[7] != r[7] else r[7], r[0]), reverse=True)
 
     head = "vs " + ref
     print(f"\n{'variant':<22}{'mean money':>12}{'+/-95%':>10}{'winrate':>9}"
           f"{'games':>7}{head:>16}{'+/-95%':>10}{'margin':>10}{'+/-95%':>9}"
           f"{'verdict':>9}")
     for m, ci, wr, name, n, dm, dci, gm, gci in rows:
+        # The verdict follows the margin for the same reason the ranking does.
+        # dist_weight 0.7 was adopted on own money against a third party --
+        # +3,443 +/- 1,136 over 512 games across five bands, t=5.9 -- and the
+        # agent carrying it then lost the direct contest with the same agent at
+        # 1.0 by -3,037 and -3,906, and rated 634.1 against 669.5 on the
+        # ladder. Nothing else differs between them: same calendar, and every
+        # other difference between the frozen copies is inert at their
+        # settings. "Out-earns a common third party" is not "beats this
+        # opponent", and only the second one is a game.
         if name == ref:
             mark = "ref"
-        elif dci != dci:
+        elif gci != gci:
             mark = "?"
-        elif dm - dci > 0:
+        elif gm - gci > 0:
             mark = "BETTER"
-        elif dm + dci < 0:
+        elif gm + gci < 0:
             mark = "WORSE"
         else:
             mark = "tie"
@@ -194,7 +208,10 @@ def main():
         print(f"{name:<22}{m:>12.0f}{ci:>10.0f}{wr:>9.2f}"
               f"{n:>7}{dm:>16.0f}{dci:>10.0f}{gtxt:>10}{gctxt:>9}"
               f"{mark:>9}")
-    print("\nSWEEP_BEST=" + json.dumps({"name": rows[0][3], "mean": round(rows[0][0])}))
+    print("\nSWEEP_BEST=" + json.dumps(
+        {"name": rows[0][3], "mean": round(rows[0][0]),
+         "margin": None if rows[0][7] != rows[0][7] else round(rows[0][7]),
+         "ranked_on": "margin"}))
 
     winner = rows[0][3]
     if args.replicate and winner != ref:
@@ -222,14 +239,31 @@ def main():
         if len(vs) > 1:
             dm = statistics.mean(vs)
             dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            # Judge on the margin, not on our own money. A game is won by
+            # out-earning the other farm, and the market is shared: a variant
+            # can lift its own money while handing the opponent more.
+            #
+            # Measured 2026-08-26. dist_weight 0.7 was adopted on own money
+            # against v16_best -- +3,443 +/- 1,136 over 512 games across five
+            # bands, t=5.9 -- and the agent carrying it lost the direct contest
+            # with the same agent at 1.0 by -3,037 and -3,906 on two bands, and
+            # rated 634.1 against 669.5 on the ladder. The two agents differ in
+            # nothing else: same calendar, and every other difference between
+            # the frozen copies is inert at their settings. "Out-earns a common
+            # third party" and "beats this opponent" are different questions,
+            # and the ladder asks the second one.
             gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
-            held = ("HELD" if dm - dci > 0 else
-                    "REVERSED" if dm + dci < 0 else "NOT CONFIRMED")
-            print(f"  {winner} vs {ref}: {dm:+.0f} +/- {dci:.0f} "
-                  f"over {len(vs)} games (margin {gm:+.0f}) -> {held}")
+            gci = (1.96 * statistics.stdev(gs) / math.sqrt(len(gs))
+                   if len(gs) > 1 else float("nan"))
+            held = ("HELD" if gm - gci > 0 else
+                    "REVERSED" if gm + gci < 0 else "NOT CONFIRMED")
+            print(f"  {winner} vs {ref}: margin {gm:+.0f} +/- {gci:.0f} "
+                  f"over {len(vs)} games (own money {dm:+.0f} +/- {dci:.0f}) "
+                  f"-> {held}")
             print("SWEEP_REPLICATE=" + json.dumps(
-                {"name": winner, "delta": round(dm), "ci95": round(dci),
-                 "margin": round(gm), "games": len(vs), "verdict": held}))
+                {"name": winner, "margin": round(gm), "margin_ci95": round(gci),
+                 "delta": round(dm), "ci95": round(dci),
+                 "games": len(vs), "verdict": held, "judged_on": "margin"}))
     return 0
 
 

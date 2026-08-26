@@ -96,6 +96,21 @@ check("the margin column shows the loss", "-20000" in out,
       "margin column missing from the table")
 check("and the winrate says it never wins", " 0.00" in out)
 
+# Printing the margin is not enough: the ranking, the verdict and SWEEP_BEST
+# all have to follow it, because those three are what a reader acts on. This
+# exact shape -- richer on its own money, far behind on the margin -- is how
+# dist_weight 0.7 was adopted, and the agent carrying it lost the direct
+# contest with its predecessor and rated 35 points lower on the ladder.
+_ranked = [ln.split()[0] for ln in out.splitlines()
+           if ln.strip() and ln.split()[0] in ("base", "rich")]
+check("the loser is ranked below the reference", _ranked == ["base", "rich"],
+      f"order was {_ranked}")
+check("and is called WORSE, not BETTER",
+      "WORSE" in out and "BETTER" not in out)
+check("SWEEP_BEST does not pick it", '"name": "base"' in out,
+      "SWEEP_BEST picked the variant that loses by 20,000")
+check("and says what it ranked on", '"ranked_on": "margin"' in out)
+
 print("\na variant that wins by more shows a positive margin")
 
 
