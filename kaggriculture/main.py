@@ -467,6 +467,18 @@ P = {
     # is the order that was written by hand, kept as the default only because
     # every verdict before 2026-08-25 was measured under it.
     "crop_order": ["TOMATO", "CARROT", "MELON", "STRAWBERRY"],
+    # INERT under assign_rule "global", which is the default. Measured
+    # 2026-08-26 on 64 games against the current best: turning it off changes
+    # the mean, the interval, the winrate and the margin by exactly nothing --
+    # 70194 either way, delta 0, margin 0. The reason is in the dispatch loop:
+    # under "global" the pre-pass no longer locks the tile, so it only prepends
+    # a candidate that `jobs_for` already offered, and a duplicate cannot win a
+    # sort it was already in.
+    #
+    # Its +16,529 +/- 5,897 and +11,683 +/- 6,829 were measured under "roster",
+    # where the pre-pass does claim the tile. Kept on because it costs nothing
+    # and still bites if the roster rule is ever switched back on; do not read
+    # the numbers above as a live gain.
     "stand_first": 1,
     "care_repeat": 0,          # 1 = offer CARE again on an animal already cared today
     "care_urgency": 1.0,       # multiplier on CARE inside the last `care_deadline` hours (1.0 = off)
