@@ -106,7 +106,7 @@ on:
         default: '3100,3101,3102,3103,3104,3105'
         type: string
       opponent:
-        description: 'Opponent: a path under kaggriculture/, a builtin name, or kernel:owner/slug. Must be v16 or stronger -- `wins` is degenerate against `starter`, which loses to everything'
+        description: 'Opponent, or a comma-separated pool: paths under kaggriculture/, builtin names, or kernel:owner/slug. A pool is picked by seed, so the incumbent and every candidate meet the same mix at no extra episodes -- prefer one, because this game is not transitive and a calendar climbed against a single agent is a best response to that agent. Must be v16 or stronger; `wins` is degenerate against `starter`, which loses to everything'
         required: false
         default: 'main.py'
         type: string
@@ -176,16 +176,35 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -e
-          opp="${{ inputs.opponent }}"
-          if [ "${opp#kernel:}" != "$opp" ]; then
-            ref="${opp#kernel:}"
-            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
-            python sim/fetch_opponent.py --exec "$ref"
-            opp="opponents/${ref//\//__}.py"
-            [ -s "$opp" ] || { echo "no agent file in notebook $ref" >&2; exit 1; }
-          fi
-          echo "OPP=$opp" >> "$GITHUB_ENV"
-          echo "resolved opponent: $opp"
+          # A comma-separated pool is allowed, and each entry is resolved on
+          # its own. The climb picks the opponent by seed, so the incumbent and
+          # every candidate meet the same mix and the paired test is untouched;
+          # it costs no extra episodes. It is worth having because this game is
+          # not transitive -- dist_weight 0.7 out-earned 1.0 against a common
+          # third party by +3,443 over 512 games and lost the direct contest
+          # with it -- so a calendar climbed against one agent is a best
+          # response to that agent, and the ladder does not send it.
+          out=""
+          IFS=',' read -ra parts <<< "${{ inputs.opponent }}"
+          for raw in "${parts[@]}"; do
+            opp="$(echo "$raw" | xargs)"
+            [ -n "$opp" ] || continue
+            if [ "${opp#kernel:}" != "$opp" ]; then
+              ref="${opp#kernel:}"
+              pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+              python sim/fetch_opponent.py --exec "$ref"
+              opp="opponents/${ref//\//__}.py"
+              [ -s "$opp" ] || { echo "no agent file in notebook $ref" >&2; exit 1; }
+            fi
+            case "$opp" in
+              starter|random|pass) ;;
+              *) [ -s "$opp" ] || { echo "no such opponent: $opp" >&2; exit 1; } ;;
+            esac
+            out="${out:+$out,}$opp"
+          done
+          [ -n "$out" ] || { echo "no opponent given" >&2; exit 1; }
+          echo "OPP=$out" >> "$GITHUB_ENV"
+          echo "resolved opponent pool: $out"
 
       - name: Calendar invariants
         # An operator that cannot fire, or one whose edit a repair pass quietly
@@ -378,8 +397,10 @@ jobs:
 
           # And against whatever it actually climbed against, when that is
           # neither of the above.
+          # Only when the climb faced a single opponent that is neither of the
+          # two above; a pool has no one agent to re-play against.
           case "$OPP" in
-            main.py|"${{ inputs.incumbent }}") ;;
+            *,*|main.py|"${{ inputs.incumbent }}") ;;
             *) python sim/evaluate.py --a agents/sched_agent_build.py --b "$OPP" \
                  --episodes 12 --seed0 4000 --workers "$(nproc)" | tee "$out/vs_opp.log" ;;
           esac
