@@ -16,6 +16,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +49,13 @@ def main():
     ap.add_argument("sched")
     ap.add_argument("--main", default="")
     ap.add_argument("--note", default="")
+    # Knob overrides, appended as a P.update() after the calendar -- the shape
+    # v25_global.py already uses. A calendar climbed under one setting is not
+    # automatically right under another, so this is a way to build the
+    # candidate, not a claim that it transfers: measure it head-to-head
+    # against the incumbent before believing it.
+    ap.add_argument("--set", default="",
+                    help='JSON object of P overrides, e.g. \'{"dist_weight": 1.0}\'')
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -55,6 +63,16 @@ def main():
         sched = json.load(f)
     sched_mod.validate(sched)
     text = emit(sched, args.main or None, args.note)
+    if args.set:
+        over = json.loads(args.set)
+        assert isinstance(over, dict) and over, "--set must be a non-empty object"
+        # Refuse a name the agent does not carry: a P.update() that invents a
+        # key is a knob nobody reads, and it reads downstream as a clean tie.
+        have = set(re.findall(r'^\s{4}"([A-Za-z_]+)"\s*:', text, re.M))
+        missing = sorted(k for k in over if k not in have)
+        assert not missing, f"agent has no such knob(s): {', '.join(missing)}"
+        text += ("\n# Knob overrides from sim/emit_sched.py --set\n"
+                 "P.update(" + json.dumps(over, sort_keys=True) + ")\n")
 
     out_dir = os.path.dirname(os.path.abspath(args.out))
     if out_dir:
