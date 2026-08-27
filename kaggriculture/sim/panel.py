@@ -43,12 +43,16 @@ BANDS = [(0, 40000), (40000, 55000), (55000, 70000), (70000, 90000), (90000, 10 
 LADDER_N = [15, 28, 38, 39, 26]
 LADDER_WIN = [0.800, 0.607, 0.711, 0.282, 0.000]
 
+# opponents/ is gitignored -- a published notebook is not ours to redistribute --
+# so the top band is named in the `kernel:` form the Eval workflow resolves at
+# run time, and --print-panel exists so the workflow can resolve this list
+# without a second copy of it living in YAML.
 DEFAULT_PANEL = [
     "starter",
     "agents/v15_best.py",
     "agents/v16_best.py",
     "agents/v25_global.py",
-    "opponents/boatlee__v16-rc5-high-score-8c-4s-premium-market-lead.py",
+    "kernel:boatlee/v16-rc5-high-score-8c-4s-premium-market-lead",
 ]
 
 
@@ -70,9 +74,14 @@ def main():
     ap.add_argument("--steps", type=int, default=720)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--jsonl", default="")
+    ap.add_argument("--print-panel", action="store_true",
+                    help="print the panel and exit, so a caller can resolve it")
     args = ap.parse_args()
 
     panel = [p.strip() for p in args.panel.split(",") if p.strip()]
+    if args.print_panel:
+        print(",".join(panel))
+        return
     jobs = []
     for oi, opp in enumerate(panel):
         # Disjoint seed block per opponent: a band must not be able to look good

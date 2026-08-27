@@ -63,13 +63,43 @@ jobs:
           nproc
           python -c "import kaggle_environments as k; print('kaggle_environments', k.version)"
 
-      - name: Panel
+      - name: Resolve the panel
+        # opponents/ is gitignored, so the published farm that holds the top
+        # band is not in the checkout: it is named `kernel:owner/slug` and
+        # pulled here, exactly as the Eval workflow does. The list is read back
+        # out of panel.py rather than repeated in YAML, so there is one panel.
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
+          set -e
           extra=""
           if [ -n "${{ inputs.panel }}" ]; then extra="--panel ${{ inputs.panel }}"; fi
+          panel=$(python sim/panel.py --a unused $extra --print-panel)
+          case "$panel" in *kernel:*) pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15';; esac
+          out=""
+          for entry in ${panel//,/ }; do
+            if [ "${entry#kernel:}" != "$entry" ]; then
+              ref="${entry#kernel:}"
+              python sim/fetch_opponent.py --exec "$ref" >&2
+              file="opponents/${ref//\//__}.py"
+              # fetch_opponent exits 1 with NO_AGENT_FILE for a notebook that
+              # carries no agent; `set -e` does not abort inside the loop body
+              # reliably, so the file is checked here.
+              if [ ! -s "$file" ]; then
+                echo "no agent file in notebook $ref" >&2
+                exit 1
+              fi
+              entry="$file"
+            fi
+            out="${out:+$out,}$entry"
+          done
+          echo "PANEL=$out" >> "$GITHUB_ENV"
+
+      - name: Panel
+        run: |
           python sim/panel.py \
             --a "${{ inputs.agent_a }}" \
-            $extra \
+            --panel "$PANEL" \
             --episodes "${{ inputs.episodes }}" \
             --seed0 "${{ inputs.seed0 }}" \
             --workers "$(nproc)" \
