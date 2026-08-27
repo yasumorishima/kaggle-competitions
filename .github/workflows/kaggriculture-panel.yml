@@ -1,0 +1,89 @@
+name: Kaggriculture Panel
+
+# Score a candidate against a panel shaped like the ladder.
+#
+# The sibling Eval workflow answers "does A beat B", and every decision in this
+# project has been made on that answer with B set to our own previous version.
+# The 146 real episodes our submissions have played (sim/ladder.py, 2026-08-27)
+# say the grade is decided elsewhere: we win 69% of the games against farms
+# under 70k and 11 of 65 against farms above it, 0 of 26 above 90k, while our
+# own money sits at 59-72k whoever we face. A panel that covers all five money
+# bands measures the thing the rating is made of.
+#
+# Free minutes: this repo is public. No artifacts -- the account's Actions
+# storage is over quota and an upload hard-fails the run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      agent_a:
+        description: 'Candidate (path under kaggriculture/, or builtin name)'
+        required: false
+        default: 'main.py'
+        type: string
+      panel:
+        description: 'Comma separated opponents. Empty = the default five-band panel'
+        required: false
+        default: ''
+        type: string
+      episodes:
+        description: 'Seeds per opponent (each played twice, sides swapped)'
+        required: false
+        default: '16'
+        type: string
+      seed0:
+        description: 'First seed; each opponent gets its own 1000-wide block'
+        required: false
+        default: '40000'
+        type: string
+
+jobs:
+  panel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    defaults:
+      run:
+        working-directory: kaggriculture
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install kaggle-environments
+        run: pip install -U kaggle-environments
+
+      - name: Show runner size
+        run: |
+          nproc
+          python -c "import kaggle_environments as k; print('kaggle_environments', k.version)"
+
+      - name: Panel
+        run: |
+          extra=""
+          if [ -n "${{ inputs.panel }}" ]; then extra="--panel ${{ inputs.panel }}"; fi
+          python sim/panel.py \
+            --a "${{ inputs.agent_a }}" \
+            $extra \
+            --episodes "${{ inputs.episodes }}" \
+            --seed0 "${{ inputs.seed0 }}" \
+            --workers "$(nproc)" \
+            --jsonl "$RUNNER_TEMP/panel.jsonl" | tee "$RUNNER_TEMP/panel.log"
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture panel"
+            echo ""
+            echo "memo: ${{ inputs.memo }}"
+            echo ""
+            echo '```'
+            sed -n '/^candidate:/,$p' "$RUNNER_TEMP/panel.log" | grep -v '^SUMMARY=' || tail -5 "$RUNNER_TEMP/panel.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
