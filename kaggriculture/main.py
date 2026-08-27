@@ -206,6 +206,21 @@ RATE = {"WHEAT": 0.80, "CARROT": 0.75, "TOMATO": 0.50, "STRAWBERRY": 0.35,
         "MELON": 0.50, "EGG": 2.00, "MILK": 1.50, "WOOL": 1.33}
 PRODUCER = {"EGG": "GOOSE", "MILK": "COW", "WOOL": "SHEEP"}
 
+# Days before a tile planted today first pays. Sowing is a decision about the
+# market that will exist when the crop ripens, not about today's quote: a
+# strawberry sown on day 2 sells from day 12, by which time the other farm's
+# standing tiles have poured ten more days of supply into the same town. This
+# is what the leaderboard's episodes say we get wrong -- against a farm that
+# floods the goods we sell, our own money falls from 84k to 57k while theirs
+# is 130k, and the items it does not sell (tomato 125->129, egg 59->64) are
+# the only ones whose price goes *up*.
+HORIZON = {c: float(CROPS[c]["first_yield_day"]) for c in CROPS}
+HORIZON.update({a["product"]: float(a["first_yield_day"]) for a in ANIMALS.values()})
+HORIZON["FERTILIZER"] = 1.0
+
+# Filled by the planner each turn; see PLAN_TRACE.update below.
+PLAN_TRACE = {}
+
 # Beyond the town's drain rate there is a one-off stock allowance: the units a
 # farm can pour into the market before the price sags under three quarters of
 # base. It is read straight off the curve instead of guessed, and it is why the
@@ -467,6 +482,25 @@ P = {
     # is the order that was written by hand, kept as the default only because
     # every verdict before 2026-08-25 was measured under it.
     "crop_order": ["TOMATO", "CARROT", "MELON", "STRAWBERRY"],
+    # How the per-item tile ceiling is set.
+    #
+    # "demand" is what every measurement before 2026-08-27 was taken under: the
+    # town's daily drain, plus a one-off stock allowance read off the curve
+    # from its neutral point, minus the opponent's standing supply one for one.
+    # That last term *cedes* precisely the goods a strong rival floods -- and a
+    # flooded price is not a zero price. The measured season says so: 400
+    # combined units of strawberry sold at a mean of $239 against a $120 base,
+    # and against the top replay our strawberry still fetched $137.
+    #
+    # "forward" prices the harvest instead of the day. The rival enters through
+    # the projected inventory -- where it belongs, because that is how it
+    # actually reaches us -- rather than as a claim on our allowance, and the
+    # ceiling is however many units the town can still take before the price
+    # we would be paid drops under `forward_floor` of base.
+    "cap_rule": "demand",
+    "forward_floor": ALLOW_FRAC,   # keep planting while the harvest clears this
+    "forward_rival": 1.0,          # how much of their standing output to project
+    "forward_drain": 1.0,          # ...against how much of the town's removal
     # INERT under assign_rule "global", which is the default. Measured
     # 2026-08-26 on 64 games against the current best: turning it off changes
     # the mean, the interval, the winrate and the margin by exactly nothing --
@@ -727,17 +761,73 @@ def agent(obs, config=None):
     demand = town_demand(shops, day)
     pending_animals = shed_animals + carried_animals
 
+    caps_seen = {}
+
+    def projected_inv(item):
+        """Town stock of `item` on the day a tile planted now would first pay.
+
+        Both farms keep producing in the meantime and the town keeps removing;
+        the rival is in here as supply that moves the price, which is the only
+        way their farm actually reaches ours.
+        """
+        inv0 = inventory.get(item)
+        inv0 = float(MARKET_I0) if inv0 is None else float(inv0)
+        flow = (theirs.get(item, 0) * P["forward_rival"]
+                + mine.get(item, 0)) * RATE[item]
+        drift = flow - demand.get(item, 1.0) * P["forward_drain"]
+        return max(0.0, inv0 + drift * HORIZON.get(item, 1.0))
+
+    def headroom(item, inv):
+        """Units the town can still take from `inv` before the price sags.
+
+        The curve is monotone in stock -- scarcity above base, glut below it --
+        so this bisects instead of walking. `_stock_allowance` walks because it
+        runs once at import; this runs inside every plan.
+        """
+        floor = MARKET_PARAMS[item]["base"] * P["forward_floor"]
+        cur = int(inv)
+        if price_at(item, cur + 1) < floor:
+            return 0
+        lo, hi = 1, 600
+        if price_at(item, cur + hi) >= floor:
+            return hi
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if price_at(item, cur + mid) >= floor:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo
+
     def market_cap(item):
         """Tiles whose output the market can absorb without the price sagging.
 
-        Two parts: what the town takes every day, and the one-off stock the
-        curve will swallow, spread over the days that are left. The opponent's
-        own tiles are subtracted -- their supply eats the same allowance.
+        "demand": what the town takes every day, plus the one-off stock the
+        curve will swallow measured from its neutral point, spread over the
+        days that are left, minus the opponent's standing supply one for one.
+
+        "forward": the same two parts, but the stock allowance is measured from
+        where the market will actually be when this tile pays, so the rival is
+        counted once -- through the price -- instead of being handed our share.
         """
-        room = (demand.get(item, 1.0)
-                + ALLOW[item] / max(6.0, float(days_left))
-                - theirs.get(item, 0) * RATE[item] * P["rival_supply"])
-        return max(0, int(room / RATE[item]))
+        if P["cap_rule"] == "forward":
+            # The daily term is the drain we would still have to ourselves. It
+            # has to net off their flow exactly as "demand" does: a scene test
+            # on 2026-08-27 showed that crediting the whole drain plants 54
+            # tiles into a market whose quote is already the floor, because
+            # strawberry loses its entire $120 within 60 units of stock.
+            # What "forward" changes is the *stock* term -- measured from where
+            # the market will be when this tile pays, instead of from the
+            # curve's neutral point regardless of what is standing in the town.
+            room = (max(0.0, demand.get(item, 1.0)
+                        - theirs.get(item, 0) * RATE[item] * P["forward_rival"])
+                    + headroom(item, projected_inv(item)) / max(6.0, float(days_left)))
+        else:
+            room = (demand.get(item, 1.0)
+                    + ALLOW[item] / max(6.0, float(days_left))
+                    - theirs.get(item, 0) * RATE[item] * P["rival_supply"])
+        caps_seen[item] = max(0, int(room / RATE[item]))
+        return caps_seen[item]
 
     # An explicit build, in the order the measured economy pays for it. A
     # ranking over live prices was tried first and proved unstable: livestock
@@ -788,6 +878,14 @@ def agent(obs, config=None):
     order = P["crop_order"]
     if order == "value":
         order = sorted(cash_crops, key=lambda c: -price(c) * RATE[c])
+    elif order == "forward":
+        # Same sort, priced at the harvest rather than at the quote. "value"
+        # was measured on 2026-08-25 and lost by 4,663 -- but it was measured
+        # against a farm whose supply was small enough that the two orders are
+        # nearly the same list. The orders only diverge when a rival is
+        # flooding something, which is the one regime it was never run in.
+        order = sorted(cash_crops,
+                       key=lambda c: -price_at(c, int(projected_inv(c))) * RATE[c])
     for _crop in order:
         take(_crop, cash_crops[_crop]())
     # Wheat as the closing crop, not as feed: this is a different question from
@@ -845,6 +943,14 @@ def agent(obs, config=None):
             if base == 0 and mult > 100:
                 base = 1          # a dial above 100 may open a crop the plan skipped
             target[_crop] = max(0, int(round(base * mult / 100.0)))
+
+    # A read-only window on the finished plan. The environment never looks at
+    # it and the agent never reads it back; it exists so a test can pin what
+    # the ceiling rule decided without playing a season, which is the only way
+    # "the metric moved" and "the mechanism fired" stay separable.
+    PLAN_TRACE.clear()
+    PLAN_TRACE.update({"day": day, "target": dict(target), "caps": dict(caps_seen),
+                       "budget_left": budget, "cap_rule": P["cap_rule"]})
 
     # True while any product is still short of its target: the farm then wants
     # every tile it can clear, weeds included.

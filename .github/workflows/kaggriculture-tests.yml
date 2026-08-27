@@ -58,6 +58,9 @@ jobs:
       - name: The panel grades by measured money and says what it covers
         run: python sim/test_panel.py
 
+      - name: The tile ceiling under a flooding rival
+        run: python sim/test_forward_cap.py
+
       - name: Every agent and tool still compiles
         # An emitted agent is a frozen copy, so a syntax error in one of them
         # is invisible until a sweep spends an hour discovering it.
