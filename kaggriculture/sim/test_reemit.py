@@ -49,9 +49,25 @@ def norm(actions):
 
 def main():
     old = os.path.join(ROOT, sys.argv[1] if len(sys.argv) > 1 else "agents/v38_sched.py")
-    new = os.path.join(ROOT, sys.argv[2] if len(sys.argv) > 2 else "agents/v39_sched.py")
-    a, b = load(old), load(new)
+    # Rebuild here rather than compare two files on disk: a committed rebuild
+    # goes stale the moment main.py moves again, and then this test pins a pair
+    # that no longer says anything about the path actually being used.
+    import reemit, emit_sched, tempfile
+    sched, over = reemit.extract(old)
+    source = emit_sched.emit(sched, note="rebuilt by test_reemit")
+    if over:
+        source += "P.update(" + json.dumps(over, sort_keys=True) + ")\n"
+    fd, new = tempfile.mkstemp(suffix="_reemit.py")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(source)
+    try:
+        return compare(load(old), load(new), old)
+    finally:
+        os.unlink(new)
 
+
+def compare(a, b, old):
+    print(f"rebuilding {os.path.basename(old)} on today's main.py")
     check("the rebuild carries the same calendar",
           json.dumps(a.SCHEDULE, sort_keys=True) == json.dumps(b.SCHEDULE, sort_keys=True),
           f"{len(a.SCHEDULE or {})} days vs {len(b.SCHEDULE or {})}")

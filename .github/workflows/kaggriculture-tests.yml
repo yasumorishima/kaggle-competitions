@@ -64,6 +64,9 @@ jobs:
       - name: A re-emitted agent plays like the frozen one
         run: python sim/test_reemit.py
 
+      - name: A head the market cannot pay for
+        run: python sim/test_animal_payback.py
+
       - name: Every agent and tool still compiles
         # An emitted agent is a frozen copy, so a syntax error in one of them
         # is invisible until a sweep spends an hour discovering it.
