@@ -1220,17 +1220,28 @@ def agent(obs, config=None):
                 have = sum(1 for _x, _y, _t in animals if _species(_t) == a)
                 need = int(sched[a]) - have - int(shed.get(a, 0)) - pending
                 if P["sched_herd_cap"] and day >= P["sched_herd_cap"]:
-                    # Measured 2026-09-02 over 96 uncontested games: what this
-                    # farm ends the season with correlates +0.715 with the
-                    # number of milk-buying shops the town happened to draw
-                    # (R2 0.51) -- more than with strawberry demand (+0.406) or
-                    # with the town's whole value (+0.385), and wool demand runs
-                    # the other way (-0.256). The herd is the largest thing a
-                    # calendar sets without looking at the town: `plan` already
-                    # sizes it to `market_cap`, and a calendar entry replaces
-                    # that number outright. This clips the entry back to the
-                    # demand estimate while leaving its timing alone -- the
-                    # calendar still says when, the town says whether.
+                    # `plan` already sizes the herd to what the town will take:
+                    # take("MILK", min(market_cap("MILK"), cow_cap)). A calendar
+                    # entry replaces that number outright, by design, because
+                    # whether the herd pays for itself is the question the
+                    # schedule search is asking. This puts the ceiling back
+                    # while leaving the timing alone -- the calendar still says
+                    # when, the town says whether. It is a different question
+                    # from sched_veto's: not "will this head pay for itself"
+                    # but "does the town want what it makes".
+                    #
+                    # The case is the seed 46000 ledger -- four sheep bought
+                    # into a season that never opened a yarn store, three
+                    # fleeces sold all told, $17 -- and not the town/money
+                    # correlation measured the same day. That correlation is
+                    # real (money against milk demand +0.715, R2 0.51 over 96
+                    # uncontested games) but it is not about this farm: the top
+                    # replay, which keeps a different herd and sells twice our
+                    # strawberry, tracks the same shops at +0.633. Milk-rich
+                    # towns are richer seasons for anyone, so the number says
+                    # nothing about whether our herd is sized wrongly. Written
+                    # as a from-day because the town opens shops three at a
+                    # time and has said little by day 1.
                     need = min(need, deficit(item) - pending)
             else:
                 need = deficit(item) - pending
