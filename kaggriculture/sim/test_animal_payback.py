@@ -127,7 +127,11 @@ def main():
         # touching the timing. Both tests are off here so only the cap acts.
         mod.P["sched_veto"] = False
         mod.P["animal_payback_rule"] = "spot"
-        mod.P["sched_herd_cap"] = False
+        mod.P["sched_herd_cap"] = 0
+        # Ask for two head the farm does not have yet, or the cow arm of this
+        # check cannot fail: the scene already stands four cows against a
+        # calendar that wants four.
+        mod.SCHEDULE = {"13": {"SHEEP": 4, "COW": 6}}
         ref_sheep = bought(kb.run(mod, obs), "SHEEP")
         ref_cows = bought(kb.run(mod, obs), "COW")
         mod.P["sched_herd_cap"] = True
@@ -143,7 +147,7 @@ def main():
         yarn["town"]["unlocked_shops"] = ["YARN_STORE", "PIZZA_SHOP", "PET_CAFE"]
         check("a town with a yarn store still gets its sheep under the cap",
               bought(kb.run(mod, yarn), "SHEEP") > 0)
-        mod.P["sched_herd_cap"] = False
+        mod.P["sched_herd_cap"] = 0
     finally:
         mod.P.clear()
         mod.P.update(saved)
