@@ -119,6 +119,31 @@ def main():
         cows_on = bought(kb.run(mod, obs), "COW")
         check("the cows are unaffected", cows_off == cows_on,
               f"{cows_off} vs {cows_on}")
+
+        # The herd cap asks a different question from the payback test: not
+        # "will this head pay for itself" but "does the town want what it
+        # makes". `plan` already sizes the herd to `market_cap`; a calendar
+        # entry replaces that number, and this puts the ceiling back without
+        # touching the timing. Both tests are off here so only the cap acts.
+        mod.P["sched_veto"] = False
+        mod.P["animal_payback_rule"] = "spot"
+        mod.P["sched_herd_cap"] = False
+        ref_sheep = bought(kb.run(mod, obs), "SHEEP")
+        ref_cows = bought(kb.run(mod, obs), "COW")
+        mod.P["sched_herd_cap"] = True
+        cap_sheep = bought(kb.run(mod, obs), "SHEEP")
+        cap_cows = bought(kb.run(mod, obs), "COW")
+        check("the cap refuses sheep in a town with no yarn store",
+              ref_sheep > 0 and cap_sheep == 0, f"{ref_sheep} -> {cap_sheep}")
+        check("the cap leaves the cows alone, three shops want their milk",
+              cap_cows == ref_cows, f"{ref_cows} -> {cap_cows}")
+
+        # ...and it must not simply hate sheep either.
+        _n3, yarn = day13_scene(mod, rival_sheep=0, wool_inv=9950)
+        yarn["town"]["unlocked_shops"] = ["YARN_STORE", "PIZZA_SHOP", "PET_CAFE"]
+        check("a town with a yarn store still gets its sheep under the cap",
+              bought(kb.run(mod, yarn), "SHEEP") > 0)
+        mod.P["sched_herd_cap"] = False
     finally:
         mod.P.clear()
         mod.P.update(saved)

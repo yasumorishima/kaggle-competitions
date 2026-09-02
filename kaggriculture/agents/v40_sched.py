@@ -504,6 +504,8 @@ P = {
     "animal_payback_rule": "spot",
     "animal_payback": 1.2,     # a head must return this multiple of its cost
     "sched_veto": False,       # may the payback test refuse a calendar's head?
+    "sched_herd_cap": 0,       # from which day may the town's demand shrink a
+                               # calendar's head count? 0 = never, and True is 1
     "forward_floor": ALLOW_FRAC,   # keep planting while the harvest clears this
     "forward_rival": 1.0,          # how much of their standing output to project
     "forward_drain": 1.0,          # ...against how much of the town's removal
@@ -1217,6 +1219,19 @@ def agent(obs, config=None):
             if sched_forced:
                 have = sum(1 for _x, _y, _t in animals if _species(_t) == a)
                 need = int(sched[a]) - have - int(shed.get(a, 0)) - pending
+                if P["sched_herd_cap"] and day >= P["sched_herd_cap"]:
+                    # Measured 2026-09-02 over 96 uncontested games: what this
+                    # farm ends the season with correlates +0.715 with the
+                    # number of milk-buying shops the town happened to draw
+                    # (R2 0.51) -- more than with strawberry demand (+0.406) or
+                    # with the town's whole value (+0.385), and wool demand runs
+                    # the other way (-0.256). The herd is the largest thing a
+                    # calendar sets without looking at the town: `plan` already
+                    # sizes it to `market_cap`, and a calendar entry replaces
+                    # that number outright. This clips the entry back to the
+                    # demand estimate while leaving its timing alone -- the
+                    # calendar still says when, the town says whether.
+                    need = min(need, deficit(item) - pending)
             else:
                 need = deficit(item) - pending
             if need <= 0 or room <= 0:
