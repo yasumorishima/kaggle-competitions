@@ -4,8 +4,14 @@
 Why paired seeds: the season is highly stochastic (town shops are drawn with
 replacement, weeds spawn randomly), so an unpaired A-vs-B mean is dominated by
 seed variance. Every seed is therefore played twice with the sides swapped, and
-the reported number is the *within-seed* money delta, which cancels the season
-draw.
+the reported number is the *within-seed* money delta. That cancels only the part
+of the draw the two arms share: measured 2026-09-02, two runs of one seed with
+different agents drew different towns, and the third farm's own money differed on
+all ten seeds checked, because the shop lottery runs off a stream the agents' own
+actions consume. The paired delta therefore carries a season term of its own --
+per-game paired sd 18,449 against a raw spread of 15,232, so the pairing removes
+about a quarter of the variance, not all of it. Each record carries the realised
+town so an analysis can subtract the rest.
 
 Usage:
     python evaluate.py --a main.py --b starter --episodes 20 --seed0 1000
@@ -38,6 +44,20 @@ def play(job):
     env = make("kaggriculture", configuration={"episodeSteps": steps, "seed": seed})
     env.run(order)
     final = env.steps[-1]
+    # The season is not a function of the seed. Two runs of seed 60034 against
+    # the same third farm drew different towns -- BAKERY/YARN x2/ICE_CREAM x2/
+    # FARMERS/BRUNCH x2 under our agent, SMOOTHIE x2/YARN/ICE_CREAM/PET_CAFE/
+    # FARMERS x2/BRUNCH under the top replay -- and the third farm's own money
+    # differed on all ten seeds checked (2026-09-02). The shop lottery runs off
+    # a stream the agents' own actions consume, so the docstring's "the
+    # within-seed delta cancels the season draw" is false: it cancels only the
+    # part of the draw the two arms happen to share. Carry the realised town so
+    # the analysis can ask how much of a delta was the town.
+    _obs = final[0].observation
+    _town = (_obs.get("town", {}) if isinstance(_obs, dict)
+             else getattr(_obs, "town", {})) or {}
+    shops = list((_town.get("unlocked_shops", []) if isinstance(_town, dict)
+                  else getattr(_town, "unlocked_shops", [])) or [])
     money = [float(final[0].reward or 0), float(final[1].reward or 0)]
     ma, mb = money[a_side], money[1 - a_side]
     # A side that errored or timed out scores a clean zero, which reads exactly
@@ -67,7 +87,7 @@ def play(job):
     return {"seed": seed, "a_side": a_side, "a": ma, "b": mb,
             "delta": ma - mb, "secs": round(time.time() - t0, 1),
             "a_status": status[a_side], "b_status": status[1 - a_side],
-            "err": err}
+            "err": err, "shops": shops}
 
 
 def mean_ci(xs):
@@ -106,7 +126,8 @@ def main():
     rows.sort(key=lambda r: (r["seed"], r["a_side"]))
     for r in rows:
         print(f"seed {r['seed']} [A=p{r['a_side']}] A={r['a']:.0f} B={r['b']:.0f} "
-              f"d={r['delta']:+.0f} ({r['secs']:.0f}s)", flush=True)
+              f"d={r['delta']:+.0f} ({r['secs']:.0f}s) "
+              f"shops={','.join(r.get('shops', []))}", flush=True)
 
     if args.jsonl:
         with open(args.jsonl, "w", encoding="utf-8") as f:
