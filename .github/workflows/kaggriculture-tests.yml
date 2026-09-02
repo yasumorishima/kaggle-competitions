@@ -64,6 +64,14 @@ jobs:
       - name: A re-emitted agent plays like the frozen one
         run: python sim/test_reemit.py
 
+      # The default target is v38, which carries only a calendar and dist_weight.
+      # v41 is the first base with knobs in its override block, and the whole
+      # point of reemit is that a frozen agent can be rebuilt on today's main.py
+      # before a sweep. If it cannot carry sched_veto and animal_payback_rule,
+      # a rebuild drops them in silence.
+      - name: ...and so does the current base
+        run: python sim/test_reemit.py agents/v41_sched.py
+
       - name: A head the market cannot pay for
         run: python sim/test_animal_payback.py
 
