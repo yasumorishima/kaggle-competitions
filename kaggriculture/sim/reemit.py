@@ -79,7 +79,7 @@ def main():
     note = args.note or f"Re-emitted from {os.path.basename(args.agent)}"
     source = emit_sched.emit(sched, note=note)
     if over:
-        source += "P.update(" + json.dumps(over, sort_keys=True) + ")\n"
+        source += "P.update(" + emit_sched.py_literal(over) + ")\n"
     out = args.out if os.path.isabs(args.out) else os.path.join(ROOT, args.out)
     with open(out, "w", encoding="utf-8") as f:
         f.write(source)

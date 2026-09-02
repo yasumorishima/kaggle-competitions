@@ -25,6 +25,22 @@ sys.path.insert(0, HERE)
 import schedule as sched_mod            # noqa: E402
 
 
+def py_literal(d):
+    """A Python dict literal, sorted.
+
+    Not json.dumps. The file this goes into is imported, not parsed, and JSON
+    writes `true`/`false`/`null` -- so a boolean override produced an agent
+    that died on its first import with
+
+        NameError: name 'true' is not defined
+
+    It sat here unseen because the only agent anyone had ever rebuilt carried
+    a calendar and one float, and sim/test_reemit.py defaulted to that same
+    agent, so the round trip was green on a case that could not fail.
+    """
+    return "{" + ", ".join(f"{k!r}: {d[k]!r}" for k in sorted(d)) + "}"
+
+
 def emit(sched, main_path=None, note=""):
     main_path = main_path or os.path.join(ROOT, "main.py")
     with open(main_path, encoding="utf-8") as f:
@@ -72,7 +88,7 @@ def main():
         missing = sorted(k for k in over if k not in have)
         assert not missing, f"agent has no such knob(s): {', '.join(missing)}"
         text += ("\n# Knob overrides from sim/emit_sched.py --set\n"
-                 "P.update(" + json.dumps(over, sort_keys=True) + ")\n")
+                 "P.update(" + py_literal(over) + ")\n")
 
     out_dir = os.path.dirname(os.path.abspath(args.out))
     if out_dir:
