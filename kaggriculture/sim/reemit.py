@@ -58,6 +58,25 @@ def extract(path):
     return sched, over
 
 
+def rebuild(agent_path, note="", extra=None):
+    """The source of a frozen agent, rebuilt on today's main.py.
+
+    Factored out so sim/test_reemit.py rebuilds through the same code the
+    command line uses. It used to compose the override block itself, with its
+    own copy of the line that wrote the block as JSON -- so the round-trip
+    check could pass while the tool it was checking was broken. It did exactly
+    that until 2026-09-02.
+    """
+    sched, over = extract(agent_path)
+    if sched is None:
+        return None, None, None
+    over.update(extra or {})
+    source = emit_sched.emit(sched, note=note)
+    if over:
+        source += "P.update(" + emit_sched.py_literal(over) + ")\n"
+    return source, over, sched
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("agent", help="the frozen agent to lift the calendar out of")
@@ -67,19 +86,17 @@ def main():
     ap.add_argument("--note", default="")
     args = ap.parse_args()
 
-    sched, over = extract(os.path.join(ROOT, args.agent)
-                          if not os.path.isabs(args.agent) else args.agent)
-    if sched is None:
-        print(f"{args.agent} carries no calendar", file=sys.stderr)
-        return 1
+    path = (os.path.join(ROOT, args.agent)
+            if not os.path.isabs(args.agent) else args.agent)
+    extra = {}
     for pair in filter(None, (s.strip() for s in args.set.split(","))):
         k, _, v = pair.partition("=")
-        over[k.strip()] = json.loads(v)
-
+        extra[k.strip()] = json.loads(v)
     note = args.note or f"Re-emitted from {os.path.basename(args.agent)}"
-    source = emit_sched.emit(sched, note=note)
-    if over:
-        source += "P.update(" + emit_sched.py_literal(over) + ")\n"
+    source, over, sched = rebuild(path, note=note, extra=extra)
+    if source is None:
+        print(f"{args.agent} carries no calendar", file=sys.stderr)
+        return 1
     out = args.out if os.path.isabs(args.out) else os.path.join(ROOT, args.out)
     with open(out, "w", encoding="utf-8") as f:
         f.write(source)

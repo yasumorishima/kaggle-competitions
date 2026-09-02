@@ -52,11 +52,12 @@ def main():
     # Rebuild here rather than compare two files on disk: a committed rebuild
     # goes stale the moment main.py moves again, and then this test pins a pair
     # that no longer says anything about the path actually being used.
-    import reemit, emit_sched, tempfile
-    sched, over = reemit.extract(old)
-    source = emit_sched.emit(sched, note="rebuilt by test_reemit")
-    if over:
-        source += "P.update(" + json.dumps(over, sort_keys=True) + ")\n"
+    import reemit, tempfile
+    # Rebuild through the production path, not a copy of it. This block used
+    # to compose the override block itself and carried its own json.dumps, so
+    # it went green while reemit was writing `true` into a file that gets
+    # imported. Measured 2026-09-02.
+    source, _over, _sched = reemit.rebuild(old, note="rebuilt by test_reemit")
     fd, new = tempfile.mkstemp(suffix="_reemit.py")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(source)
