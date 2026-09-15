@@ -324,6 +324,7 @@ P = {
     # reproduce v16; each is switchable so the sweep decides.
     "animal_first": "",        # "" = P["animal_order"]; else a species order
     "animal_first_days": 1,    # ...applied while day <= this
+    "feed_reserve_days": 0,    # hold back N days of feed money before seeds and animals (0 = off)
     "feed_buy_days": 1,        # days of rations to hold in the shed
     "seed_priority": (),       # crops moved to the head of the seed queue
     # This farm issued 408 PICKUP actions against the public plan's 135 while
@@ -507,6 +508,7 @@ P = {
     "animal_payback_rule": "spot",
     "animal_payback": 1.2,     # a head must return this multiple of its cost
     "sched_veto": False,       # may the payback test refuse a calendar's head?
+    "sched_herd_floor": (),    # ((from_day, {"COW": n, ...}), ...) raising the calendar head count
     "sched_herd_cap": 0,       # from which day may the town's demand shrink a
                                # calendar's head count? 0 = never, and True is 1
     "forward_floor": ALLOW_FRAC,   # keep planting while the harvest clears this
@@ -1122,6 +1124,17 @@ def agent(obs, config=None):
     # measured opening still held $977 idle on day 1 and reached four cows only
     # on day 7, against an opponent sitting at $7 cash with nine head by day 8.
     seed_budget = money - P["cash_buffer"]
+    _feed_reserve = 0.0
+    if P["feed_reserve_days"] and (herd + pending_animals) > 0:
+        # Seeds run first and animals second, and feed was bought last out of
+        # whatever was left: with a herd floor the farm bought two cows and a
+        # sheep on day 1, sat on $111-126 against a $120 buffer, and had one
+        # cow left by day 4 (seed 86000, 2026-09-15).
+        _need_w = (herd + pending_animals) * P["feed_reserve_days"] - int(shed.get("WHEAT", 0))
+        if _need_w > 0:
+            _feed_reserve = _need_w * prices.get("WHEAT", 25)
+            seed_budget -= _feed_reserve
+            spendable -= _feed_reserve
     if day <= P["opening_days"]:
         seed_budget -= P["opening_animal_reserve"]
     # A calendar that cannot be paid for is a wish. Measured on seed 2000:
@@ -1228,9 +1241,21 @@ def agent(obs, config=None):
             # pays for itself is the question the search is asking, so the
             # policy must not answer it here and refuse to buy.
             sched_forced = bool(sched and sched.get(a) is not None)
+            _herd_floor = 0
+            for _from_day, _heads in P["sched_herd_floor"]:
+                if day >= int(_from_day):
+                    _herd_floor = int(_heads.get(a, 0))
+            if _herd_floor > 0:
+                # A floor under the calendar, to ask whether a bigger herd fails
+                # on its own or only because the farm let it starve (see
+                # feed_value_rule). Absent, the calendar is untouched.
+                sched_forced = True
             if sched_forced:
                 have = sum(1 for _x, _y, _t in animals if _species(_t) == a)
-                need = int(sched[a]) - have - int(shed.get(a, 0)) - pending
+                _target = int((sched or {}).get(a) or 0)
+                if _herd_floor > _target:
+                    _target = _herd_floor
+                need = _target - have - int(shed.get(a, 0)) - pending
                 if P["sched_herd_cap"] and day >= P["sched_herd_cap"]:
                     # `plan` already sizes the herd to what the town will take:
                     # take("MILK", min(market_cap("MILK"), cow_cap)). A calendar
@@ -1317,10 +1342,16 @@ def agent(obs, config=None):
         # a bushel off the market does not. The public plan buys 14 bushels on
         # day 0 for five animals and keeps buying all season.
         need = herd * P["feed_buy_days"] - int(shed.get("WHEAT", 0))
+        if P["feed_reserve_days"]:
+            need = ((herd + shed_animals + carried_animals)
+                    * max(P["feed_buy_days"], P["feed_reserve_days"]) - int(shed.get("WHEAT", 0)))
         if need > 0 and prices.get("WHEAT", 25) <= 80 and money > P["cash_buffer"]:
             k = int(min(need, (money - P["cash_buffer"]) // max(1, prices.get("WHEAT", 25))))
             if k > 0:
-                buy_orders.append(["BUY_PRODUCT", "WHEAT", k])
+                if P["feed_reserve_days"]:
+                    buy_orders.insert(0, ["BUY_PRODUCT", "WHEAT", k])
+                else:
+                    buy_orders.append(["BUY_PRODUCT", "WHEAT", k])
 
     orders = (hire_orders + sell_orders + buy_orders)[:10]
 
