@@ -304,7 +304,7 @@ P = {
     "fill_cash_floor": 800,    # ...and only with this much cash in hand
     "seed_cap_free_tiles": False,  # buy seeds only up to the tiles that are free or weeded
     "weed_val_min": 0.0,         # floor on the DIG value of a weed (0 = off)
-    "feed_value_rule": "price",  # "price" = product price only; "asset" = + fertilizer, escape floored at the head cost
+    "feed_value_rule": "price",  # "price" = milk-priced fetch; "asset" = + fertilizer always; "escape" = own product, + fertilizer and cost floor only when the animal escapes tonight
     # How much of the opponent's nameplate output is treated as already
     # feeding the town. At 1.0 the farm defers a tile for every tile they own,
     # which is what held strawberry to 21 tiles in the measured season while
@@ -1401,7 +1401,14 @@ def agent(obs, config=None):
                 # Two unfed nights and the animal is gone for good.
                 urgency = 4.0 if t.get("consecutive_unfed", 0) >= 1 else 1.5
                 feed_val = unit_price * urgency
-                if P["feed_value_rule"] == "asset":
+                if P["feed_value_rule"] == "escape":
+                    # Fertilizer appears on every surviving tile, fed or not
+                    # (_daily_refresh_animals sets fertilizer_available outside
+                    # the fed check), so it is only at stake when the animal
+                    # would escape tonight.
+                    if t.get("consecutive_unfed", 0) >= 1:
+                        feed_val = max((unit_price + price("FERTILIZER")) * urgency, float(a["cost"]))
+                elif P["feed_value_rule"] == "asset":
                     # A fed animal also leaves a fertilizer on its tile, and one
                     # that misses a second night is gone with every future unit.
                     # Priced on the product alone, a cow stopped being fed once
@@ -1568,7 +1575,7 @@ def agent(obs, config=None):
             if (unfed > carried_wheat and unfed > wheat_held and stock > 0
                     and worth_the_walk and may_top_up):
                 fetch_val = price("MILK") * 1.2
-                if P["feed_value_rule"] == "asset":
+                if P["feed_value_rule"] in ("asset", "escape"):
                     # The trip was priced on milk whatever stood unfed, so once
                     # milk hit $13 the walk for wheat (16) lost every turn to the
                     # walk for fertilizer (~250): 21 wheat sat in the shed all of
@@ -1578,9 +1585,14 @@ def agent(obs, config=None):
                         if _t.get("fed_today"):
                             continue
                         _a = ANIMALS[_t["animal"]]
-                        _v = (price(_a["product"]) + price("FERTILIZER")) * 1.2
-                        if _t.get("consecutive_unfed", 0) >= 1:
-                            _v = max(_v, float(_a["cost"]))
+                        if P["feed_value_rule"] == "escape":
+                            _v = price(_a["product"]) * 1.2
+                            if _t.get("consecutive_unfed", 0) >= 1:
+                                _v = max((price(_a["product"]) + price("FERTILIZER")) * 1.2, float(_a["cost"]))
+                        else:
+                            _v = (price(_a["product"]) + price("FERTILIZER")) * 1.2
+                            if _t.get("consecutive_unfed", 0) >= 1:
+                                _v = max(_v, float(_a["cost"]))
                         fetch_val = max(fetch_val, _v)
                 out.append((fetch_val / (1 + P['dist_weight'] * d), st,
                             ("PICKUP", "WHEAT", min(14, stock))))
@@ -1683,7 +1695,11 @@ def agent(obs, config=None):
         for (x, y, t) in animals:
             if not t.get("fed_today") and wheat_stock > 0:
                 _fv = price(ANIMALS[t["animal"]]["product"]) * 2.0
-                if P["feed_value_rule"] == "asset":
+                if P["feed_value_rule"] == "escape":
+                    if t.get("consecutive_unfed", 0) >= 1:
+                        _fv = max((price(ANIMALS[t["animal"]]["product"]) + price("FERTILIZER")) * 2.0,
+                                  float(ANIMALS[t["animal"]]["cost"]))
+                elif P["feed_value_rule"] == "asset":
                     _fv = (price(ANIMALS[t["animal"]]["product"]) + price("FERTILIZER")) * 2.0
                     if t.get("consecutive_unfed", 0) >= 1:
                         _fv = max(_fv, float(ANIMALS[t["animal"]]["cost"]))
