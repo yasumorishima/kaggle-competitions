@@ -13,6 +13,8 @@ import contextlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sweep  # noqa: E402
+import statistics as _stat  # noqa: E402
+import math as _math  # noqa: E402
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FAILED = []
@@ -135,6 +137,28 @@ check("it carries the margin", "margin" in blob, str(blob))
 check("and it held", blob.get("verdict") == "HELD", str(blob))
 check("the fresh band is disjoint from the sweep's own",
       "1400-1403" in out3, out3.split("replicating")[-1].splitlines()[0])
+
+print()
+print("the band is over seasons, not over games")
+# Two seeds, each played from both sides, and the two sides of a seed agree
+# exactly. There are four games and two questions. Dividing by sqrt(4) makes
+# the band sqrt(2) too narrow, which is how every table this project printed
+# before 2026-09-16 was computed.
+_cell = {("v", 1, 0): 10.0, ("v", 1, 1): 10.0, ("v", 2, 0): 20.0, ("v", 2, 1): 20.0,
+         ("r", 1, 0): 0.0, ("r", 1, 1): 0.0, ("r", 2, 0): 0.0, ("r", 2, 1): 0.0}
+_grouped = sweep._by_seed("v", _cell, "r")
+check("the cells group into one entry per seed",
+      sorted(_grouped) == [1, 2] and all(len(v) == 2 for v in _grouped.values()),
+      str(_grouped))
+_seasons = 1.96 * _stat.stdev([10.0, 20.0]) / _math.sqrt(2)
+_games = 1.96 * _stat.stdev([10.0, 10.0, 20.0, 20.0]) / _math.sqrt(4)
+check("the band is the seasons one", abs(sweep._band(_grouped) - _seasons) < 1e-9,
+      "got %r, seasons %r, games %r" % (sweep._band(_grouped), _seasons, _games))
+check("and the games one would have been narrower", _games < _seasons - 1e-9,
+      "games %r seasons %r" % (_games, _seasons))
+_one = sweep._band({1: [1.0, 2.0]})
+check("a single season has no band", _one != _one, "one seed should give nan")
+
 
 print("\na knob the agent does not have is refused, not measured")
 try:

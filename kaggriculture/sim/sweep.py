@@ -90,6 +90,44 @@ def run_all(jobs, workers):
         return list(pool.map(play, jobs))
 
 
+def _by_seed(name, table, ref):
+    """`table` is keyed (variant, seed, side); group one variant by season.
+
+    With `ref` given, each cell is first differenced against the reference's
+    own cell for the same (seed, side), which is the pairing the sweep is
+    built on; the grouping is what stops the two sides of one season being
+    counted as two seasons.
+    """
+    out = {}
+    for (nm, seed, side), v in table.items():
+        if nm != name:
+            continue
+        if ref is not None:
+            if (ref, seed, side) not in table:
+                continue
+            v = v - table[(ref, seed, side)]
+        out.setdefault(seed, []).append(v)
+    return out
+
+
+def _band(values_by_seed):
+    """A 95% band over seasons, not over games.
+
+    Every seed is played from both sides, so a table saying "96 games" is 48
+    season draws seen twice. Dividing the spread by sqrt(96) counts the two
+    sides of one draw as two independent questions about the knob, and they
+    are not: they share the seed the town is drawn from. Found by audit on
+    2026-09-16, after it had been narrowing every band this project has
+    printed -- by up to sqrt(2) -- since the tool was written. The two sides
+    are averaged into their season first, and the band is over the seasons.
+    """
+    seeds = sorted(values_by_seed)
+    if len(seeds) < 2:
+        return float("nan")
+    means = [statistics.mean(values_by_seed[k]) for k in seeds]
+    return 1.96 * statistics.stdev(means) / math.sqrt(len(means))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", required=True, help="JSON file or inline JSON list")
@@ -151,26 +189,27 @@ def main():
     rows = []
     for name, pairs in per.items():
         mine = [a for a, _ in pairs]
-        delta = [a - b for a, b in pairs]
         m = statistics.mean(mine)
-        ci = 1.96 * statistics.stdev(delta) / math.sqrt(len(delta)) if len(delta) > 1 else float("nan")
+        # The band beside "mean money" is now the band on that number. It used
+        # to be the spread of `a - b`, so the column was a label sitting over
+        # a different quantity's interval.
+        ci = _band(_by_seed(name, cell, None))
         wins = sum(1 for a, b in pairs if a > b)
-        vs = [cell[(name, s, d)] - cell[(ref, s, d)]
-              for (nm, s, d) in cell if nm == name and (ref, s, d) in cell]
-        gs = [gap[(name, s, d)] - gap[(ref, s, d)]
-              for (nm, s, d) in gap if nm == name and (ref, s, d) in gap]
+        vs_by_seed = _by_seed(name, cell, ref)
+        gs_by_seed = _by_seed(name, gap, ref)
+        vs = [v for vals in vs_by_seed.values() for v in vals]
+        gs = [v for vals in gs_by_seed.values() for v in vals]
         if name == ref or len(vs) < 2:
             dm, dci, gm, gci = 0.0, float("nan"), 0.0, float("nan")
         else:
             dm = statistics.mean(vs)
-            dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            dci = _band(vs_by_seed)
             # Its own interval, because the first table that carried this
             # column had all six arms negative and it was tempting to read a
             # pattern into six numbers that had never been asked how wide
             # they were.
             gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
-            gci = (1.96 * statistics.stdev(gs) / math.sqrt(len(gs))
-                   if len(gs) > 1 else float("nan"))
+            gci = _band(gs_by_seed)
         rows.append((m, ci, wins / len(pairs), name, len(pairs), dm, dci, gm, gci))
     # Rank on the margin against the reference, not on our own money. The two
     # disagree whenever a variant lifts both farms, which the shared elastic
@@ -232,13 +271,13 @@ def main():
         res2 = run_all(jobs2, args.workers)
         cell2 = {k: ma for k, (ma, _mb) in zip(owner2, res2)}
         gap2 = {k: ma - mb for k, (ma, mb) in zip(owner2, res2)}
-        vs = [cell2[(winner, sd, si)] - cell2[(ref, sd, si)]
-              for (nm, sd, si) in cell2 if nm == winner and (ref, sd, si) in cell2]
-        gs = [gap2[(winner, sd, si)] - gap2[(ref, sd, si)]
-              for (nm, sd, si) in gap2 if nm == winner and (ref, sd, si) in gap2]
+        vs_by_seed = _by_seed(winner, cell2, ref)
+        gs_by_seed = _by_seed(winner, gap2, ref)
+        vs = [v for vals in vs_by_seed.values() for v in vals]
+        gs = [v for vals in gs_by_seed.values() for v in vals]
         if len(vs) > 1:
             dm = statistics.mean(vs)
-            dci = 1.96 * statistics.stdev(vs) / math.sqrt(len(vs))
+            dci = _band(vs_by_seed)
             # Judge on the margin, not on our own money. A game is won by
             # out-earning the other farm, and the market is shared: a variant
             # can lift its own money while handing the opponent more.
@@ -253,8 +292,7 @@ def main():
             # third party" and "beats this opponent" are different questions,
             # and the ladder asks the second one.
             gm = statistics.mean(gs) if len(gs) > 1 else float("nan")
-            gci = (1.96 * statistics.stdev(gs) / math.sqrt(len(gs))
-                   if len(gs) > 1 else float("nan"))
+            gci = _band(gs_by_seed)
             held = ("HELD" if gm - gci > 0 else
                     "REVERSED" if gm + gci < 0 else "NOT CONFIRMED")
             print(f"  {winner} vs {ref}: margin {gm:+.0f} +/- {gci:.0f} "
