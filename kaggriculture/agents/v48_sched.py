@@ -304,7 +304,25 @@ P = {
     # at its bare quote while a milk churn is offered at price * rate * 4
     # and a dying plant at three times its unit, which is why a season run
     # with seventeen head still sold 55 units against the top farm's 331.
-    "fert_weight": 1.0,        # weight on collecting a dropping (1.0 = its bare quote)
+    # Weighed flat across every animal tile, this is a loss and the
+    # ledger says why: at 2.5 the dropping outbids CARE, which is
+    # offered at 0.9 of the product and is the thing that doubles the
+    # next production. Seed 82000 against the router went from 199 milk
+    # and 50 droppings to 63 and 15, and $73,797 to $36,845. So the
+    # weight is only allowed on a tile that has been fed and cared for
+    # and has nothing standing to harvest -- a visit that is otherwise
+    # worth nothing at all.
+    #
+    # That narrower weight loses too, and for the same reason one tile
+    # over: a hand standing beside an idle animal takes the dropping at
+    # 2.5 * 60 instead of walking three tiles to care for another, whose
+    # offer is 202 discounted to 55. Seeds 82000 and 86000 at 2.5 went
+    # to $47,403 and $74,332 from $73,797 and $85,673, with milk at 99
+    # and 148 units against 199 and 158. The router sells 331 droppings
+    # because it has eleven hands and can do both; this farm cannot, and
+    # raising the hand count is WORSE on its own (2026-09-17). Leave it
+    # at 1.0.
+    "fert_weight": 1.0,        # weight on a dropping when its tile has nothing else
     "opening_days": 1,         # days on which the herd outranks the seed line
     "opening_animal_reserve": 0,   # cash the seed line may not touch until then
     "land_save_from_day": -1,  # save toward the next quadrant only after this day
@@ -1523,7 +1541,10 @@ def agent(obs, config=None):
                     care_val *= P["care_urgency"]
                 out.append((care_val / (1 + P['dist_weight'] * d), (x, y), "CARE"))
             if t.get("fertilizer_available"):
-                out.append((fert_price * P["fert_weight"] / (1 + P['dist_weight'] * d),
+                idle = (t.get("yield_units", 0) == 0
+                        and t.get("fed_today") and t.get("cared_today"))
+                fert_w = P["fert_weight"] if idle else 1.0
+                out.append((fert_price * fert_w / (1 + P['dist_weight'] * d),
                             (x, y), "COLLECT_FERTILIZER"))
 
         fert_held = inv.get("FERTILIZER", 0)
