@@ -585,6 +585,15 @@ P = {
     # and still bites if the roster rule is ever switched back on; do not read
     # the numbers above as a live gain.
     "stand_first": 1,
+    # Answered off the interpreter instead of swept: the CARE op opens
+    # with `if tile["cared_today"]: return`, so a second visit in a day
+    # does nothing at all. The bonus does accumulate across a species
+    # interval -- `pending_care_bonus` is only zeroed on a production
+    # day -- so one visit an animal a day is the whole of it, and the
+    # top plan's 967 CARE actions on twelve head are two thirds no-ops.
+    # This farm is already at that ceiling: nine cows returned 199 milk
+    # on seed 82000 against the 180 that ten fully-cared production
+    # events pay. Leave it at 0.
     "care_repeat": 0,          # 1 = offer CARE again on an animal already cared today
     "care_urgency": 1.0,       # multiplier on CARE inside the last `care_deadline` hours (1.0 = off)
     "care_deadline": 6,
