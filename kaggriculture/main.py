@@ -273,6 +273,7 @@ P = {
     # This is the one direction the six sell-floor sweeps never went -- they
     # all loosened `reserve_frac`, a number the pace fallback overrides.
     "pace_floor_frac": 0.0,    # pace may not sell under base * this
+    "sell_slot_first": 0,      # 1 = quote the day's sales ahead of the hires
     "slice_frac": 0.92,        # ...nor push the live price below this of itself
     "dump_day": 29,
     # (earliest day, cash floor) per quadrant. Land is what caps the whole farm,
@@ -1425,7 +1426,11 @@ def agent(obs, config=None):
                 else:
                     buy_orders.append(["BUY_PRODUCT", "WHEAT", k])
 
-    orders = (hire_orders + sell_orders + buy_orders)[:10]
+    # Slot order is price order: see the note on sell_slot_first above.
+    if P["sell_slot_first"]:
+        orders = (sell_orders + hire_orders + buy_orders)[:10]
+    else:
+        orders = (hire_orders + sell_orders + buy_orders)[:10]
 
     # ---------------------------------------------------------- unit actions
     claimed = set()
