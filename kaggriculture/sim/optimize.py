@@ -444,9 +444,9 @@ def op_market_retarget(plan, rng):
 MUTATIONS = [
     (op_delay, 3),
     (op_advance, 4),
-    (op_repeat, 4),
-    (op_retarget, 2),
-    (op_market_shift, 3),
+    (op_repeat, 2),
+    (op_retarget, 1),
+    (op_market_shift, 6),
     (op_market_qty, 2),
     (op_market_drop, 1),
     (op_market_add, 3),
