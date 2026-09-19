@@ -15,11 +15,15 @@ name: Kaggriculture Optimize
 # time, so it never accumulates history for a file that changes every run.
 
 on:
+  schedule:
+    # every six hours, so one climb hands over to the next
+    - cron: '20 */6 * * *'
   workflow_dispatch:
     inputs:
       memo:
-        description: 'この実行の意図（必須）'
-        required: true
+        description: 'この実行の意図（手動実行では必須）'
+        required: false
+        default: 'chained climb'
         type: string
       minutes:
         description: 'Climb budget in minutes (job cap is 350)'
@@ -91,9 +95,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    # The schedule is only for the days before the competition closes. After
+    # that the chain has nothing to climb towards and should stop by itself.
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.win.outputs.go }}
+    steps:
+      - id: win
+        run: |
+          go=1
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%Y%m%d)" -gt 20260930 ]; then
+            go=0
+            echo "the competition closed; remove the schedule from this workflow"
+          fi
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+
   optimize:
+    needs: gate
+    if: needs.gate.outputs.go == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 355
+    env:
+      # `inputs` is null on a schedule event. Reading it directly would make
+      # RESUME empty, and an empty RESUME records a fresh plan every six hours.
+      MEMO: ${{ inputs.memo || 'chained climb' }}
+      MINUTES: ${{ inputs.minutes || '340' }}
+      RESUME: ${{ github.event_name == 'schedule' && 'true' || inputs.resume }}
+      SEEDS: ${{ inputs.seeds || '3000,3001,3002,3003,3004,3005,3006,3007,3008,3009,3010,3011' }}
+      HOLDOUT: ${{ inputs.holdout || '3100,3101,3102,3103,3104,3105' }}
+      OPPONENT: ${{ inputs.opponent || 'agents/v48_sched.py' }}
+      OBJECTIVE: ${{ inputs.objective || 'mean' }}
+      LAM: ${{ inputs.lam || '4' }}
+      OPS: ${{ inputs.ops || '6' }}
+      SIDES: ${{ inputs.sides || '0' }}
+      RECORD_SEEDS: ${{ inputs.record_seeds || '3000,3001,3002' }}
+      RECORD_AGENT: ${{ inputs.record_agent || 'agents/v48_sched.py' }}
     defaults:
       run:
         working-directory: kaggriculture
@@ -128,7 +165,7 @@ jobs:
           else
             echo "no plans branch yet"
           fi
-          if [ -s plans/checkpoint.json ] && [ "${{ inputs.resume }}" = "true" ]; then
+          if [ -s plans/checkpoint.json ] && [ "$RESUME" = "true" ]; then
             echo "resume=1" >> "$GITHUB_OUTPUT"
           else
             echo "resume=0" >> "$GITHUB_OUTPUT"
@@ -148,8 +185,8 @@ jobs:
         run: |
           set -e
           list=""
-          for seed in $(echo "${{ inputs.record_seeds }}" | tr ',' ' '); do
-            python sim/record.py --a "${{ inputs.record_agent }}" --b "${{ inputs.opponent }}" --seed "$seed" --out "../plans/start_$seed.json"
+          for seed in $(echo "$RECORD_SEEDS" | tr ',' ' '); do
+            python sim/record.py --a "$RECORD_AGENT" --b "$OPPONENT" --seed "$seed" --out "../plans/start_$seed.json"
             list="$list,../plans/start_$seed.json"
           done
           if [ -n "$START_AGENT" ]; then
@@ -182,8 +219,8 @@ jobs:
           set -e
           echo "SRC=$SRC"
           python sim/optimize.py $SRC --selftest \
-            --seeds "${{ inputs.seeds }}" --opponent "${{ inputs.opponent }}" \
-            --sides "${{ inputs.sides }}" \
+            --seeds "$SEEDS" --opponent "$OPPONENT" \
+            --sides "$SIDES" \
             --workers "$(nproc)" | tee /tmp/selftest.log
           grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
 
@@ -195,13 +232,13 @@ jobs:
           python sim/optimize.py $SRC \
             --out ../plans/best.json \
             --checkpoint ../plans/checkpoint.json \
-            --opponent "${{ inputs.opponent }}" \
-            --objective "${{ inputs.objective }}" \
-            --seeds "${{ inputs.seeds }}" \
-            --holdout "${{ inputs.holdout }}" \
-            --sides "${{ inputs.sides }}" \
-            --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
-            --minutes "${{ inputs.minutes }}" \
+            --opponent "$OPPONENT" \
+            --objective "$OBJECTIVE" \
+            --seeds "$SEEDS" \
+            --holdout "$HOLDOUT" \
+            --sides "$SIDES" \
+            --lam "$LAM" --ops "$OPS" \
+            --minutes "$MINUTES" \
             --workers "$(nproc)" | tee /tmp/climb.log
 
       - name: Score the result against the live agent
@@ -230,7 +267,7 @@ jobs:
           git checkout --orphan plans-tmp
           git reset
           git add -f plans/best.json plans/checkpoint.json plans/climb.txt
-          git commit -q -m "kaggriculture: plan after run ${{ github.run_number }} (${{ inputs.memo }})"
+          git commit -q -m "kaggriculture: plan after run ${{ github.run_number }} ($MEMO)"
           git push -f origin plans-tmp:kaggriculture-plans
 
       - name: Job summary
@@ -240,7 +277,7 @@ jobs:
           {
             echo "### Kaggriculture optimize"
             echo ""
-            echo "memo: ${{ inputs.memo }}"
+            echo "memo: $MEMO"
             echo ""
             echo '```'
             grep -E '^(CANDIDATE|CHOSE|START|RESUMED|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
