@@ -77,15 +77,20 @@ def main():
     print("\nan uncovered band is announced, and the total is renormalised")
     check("UNCOVERED appears for the three empty bands",
           out.count("UNCOVERED") == 3, f"count={out.count('UNCOVERED')}")
-    # Covered mass is band 0 (15/146) and band 4 (26/146) = 41/146. We win all
-    # of band 0 and none of band 4, so the weighted rate is 15/41.
-    want = 100 * 15 / 41
+    # The two opponents land in band 0 and band 4, we win all of the first and
+    # none of the second, so the renormalised rate is band 0's share of the two
+    # bands' mass. Read it off the weights: they are re-pulled as the ladder
+    # sample grows, and a quoted number would go red every time that happens.
+    covered_n = panel.LADDER_N[0] + panel.LADDER_N[4]
+    want = 100 * panel.LADDER_N[0] / covered_n
+    want_mass = "%.0f%% of the ladder's opponent mass" % (
+        100 * covered_n / sum(panel.LADDER_N))
     line = [ln for ln in out.splitlines() if ln.startswith("PANEL_WIN=")]
     got = float(line[0].split("=")[1].split("%")[0]) if line else -1.0
     check("PANEL_WIN is renormalised over the covered mass",
           abs(got - want) < 0.05, f"got {got}, want {want:.1f}")
     check("the covered mass is stated",
-          "28% of the ladder's opponent mass" in out, line[0] if line else "")
+          want_mass in out, line[0] if line else "")
 
     print("\neach opponent gets its own seed block")
     _, seen = run({"a": (50000, 40000), "b": (50000, 40000)},
