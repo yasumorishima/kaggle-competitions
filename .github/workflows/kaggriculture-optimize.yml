@@ -119,18 +119,18 @@ jobs:
     env:
       # `inputs` is null on a schedule event. Reading it directly would make
       # RESUME empty, and an empty RESUME records a fresh plan every six hours.
-      MEMO: ${{ inputs.memo || 'chained climb' }}
-      MINUTES: ${{ inputs.minutes || '340' }}
-      RESUME: ${{ github.event_name == 'schedule' && 'true' || inputs.resume }}
-      SEEDS: ${{ inputs.seeds || '3000,3001,3002,3003,3004,3005,3006,3007,3008,3009,3010,3011' }}
-      HOLDOUT: ${{ inputs.holdout || '3100,3101,3102,3103,3104,3105' }}
-      OPPONENT: ${{ inputs.opponent || 'agents/v48_sched.py' }}
-      OBJECTIVE: ${{ inputs.objective || 'mean' }}
-      LAM: ${{ inputs.lam || '4' }}
-      OPS: ${{ inputs.ops || '6' }}
-      SIDES: ${{ inputs.sides || '0' }}
-      RECORD_SEEDS: ${{ inputs.record_seeds || '3000,3001,3002' }}
-      RECORD_AGENT: ${{ inputs.record_agent || 'agents/v48_sched.py' }}
+      MEMO: ${{ github.event.inputs.memo || 'chained climb' }}
+      MINUTES: ${{ github.event.inputs.minutes || '340' }}
+      RESUME: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.resume }}
+      SEEDS: ${{ github.event.inputs.seeds || '3000,3001,3002,3003,3004,3005,3006,3007,3008,3009,3010,3011' }}
+      HOLDOUT: ${{ github.event.inputs.holdout || '3100,3101,3102,3103,3104,3105' }}
+      OPPONENT: ${{ github.event.inputs.opponent || 'agents/v48_sched.py' }}
+      OBJECTIVE: ${{ github.event.inputs.objective || 'mean' }}
+      LAM: ${{ github.event.inputs.lam || '4' }}
+      OPS: ${{ github.event.inputs.ops || '6' }}
+      SIDES: ${{ github.event.inputs.sides || '0' }}
+      RECORD_SEEDS: ${{ github.event.inputs.record_seeds || '3000,3001,3002' }}
+      RECORD_AGENT: ${{ github.event.inputs.record_agent || 'agents/v48_sched.py' }}
     defaults:
       run:
         working-directory: kaggriculture
@@ -181,7 +181,7 @@ jobs:
         if: steps.plans.outputs.resume != '1'
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-          START_AGENT: ${{ inputs.start_agent }}
+          START_AGENT: ${{ github.event.inputs.start_agent }}
         run: |
           set -e
           list=""
