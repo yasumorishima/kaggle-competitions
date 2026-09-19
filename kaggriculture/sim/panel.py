@@ -37,11 +37,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evaluate import play, mean_ci  # noqa: E402
 
 # Band edges and weights are the empirical opponent distribution of our own
-# submissions, pulled with sim/ladder.py on 2026-08-27 (n=146 completed
-# episodes across v18, v25, v31, v38). Re-pull and update when the sample grows.
+# submissions, pulled with sim/ladder.py on 2026-09-19 (n=563 completed
+# episodes across the four most recent submissions). Re-pull when the sample
+# grows: the previous weights were 146 episodes from 2026-08-27 and had gone
+# stale in the direction that flatters us. The band above 90k was 18% of our
+# games then and is 31% now, it is the band we lose, and with the old weights
+# this panel reported 79.7% for an agent whose real ladder win rate was 45.9%.
 BANDS = [(0, 40000), (40000, 55000), (55000, 70000), (70000, 90000), (90000, 10 ** 9)]
-LADDER_N = [15, 28, 38, 39, 26]
-LADDER_WIN = [0.800, 0.607, 0.711, 0.282, 0.000]
+LADDER_N = [57, 82, 112, 138, 174]
+LADDER_WIN = [0.947, 0.780, 0.634, 0.406, 0.023]
 
 # opponents/ is gitignored -- a published notebook is not ours to redistribute --
 # so the top band is named in the `kernel:` form the Eval workflow resolves at
