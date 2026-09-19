@@ -72,6 +72,16 @@ on:
         required: false
         default: ''
         type: string
+      record_agent:
+        description: 'Agent whose play is recorded into the starting plans'
+        required: false
+        default: 'main.py'
+        type: string
+      sides:
+        description: 'Seats to score each seed on. 0,1 scores both (twice the cost); 0 scores one'
+        required: false
+        default: '0,1'
+        type: string
 
 permissions:
   contents: write
@@ -139,7 +149,7 @@ jobs:
           set -e
           list=""
           for seed in $(echo "${{ inputs.record_seeds }}" | tr ',' ' '); do
-            python sim/record.py --a main.py --b "${{ inputs.opponent }}" --seed "$seed" --out "../plans/start_$seed.json"
+            python sim/record.py --a "${{ inputs.record_agent }}" --b "${{ inputs.opponent }}" --seed "$seed" --out "../plans/start_$seed.json"
             list="$list,../plans/start_$seed.json"
           done
           if [ -n "$START_AGENT" ]; then
@@ -173,6 +183,7 @@ jobs:
           echo "SRC=$SRC"
           python sim/optimize.py $SRC --selftest \
             --seeds "${{ inputs.seeds }}" --opponent "${{ inputs.opponent }}" \
+            --sides "${{ inputs.sides }}" \
             --workers "$(nproc)" | tee /tmp/selftest.log
           grep -q '^VERDICT=DETERMINISTIC' /tmp/selftest.log
 
@@ -188,6 +199,7 @@ jobs:
             --objective "${{ inputs.objective }}" \
             --seeds "${{ inputs.seeds }}" \
             --holdout "${{ inputs.holdout }}" \
+            --sides "${{ inputs.sides }}" \
             --lam "${{ inputs.lam }}" --ops "${{ inputs.ops }}" \
             --minutes "${{ inputs.minutes }}" \
             --workers "$(nproc)" | tee /tmp/climb.log
