@@ -172,7 +172,16 @@ def objective(vals, kind):
     `min` is the blunt instrument against overfitting: the same climb took one
     held-out season from 74,696 to 6,538 and kept the change, because three
     other seeds paid for it. A worst-case objective cannot make that trade.
+
+    `margin` is our money minus theirs in the same season, averaged. A fixed
+    plan cannot react, so `mean` let a 3,776-generation chain lift its own
+    held-out money 59,586 -> 70,036 while the opponent it was scored against
+    took 92,974-109,773 on the same seasons: 0 of 6 won, and 3 of 24 against
+    main.py. Money made by selling into a market the other farm also sells
+    into is worth nothing on a ladder; margin charges for it.
     """
+    if kind == "margin":
+        return sum(m - t for m, t in vals) / len(vals)
     if kind == "mean":
         return sum(m for m, _t in vals) / len(vals)
     if kind == "min":
@@ -491,9 +500,10 @@ def main():
     ap.add_argument("--sides", default="0,1", help="seats to score, e.g. 0,1")
     ap.add_argument("--steps", type=int, default=720)
     ap.add_argument("--repair", default="dig", choices=("dig", "none"))
-    ap.add_argument("--objective", default="wins", choices=("wins", "mean", "min"),
+    ap.add_argument("--objective", default="wins", choices=("wins", "margin", "mean", "min"),
                     help="wins: games won, margin as tie-break (matches the "
-                         "ladder). mean: own money. min: worst season.")
+                         "ladder). margin: own money minus theirs. "
+                         "mean: own money. min: worst season.")
     ap.add_argument("--lam", type=int, default=4, help="candidates per generation")
     ap.add_argument("--ops", type=int, default=6, help="edits per candidate")
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 2)

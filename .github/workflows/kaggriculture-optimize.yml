@@ -19,6 +19,12 @@ on:
     # every six hours, so one climb hands over to the next
     - cron: '20 */6 * * *'
   workflow_dispatch:
+    # These defaults are the chain's settings and must match the fallbacks in
+    # `env:` below. They did not, and the RPi5 backstop dispatches with only
+    # memo and resume: on 2026-09-21 two links (runs 35562904219 and
+    # 35654532887) climbed the shared checkpoint against `starter` on four
+    # seeds, and the scheduled links after them reopened the checkpoint on the
+    # real opponent at 32,470 (it had closed at 77,428) and 70,636 (from 75,629).
     inputs:
       memo:
         description: 'この実行の意図（手動実行では必須）'
@@ -28,7 +34,7 @@ on:
       minutes:
         description: 'Climb budget in minutes (job cap is 350)'
         required: false
-        default: '240'
+        default: '340'
         type: string
       resume:
         description: 'Continue the checkpoint on the plans branch'
@@ -38,24 +44,24 @@ on:
       seeds:
         description: 'Training seeds (comma separated)'
         required: false
-        default: '3000,3001,3002,3003'
+        default: '3000,3001,3002,3003,3004,3005,3006,3007,3008,3009,3010,3011'
         type: string
       holdout:
         description: 'Held-out seeds, never optimised against'
         required: false
-        default: '3100,3101,3102,3103'
+        default: '3100,3101,3102,3103,3104,3105'
         type: string
       opponent:
         description: 'Opponent to score against (builtin name or path)'
         required: false
-        default: 'starter'
+        default: 'agents/v48_sched.py'
         type: string
       objective:
-        description: 'wins | mean | min. `wins` is flat at zero while you lose every game, and its tie-break falls back on a margin dominated by the opponent -- a 137-generation run never left 1 of 12. Prefer `mean` unless the opponent is genuinely beatable'
+        description: 'margin | mean | wins | min. `margin` (own money minus theirs, the chain default) is what a win/loss ladder pays; `mean` climbed its own money while the opponent took 93-110k (0 of 6 won). `wins` is flat at zero while you lose every game'
         required: false
-        default: 'mean'
+        default: 'margin'
         type: choice
-        options: ['mean', 'wins', 'min']
+        options: ['margin', 'mean', 'wins', 'min']
       lam:
         description: 'Candidates per generation'
         required: false
@@ -79,12 +85,12 @@ on:
       record_agent:
         description: 'Agent whose play is recorded into the starting plans'
         required: false
-        default: 'main.py'
+        default: 'agents/v48_sched.py'
         type: string
       sides:
         description: 'Seats to score each seed on. 0,1 scores both (twice the cost); 0 scores one'
         required: false
-        default: '0,1'
+        default: '0'
         type: string
 
 permissions:
@@ -125,7 +131,7 @@ jobs:
       SEEDS: ${{ github.event.inputs.seeds || '3000,3001,3002,3003,3004,3005,3006,3007,3008,3009,3010,3011' }}
       HOLDOUT: ${{ github.event.inputs.holdout || '3100,3101,3102,3103,3104,3105' }}
       OPPONENT: ${{ github.event.inputs.opponent || 'agents/v48_sched.py' }}
-      OBJECTIVE: ${{ github.event.inputs.objective || 'mean' }}
+      OBJECTIVE: ${{ github.event.inputs.objective || 'margin' }}
       LAM: ${{ github.event.inputs.lam || '4' }}
       OPS: ${{ github.event.inputs.ops || '6' }}
       SIDES: ${{ github.event.inputs.sides || '0' }}
@@ -241,17 +247,17 @@ jobs:
             --minutes "$MINUTES" \
             --workers "$(nproc)" | tee /tmp/climb.log
 
-      - name: Score the result against the live agent
+      - name: Score the result against v48_sched
         # The climb's own number is money on its training seeds. What decides
         # whether this is worth submitting is a paired-seed match against the
-        # agent that is currently on the leaderboard, on seeds neither of them
+        # agent that would be submitted in its place (v48_sched), on seeds neither of them
         # was tuned on.
         if: always()
         run: |
           set -e
           [ -s ../plans/best.json ] || exit 0
           python sim/record.py --emit ../plans/best.json --out agents/plan_agent.py
-          python sim/evaluate.py --a agents/plan_agent.py --b main.py \
+          python sim/evaluate.py --a agents/plan_agent.py --b agents/v48_sched.py \
             --episodes 12 --seed0 4000 --workers "$(nproc)" | tee /tmp/head2head.log
 
       - name: Commit the plan
@@ -282,7 +288,7 @@ jobs:
             echo '```'
             grep -E '^(CANDIDATE|CHOSE|START|RESUMED|HOLDOUT|SUMMARY=)' /tmp/climb.log || tail -5 /tmp/climb.log
             echo ""
-            echo "-- vs the live agent --"
+            echo "-- vs agents/v48_sched.py (fresh seeds 4000+) --"
             grep -E '^(SUMMARY=|VERDICT=)' /tmp/head2head.log 2>/dev/null || true
             echo '```'
             echo ""

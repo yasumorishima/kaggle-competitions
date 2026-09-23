@@ -141,6 +141,18 @@ def main():
     if before != fixture():
         failures.append("mutate edited its input plan in place")
 
+    # The chain climbs on `margin`. A season we win by 6,000 and one we lose
+    # by 4,000 average +1,000; own money alone would read 6,500 and cannot
+    # see the other farm at all.
+    vals = [(10000.0, 4000.0), (3000.0, 7000.0)]
+    if O.objective(vals, "margin") != 1000.0:
+        failures.append("margin objective is not mean(mine - theirs): %r"
+                        % O.objective(vals, "margin"))
+    if O.objective(vals, "mean") != 6500.0:
+        failures.append("mean objective changed: %r" % O.objective(vals, "mean"))
+    if O.objective([(5.0, 1.0)], "margin") == O.objective([(5.0, 9.0)], "margin"):
+        failures.append("margin objective ignores the other farm")
+
     print("")
     for line in failures:
         print("FAIL " + line)
