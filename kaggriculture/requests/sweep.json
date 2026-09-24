@@ -1,36 +1,35 @@
 {
- "memo": "v54 twin vs v53: opening-only veto, droppings days 5/14, cow floor 8 from day 10",
+ "memo": "v54 twin vs v53: third quadrant on day 12, cow 8 / sheep 6 floor from day 12, veto off",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "nv10",
+   "name": "q3",
    "P": {
-    "sched_veto_from": 10
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ]
    }
   },
   {
-   "name": "nv",
+   "name": "q3v",
    "P": {
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ],
     "sched_veto": false
    }
   },
   {
-   "name": "f5",
-   "P": {
-    "fert_sell_days": 5
-   }
-  },
-  {
-   "name": "f14",
-   "P": {
-    "fert_sell_days": 14
-   }
-  },
-  {
-   "name": "r8",
+   "name": "hv",
    "P": {
     "sched_herd_floor": [
      [
@@ -69,19 +68,76 @@
       }
      ],
      [
-      10,
+      12,
       {
        "COW": 8,
-       "SHEEP": 3
+       "SHEEP": 6
       }
      ]
-    ]
+    ],
+    "sched_veto": false
+   }
+  },
+  {
+   "name": "q3hv",
+   "P": {
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ],
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      12,
+      {
+       "COW": 8,
+       "SHEEP": 6
+      }
+     ]
+    ],
+    "sched_veto": false
    }
   }
  ],
  "agent_a": "agents/v54_sched.py",
  "agent_b": "agents/v53_sched.py",
  "episodes": "48",
- "seed0": "200000",
+ "seed0": "210000",
  "replicate": "32"
 }
