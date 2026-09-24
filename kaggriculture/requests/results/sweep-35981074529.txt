@@ -1,0 +1,19 @@
+run: 35981074529  status: success
+memo: v54 twin vs v53: opening-only veto, droppings days 5/14, cow floor 8 from day 10
+agent_a: agents/v54_sched.py  agent_b: agents/v53_sched.py  episodes: 48  seed0: 200000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "nv10", "P": {"sched_veto_from": 10}}, {"name": "nv", "P": {"sched_veto": false}}, {"name": "f5", "P": {"fert_sell_days": 5}}, {"name": "f14", "P": {"fert_sell_days": 14}}, {"name": "r8", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 8, "SHEEP": 3}]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+f5                           80916      4239     0.47     96             -80      3337       175     1352      tie
+base                         80996      4290     0.24     96               0       nan         0        -      ref
+r8                           80996      4290     0.24     96               0         0         0        0      tie
+f14                          81418      4072     0.53     96             422      1647       -23     1086      tie
+nv10                         81575      4072     0.29     96             579       949      -145      612      tie
+nv                           79757      4521     0.25     96           -1238      1636     -1777     1326    WORSE
+
+SWEEP_BEST={"name": "f5", "mean": 80916, "margin": 175, "ranked_on": "margin"}
+
+replicating 'f5' against 'base' on seeds 202000-202031, both sides
+  f5 vs base: margin +2793 +/- 1601 over 64 games (own money +2185 +/- 3735) -> HELD
+SWEEP_REPLICATE={"name": "f5", "margin": 2793, "margin_ci95": 1601, "delta": 2185, "ci95": 3735, "games": 64, "verdict": "HELD", "judged_on": "margin"}
