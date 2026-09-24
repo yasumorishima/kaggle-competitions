@@ -126,6 +126,9 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
    - ▶ 先に試すこと：今の登録のまま **認証が要る** `www.kaggle.com` の endpoint が通るか。
      `curl --max-time 20 -sS https://www.kaggle.com/api/v1/competitions/submissions/list/kaggriculture | head -c 400`
      が自分の提出（v48_sched 等）を返せば、認証は効いている＝CLI を使わず curl で LB・提出一覧が取れる。
+   - ✅ **2026-09-24 実測：通った**＝自分の提出一覧（最新 v48・publicScore 610.1）が返った。**認証は今の登録（`www.kaggle.com`）で効いている**
+     ⇒ 提出一覧・LB は **CLI を使わず `www.kaggle.com/api/v1/...` を直接 GET して読む**。認証情報の登録し直しは不要。
+     ⚠️ 提出（ファイルのアップロード）が cloud から通るかは未確認＝**締切までの提出は RPi5 から**行う。
 
 
 ## 環境の確定事項（一次資料＝interpreter）
