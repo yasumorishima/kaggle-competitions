@@ -30,7 +30,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
 ## 現在地（2026-09-24）
 
 - LB 6,269 位 / 9,478（09-19）。銅ライン 約 2,393。**銅には自分の金 ×1.5〜2.0 が要る**。
-- **提出中の土台＝`agents/v51_sched.py`**（router 型の開幕一式・下の節）。2026-09-24 06:40 UTC 提出、提出直後は PENDING。
+- **提出中の土台＝`agents/v51_sched.py`**（router 型の開幕一式・下の節）。2026-09-24 06:40 UTC 提出・publicScore 542.5（v48 は 582.6・LB で版は判定しない）。
+- **次の提出候補＝`agents/v53_sched.py`**（v51＋肥料販売＋家畜先行の開幕・下の「糞を売って牛を足す」節）。双子 v51 に BETTER＋HELD・router に tie。**未提出**（user の指示待ち）。
 - 1 つ前の提出＝`agents/v48_sched.py`（v47 と同一）。双子 v45 相手 96 試合で勝率 0.72・自分の金 77,771。
 - **上位との距離**：v48_sched は公開リプレイ boatlee に **0/32・69,558 対 131,411**（`kaggriculture-panel.yml` の band 4 行）。
   公開 router に seed 86000 で 85,673 対 169,076。
@@ -77,16 +78,48 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
   10 日目の現金で 3 区画目を買う（r1l）のも害。
 - 固定：`agents/v51_sched.py`＝v50＋r1n（sweep の r1n と seed 90000 で 1 円一致）。
 
+### ✅ 糞を売って牛を足す開幕（2026-09-24・cloud セッション）＝**v53_sched が提出候補**
+
+`main.py` にノブ 2 本（既定オフ・**v52_sched＝v51 を再生成して router／双子 × seed 90000／82000 で 1 円一致**・テスト 9 本 PASS）：
+- `fert_sell_days`: その日まで施肥しない・肥料を手元に残さない（`reserve_by_item {"FERTILIZER":0}` と組で使う）
+- `pending_by_species`: 家畜の不足数から**同じ種の**運搬中・shed 分だけを引く（-1＝オフ・値はその日から）
+
+診断（`diag/traj.py`＋計測版、seed 90000 対 router）：
+- v51 は 1〜8 日目に糞を毎日 3〜6 個集めるが、`reserve_frac 1.0`（100 円未満で売らない）で売らず、毎日 3 個を小麦・メロンに施肥していた。
+  router は同じ量を毎日売って 2〜8 日目に牛を 1 頭ずつ足す。
+- 0 日目の羊が 1 頭なのは `need = 目標 − 手元 − shed − pending` の `pending` に**同じターンに買った牛 2 頭**が入るため。
+  直す（`pending_by_species 0`）と羊 2 頭を買うが飼料代が消え、**4 日目までに家畜が全部逃げる**。1 日目からなら v51 と 1 円一致（無効）。
+  ⇒ **0 日目の羊 2 頭目は閉じた**（現金が足りない。router は小麦の売買で回している）。
+- 肥料を売らせても（fs9）増えた現金は土地と作物に回り、牛は増えない。牛の床を上げても日程は同じ：3〜5 日目は 1 区画目が作物で満杯（room 0）、
+  6〜7 日目は種と土地が先に現金を使う、7 日目以降は forward の回収見込み（payback 21）で拒否。
+  ⇒ `opening_days 9`（家畜が種より先）＋ 5 日目までトマト・イチゴ・ニンジン 0 を足した一式（coz）で牛 5 日目 3 → 6 日目 4 → 9 日目 5。
+
+変種（v52 上。F＝`fert_sell_days 9`＋`reserve_by_item {"FERTILIZER":0.0}`、Z＝`sched_herd_floor [[0,{COW2,SHEEP2}],[3,{COW3,SHEEP2}],[5,{COW4,SHEEP2}],[6,{COW5,SHEEP3}],[8,{COW6,SHEEP3}]]`
+＋`opening_days 9`＋`open_crop_zero [[5,["TOMATO","STRAWBERRY","CARROT"]]]`）：
+
+| 変種 | 対 v51 双子 96 試合（GHA run `35975586359`・seed0 190000） | 対 公開 router 48 試合（cloud・seed0 191000） |
+|---|---|---|
+| **coz**（F＋Z） | **勝率 0.89・margin +8,194 ± 1,702 BETTER**・192000〜 64 試合 **+7,364 ± 1,466 HELD** | margin +3,783 ± 7,157 tie（自分の金 57,421・base 63,182） |
+| fs9（F のみ） | 勝率 0.80・margin +3,920 ± 1,408 BETTER | margin +4,024 ± 4,835 tie（自分の金 63,406） |
+| z（Z のみ） | margin +450 ± 1,611 tie | margin −917 ± 9,331 tie |
+
+- 肥料販売が効きの本体で、Z は F と組んだときだけ上乗せ（z 単体は tie）。router 相手は全変種 tie（勝率 0.00 は不変）。
+- 固定：`agents/v53_sched.py`＝v52＋coz（`reemit.rebuild(extra=...)`・変種 coz と router seed 90000／82000 で 1 円一致）。
+
 ## ▶▶ 次の一手
 
-0. ✅ **v51_sched は提出済み**（2026-09-24・PR #7 を cloud が merge → submit run `35965521829` success・一覧で PENDING を確認）。以下は判断の記録：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
+0. **v53_sched を出すかは user が決める**（出すと v48_sched が押し出され、最新 2 本＝v53 と v51）。
+   「v51_sched 以上だと直接対決で示せた」条件は満たす（双子 BETTER＋HELD・router tie）。指示があれば「cloud から GHA を動かす仕方」の手順で出す。
+   出す前に余裕があれば、別 seed 帯（GHA・seed0 200000〜）で双子を 1 回引き直すと安心。
+1. v53 の上で：7 日目以降の forward veto（牛の payback 21）が効きすぎていないか、`sched_veto` を開幕期だけ外す形。
+   肥料販売の日数（9 → 5／14）。どちらも v53 を base に双子（agent_b＝v53 自身か v51）＋router で測る。
+2. ✅ **v51_sched は提出済み**（2026-09-24・PR #7 を cloud が merge → submit run `35965521829` success・一覧で PENDING を確認）。以下は判断の記録：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
    示せた」条件は満たす。出すと v45 が押し出され、最新 2 本＝v51_sched と v48_sched になる。
    **GHA で別 seed 帯（180000〜・cloud 未使用）でも再現**：双子 96 試合 勝率 0.85・margin **+6,040 ± 1,657 BETTER**（run `35961918542`）、
    router 48 試合 −5,543 ± 7,224 tie（run `35961921180`）。
    結果：`requests/results/submit-35965521829.txt`（md5 `30026330a32228bb7894bf5d22304bcb`・提出文末尾 `[run 35965521829 md5 30026330a322]`）。
    次のセッションで publicScore が付いたかを `www.kaggle.com/api/v1/competitions/submissions/list/kaggriculture` で読む（LB で版を判定はしない）。
-1. 次の構造の手（v51 を土台に）：0 日目の羊 2 頭目（現金不足で 1 頭止まり＝day-0 の飼料買い `feed_buy_days` を削るか）、
-   router のように 2〜9 日目に糞（肥料）を売って牛を 1 頭ずつ足す流れ。どちらも v51 を base に双子＋router で測る。
+3. ✅（→ 上の「糞を売って牛を足す開幕」で実施済み）0 日目の羊 2 頭目は閉じた・糞の販売＋牛の段階増は v53 に。
 
 ### （前回まで）開幕メロン単品と早取り
 
@@ -125,7 +158,7 @@ cloud は push と PR はできるが workflow の dispatch はできない（40
 capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ拡大（通算 9 回）／肥料の重み（糞が世話を追い出す）／
 `care_repeat`（同日 2 回目の世話は no-op）／開幕現金 `cash_buffer`／day-0 の家畜の顔ぶれ／市場の枠順／売りの繕い層／
 `dist_weight` 0.7（0.9 が局所最適）／`lump_span`／トマト・にんじん 0／`crop_order`。
-開幕メロン単品（`open_melon` だけ）／一発作物の早取り（`harvest_at_cap`・メロン限定でも害）／10〜11 日目の 3 区画目＋家畜の積み増し（r1l・r2）。
+0 日目の羊 2 頭目（`pending_by_species`・飼料代が消えて家畜が逃げる）／開幕メロン単品（`open_melon` だけ）／一発作物の早取り（`harvest_at_cap`・メロン限定でも害）／10〜11 日目の 3 区画目＋家畜の積み増し（r1l・r2）。
 **「取り合う商品の生産量を増やす手」は対戦ではおおよそゼロ**（第三者相手で輝いて実戦で消える型）。
 
 ## 禁止事項
