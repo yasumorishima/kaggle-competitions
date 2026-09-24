@@ -100,18 +100,26 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
   `KAGGLE_API_TOKEN` は環境変数でなく **API credentials** に置く（環境変数は共有メンバー全員に見える）。
 - `gh` で workflow を dispatch できるかは docs に記載なし＝最初のセッションで確かめてここに書く。
 
-### 実地確認（2026-09-24・cloud セッション・既定ネットワーク）
+### 実地確認（2026-09-24・cloud セッション。1〜4 は既定ネットワーク、5 は設定変更後）
 
 1. **シミュレータは動く**：Python 3.11.15。`pip install kaggle-environments` は debian 管理の `blinker` を消せず失敗するので
    `pip install --ignore-installed blinker kaggle-environments`（約 1 分）。kaggle-environments 1.32.7 で `make("kaggriculture")` OK。
 2. **probe も動く**：`OPP=agents/v48_sched.py python diag/probe.py '{"base":{}}' 86000` →
    `base 86000 [81991, 81991] day10money 136`・**実時間 8.5 秒**（2 席分）。数 seed の試走は cloud でできる。
    **同じ命令を RPi5（kaggle-environments 1.32.7）で回して 81,991 / 81,991・day10 136 と 1 円一致**＝cloud の試走は信頼できる。
-3. **kaggle.com は届かない**：`curl https://www.kaggle.com` → 接続拒否（proxy が CONNECT を 403・organization policy）。
+3. ~~kaggle.com は届かない~~（初回セッション時点。**5 で更新**）：当初は `www.kaggle.com` も proxy が CONNECT を 403。
    pypi.org と api.github.com は 200。`~/.kaggle` も `KAGGLE_*` 環境変数も無し。
-   ⇒ LB 取得・公開 kernel の取得（`sim/fetch_opponent.py`）・提出は cloud からはできない（環境のネットワーク設定の変更が要る）。
 4. **`gh` は未インストール**。代わりに GitHub MCP ツールで run 一覧は読める（`actions_list`→ 最新は `Kaggriculture Tests` #52 success）。
    MCP に `actions_run_trigger` があるので dispatch もそちらで試せる見込み（未実行）。
+5. **Kaggle 接続（2026-09-24・環境設定の変更後）**：
+   - `curl https://www.kaggle.com/api/v1/competitions/list` → **200**（JSON の大会一覧が返る）。
+     ただし一覧は公開情報なので、200 だけでは proxy のトークン付与（認証）が効いている証明にはならない。
+   - `pip install --ignore-installed blinker 'kaggle==2.0.0' 'kagglesdk==0.1.15'` は約 16 秒で入る。
+   - `KAGGLE_API_TOKEN=dummy kaggle competitions leaderboard kaggriculture --show` → **失敗**：
+     `ProxyError ... host='api.kaggle.com' ... /v1/security.OAuthService/IntrospectToken ... Tunnel connection failed: 403 Forbidden`。
+     kaggle 2.0 CLI は `www.kaggle.com` でなく **`api.kaggle.com`** に行き、そこが許可リスト外（`curl https://api.kaggle.com/` も CONNECT 403）。
+   - ⇒ CLI で LB・提出・kernel 取得をするには、環境の許可ドメインに **`api.kaggle.com` を追加**（`*.kaggle.com` 可ならそれ）が要る。
+     それまでは `www.kaggle.com/api/v1/...` を curl で直接叩くのが唯一の経路。
 
 
 ## 環境の確定事項（一次資料＝interpreter）
