@@ -1,0 +1,14 @@
+run: 36070463224  status: success
+memo: v57 twin vs v57: geese (eggs hold their price) - floor of 3/6 geese from day 6/8, 4 from day 3
+agent_a: agents/v57_sched.py  agent_b: agents/v57_sched.py  episodes: 48  seed0: 280000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "g3d6", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3, "GOOSE": 3}], [8, {"COW": 6, "SHEEP": 3, "GOOSE": 3}]]}}, {"name": "g6d6", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3, "GOOSE": 6}], [8, {"COW": 6, "SHEEP": 3, "GOOSE": 6}]]}}, {"name": "g6d8", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3, "GOOSE": 6}]]}}, {"name": "g4d3", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2, "GOOSE": 4}], [5, {"COW": 4, "SHEEP": 2, "GOOSE": 4}], [6, {"COW": 5, "SHEEP": 3, "GOOSE": 4}], [8, {"COW": 6, "SHEEP": 3, "GOOSE": 4}]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         81286      3529     0.25     96               0       nan         0        -      ref
+g4d3                         73714      3394     0.21     96           -7571      3919     -7045     2364    WORSE
+g3d6                         76339      3369     0.11     96           -4946      2374     -8092     1958    WORSE
+g6d8                         67923      3414     0.01     96          -13363      3315    -16558     2604    WORSE
+g6d6                         67742      3306     0.01     96          -13544      3042    -17781     2617    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 81286, "margin": 0, "ranked_on": "margin"}
