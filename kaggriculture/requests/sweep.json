@@ -1,78 +1,36 @@
 {
- "memo": "v52 twin: droppings sold days 1-9 (fs9) and the herd-first opening set (coz) against v51_sched",
+ "memo": "v54 twin vs v53: opening-only veto, droppings days 5/14, cow floor 8 from day 10",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "fs9",
+   "name": "nv10",
    "P": {
-    "fert_sell_days": 9,
-    "reserve_by_item": {
-     "FERTILIZER": 0.0
-    }
+    "sched_veto_from": 10
    }
   },
   {
-   "name": "coz",
+   "name": "nv",
    "P": {
-    "fert_sell_days": 9,
-    "reserve_by_item": {
-     "FERTILIZER": 0.0
-    },
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ]
-    ],
-    "opening_days": 9,
-    "open_crop_zero": [
-     [
-      5,
-      [
-       "TOMATO",
-       "STRAWBERRY",
-       "CARROT"
-      ]
-     ]
-    ]
+    "sched_veto": false
    }
   },
   {
-   "name": "z",
+   "name": "f5",
+   "P": {
+    "fert_sell_days": 5
+   }
+  },
+  {
+   "name": "f14",
+   "P": {
+    "fert_sell_days": 14
+   }
+  },
+  {
+   "name": "r8",
    "P": {
     "sched_herd_floor": [
      [
@@ -109,25 +67,21 @@
        "COW": 6,
        "SHEEP": 3
       }
-     ]
-    ],
-    "opening_days": 9,
-    "open_crop_zero": [
+     ],
      [
-      5,
-      [
-       "TOMATO",
-       "STRAWBERRY",
-       "CARROT"
-      ]
+      10,
+      {
+       "COW": 8,
+       "SHEEP": 3
+      }
      ]
     ]
    }
   }
  ],
- "agent_a": "agents/v52_sched.py",
- "agent_b": "agents/v51_sched.py",
+ "agent_a": "agents/v54_sched.py",
+ "agent_b": "agents/v53_sched.py",
  "episodes": "48",
- "seed0": "190000",
+ "seed0": "200000",
  "replicate": "32"
 }
