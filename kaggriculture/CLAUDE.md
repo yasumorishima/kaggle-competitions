@@ -129,6 +129,13 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
    - ✅ **2026-09-24 実測：通った**＝自分の提出一覧（最新 v48・publicScore 610.1）が返った。**認証は今の登録（`www.kaggle.com`）で効いている**
      ⇒ 提出一覧・LB は **CLI を使わず `www.kaggle.com/api/v1/...` を直接 GET して読む**。認証情報の登録し直しは不要。
      ⚠️ 提出（ファイルのアップロード）が cloud から通るかは未確認＝**締切までの提出は RPi5 から**行う。
+6. **GHA の dispatch は cloud からできない（2026-09-24 実測）**：GitHub MCP の `actions_run_trigger`（`run_workflow`・
+   `kaggriculture-sweep.yml`・ref＝作業ブランチ）→ **`403 Resource not accessible by integration`**（Claude の GitHub App に
+   Actions の書き込み権限が無い）。`gh` も無い。⇒ **sweep は cloud コンテナ内で `sim/sweep.py` を直接回す**（4 コア・
+   `--workers 4`）か、RPi5 から dispatch する。コンテナ内の sweep は GHA と同じ `sim/sweep.py` なので数字の読み方は同じ。
+7. **公開 kernel（router）は CLI 無しで取れる**：`curl "https://www.kaggle.com/api/v1/kernels/pull?userName=<owner>&kernelSlug=<slug>"`
+   の JSON の `blob.source` が notebook 本体。これを `.ipynb` に書き、`sim/fetch_opponent.py` の `code_cells`＋`from_writefile`
+   で `opponents/` に書き出す（router は `%%writefile` 型で `--exec` 不要）。取れた router で seed 86000 が 85,673 対 169,076 と記録に 1 円一致。
 
 
 ## 環境の確定事項（一次資料＝interpreter）
