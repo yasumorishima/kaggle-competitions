@@ -100,6 +100,19 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
   `KAGGLE_API_TOKEN` は環境変数でなく **API credentials** に置く（環境変数は共有メンバー全員に見える）。
 - `gh` で workflow を dispatch できるかは docs に記載なし＝最初のセッションで確かめてここに書く。
 
+### 実地確認（2026-09-24・cloud セッション・既定ネットワーク）
+
+1. **シミュレータは動く**：Python 3.11.15。`pip install kaggle-environments` は debian 管理の `blinker` を消せず失敗するので
+   `pip install --ignore-installed blinker kaggle-environments`（約 1 分）。kaggle-environments 1.32.7 で `make("kaggriculture")` OK。
+2. **probe も動く**：`OPP=agents/v48_sched.py python diag/probe.py '{"base":{}}' 86000` →
+   `base 86000 [81991, 81991] day10money 136`・**実時間 8.5 秒**（2 席分）。数 seed の試走は cloud でできる。
+3. **kaggle.com は届かない**：`curl https://www.kaggle.com` → 接続拒否（proxy が CONNECT を 403・organization policy）。
+   pypi.org と api.github.com は 200。`~/.kaggle` も `KAGGLE_*` 環境変数も無し。
+   ⇒ LB 取得・公開 kernel の取得（`sim/fetch_opponent.py`）・提出は cloud からはできない（環境のネットワーク設定の変更が要る）。
+4. **`gh` は未インストール**。代わりに GitHub MCP ツールで run 一覧は読める（`actions_list`→ 最新は `Kaggriculture Tests` #52 success）。
+   MCP に `actions_run_trigger` があるので dispatch もそちらで試せる見込み（未実行）。
+
+
 ## 環境の確定事項（一次資料＝interpreter）
 
 - 動物：COW $400・初乳 8 日目・隔日／SHEEP $500・6 日目・3 日ごと／GOOSE $300・4 日目・毎日。開幕資金 3,000。
