@@ -53,10 +53,10 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 
 ## ▶▶ 次の一手
 
-1. **sweep 2 本の結果を読む**（2026-09-24 00:25 UTC 投入）：
-   `35938315207` と `35938317910`（片方が対 v48 双子 96 試合 seed0 170000、もう片方が対 router 48 試合 seed0 172000。
-   memo で見分ける）。変種 base / hc / m8 / m12 / m8h / m12h / m12hc（m12hc は day-0 に牛 2 羊 2 を追加）。
-   `gh run view <id> --repo yasumorishima/kaggle-competitions --log | grep -A20 "margin"` 等で表を取る。
+1. **対 router 48 試合（`35938317910`）は読了＝全変種が base 以下**。margin（base 比）：
+   m8 −1,389 tie／hc −2,053 tie／m8h −6,771 WORSE／m12 −13,505 WORSE／m12h −22,437 WORSE／m12hc −28,915 WORSE
+   （base の自分の金 64,996・勝率は全変種 0.00）。**メロンを増やすほど単調に悪化**＝単品で開幕メロンを足す形は閉じてよい。
+   **対 v48 双子 96 試合（`35938315207`・seed0 170000）は未読**＝`gh run view 35938315207 --repo yasumorishima/kaggle-competitions --log | grep -A10 "^.*variant "` で表を取る。
 2. 負けていれば、**単品のノブではなく router 型の開幕を一式で**作る：0 日目はメロン＋家畜に集中し、
    トマト・イチゴを 0 日目に植えない・10 日目の現金を即座に家畜と土地へ回す。`diag/traj.py` で router と同じ日程の形になったかを
    先に確かめてから sweep に出す（機構 → 指標の順）。
