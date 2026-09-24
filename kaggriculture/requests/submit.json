@@ -1,8 +1,8 @@
 {
- "memo": "submit v55_sched (v53 + no second melon crop); pushes v51 out, leaving v55_sched and v53_sched as the latest two",
- "agent": "agents/v55_sched.py",
- "message": "v55: v53 with no second melon crop (melon sown only through day 11). Head-to-head vs v53: win rate 0.62 over 96 games, margin +2,042 +/- 1,179.",
- "evidence": "vs v53_sched twin: GHA run 35989955738 (seeds 220000+, 96 games) win rate 0.62, margin +2,042 +/- 1,179 BETTER; replicated on 222000-222031 +2,013 +/- 932 HELD. vs public router: cloud sweep 48 games margin -549 +/- 2,645 tie.",
+ "memo": "submit v56_sched (v55 + earlier last sow days); pushes v53 out, leaving v56_sched and v55_sched as the latest two",
+ "agent": "agents/v56_sched.py",
+ "message": "v56: v55 with earlier last sow days (wheat 24, carrot 25, strawberry 16, tomato 16). Head-to-head vs v55: win rate 0.71 over 96 games, margin +1,268 +/- 568.",
+ "evidence": "vs v55_sched twin: GHA run 35998204678 (seeds 240000+, 96 games) win rate 0.71, margin +1,268 +/- 568 BETTER; replicated on 242000-242031 +1,263 +/- 332 HELD. vs public router: cloud sweep 48 games margin +540 +/- 700 tie.",
  "confirm": "submit",
  "dry_run": false
 }

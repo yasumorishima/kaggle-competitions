@@ -1,0 +1,19 @@
+run: 35998204678  status: success
+memo: v55 twin vs v55: combined last sow days (wheat/carrot 24/22 with strawberry/tomato 16)
+agent_a: agents/v55_sched.py  agent_b: agents/v55_sched.py  episodes: 48  seed0: 240000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "wh24", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 21, "STRAWBERRY": 19}}}, {"name": "wh22", "P": {"plant_last_day": {"WHEAT": 22, "CARROT": 23, "MELON": 11, "TOMATO": 21, "STRAWBERRY": 19}}}, {"name": "all", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 16, "STRAWBERRY": 16}}}, {"name": "whst", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 21, "STRAWBERRY": 16}}}, {"name": "whtm", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 16, "STRAWBERRY": 19}}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+all                          80726      3813     0.71     96             874       765      1268      568   BETTER
+whst                         80786      3847     0.75     96             934       668      1181      410   BETTER
+whtm                         80835      3821     0.69     96             983       435       812      379   BETTER
+wh24                         80535      3882     0.71     96             683       218       750      228   BETTER
+base                         79852      3949     0.23     96               0       nan         0        -      ref
+wh22                         79111      3924     0.46     96            -741       441      -367      339    WORSE
+
+SWEEP_BEST={"name": "all", "mean": 80726, "margin": 1268, "ranked_on": "margin"}
+
+replicating 'all' against 'base' on seeds 242000-242031, both sides
+  all vs base: margin +1263 +/- 332 over 64 games (own money +1533 +/- 728) -> HELD
+SWEEP_REPLICATE={"name": "all", "margin": 1263, "margin_ci95": 332, "delta": 1533, "ci95": 728, "games": 64, "verdict": "HELD", "judged_on": "margin"}
