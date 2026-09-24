@@ -1,46 +1,40 @@
 {
- "memo": "v56 twin vs v56: hands scale 1.15/0.85, animal payback 1.0/1.5, strawberry x1.3",
+ "memo": "v56 twin vs v56: keep the cows fed (feed_value_rule escape/asset), with and without 1.15x hands",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "h115",
+   "name": "esc",
    "P": {
+    "feed_value_rule": "escape"
+   }
+  },
+  {
+   "name": "asset",
+   "P": {
+    "feed_value_rule": "asset"
+   }
+  },
+  {
+   "name": "esch",
+   "P": {
+    "feed_value_rule": "escape",
     "sched_hands_scale": 1.15
    }
   },
   {
-   "name": "h085",
+   "name": "asseth",
    "P": {
-    "sched_hands_scale": 0.85
-   }
-  },
-  {
-   "name": "ap10",
-   "P": {
-    "animal_payback": 1.0
-   }
-  },
-  {
-   "name": "ap15",
-   "P": {
-    "animal_payback": 1.5
-   }
-  },
-  {
-   "name": "st13",
-   "P": {
-    "crop_pct_scale": {
-     "STRAWBERRY": 1.3
-    }
+    "feed_value_rule": "asset",
+    "sched_hands_scale": 1.15
    }
   }
  ],
  "agent_a": "agents/v56_sched.py",
  "agent_b": "agents/v56_sched.py",
  "episodes": "48",
- "seed0": "260000",
+ "seed0": "270000",
  "replicate": "32"
 }
