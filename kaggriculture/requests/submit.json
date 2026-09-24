@@ -1,6 +1,6 @@
-{"memo": "mechanism test of the merged-request path; dry run, nothing is submitted",
- "agent": "agents/v48_sched.py",
- "message": "dry run",
- "evidence": "dry run only - no submission is made by this request",
+{"memo": "submit v51_sched (router-style opening set); pushes v45 out, leaving v51_sched and v48_sched as the latest two",
+ "agent": "agents/v51_sched.py",
+ "message": "v51: v48 with a router-style opening - 12 melon tiles and no tomato/strawberry on day 0, 2 cows + 2 sheep standing (3 sheep from day 6). Head-to-head vs v48: win rate 0.85 over 96 games, margin +6,040 +/- 1,657.",
+ "evidence": "vs v48_sched twin: GHA run 35961918542 (seeds 180000+, 96 games) win rate 0.85, margin +6,040 +/- 1,657 BETTER; cloud sweep seeds 90000+ win rate 0.84, margin +5,097 +/- 1,296, replicated on 92000-92031 +7,315 +/- 2,188 HELD. vs public router: run 35961921180 margin -5,543 +/- 7,224 tie.",
  "confirm": "submit",
- "dry_run": true}
+ "dry_run": false}

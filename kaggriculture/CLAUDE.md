@@ -80,7 +80,9 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
    示せた」条件は満たす。出すと v45 が押し出され、最新 2 本＝v51_sched と v48_sched になる。
    **GHA で別 seed 帯（180000〜・cloud 未使用）でも再現**：双子 96 試合 勝率 0.85・margin **+6,040 ± 1,657 BETTER**（run `35961918542`）、
    router 48 試合 −5,543 ± 7,224 tie（run `35961921180`）。
-   提出前にもう 1 帯（seed0 ≠ 90000/92000）で対 v48 双子を引き直せればなお良い（cloud 内 `sim/sweep.py` で 96 試合 約 15 分）。
+   ▶ **2026-09-24：提出依頼の PR を作成（`requests/submit.json`・agent `agents/v51_sched.py`・`dry_run: false`・md5 `30026330a322…`）＝user の merge 待ち**。
+   merge 後は `requests/results/submit-<run id>.txt`（main）で提出一覧に v51 が載ったかを確かめ、「現在の最新 2 提出」を v51_sched と v48_sched に書き換える。
+   これが**本番（`dry_run: false`）の初回**。
 1. 次の構造の手（v51 を土台に）：0 日目の羊 2 頭目（現金不足で 1 頭止まり＝day-0 の飼料買い `feed_buy_days` を削るか）、
    router のように 2〜9 日目に糞（肥料）を売って牛を 1 頭ずつ足す流れ。どちらも v51 を base に双子＋router で測る。
 
