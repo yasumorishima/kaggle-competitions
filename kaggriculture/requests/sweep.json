@@ -1,143 +1,53 @@
 {
- "memo": "v54 twin vs v53: third quadrant on day 12, cow 8 / sheep 6 floor from day 12, veto off",
+ "memo": "v54 twin vs v53: no second melon crop (melon last sow day 11), droppings to day 5, strawberry x1.5",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "q3",
+   "name": "f5",
    "P": {
-    "sched_land_floor": [
-     [
-      12,
-      3
-     ]
-    ]
+    "fert_sell_days": 5
    }
   },
   {
-   "name": "q3v",
+   "name": "ml11",
    "P": {
-    "sched_land_floor": [
-     [
-      12,
-      3
-     ]
-    ],
-    "sched_veto": false
+    "plant_last_day": {
+     "WHEAT": 26,
+     "CARROT": 27,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 19
+    }
    }
   },
   {
-   "name": "hv",
+   "name": "ml11f5",
    "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      12,
-      {
-       "COW": 8,
-       "SHEEP": 6
-      }
-     ]
-    ],
-    "sched_veto": false
+    "plant_last_day": {
+     "WHEAT": 26,
+     "CARROT": 27,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 19
+    },
+    "fert_sell_days": 5
    }
   },
   {
-   "name": "q3hv",
+   "name": "st15",
    "P": {
-    "sched_land_floor": [
-     [
-      12,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      12,
-      {
-       "COW": 8,
-       "SHEEP": 6
-      }
-     ]
-    ],
-    "sched_veto": false
+    "crop_pct_scale": {
+     "STRAWBERRY": 1.5
+    }
    }
   }
  ],
  "agent_a": "agents/v54_sched.py",
  "agent_b": "agents/v53_sched.py",
  "episodes": "48",
- "seed0": "210000",
+ "seed0": "220000",
  "replicate": "32"
 }
