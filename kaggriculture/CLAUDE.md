@@ -76,7 +76,7 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 
 ## ▶▶ 次の一手
 
-0. **v51_sched を提出するかの判断**（提出は下の「依頼ファイル」で・user の承認＝PR の merge）：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
+0. **v51_sched を提出するかの判断**（user の指示があれば下の「依頼ファイル」で cloud が PR 作成→merge まで）：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
    示せた」条件は満たす。出すと v45 が押し出され、最新 2 本＝v51_sched と v48_sched になる。
    **GHA で別 seed 帯（180000〜・cloud 未使用）でも再現**：双子 96 試合 勝率 0.85・margin **+6,040 ± 1,657 BETTER**（run `35961918542`）、
    router 48 試合 −5,543 ± 7,224 tie（run `35961921180`）。
@@ -107,12 +107,14 @@ cloud は push と PR はできるが workflow の dispatch はできない（40
   結果は GHA が**同じブランチ**へ `kaggriculture/requests/results/sweep-<run id>.txt` として commit する（10〜60 分）＝`git pull` で読む。
   2026-09-24 に動作確認済み（run `35963153234`）。重い掃引はコンテナでなくこちらで（ランナーの並列が使える）。
 - **提出**：`kaggriculture/requests/submit.json`（`memo`・`agent`・`message`・`evidence`・`confirm: "submit"`・`dry_run`）を
-  **PR に入れる。main に merge された時だけ走る＝merge が user の承認**。`dry_run` を省くと true（提出しない）。
+  **PR に入れて main に merge する（main に入った時だけ走る）**。`dry_run` を省くと true（提出しない）。
   結果は main に `kaggriculture/requests/results/submit-<run id>.txt`。2026-09-24 に v48 の dry run で動作確認済み（run `35963501480`）。
   **本番（`dry_run: false`）はまだ一度も走っていない**。
 - 提出 workflow の止め：main のみ／symlink 不可／単独で 720 ステップ完走／提出文に `[run <id> md5 <12桁>]` を付け、
   同じ md5 が一覧にあれば止める／再実行では提出しない／提出後に一覧を読み直して無ければ失敗（CLI は 404 でも終了コード 0）。
-- 🔴 **提出の PR は 1 本ずつ・user に merge してもらう**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。cloud 自身で merge しない。
+- 🔴 **提出は user がそのセッションで明示的に指示した agent だけ**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。
+  指示があれば **cloud が PR を作って自分で merge まで行い**、`requests/results/submit-<run id>.txt` を `git pull` で読んで結果を報告する。
+  指示の無い提出・dry_run: false の独断は禁止。1 回に 1 本。
 
 ## 閉じた線（再提案しない・詳細な数字は過去の記録にあり）
 
