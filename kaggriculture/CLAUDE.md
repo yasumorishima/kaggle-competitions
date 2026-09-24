@@ -120,6 +120,12 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
      kaggle 2.0 CLI は `www.kaggle.com` でなく **`api.kaggle.com`** に行き、そこが許可リスト外（`curl https://api.kaggle.com/` も CONNECT 403）。
    - ⇒ CLI で LB・提出・kernel 取得をするには、環境の許可ドメインに **`api.kaggle.com` を追加**（`*.kaggle.com` 可ならそれ）が要る。
      それまでは `www.kaggle.com/api/v1/...` を curl で直接叩くのが唯一の経路。
+   - ⚠️ 訂正：許可ドメインに `api.kaggle.com` を足すだけでは**繋がってもトークンが付かない**。proxy がトークンを付けるのは
+     **API credentials の「許可ウェブサイト」に書いたホストだけ**（今は `www.kaggle.com` のみ）で、そこに書いたホストは
+     ネットワーク設定に関係なく届く（docs）。CLI を使うなら認証情報を `*.kaggle.com` で登録し直す（編集不可＝削除して再追加・値が要る）。
+   - ▶ 先に試すこと：今の登録のまま **認証が要る** `www.kaggle.com` の endpoint が通るか。
+     `curl --max-time 20 -sS https://www.kaggle.com/api/v1/competitions/submissions/list/kaggriculture | head -c 400`
+     が自分の提出（v48_sched 等）を返せば、認証は効いている＝CLI を使わず curl で LB・提出一覧が取れる。
 
 
 ## 環境の確定事項（一次資料＝interpreter）
