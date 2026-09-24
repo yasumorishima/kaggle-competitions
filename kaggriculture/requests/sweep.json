@@ -1,74 +1,46 @@
 {
- "memo": "v55 twin vs v55: combined last sow days (wheat/carrot 24/22 with strawberry/tomato 16)",
+ "memo": "v56 twin vs v56: hands scale 1.15/0.85, animal payback 1.0/1.5, strawberry x1.3",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "wh24",
+   "name": "h115",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 11,
-     "TOMATO": 21,
-     "STRAWBERRY": 19
-    }
+    "sched_hands_scale": 1.15
    }
   },
   {
-   "name": "wh22",
+   "name": "h085",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 22,
-     "CARROT": 23,
-     "MELON": 11,
-     "TOMATO": 21,
-     "STRAWBERRY": 19
-    }
+    "sched_hands_scale": 0.85
    }
   },
   {
-   "name": "all",
+   "name": "ap10",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 11,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    "animal_payback": 1.0
    }
   },
   {
-   "name": "whst",
+   "name": "ap15",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 11,
-     "TOMATO": 21,
-     "STRAWBERRY": 16
-    }
+    "animal_payback": 1.5
    }
   },
   {
-   "name": "whtm",
+   "name": "st13",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 11,
-     "TOMATO": 16,
-     "STRAWBERRY": 19
+    "crop_pct_scale": {
+     "STRAWBERRY": 1.3
     }
    }
   }
  ],
- "agent_a": "agents/v55_sched.py",
- "agent_b": "agents/v55_sched.py",
+ "agent_a": "agents/v56_sched.py",
+ "agent_b": "agents/v56_sched.py",
  "episodes": "48",
- "seed0": "240000",
+ "seed0": "260000",
  "replicate": "32"
 }
