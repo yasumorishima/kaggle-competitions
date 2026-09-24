@@ -76,8 +76,10 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 
 ## ▶▶ 次の一手
 
-0. **v51_sched を提出するかの判断**（提出は RPi5 から）：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
+0. **v51_sched を提出するかの判断**（提出は下の「依頼ファイル」で・user の承認＝PR の merge）：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
    示せた」条件は満たす。出すと v45 が押し出され、最新 2 本＝v51_sched と v48_sched になる。
+   **GHA で別 seed 帯（180000〜・cloud 未使用）でも再現**：双子 96 試合 勝率 0.85・margin **+6,040 ± 1,657 BETTER**（run `35961918542`）、
+   router 48 試合 −5,543 ± 7,224 tie（run `35961921180`）。
    提出前にもう 1 帯（seed0 ≠ 90000/92000）で対 v48 双子を引き直せればなお良い（cloud 内 `sim/sweep.py` で 96 試合 約 15 分）。
 1. 次の構造の手（v51 を土台に）：0 日目の羊 2 頭目（現金不足で 1 頭止まり＝day-0 の飼料買い `feed_buy_days` を削るか）、
    router のように 2〜9 日目に糞（肥料）を売って牛を 1 頭ずつ足す流れ。どちらも v51 を base に双子＋router で測る。
@@ -96,16 +98,21 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 3. 勝った変種は `sim/reemit.py agents/v49_sched.py --out agents/v50_sched.py --set k=v` で固定し、
    別 seed 帯で引き直して符号が保てば提出候補。
 
-## 提出の仕方（2026-09-24〜）
+## cloud から GHA を動かす仕方（依頼ファイル・2026-09-24〜）
 
-- **`.github/workflows/kaggriculture-submit.yml` から出す**（cloud からは Kaggle の提出窓口に届かないため、GitHub Actions の Secret で提出する）。
-  入力：`agent`（`agents/*.py`）・`message`・`evidence`（現提出との直接対決の run 番号・margin・勝率）・`confirm=submit`・`memo`・`dry_run`。
-- **既定は `dry_run=true`＝提出せず、入力の検査・単独で 720 ステップ完走・提出一覧の読み取りまでを行う**。
-  2026-09-24 に v48 で dry run 成功（run `35959583638`）。**本番（`dry_run=false`）はまだ一度も走らせていない**。
-- 止め：main のみ／symlink 不可／提出文に `[run <id> md5 <12桁>]` を自動付与し、同じ md5 が一覧にあれば止める／再実行では提出しない／
-  提出後に一覧を読み直して run 番号が無ければ失敗（CLI は 404 でも終了コード 0 のため）。
-- 🔴 **提出は 1 回ごとに user の明示承認を取ってから起動する**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。承認前は dry run まで。
-- cloud からの起動は GitHub MCP の `actions_run_trigger`（未確認）。
+cloud は push と PR はできるが workflow の dispatch はできない（403）。**依頼ファイルを push すると GHA が走り、結果がファイルで戻る**。
+
+- **sweep**：作業ブランチで `kaggriculture/requests/sweep.json` を書いて push。中身は sweep の入力と同じ
+  （`memo`・`variants`・`agent_a`・`agent_b`・`episodes`・`seed0`・`replicate`）。**前回と同じ中身だと走らない**（ファイルが変わった push だけが起点）＝memo を変える。
+  結果は GHA が**同じブランチ**へ `kaggriculture/requests/results/sweep-<run id>.txt` として commit する（10〜60 分）＝`git pull` で読む。
+  2026-09-24 に動作確認済み（run `35963153234`）。重い掃引はコンテナでなくこちらで（ランナーの並列が使える）。
+- **提出**：`kaggriculture/requests/submit.json`（`memo`・`agent`・`message`・`evidence`・`confirm: "submit"`・`dry_run`）を
+  **PR に入れる。main に merge された時だけ走る＝merge が user の承認**。`dry_run` を省くと true（提出しない）。
+  結果は main に `kaggriculture/requests/results/submit-<run id>.txt`。2026-09-24 に v48 の dry run で動作確認済み（run `35963501480`）。
+  **本番（`dry_run: false`）はまだ一度も走っていない**。
+- 提出 workflow の止め：main のみ／symlink 不可／単独で 720 ステップ完走／提出文に `[run <id> md5 <12桁>]` を付け、
+  同じ md5 が一覧にあれば止める／再実行では提出しない／提出後に一覧を読み直して無ければ失敗（CLI は 404 でも終了コード 0）。
+- 🔴 **提出の PR は 1 本ずつ・user に merge してもらう**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。cloud 自身で merge しない。
 
 ## 閉じた線（再提案しない・詳細な数字は過去の記録にあり）
 
@@ -171,7 +178,7 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
      が自分の提出（v48_sched 等）を返せば、認証は効いている＝CLI を使わず curl で LB・提出一覧が取れる。
    - ✅ **2026-09-24 実測：通った**＝自分の提出一覧（最新 v48・publicScore 610.1）が返った。**認証は今の登録（`www.kaggle.com`）で効いている**
      ⇒ 提出一覧・LB は **CLI を使わず `www.kaggle.com/api/v1/...` を直接 GET して読む**。認証情報の登録し直しは不要。
-     ⚠️ 提出（ファイルのアップロード）が cloud から通るかは未確認＝**締切までの提出は RPi5 から**行う。
+     提出は Kaggle の CLI が `api.kaggle.com` に行くので cloud からは直接出せない＝上の「依頼ファイル」で GHA に出させる。
 6. **GHA の dispatch は cloud からできない（2026-09-24 実測）**：GitHub MCP の `actions_run_trigger`（`run_workflow`・
    `kaggriculture-sweep.yml`・ref＝作業ブランチ）→ **`403 Resource not accessible by integration`**（Claude の GitHub App に
    Actions の書き込み権限が無い）。`gh` も無い。⇒ **sweep は cloud コンテナ内で `sim/sweep.py` を直接回す**（4 コア・
