@@ -1,133 +1,53 @@
 {
- "memo": "v52 twin: droppings sold days 1-9 (fs9) and the herd-first opening set (coz) against v51_sched",
+ "memo": "v54 twin vs v53: no second melon crop (melon last sow day 11), droppings to day 5, strawberry x1.5",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "fs9",
+   "name": "f5",
    "P": {
-    "fert_sell_days": 9,
-    "reserve_by_item": {
-     "FERTILIZER": 0.0
+    "fert_sell_days": 5
+   }
+  },
+  {
+   "name": "ml11",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 26,
+     "CARROT": 27,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 19
     }
    }
   },
   {
-   "name": "coz",
+   "name": "ml11f5",
    "P": {
-    "fert_sell_days": 9,
-    "reserve_by_item": {
-     "FERTILIZER": 0.0
+    "plant_last_day": {
+     "WHEAT": 26,
+     "CARROT": 27,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 19
     },
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ]
-    ],
-    "opening_days": 9,
-    "open_crop_zero": [
-     [
-      5,
-      [
-       "TOMATO",
-       "STRAWBERRY",
-       "CARROT"
-      ]
-     ]
-    ]
+    "fert_sell_days": 5
    }
   },
   {
-   "name": "z",
+   "name": "st15",
    "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ]
-    ],
-    "opening_days": 9,
-    "open_crop_zero": [
-     [
-      5,
-      [
-       "TOMATO",
-       "STRAWBERRY",
-       "CARROT"
-      ]
-     ]
-    ]
+    "crop_pct_scale": {
+     "STRAWBERRY": 1.5
+    }
    }
   }
  ],
- "agent_a": "agents/v52_sched.py",
- "agent_b": "agents/v51_sched.py",
+ "agent_a": "agents/v54_sched.py",
+ "agent_b": "agents/v53_sched.py",
  "episodes": "48",
- "seed0": "190000",
+ "seed0": "220000",
  "replicate": "32"
 }
