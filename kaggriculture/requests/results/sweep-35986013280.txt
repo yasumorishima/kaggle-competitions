@@ -1,0 +1,18 @@
+run: 35986013280  status: success
+memo: v54 twin vs v53: third quadrant on day 12, cow 8 / sheep 6 floor from day 12, veto off
+agent_a: agents/v54_sched.py  agent_b: agents/v53_sched.py  episodes: 48  seed0: 210000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "q3", "P": {"sched_land_floor": [[12, 3]]}}, {"name": "q3v", "P": {"sched_land_floor": [[12, 3]], "sched_veto": false}}, {"name": "hv", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [12, {"COW": 8, "SHEEP": 6}]], "sched_veto": false}}, {"name": "q3hv", "P": {"sched_land_floor": [[12, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [12, {"COW": 8, "SHEEP": 6}]], "sched_veto": false}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+hv                           80907      4209     0.60     96            1536      2290      1813     1735   BETTER
+base                         79371      3502     0.18     96               0       nan         0        -      ref
+q3                           75401      4293     0.14     96           -3971      2373     -7053     1592    WORSE
+q3hv                         73015      4445     0.15     96           -6356      2446     -7371     1964    WORSE
+q3v                          72381      4785     0.14     96           -6991      2663     -9681     2075    WORSE
+
+SWEEP_BEST={"name": "hv", "mean": 80907, "margin": 1813, "ranked_on": "margin"}
+
+replicating 'hv' against 'base' on seeds 212000-212031, both sides
+  hv vs base: margin +178 +/- 1973 over 64 games (own money +673 +/- 3276) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "hv", "margin": 178, "margin_ci95": 1973, "delta": 673, "ci95": 3276, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
