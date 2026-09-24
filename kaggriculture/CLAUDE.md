@@ -65,6 +65,17 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 3. 勝った変種は `sim/reemit.py agents/v49_sched.py --out agents/v50_sched.py --set k=v` で固定し、
    別 seed 帯で引き直して符号が保てば提出候補。
 
+## 提出の仕方（2026-09-24〜）
+
+- **`.github/workflows/kaggriculture-submit.yml` から出す**（cloud からは Kaggle の提出窓口に届かないため、GitHub Actions の Secret で提出する）。
+  入力：`agent`（`agents/*.py`）・`message`・`evidence`（現提出との直接対決の run 番号・margin・勝率）・`confirm=submit`・`memo`・`dry_run`。
+- **既定は `dry_run=true`＝提出せず、入力の検査・単独で 720 ステップ完走・提出一覧の読み取りまでを行う**。
+  2026-09-24 に v48 で dry run 成功（run `35959583638`）。**本番（`dry_run=false`）はまだ一度も走らせていない**。
+- 止め：main のみ／symlink 不可／提出文に `[run <id> md5 <12桁>]` を自動付与し、同じ md5 が一覧にあれば止める／再実行では提出しない／
+  提出後に一覧を読み直して run 番号が無ければ失敗（CLI は 404 でも終了コード 0 のため）。
+- 🔴 **提出は 1 回ごとに user の明示承認を取ってから起動する**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。承認前は dry run まで。
+- cloud からの起動は GitHub MCP の `actions_run_trigger`（未確認）。
+
 ## 閉じた線（再提案しない・詳細な数字は過去の記録にあり）
 
 capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ拡大（通算 9 回）／肥料の重み（糞が世話を追い出す）／
