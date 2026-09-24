@@ -106,6 +106,7 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
    `pip install --ignore-installed blinker kaggle-environments`（約 1 分）。kaggle-environments 1.32.7 で `make("kaggriculture")` OK。
 2. **probe も動く**：`OPP=agents/v48_sched.py python diag/probe.py '{"base":{}}' 86000` →
    `base 86000 [81991, 81991] day10money 136`・**実時間 8.5 秒**（2 席分）。数 seed の試走は cloud でできる。
+   **同じ命令を RPi5（kaggle-environments 1.32.7）で回して 81,991 / 81,991・day10 136 と 1 円一致**＝cloud の試走は信頼できる。
 3. **kaggle.com は届かない**：`curl https://www.kaggle.com` → 接続拒否（proxy が CONNECT を 403・organization policy）。
    pypi.org と api.github.com は 200。`~/.kaggle` も `KAGGLE_*` 環境変数も無し。
    ⇒ LB 取得・公開 kernel の取得（`sim/fetch_opponent.py`）・提出は cloud からはできない（環境のネットワーク設定の変更が要る）。
