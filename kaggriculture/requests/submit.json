@@ -1,8 +1,8 @@
 {
- "memo": "submit v56_sched (v55 + earlier last sow days); pushes v53 out, leaving v56_sched and v55_sched as the latest two",
- "agent": "agents/v56_sched.py",
- "message": "v56: v55 with earlier last sow days (wheat 24, carrot 25, strawberry 16, tomato 16). Head-to-head vs v55: win rate 0.71 over 96 games, margin +1,268 +/- 568.",
- "evidence": "vs v55_sched twin: GHA run 35998204678 (seeds 240000+, 96 games) win rate 0.71, margin +1,268 +/- 568 BETTER; replicated on 242000-242031 +1,263 +/- 332 HELD. vs public router: cloud sweep 48 games margin +540 +/- 700 tie.",
+ "memo": "submit v57_sched (v56 + feed_value_rule asset: the cows are no longer starved); pushes v55 out, leaving v57_sched and v56_sched",
+ "agent": "agents/v57_sched.py",
+ "message": "v57: v56 with feeding valued on product plus dropping, so the cows are no longer starved and lost mid-season. Head-to-head vs v56: win rate 0.66 over 96 games, margin +2,546 +/- 1,642.",
+ "evidence": "vs v56_sched twin: GHA run 36011303071 (seeds 270000+, 96 games) win rate 0.66, margin +2,546 +/- 1,642 BETTER; replicated on 272000-272031 +2,225 +/- 1,843 HELD. vs public router: cloud sweep 48 games margin -2,784 +/- 4,353 tie.",
  "confirm": "submit",
  "dry_run": false
 }
