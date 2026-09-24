@@ -1,0 +1,6 @@
+{"memo": "mechanism test of the merged-request path; dry run, nothing is submitted",
+ "agent": "agents/v48_sched.py",
+ "message": "dry run",
+ "evidence": "dry run only - no submission is made by this request",
+ "confirm": "submit",
+ "dry_run": true}
