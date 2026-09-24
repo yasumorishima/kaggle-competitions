@@ -1,40 +1,191 @@
 {
- "memo": "v56 twin vs v56: keep the cows fed (feed_value_rule escape/asset), with and without 1.15x hands",
+ "memo": "v57 twin vs v57: geese (eggs hold their price) - floor of 3/6 geese from day 6/8, 4 from day 3",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "esc",
+   "name": "g3d6",
    "P": {
-    "feed_value_rule": "escape"
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3,
+       "GOOSE": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3,
+       "GOOSE": 3
+      }
+     ]
+    ]
    }
   },
   {
-   "name": "asset",
+   "name": "g6d6",
    "P": {
-    "feed_value_rule": "asset"
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3,
+       "GOOSE": 6
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3,
+       "GOOSE": 6
+      }
+     ]
+    ]
    }
   },
   {
-   "name": "esch",
+   "name": "g6d8",
    "P": {
-    "feed_value_rule": "escape",
-    "sched_hands_scale": 1.15
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3,
+       "GOOSE": 6
+      }
+     ]
+    ]
    }
   },
   {
-   "name": "asseth",
+   "name": "g4d3",
    "P": {
-    "feed_value_rule": "asset",
-    "sched_hands_scale": 1.15
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2,
+       "GOOSE": 4
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2,
+       "GOOSE": 4
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3,
+       "GOOSE": 4
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3,
+       "GOOSE": 4
+      }
+     ]
+    ]
    }
   }
  ],
- "agent_a": "agents/v56_sched.py",
- "agent_b": "agents/v56_sched.py",
+ "agent_a": "agents/v57_sched.py",
+ "agent_b": "agents/v57_sched.py",
  "episodes": "48",
- "seed0": "270000",
+ "seed0": "280000",
  "replicate": "32"
 }
