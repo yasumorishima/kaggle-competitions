@@ -1,100 +1,12 @@
 {
- "memo": "v57 twin vs v57: geese (eggs hold their price) - floor of 3/6 geese from day 6/8, 4 from day 3",
+ "memo": "v57 twin vs v57: sheep floor 5/6 from day 10, with and without the payback veto",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "g3d6",
-   "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3,
-       "GOOSE": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3,
-       "GOOSE": 3
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "g6d6",
-   "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3,
-       "GOOSE": 6
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3,
-       "GOOSE": 6
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "g6d8",
+   "name": "s5",
    "P": {
     "sched_herd_floor": [
      [
@@ -129,15 +41,21 @@
       8,
       {
        "COW": 6,
-       "SHEEP": 3,
-       "GOOSE": 6
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 5
       }
      ]
     ]
    }
   },
   {
-   "name": "g4d3",
+   "name": "s6",
    "P": {
     "sched_herd_floor": [
      [
@@ -151,41 +69,144 @@
       3,
       {
        "COW": 3,
-       "SHEEP": 2,
-       "GOOSE": 4
+       "SHEEP": 2
       }
      ],
      [
       5,
       {
        "COW": 4,
-       "SHEEP": 2,
-       "GOOSE": 4
+       "SHEEP": 2
       }
      ],
      [
       6,
       {
        "COW": 5,
-       "SHEEP": 3,
-       "GOOSE": 4
+       "SHEEP": 3
       }
      ],
      [
       8,
       {
        "COW": 6,
-       "SHEEP": 3,
-       "GOOSE": 4
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
       }
      ]
     ]
+   }
+  },
+  {
+   "name": "s5v",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 5
+      }
+     ]
+    ],
+    "sched_veto": false
+   }
+  },
+  {
+   "name": "s6v",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ]
+    ],
+    "sched_veto": false
    }
   }
  ],
  "agent_a": "agents/v57_sched.py",
  "agent_b": "agents/v57_sched.py",
  "episodes": "48",
- "seed0": "280000",
+ "seed0": "290000",
  "replicate": "32"
 }
