@@ -1,57 +1,9 @@
 {
- "memo": "v55 twin vs v55: last sow days (melon 5/0, strawberry 16, tomato 16, wheat/carrot earlier)",
+ "memo": "v55 twin vs v55: combined last sow days (wheat/carrot 24/22 with strawberry/tomato 16)",
  "variants": [
   {
    "name": "base",
    "P": {}
-  },
-  {
-   "name": "ml5",
-   "P": {
-    "plant_last_day": {
-     "WHEAT": 26,
-     "CARROT": 27,
-     "MELON": 5,
-     "TOMATO": 21,
-     "STRAWBERRY": 19
-    }
-   }
-  },
-  {
-   "name": "ml0",
-   "P": {
-    "plant_last_day": {
-     "WHEAT": 26,
-     "CARROT": 27,
-     "MELON": 0,
-     "TOMATO": 21,
-     "STRAWBERRY": 19
-    }
-   }
-  },
-  {
-   "name": "st16",
-   "P": {
-    "plant_last_day": {
-     "WHEAT": 26,
-     "CARROT": 27,
-     "MELON": 11,
-     "TOMATO": 21,
-     "STRAWBERRY": 16
-    }
-   }
-  },
-  {
-   "name": "tm16",
-   "P": {
-    "plant_last_day": {
-     "WHEAT": 26,
-     "CARROT": 27,
-     "MELON": 11,
-     "TOMATO": 16,
-     "STRAWBERRY": 19
-    }
-   }
   },
   {
    "name": "wh24",
@@ -64,11 +16,59 @@
      "STRAWBERRY": 19
     }
    }
+  },
+  {
+   "name": "wh22",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 22,
+     "CARROT": 23,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 19
+    }
+   }
+  },
+  {
+   "name": "all",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 11,
+     "TOMATO": 16,
+     "STRAWBERRY": 16
+    }
+   }
+  },
+  {
+   "name": "whst",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 11,
+     "TOMATO": 21,
+     "STRAWBERRY": 16
+    }
+   }
+  },
+  {
+   "name": "whtm",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 11,
+     "TOMATO": 16,
+     "STRAWBERRY": 19
+    }
+   }
   }
  ],
  "agent_a": "agents/v55_sched.py",
  "agent_b": "agents/v55_sched.py",
  "episodes": "48",
- "seed0": "230000",
+ "seed0": "240000",
  "replicate": "32"
 }
