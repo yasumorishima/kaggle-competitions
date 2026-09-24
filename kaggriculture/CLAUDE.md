@@ -90,6 +90,14 @@ capacity 一式（3 区画目・人手 1.25 倍・遊休地の埋め）／群れ
   1 試合 10〜15 秒。重い掃引はローカルで回さず GHA へ。
 - `sim/test_*.py`＝push/PR で `Kaggriculture Tests` が走る。commit 前にローカルでも全部通す。
 
+## cloud 版で動かすときの注意（公式 docs 2026-09-24 時点・未実地確認）
+
+- push できるのは**セッションの作業ブランチだけ**＝main へは PR を立てて merge する（自分のリポなので即 merge でよい）。
+  workflow は main の定義で走るので、`main.py` や agent を変えたら **merge してから** sweep を dispatch する。
+- 既定のネットワークは PyPI 等のみ＝**kaggle.com は許可リスト外**。LB 取得・公開 kernel の取得には環境でドメイン追加か Full が要る。
+  `KAGGLE_API_TOKEN` は環境変数でなく **API credentials** に置く（環境変数は共有メンバー全員に見える）。
+- `gh` で workflow を dispatch できるかは docs に記載なし＝最初のセッションで確かめてここに書く。
+
 ## 環境の確定事項（一次資料＝interpreter）
 
 - 動物：COW $400・初乳 8 日目・隔日／SHEEP $500・6 日目・3 日ごと／GOOSE $300・4 日目・毎日。開幕資金 3,000。
