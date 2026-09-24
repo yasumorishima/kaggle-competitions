@@ -1,0 +1,157 @@
+name: Kaggriculture Submit
+
+# Submits one agent file to the kaggriculture competition as main.py.
+# Only the latest two submissions count in the final tournament, so every run
+# pushes an older one out: dispatch this only with the user's explicit approval
+# for that specific agent, and only for an agent shown to beat the current
+# submission head to head (the evidence goes into `evidence`).
+#
+# Residual risk, accepted: a writer could dispatch from another branch whose
+# copy of this file drops the guards. Only the owner writes to this repo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: 'この実行の意図（必須）'
+        required: true
+        type: string
+      agent:
+        description: 'Agent file under kaggriculture/, e.g. agents/v50_sched.py'
+        required: true
+        type: string
+      message:
+        description: 'Submission description shown on Kaggle'
+        required: true
+        type: string
+      evidence:
+        description: 'Head-to-head evidence vs the current submission (run id + margin + win rate)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type exactly: submit'
+        required: true
+        type: string
+      dry_run:
+        description: 'Run every check but do not submit (default). Set false to submit'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: kaggriculture-submit
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kaggriculture
+    env:
+      AGENT: ${{ inputs.agent }}
+      MESSAGE: ${{ inputs.message }}
+      EVIDENCE: ${{ inputs.evidence }}
+      CONFIRM: ${{ inputs.confirm }}
+      MEMO: ${{ inputs.memo }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check the inputs
+        run: |
+          set -eu
+          [ "$CONFIRM" = "submit" ] || { echo "confirm must be exactly 'submit'"; exit 1; }
+          [ "${#EVIDENCE}" -ge 20 ] || { echo "evidence is required (run id, margin, win rate)"; exit 1; }
+          case "$AGENT" in
+            agents/*.py) ;;
+            *) echo "agent must be a .py file under kaggriculture/agents/"; exit 1 ;;
+          esac
+          case "$AGENT" in *..*) echo "no '..' in the agent path"; exit 1 ;; esac
+          [ -f "$AGENT" ] || { echo "not found: kaggriculture/$AGENT"; exit 1; }
+          [ ! -L "$AGENT" ] || { echo "the agent must not be a symlink"; exit 1; }
+          case "$(realpath "$AGENT")" in
+            "$GITHUB_WORKSPACE"/kaggriculture/agents/*) ;;
+            *) echo "resolves outside kaggriculture/agents/"; exit 1 ;;
+          esac
+          mkdir -p /tmp/sub
+          cp "$AGENT" /tmp/sub/main.py
+          MD5=$(md5sum /tmp/sub/main.py | cut -d' ' -f1)
+          echo "agent:    $AGENT"
+          echo "md5:      $MD5"
+          echo "evidence: $EVIDENCE"
+          echo "MD5=$MD5" >> "$GITHUB_ENV"
+          # A tag Kaggle keeps with the submission: lets the job find its own
+          # submission afterwards, and refuse to send the same file twice.
+          echo "TAG=[run ${GITHUB_RUN_ID} md5 ${MD5:0:12}]" >> "$GITHUB_ENV"
+
+      - name: Install
+        run: pip install -q 'kaggle-environments==1.32.7' 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+
+      - name: The file plays a full season on its own
+        # Run from outside the repo so the agent cannot lean on repo imports
+        # it will not have on Kaggle.
+        working-directory: /tmp/sub
+        run: |
+          python - <<'PY'
+          from kaggle_environments import make
+          env = make("kaggriculture", configuration={"episodeSteps": 720, "seed": 4242})
+          env.run(["main.py", "main.py"])
+          last = env.steps[-1]
+          print("steps", len(env.steps), "status", [s.status for s in last], "reward", [s.reward for s in last])
+          assert len(env.steps) >= 720, "season ended early"
+          assert all(s.status == "DONE" for s in last), "an agent did not finish"
+          assert all((s.reward or 0) > 0 for s in last), "zero reward = an agent that the environment stopped"
+          PY
+
+      - name: Refuse a file that is already submitted
+        working-directory: /tmp/sub
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          kaggle competitions submissions kaggriculture -v > before.csv
+          head -3 before.csv
+          if grep -q "md5 ${MD5:0:12}" before.csv; then
+            echo "this exact file was already submitted:"
+            grep "md5 ${MD5:0:12}" before.csv
+            exit 1
+          fi
+
+      - name: Submit
+        # Never on a re-run: a red step after this one must not send it again.
+        if: github.run_attempt == '1' && inputs.dry_run == false
+        working-directory: /tmp/sub
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: kaggle competitions submit kaggriculture -f main.py -m "$MESSAGE $TAG"
+
+      - name: The submission is really there
+        # kaggle 2.0.0 prints a message and exits 0 on a 404 (checked in its
+        # source), so success is read back from the list, not from the exit code.
+        if: inputs.dry_run == false
+        working-directory: /tmp/sub
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          kaggle competitions submissions kaggriculture -v > after.csv
+          grep "run ${GITHUB_RUN_ID} " after.csv || { echo "no submission tagged run ${GITHUB_RUN_ID}"; head -3 after.csv; exit 1; }
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Kaggriculture submit"
+            echo ""
+            echo "memo: $MEMO"
+            echo ""
+            echo "agent: \`$AGENT\` md5 \`${MD5:-?}\`"
+            echo ""
+            echo "evidence: $EVIDENCE"
+          } >> "$GITHUB_STEP_SUMMARY"
