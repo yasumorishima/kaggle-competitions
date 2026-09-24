@@ -1,0 +1,18 @@
+run: 35993213546  status: success
+memo: v54 twin vs v53: no second melon crop (melon last sow day 11), droppings to day 5, strawberry x1.5
+agent_a: agents/v54_sched.py  agent_b: agents/v53_sched.py  episodes: 48  seed0: 220000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "f5", "P": {"fert_sell_days": 5}}, {"name": "ml11", "P": {"plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 11, "TOMATO": 21, "STRAWBERRY": 19}}}, {"name": "ml11f5", "P": {"plant_last_day": {"WHEAT": 26, "CARROT": 27, "MELON": 11, "TOMATO": 21, "STRAWBERRY": 19}, "fert_sell_days": 5}}, {"name": "st15", "P": {"crop_pct_scale": {"STRAWBERRY": 1.5}}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+ml11                         79808      4171     0.62     96            2088      1784      2042     1179   BETTER
+ml11f5                       81396      4554     0.60     96            3675      3185      2008     1210   BETTER
+st15                         76822      4424     0.57     96            -899      3566      1019     1227      tie
+base                         77721      4096     0.29     96               0       nan         0        -      ref
+f5                           78460      4116     0.45     96             739      2807      -230     1149      tie
+
+SWEEP_BEST={"name": "ml11", "mean": 79808, "margin": 2042, "ranked_on": "margin"}
+
+replicating 'ml11' against 'base' on seeds 222000-222031, both sides
+  ml11 vs base: margin +2013 +/- 932 over 64 games (own money +2357 +/- 1780) -> HELD
+SWEEP_REPLICATE={"name": "ml11", "margin": 2013, "margin_ci95": 932, "delta": 2357, "ci95": 1780, "games": 64, "verdict": "HELD", "judged_on": "margin"}
