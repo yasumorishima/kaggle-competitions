@@ -11,8 +11,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
 - 追跡されるのは**最新 2 提出だけ**で、最終評価もその 2 つ。古い提出は落ちる。提出は 1 日 5 本。
 - 締切後 10/1〜10/15 頃に対局を回し Bradley-Terry で最終 LB を作る。**今の LB は持ち越されない**。
 - **レーティングは勝敗だけで動く。コイン差は効かない**。
-- 現在の最新 2 提出＝**v48_sched（2026-09-23 提出）と v45**。次に出すと v45 が押し出される
-  ⇒ **v48_sched 以上だと直接対決で示せたものだけを出す**。
+- 現在の最新 2 提出＝**v51_sched（2026-09-24 提出・run `35965521829`）と v48_sched（2026-09-23）**。v45 は押し出された。
+  次に出すと v48_sched が押し出される ⇒ **v51_sched 以上だと直接対決で示せたものだけを出す**。
 
 ## 採否の物差し（ここを間違えると全部無駄になる）
 
@@ -27,8 +27,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
 ## 現在地（2026-09-24）
 
 - LB 6,269 位 / 9,478（09-19）。銅ライン 約 2,393。**銅には自分の金 ×1.5〜2.0 が要る**。
-- **提出候補＝`agents/v51_sched.py`**（router 型の開幕一式・下の節）。未提出。
-- 提出中の土台＝`agents/v48_sched.py`（v47 と同一）。双子 v45 相手 96 試合で勝率 0.72・自分の金 77,771。
+- **提出中の土台＝`agents/v51_sched.py`**（router 型の開幕一式・下の節）。2026-09-24 06:40 UTC 提出、提出直後は PENDING。
+- 1 つ前の提出＝`agents/v48_sched.py`（v47 と同一）。双子 v45 相手 96 試合で勝率 0.72・自分の金 77,771。
 - **上位との距離**：v48_sched は公開リプレイ boatlee に **0/32・69,558 対 131,411**（`kaggriculture-panel.yml` の band 4 行）。
   公開 router に seed 86000 で 85,673 対 169,076。
 - **行動列の登坂チェーン（`kaggriculture-optimize.yml`・6 時間ごとの schedule で自動）は負けている**：
@@ -76,13 +76,12 @@ router は **0 日目にメロン 12 区画＋牛 2＋羊 2** に現金を使い
 
 ## ▶▶ 次の一手
 
-0. **v51_sched を提出するかの判断**（user の指示があれば下の「依頼ファイル」で cloud が PR 作成→merge まで）：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
+0. ✅ **v51_sched は提出済み**（2026-09-24・PR #7 を cloud が merge → submit run `35965521829` success・一覧で PENDING を確認）。以下は判断の記録：双子 v48 に BETTER＋HELD、router に tie＝「v48_sched 以上だと直接対決で
    示せた」条件は満たす。出すと v45 が押し出され、最新 2 本＝v51_sched と v48_sched になる。
    **GHA で別 seed 帯（180000〜・cloud 未使用）でも再現**：双子 96 試合 勝率 0.85・margin **+6,040 ± 1,657 BETTER**（run `35961918542`）、
    router 48 試合 −5,543 ± 7,224 tie（run `35961921180`）。
-   ▶ **2026-09-24：提出依頼の PR を作成（`requests/submit.json`・agent `agents/v51_sched.py`・`dry_run: false`・md5 `30026330a322…`）＝user の merge 待ち**。
-   merge 後は `requests/results/submit-<run id>.txt`（main）で提出一覧に v51 が載ったかを確かめ、「現在の最新 2 提出」を v51_sched と v48_sched に書き換える。
-   これが**本番（`dry_run: false`）の初回**。
+   結果：`requests/results/submit-35965521829.txt`（md5 `30026330a32228bb7894bf5d22304bcb`・提出文末尾 `[run 35965521829 md5 30026330a322]`）。
+   次のセッションで publicScore が付いたかを `www.kaggle.com/api/v1/competitions/submissions/list/kaggriculture` で読む（LB で版を判定はしない）。
 1. 次の構造の手（v51 を土台に）：0 日目の羊 2 頭目（現金不足で 1 頭止まり＝day-0 の飼料買い `feed_buy_days` を削るか）、
    router のように 2〜9 日目に糞（肥料）を売って牛を 1 頭ずつ足す流れ。どちらも v51 を base に双子＋router で測る。
 
@@ -111,7 +110,7 @@ cloud は push と PR はできるが workflow の dispatch はできない（40
 - **提出**：`kaggriculture/requests/submit.json`（`memo`・`agent`・`message`・`evidence`・`confirm: "submit"`・`dry_run`）を
   **PR に入れて main に merge する（main に入った時だけ走る）**。`dry_run` を省くと true（提出しない）。
   結果は main に `kaggriculture/requests/results/submit-<run id>.txt`。2026-09-24 に v48 の dry run で動作確認済み（run `35963501480`）。
-  **本番（`dry_run: false`）はまだ一度も走っていない**。
+  **本番（`dry_run: false`）も 2026-09-24 に v51_sched で成功**（run `35965521829`・提出一覧に載ったのを workflow 自身が確認）。
 - 提出 workflow の止め：main のみ／symlink 不可／単独で 720 ステップ完走／提出文に `[run <id> md5 <12桁>]` を付け、
   同じ md5 が一覧にあれば止める／再実行では提出しない／提出後に一覧を読み直して無ければ失敗（CLI は 404 でも終了コード 0）。
 - 🔴 **提出は user がそのセッションで明示的に指示した agent だけ**（最新 2 本だけが最終評価に残る＝古い 1 本を押し出す）。
