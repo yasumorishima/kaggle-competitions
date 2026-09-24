@@ -3,6 +3,13 @@ name: Kaggriculture Sweep
 # Compare parameter settings of the agent on identical seeds in one job, so a
 # tuning round costs one dispatch instead of one per knob -- and so differences
 # inside the season-variance band are visible as such.
+#
+# Two ways in:
+#  - workflow_dispatch with the inputs below;
+#  - a push of kaggriculture/requests/sweep.json on any branch. This is the way
+#    in for a cloud session, which may push but may not dispatch. The file holds
+#    the same fields as the inputs; the result is committed back to the same
+#    branch as kaggriculture/requests/results/sweep-<run id>.txt.
 
 on:
   workflow_dispatch:
@@ -39,6 +46,12 @@ on:
         required: false
         default: '32'
         type: string
+  push:
+    paths:
+      - 'kaggriculture/requests/sweep.json'
+
+permissions:
+  contents: write
 
 jobs:
   sweep:
@@ -54,6 +67,41 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Read the request
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_MEMO: ${{ inputs.memo }}
+          IN_VARIANTS: ${{ inputs.variants }}
+          IN_AGENT_A: ${{ inputs.agent_a }}
+          IN_AGENT_B: ${{ inputs.agent_b }}
+          IN_EPISODES: ${{ inputs.episodes }}
+          IN_SEED0: ${{ inputs.seed0 }}
+          IN_REPLICATE: ${{ inputs.replicate }}
+        run: |
+          python - <<'PY'
+          import json, os
+          if os.environ["EVENT"] == "push":
+              r = json.load(open("requests/sweep.json", encoding="utf-8"))
+              get = lambda k, d: r.get(k, d)
+              variants = r["variants"]
+          else:
+              get = lambda k, d: os.environ.get("IN_" + k.upper()) or d
+              variants = json.loads(os.environ["IN_VARIANTS"])
+          memo = str(get("memo", "")).strip()
+          assert memo, "memo is required"
+          assert isinstance(variants, list) and variants, "variants must be a non-empty list"
+          json.dump(variants, open("/tmp/variants.json", "w"))
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              for k, d in (("agent_a", "main.py"), ("agent_b", "starter"), ("episodes", "6"),
+                           ("seed0", "3000"), ("replicate", "32")):
+                  v = str(get(k, d))
+                  assert "\n" not in v
+                  f.write(f"{k.upper()}={v}\n")
+              f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
+          print("memo:", memo)
+          print("variants:", json.dumps(variants))
+          PY
+
       - name: Install deps
         run: pip install -U kaggle-environments
 
@@ -62,25 +110,23 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -e
-          b="${{ inputs.agent_b }}"
+          b="$AGENT_B"
           if [ "${b#kernel:}" != "$b" ]; then
             pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
             ref="${b#kernel:}"
             python sim/fetch_opponent.py --exec "$ref"
-            echo "AGENT_B=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
+            echo "AGENT_B_PATH=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
           else
-            echo "AGENT_B=$b" >> "$GITHUB_ENV"
+            echo "AGENT_B_PATH=$b" >> "$GITHUB_ENV"
           fi
 
       - name: Sweep
         run: |
-          cat > /tmp/variants.json <<'JSON'
-          ${{ inputs.variants }}
-          JSON
-          python sim/sweep.py --variants /tmp/variants.json --b "$AGENT_B" \
-            --agent "${{ inputs.agent_a }}" \
-            --episodes "${{ inputs.episodes }}" --seed0 "${{ inputs.seed0 }}" \
-            --replicate "${{ inputs.replicate }}" \
+          set -o pipefail
+          python sim/sweep.py --variants /tmp/variants.json --b "$AGENT_B_PATH" \
+            --agent "$AGENT_A" \
+            --episodes "$EPISODES" --seed0 "$SEED0" \
+            --replicate "$REPLICATE" \
             --workers "$(nproc)" | tee /tmp/sweep.log
 
       - name: Job summary
@@ -89,9 +135,38 @@ jobs:
           {
             echo "### Kaggriculture sweep"
             echo ""
-            echo "memo: ${{ inputs.memo }}"
+            echo "memo: $MEMO"
             echo ""
             echo '```'
             cat /tmp/sweep.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the result back to the branch
+        # Only for a pushed request: a cloud session reads it with git pull.
+        # A push made with GITHUB_TOKEN does not start another workflow run.
+        if: always() && github.event_name == 'push'
+        env:
+          BRANCH: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          out="requests/results/sweep-${RUN_ID}.txt"
+          mkdir -p requests/results
+          {
+            echo "run: ${RUN_ID}  status: ${OUTCOME}"
+            echo "memo: $MEMO"
+            echo "agent_a: $AGENT_A  agent_b: $AGENT_B  episodes: $EPISODES  seed0: $SEED0  replicate: $REPLICATE"
+            echo "variants: $(cat /tmp/variants.json)"
+            echo
+            cat /tmp/sweep.log 2>/dev/null || echo "(no sweep output)"
+          } > "$out"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$out"
+          git commit -q -m "kaggriculture: sweep result ${RUN_ID}"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
+            sleep $((i * 5))
+          done
+          echo "could not push the result"; exit 1

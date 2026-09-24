@@ -6,6 +6,14 @@ name: Kaggriculture Submit
 # for that specific agent, and only for an agent shown to beat the current
 # submission head to head (the evidence goes into `evidence`).
 #
+# Two ways in:
+#  - workflow_dispatch with the inputs below;
+#  - kaggriculture/requests/submit.json arriving on main. This is the way in for
+#    a cloud session, which may open a PR but may not dispatch: the session puts
+#    the request in a PR, and merging that PR into main IS the user's approval.
+#    The file holds the same fields as the inputs (dry_run defaults to true).
+#    The outcome is committed to main as requests/results/submit-<run id>.txt.
+#
 # Residual risk, accepted: a writer could dispatch from another branch whose
 # copy of this file drops the guards. Only the owner writes to this repo.
 
@@ -37,6 +45,13 @@ on:
         required: false
         default: true
         type: boolean
+  push:
+    branches: [main]
+    paths:
+      - 'kaggriculture/requests/submit.json'
+
+permissions:
+  contents: write
 
 concurrency:
   group: kaggriculture-submit
@@ -50,18 +65,42 @@ jobs:
     defaults:
       run:
         working-directory: kaggriculture
-    env:
-      AGENT: ${{ inputs.agent }}
-      MESSAGE: ${{ inputs.message }}
-      EVIDENCE: ${{ inputs.evidence }}
-      CONFIRM: ${{ inputs.confirm }}
-      MEMO: ${{ inputs.memo }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Read the request
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_AGENT: ${{ inputs.agent }}
+          IN_MESSAGE: ${{ inputs.message }}
+          IN_EVIDENCE: ${{ inputs.evidence }}
+          IN_CONFIRM: ${{ inputs.confirm }}
+          IN_MEMO: ${{ inputs.memo }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          python - <<'PY'
+          import json, os
+          if os.environ["EVENT"] == "push":
+              r = json.load(open("requests/submit.json", encoding="utf-8"))
+              get = lambda k: r.get(k)
+          else:
+              get = lambda k: os.environ.get("IN_" + k.upper())
+          dry = get("dry_run")
+          dry = "true" if dry is None else str(dry).strip().lower()
+          assert dry in ("true", "false"), "dry_run must be true or false"
+          vals = {"AGENT": get("agent"), "MESSAGE": get("message"), "EVIDENCE": get("evidence"),
+                  "CONFIRM": get("confirm"), "MEMO": get("memo"), "DRY_RUN": dry}
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              for k, v in vals.items():
+                  v = "" if v is None else str(v)
+                  assert "\n" not in v, k + " must be one line"
+                  f.write(f"{k}={v}\n")
+          print({k: v for k, v in vals.items()})
+          PY
 
       - name: Check the inputs
         run: |
@@ -125,7 +164,7 @@ jobs:
 
       - name: Submit
         # Never on a re-run: a red step after this one must not send it again.
-        if: github.run_attempt == '1' && inputs.dry_run == false
+        if: github.run_attempt == '1' && env.DRY_RUN == 'false'
         working-directory: /tmp/sub
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
@@ -134,7 +173,7 @@ jobs:
       - name: The submission is really there
         # kaggle 2.0.0 prints a message and exits 0 on a 404 (checked in its
         # source), so success is read back from the list, not from the exit code.
-        if: inputs.dry_run == false
+        if: env.DRY_RUN == 'false'
         working-directory: /tmp/sub
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
@@ -155,3 +194,31 @@ jobs:
             echo ""
             echo "evidence: $EVIDENCE"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the outcome to main
+        # Only for a merged request: a cloud session reads it with git pull.
+        if: always() && github.event_name == 'push'
+        env:
+          RUN_ID: ${{ github.run_id }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          out="requests/results/submit-${RUN_ID}.txt"
+          mkdir -p requests/results
+          {
+            echo "run: ${RUN_ID}  status: ${OUTCOME}  dry_run: ${DRY_RUN}"
+            echo "agent: ${AGENT}  md5: ${MD5:-?}"
+            echo "message: ${MESSAGE} ${TAG:-}"
+            echo "evidence: ${EVIDENCE}"
+            echo
+            echo "submissions list after the run:"
+            cat /tmp/sub/after.csv 2>/dev/null || cat /tmp/sub/before.csv 2>/dev/null || echo "(not read)"
+          } > "$out"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$out"
+          git commit -q -m "kaggriculture: submit outcome ${RUN_ID}"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep $((i * 5))
+          done
+          echo "could not push the outcome"; exit 1
