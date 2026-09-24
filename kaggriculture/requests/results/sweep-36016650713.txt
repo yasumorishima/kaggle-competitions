@@ -1,0 +1,18 @@
+run: 36016650713  status: success
+memo: v56 twin vs v56: keep the cows fed (feed_value_rule escape/asset), with and without 1.15x hands
+agent_a: agents/v56_sched.py  agent_b: agents/v56_sched.py  episodes: 48  seed0: 270000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "esc", "P": {"feed_value_rule": "escape"}}, {"name": "asset", "P": {"feed_value_rule": "asset"}}, {"name": "esch", "P": {"feed_value_rule": "escape", "sched_hands_scale": 1.15}}, {"name": "asseth", "P": {"feed_value_rule": "asset", "sched_hands_scale": 1.15}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+asset                        84770      3642     0.66     96            -751      4086      2546     1642   BETTER
+asseth                       80506      3442     0.65     96           -5016      5209      1404     1365   BETTER
+esc                          84199      3938     0.53     96           -1323      2414       875     1551      tie
+esch                         83158      5117     0.45     96           -2364      6152       182     1643      tie
+base                         85522      4173     0.17     96               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "asset", "mean": 84770, "margin": 2546, "ranked_on": "margin"}
+
+replicating 'asset' against 'base' on seeds 272000-272031, both sides
+  asset vs base: margin +2225 +/- 1843 over 64 games (own money +2617 +/- 5406) -> HELD
+SWEEP_REPLICATE={"name": "asset", "margin": 2225, "margin_ci95": 1843, "delta": 2617, "ci95": 5406, "games": 64, "verdict": "HELD", "judged_on": "margin"}
