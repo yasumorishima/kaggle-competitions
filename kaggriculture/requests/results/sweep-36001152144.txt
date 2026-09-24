@@ -1,0 +1,15 @@
+run: 36001152144  status: success
+memo: v56 twin vs v56: strawberry/tomato last sow day 14, dump day 28, droppings to day 12
+agent_a: agents/v56_sched.py  agent_b: agents/v56_sched.py  episodes: 48  seed0: 250000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "st14", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 16, "STRAWBERRY": 14}}}, {"name": "tm14", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 14, "STRAWBERRY": 16}}}, {"name": "sttm14", "P": {"plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 11, "TOMATO": 14, "STRAWBERRY": 14}}}, {"name": "dump28", "P": {"dump_day": 28}}, {"name": "f12", "P": {"fert_sell_days": 12}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         81908      4107     0.22     96               0       nan         0        -      ref
+tm14                         81908      4107     0.22     96               0         0         0        0      tie
+st14                         82193      4255     0.38     96             286      1006       -63      496      tie
+sttm14                       82193      4255     0.38     96             286      1006       -63      496      tie
+f12                          81390      4042     0.32     96            -517      1655      -967      867    WORSE
+dump28                       79815      4021     0.15     96           -2093       369     -2070      372    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 81908, "margin": 0, "ranked_on": "margin"}
