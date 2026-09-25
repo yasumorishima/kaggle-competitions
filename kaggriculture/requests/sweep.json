@@ -1,63 +1,23 @@
 {
- "memo": "v64 twin vs v64, 192 games: herd floor 6 cows / 6 sheep from day 10 (router BETTER 5 times, twin always small plus)",
+ "memo": "v65 twin vs v65, 192 games: strawberries sold whole on arrival (BETTER in 5 sweeps, never replicated)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "h10s",
+   "name": "swS",
    "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ]
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
     ]
    }
   }
  ],
- "agent_a": "agents/v64_sched.py",
- "agent_b": "agents/v64_sched.py",
+ "agent_a": "agents/v65_sched.py",
+ "agent_b": "agents/v65_sched.py",
  "episodes": "96",
- "seed0": "420000",
+ "seed0": "440000",
  "replicate": "48"
 }

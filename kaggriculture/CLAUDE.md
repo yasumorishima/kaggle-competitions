@@ -246,9 +246,17 @@ base＝`agents/v54_sched.py`（v53 を再生成・ノブ `sched_veto_from` 追�
   **`36130608392`：勝率 0.54・+887 ± 871 BETTER（192 試合）・422000〜 96 試合 +1,377 ± 1,218 HELD**。
 - 固定：`agents/v65_sched.py`＝v64＋`sched_herd_floor` に `[10,{COW:6,SHEEP:6}]`（変種と router 90000／82000 で 1 円一致）。
 
+### v65 の上（2026-09-25・cloud・双子の相手 v65）＝**v66_sched を 09-26 の 2 本目に出す**
+
+- 第 1 回（`36134687436`）：s8d12（12 日目から羊 8）+290 tie・引き直し +970 HELD（本番 tie なので不可）・router tie、
+  c8d12・s6d9 は base と完全一致（床が効かない）、fv（`feed_value_rule "escape"`）−2,185 WORSE、swS +64 ± 61 BETTER・router +603 BETTER。
+- swS（`sell_whole ["MELON","STRAWBERRY"]`）は **5 回連続で双子・router とも小さく BETTER** ⇒ 192 試合：
+  **`36138497648`：勝率 0.44（base 0.33）・+107 ± 69 BETTER・442000〜 96 試合 +19 ± 18 HELD**。コイン差は小さいが勝率が上がる。
+- 固定：`agents/v66_sched.py`＝v65＋swS（変種と router 90000／82000 で 1 円一致）。
+
 ## ▶▶ 次の一手
 
-0. **UTC 09-26 になったら v65_sched を提出**（証拠は上の節）。v64_sched は提出済み（run `36106020839`）。
+0. **UTC 09-26 になったら v65_sched → v66_sched の順に提出**（証拠は上の 2 節・v66 は v65 に勝つ）。v64_sched は提出済み（run `36106020839`）。
    次の候補は v65 に双子で勝つもの。人手の倍率は 1.1 が局所最適（1.05／1.15／1.2 は WORSE）。
    案：`rush_items` を他の値崩れ品（WOOL・STRAWBERRY）へ、10 日目朝にメロンへ人手を寄せる、rm1S との比較。
    案：10 日目 0 時にメロンを収穫し 10 時前に売り切る（人手を 10 日目朝にメロンへ寄せる）、他の一発作物（小麦）の `sell_whole`。
