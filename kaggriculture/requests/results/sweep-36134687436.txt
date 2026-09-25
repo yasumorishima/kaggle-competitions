@@ -1,0 +1,19 @@
+run: 36134687436  status: success
+memo: v65 twin vs v65: sheep 8 / cows 8 from day 12, herd 6/6 from day 9, strawberries whole, escape feed rule
+agent_a: agents/v65_sched.py  agent_b: agents/v65_sched.py  episodes: 48  seed0: 430000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "s8d12", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [12, {"COW": 6, "SHEEP": 8}]]}}, {"name": "c8d12", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [12, {"COW": 8, "SHEEP": 6}]]}}, {"name": "s6d9", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [9, {"COW": 6, "SHEEP": 6}]]}}, {"name": "swS", "P": {"sell_whole": ["MELON", "STRAWBERRY"]}}, {"name": "fv", "P": {"feed_value_rule": "escape"}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+s8d12                        84024      5258     0.48     96             393      1097       290      610      tie
+swS                          83653      5274     0.38     96              21        32        64       61   BETTER
+base                         83632      5289     0.30     96               0       nan         0        -      ref
+c8d12                        83632      5289     0.30     96               0         0         0        0      tie
+s6d9                         83632      5289     0.30     96               0         0         0        0      tie
+fv                           77737      4349     0.28     96           -5894      6260     -2185     1233    WORSE
+
+SWEEP_BEST={"name": "s8d12", "mean": 84024, "margin": 290, "ranked_on": "margin"}
+
+replicating 's8d12' against 'base' on seeds 432000-432031, both sides
+  s8d12 vs base: margin +970 +/- 887 over 64 games (own money +134 +/- 1242) -> HELD
+SWEEP_REPLICATE={"name": "s8d12", "margin": 970, "margin_ci95": 887, "delta": 134, "ci95": 1242, "games": 64, "verdict": "HELD", "judged_on": "margin"}
