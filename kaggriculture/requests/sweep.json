@@ -1,71 +1,37 @@
 {
- "memo": "v57 twin vs v57: melons fertilized on days 6-8 and picked at the cap, so they sell before the router (m9), without a second melon crop",
+ "memo": "v59 twin vs v58: no refused melon harvests before day 10 (hr), melons sold whole on arrival (sw)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "m9",
+   "name": "hr",
    "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
+    "hc_respect_first": true
+   }
+  },
+  {
+   "name": "sw",
+   "P": {
+    "sell_whole": [
      "MELON"
     ]
    }
   },
   {
-   "name": "m9L8",
+   "name": "hrsw",
    "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
+    "hc_respect_first": true,
+    "sell_whole": [
      "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 8,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
-   }
-  },
-  {
-   "name": "m9L4",
-   "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
-     "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 4,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
-   }
-  },
-  {
-   "name": "m9f6",
-   "P": {
-    "fert_sell_days": 6,
-    "harvest_at_cap": [
-     "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 8,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    ]
    }
   }
  ],
- "agent_a": "agents/v57_sched.py",
- "agent_b": "agents/v57_sched.py",
+ "agent_a": "agents/v59_sched.py",
+ "agent_b": "agents/v58_sched.py",
  "episodes": "48",
- "seed0": "310000",
+ "seed0": "340000",
  "replicate": "32"
 }
