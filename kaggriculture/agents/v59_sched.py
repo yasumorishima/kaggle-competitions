@@ -597,7 +597,12 @@ P = {
     # router sells 3-9 a day from day 1 and buys a cow every other day with it;
     # v51 collects as many and spends 3 a day on wheat and melon (seed 90000).
     "fert_sell_days": -1,
-    "fert_sell_from": 99,       # ...and again from this day on (v58: after the melons are fed)
+    "fert_sell_from": 99,
+    # A one-shot crop cannot be harvested before its first_yield_day (melon: 10)
+    # however full it is -- the environment drops the order. v58's melons reach
+    # the cap on day 9 and seven hands spend that afternoon on refused harvests.
+    "hc_respect_first": False,
+    "sell_whole": (),           # items sold whole the turn they reach the shed (melon: beat the rival to the curve)       # ...and again from this day on (v58: after the melons are fed)
     "sched_herd_cap": 0,      # from which day may the town's demand shrink a
                                # calendar's head count? 0 = never, and True is 1
     "forward_floor": ALLOW_FRAC,   # keep planting while the harvest clears this
@@ -1122,7 +1127,7 @@ def agent(obs, config=None):
             have = max(0, have - fert_keep)
         if have <= 0:
             continue
-        if liquidate:
+        if liquidate or item in P["sell_whole"]:
             qty = have
         else:
             now = price(item)
@@ -1515,7 +1520,8 @@ def agent(obs, config=None):
             return t.get("yield_units", 0) > 0 and age >= cd["first_yield_day"]
         _hc = P["harvest_at_cap"]
         if (_hc and (_hc is True or t["crop"] in _hc)
-                and t.get("yield_units", 0) >= cd["max_yield"]):
+                and t.get("yield_units", 0) >= cd["max_yield"]
+                and (not P["hc_respect_first"] or age >= cd["first_yield_day"])):
             return True
         return t.get("yield_units", 0) > 0 and age >= cd["max_yield_day"]
 

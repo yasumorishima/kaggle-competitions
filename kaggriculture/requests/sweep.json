@@ -1,75 +1,30 @@
 {
- "memo": "v59 twin vs v58: sell droppings again after the melons are fed (from day 9/12/20), and with a bigger herd from day 10",
+ "memo": "v59 twin vs v58: no refused melon harvests before day 10 (hr), melons sold whole on arrival (sw)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "fs9",
+   "name": "hr",
    "P": {
-    "fert_sell_from": 9
+    "hc_respect_first": true
    }
   },
   {
-   "name": "fs12",
+   "name": "sw",
    "P": {
-    "fert_sell_from": 12
+    "sell_whole": [
+     "MELON"
+    ]
    }
   },
   {
-   "name": "fs20",
+   "name": "hrsw",
    "P": {
-    "fert_sell_from": 20
-   }
-  },
-  {
-   "name": "h10fs9",
-   "P": {
-    "fert_sell_from": 9,
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 8,
-       "SHEEP": 5
-      }
-     ]
+    "hc_respect_first": true,
+    "sell_whole": [
+     "MELON"
     ]
    }
   }
@@ -77,6 +32,6 @@
  "agent_a": "agents/v59_sched.py",
  "agent_b": "agents/v58_sched.py",
  "episodes": "48",
- "seed0": "330000",
+ "seed0": "340000",
  "replicate": "32"
 }
