@@ -1,0 +1,19 @@
+run: 36093820274  status: success
+memo: v62 twin vs v62: rush other price-falling goods to the shed (wool / strawberry / milk), strawberries sold whole
+agent_a: agents/v62_sched.py  agent_b: agents/v62_sched.py  episodes: 48  seed0: 370000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "rW", "P": {"rush_items": ["MELON", "WOOL"]}}, {"name": "rS", "P": {"rush_items": ["MELON", "STRAWBERRY"]}}, {"name": "rM", "P": {"rush_items": ["MELON", "MILK"]}}, {"name": "swS", "P": {"sell_whole": ["MELON", "STRAWBERRY"]}}, {"name": "rWS", "P": {"rush_items": ["MELON", "WOOL", "STRAWBERRY"], "sell_whole": ["MELON", "STRAWBERRY"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+rW                           82968      4573     0.68     96            3769      3229      1619      969   BETTER
+swS                          79222      4347     0.40     96              23        78        46       42   BETTER
+base                         79199      4353     0.34     96               0       nan         0        -      ref
+rM                           77965      3712     0.47     96           -1234      3131      -453      975      tie
+rWS                          78986      4260     0.27     96            -213      2957     -2359     1028    WORSE
+rS                           76048      4189     0.18     96           -3150      1039     -3677      868    WORSE
+
+SWEEP_BEST={"name": "rW", "mean": 82968, "margin": 1619, "ranked_on": "margin"}
+
+replicating 'rW' against 'base' on seeds 372000-372031, both sides
+  rW vs base: margin +954 +/- 1605 over 64 games (own money +3848 +/- 4663) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "rW", "margin": 954, "margin_ci95": 1605, "delta": 3848, "ci95": 4663, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
