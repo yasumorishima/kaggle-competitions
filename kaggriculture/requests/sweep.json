@@ -1,92 +1,32 @@
 {
- "memo": "v62 twin vs v62 (2nd band): wool rushed too, 14/16 melon tiles now that they sell first, herd from day 10",
+ "memo": "v63 twin vs v63: more hands (14 cap, 1.1/1.2x), herd 6/6 from day 10 with strawberries sold whole",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "rW",
+   "name": "mh14",
    "P": {
-    "rush_items": [
-     "MELON",
-     "WOOL"
-    ]
+    "max_hands": 14,
+    "sched_hands_scale": 1.2
    }
   },
   {
-   "name": "mel14",
+   "name": "mh14s",
    "P": {
-    "open_melon": [
-     [
-      0,
-      14
-     ]
-    ]
+    "max_hands": 14,
+    "sched_hands_scale": 1.1
    }
   },
   {
-   "name": "mel16",
+   "name": "mh12s",
    "P": {
-    "open_melon": [
-     [
-      0,
-      16
-     ]
-    ]
+    "sched_hands_scale": 1.2
    }
   },
   {
-   "name": "h10",
-   "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 8,
-       "SHEEP": 5
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "h10s",
+   "name": "h10sS",
    "P": {
     "sched_herd_floor": [
      [
@@ -131,13 +71,17 @@
        "SHEEP": 6
       }
      ]
+    ],
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
     ]
    }
   }
  ],
- "agent_a": "agents/v62_sched.py",
- "agent_b": "agents/v62_sched.py",
+ "agent_a": "agents/v63_sched.py",
+ "agent_b": "agents/v63_sched.py",
  "episodes": "48",
- "seed0": "380000",
+ "seed0": "400000",
  "replicate": "32"
 }

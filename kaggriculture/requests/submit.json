@@ -1,8 +1,8 @@
 {
- "memo": "submit v63_sched (v62 + wool carriers rush to the shed); pushes v60 out, leaving v63 and v62",
- "agent": "agents/v63_sched.py",
- "message": "v63: v62 with wool carriers also heading for the shed at once. Head-to-head vs v62: win rate 0.62 over 96 games, margin +1,549 +/- 1,058 (and +1,619 on a second band).",
- "evidence": "vs v62_sched twin: GHA run 36097208057 (seeds 380000+, 96 games) win rate 0.62, margin +1,549 +/- 1,058 BETTER; replicated on 382000-382031 +1,564 +/- 1,559 HELD; earlier run 36093820274 +1,619 +/- 969 BETTER. vs public router: tie (-1,284 +/- 3,116).",
+ "memo": "submit v64_sched (v63 + hands cap 14, 1.1x hands); pushes v62 out, leaving v64 and v63",
+ "agent": "agents/v64_sched.py",
+ "message": "v64: v63 with the hands cap raised to 14 and 1.1x the calendar's hands. Head-to-head vs v63: win rate 0.73 over 96 games, margin +2,608 +/- 1,075.",
+ "evidence": "vs v63_sched twin: GHA run 36104142901 (seeds 400000+, 96 games) win rate 0.73, margin +2,608 +/- 1,075 BETTER; replicated on 402000-402031 +1,999 +/- 1,466 HELD. vs public router: cloud sweep 48 games margin +2,795 +/- 4,363 tie.",
  "confirm": "submit",
  "dry_run": false
 }
