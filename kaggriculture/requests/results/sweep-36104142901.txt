@@ -1,0 +1,18 @@
+run: 36104142901  status: success
+memo: v63 twin vs v63: more hands (14 cap, 1.1/1.2x), herd 6/6 from day 10 with strawberries sold whole
+agent_a: agents/v63_sched.py  agent_b: agents/v63_sched.py  episodes: 48  seed0: 400000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "mh14", "P": {"max_hands": 14, "sched_hands_scale": 1.2}}, {"name": "mh14s", "P": {"max_hands": 14, "sched_hands_scale": 1.1}}, {"name": "mh12s", "P": {"sched_hands_scale": 1.2}}, {"name": "h10sS", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]], "sell_whole": ["MELON", "STRAWBERRY"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+mh14s                        80236      5030     0.73     96           -1745      5824      2608     1075   BETTER
+h10sS                        83239      4861     0.52     96            1259      2590       431     1160      tie
+base                         81981      4784     0.38     96               0       nan         0        -      ref
+mh14                         78006      4359     0.31     96           -3975      5540     -1212     1044    WORSE
+mh12s                        78006      4359     0.31     96           -3975      5540     -1212     1044    WORSE
+
+SWEEP_BEST={"name": "mh14s", "mean": 80236, "margin": 2608, "ranked_on": "margin"}
+
+replicating 'mh14s' against 'base' on seeds 402000-402031, both sides
+  mh14s vs base: margin +1999 +/- 1466 over 64 games (own money -1761 +/- 5498) -> HELD
+SWEEP_REPLICATE={"name": "mh14s", "margin": 1999, "margin_ci95": 1466, "delta": -1761, "ci95": 5498, "games": 64, "verdict": "HELD", "judged_on": "margin"}
