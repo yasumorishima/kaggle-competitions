@@ -1,8 +1,8 @@
 {
- "memo": "submit v62_sched (v60 + melon carriers head for the shed at once); pushes v58 out, leaving v62 and v60",
- "agent": "agents/v62_sched.py",
- "message": "v62: v60 with a hand carrying melons heading for the shed at once, so they sell before the rival's. Head-to-head vs v60: win rate 0.91 over 96 games, margin +4,412 +/- 887.",
- "evidence": "vs v60_sched twin: GHA run 36090747125 (seeds 360000+, 96 games) win rate 0.91, margin +4,412 +/- 887 BETTER; replicated on 362000-362031 +3,475 +/- 1,351 HELD. vs public router: cloud sweep 48 games margin +2,609 +/- 2,742 tie.",
+ "memo": "submit v63_sched (v62 + wool carriers rush to the shed); pushes v60 out, leaving v63 and v62",
+ "agent": "agents/v63_sched.py",
+ "message": "v63: v62 with wool carriers also heading for the shed at once. Head-to-head vs v62: win rate 0.62 over 96 games, margin +1,549 +/- 1,058 (and +1,619 on a second band).",
+ "evidence": "vs v62_sched twin: GHA run 36097208057 (seeds 380000+, 96 games) win rate 0.62, margin +1,549 +/- 1,058 BETTER; replicated on 382000-382031 +1,564 +/- 1,559 HELD; earlier run 36093820274 +1,619 +/- 969 BETTER. vs public router: tie (-1,284 +/- 3,116).",
  "confirm": "submit",
  "dry_run": false
 }
