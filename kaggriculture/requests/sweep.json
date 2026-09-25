@@ -1,32 +1,12 @@
 {
- "memo": "v63 twin vs v63: more hands (14 cap, 1.1/1.2x), herd 6/6 from day 10 with strawberries sold whole",
+ "memo": "v64 twin vs v64, 192 games: herd floor 6 cows / 6 sheep from day 10 (router BETTER 5 times, twin always small plus)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "mh14",
-   "P": {
-    "max_hands": 14,
-    "sched_hands_scale": 1.2
-   }
-  },
-  {
-   "name": "mh14s",
-   "P": {
-    "max_hands": 14,
-    "sched_hands_scale": 1.1
-   }
-  },
-  {
-   "name": "mh12s",
-   "P": {
-    "sched_hands_scale": 1.2
-   }
-  },
-  {
-   "name": "h10sS",
+   "name": "h10s",
    "P": {
     "sched_herd_floor": [
      [
@@ -71,17 +51,13 @@
        "SHEEP": 6
       }
      ]
-    ],
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY"
     ]
    }
   }
  ],
- "agent_a": "agents/v63_sched.py",
- "agent_b": "agents/v63_sched.py",
- "episodes": "48",
- "seed0": "400000",
- "replicate": "32"
+ "agent_a": "agents/v64_sched.py",
+ "agent_b": "agents/v64_sched.py",
+ "episodes": "96",
+ "seed0": "420000",
+ "replicate": "48"
 }
