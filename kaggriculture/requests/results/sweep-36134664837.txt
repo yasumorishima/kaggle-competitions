@@ -1,0 +1,15 @@
+run: 36134664837  status: success
+memo: v64 twin vs v64, 192 games: herd floor 6 cows / 6 sheep from day 10 (router BETTER 5 times, twin always small plus)
+agent_a: agents/v64_sched.py  agent_b: agents/v64_sched.py  episodes: 96  seed0: 420000  replicate: 48
+variants: [{"name": "base", "P": {}}, {"name": "h10s", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+h10s                         78143      3350     0.54    192            -286      1918       887      871   BETTER
+base                         78429      3518     0.35    192               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "h10s", "mean": 78143, "margin": 887, "ranked_on": "margin"}
+
+replicating 'h10s' against 'base' on seeds 422000-422047, both sides
+  h10s vs base: margin +1377 +/- 1218 over 96 games (own money +406 +/- 2702) -> HELD
+SWEEP_REPLICATE={"name": "h10s", "margin": 1377, "margin_ci95": 1218, "delta": 406, "ci95": 2702, "games": 96, "verdict": "HELD", "judged_on": "margin"}
