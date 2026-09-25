@@ -1,52 +1,143 @@
 {
- "memo": "v61 twin vs v60: a hand carrying melons heads for the shed at once, so they sell before the rival (rush_items)",
+ "memo": "v62 twin vs v62 (2nd band): wool rushed too, 14/16 melon tiles now that they sell first, herd from day 10",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "rm1",
+   "name": "rW",
    "P": {
     "rush_items": [
-     "MELON"
+     "MELON",
+     "WOOL"
     ]
    }
   },
   {
-   "name": "rm3",
+   "name": "mel14",
    "P": {
-    "rush_items": [
-     "MELON"
-    ],
-    "rush_weight": 3.0
+    "open_melon": [
+     [
+      0,
+      14
+     ]
+    ]
    }
   },
   {
-   "name": "rm03",
+   "name": "mel16",
    "P": {
-    "rush_items": [
-     "MELON"
-    ],
-    "rush_weight": 0.3
+    "open_melon": [
+     [
+      0,
+      16
+     ]
+    ]
    }
   },
   {
-   "name": "rm1S",
+   "name": "h10",
    "P": {
-    "rush_items": [
-     "MELON"
-    ],
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY"
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 8,
+       "SHEEP": 5
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "h10s",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ]
     ]
    }
   }
  ],
- "agent_a": "agents/v61_sched.py",
- "agent_b": "agents/v60_sched.py",
+ "agent_a": "agents/v62_sched.py",
+ "agent_b": "agents/v62_sched.py",
  "episodes": "48",
- "seed0": "360000",
+ "seed0": "380000",
  "replicate": "32"
 }
