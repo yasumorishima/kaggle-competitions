@@ -1,0 +1,15 @@
+run: 36081031364  status: success
+memo: v58 twin vs v58: 14 melon tiles, fertilizing from day 6/8, spending the day-10 melon cash on a third quadrant or a bigger herd
+agent_a: agents/v58_sched.py  agent_b: agents/v58_sched.py  episodes: 48  seed0: 320000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "mel14", "P": {"open_melon": [[0, 14]]}}, {"name": "f5", "P": {"fert_sell_days": 5}}, {"name": "f7", "P": {"fert_sell_days": 7}}, {"name": "q3d10", "P": {"sched_land_floor": [[10, 3]]}}, {"name": "h10", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 8, "SHEEP": 5}]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         83233      4553     0.33     96               0       nan         0        -      ref
+h10                          82898      3835     0.35     96            -335      2588      -338      839      tie
+mel14                        76823      3919     0.36     96           -6410      4615     -1374     1438      tie
+q3d10                        82881      4083     0.43     96            -352      3227     -1483     1704      tie
+f7                           80177      4020     0.36     96           -3056      3712     -1522     1210    WORSE
+f5                           79954      3651     0.32     96           -3279      3448     -2576      957    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 83233, "margin": 0, "ranked_on": "margin"}
