@@ -1,8 +1,8 @@
 {
- "memo": "submit v57_sched (v56 + feed_value_rule asset: the cows are no longer starved); pushes v55 out, leaving v57_sched and v56_sched",
- "agent": "agents/v57_sched.py",
- "message": "v57: v56 with feeding valued on product plus dropping, so the cows are no longer starved and lost mid-season. Head-to-head vs v56: win rate 0.66 over 96 games, margin +2,546 +/- 1,642.",
- "evidence": "vs v56_sched twin: GHA run 36011303071 (seeds 270000+, 96 games) win rate 0.66, margin +2,546 +/- 1,642 BETTER; replicated on 272000-272031 +2,225 +/- 1,843 HELD. vs public router: cloud sweep 48 games margin -2,784 +/- 4,353 tie.",
+ "memo": "submit v58_sched (v57 + fertilized melons picked at the cap, sold before the router); pushes v56 out, leaving v58 and v57",
+ "agent": "agents/v58_sched.py",
+ "message": "v58: v57 with melons fertilized on days 6-8 and picked at the cap, so they sell before the rival's, and no second melon crop. Head-to-head vs v57: win rate 0.93 over 96 games, margin +8,672 +/- 1,431.",
+ "evidence": "vs v57_sched twin: GHA run 36077725511 (seeds 310000+, 96 games) win rate 0.93, margin +8,672 +/- 1,431 BETTER; replicated on 312000-312031 +10,205 +/- 1,498 HELD. vs public router: cloud sweep 48 games margin +3,292 +/- 3,034 BETTER.",
  "confirm": "submit",
  "dry_run": false
 }
