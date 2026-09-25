@@ -1,12 +1,12 @@
 {
- "memo": "v64 twin vs v64, 192 games: herd floor 6 cows / 6 sheep from day 10 (router BETTER 5 times, twin always small plus)",
+ "memo": "v65 twin vs v65: sheep 8 / cows 8 from day 12, herd 6/6 from day 9, strawberries whole, escape feed rule",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "h10s",
+   "name": "s8d12",
    "P": {
     "sched_herd_floor": [
      [
@@ -50,14 +50,141 @@
        "COW": 6,
        "SHEEP": 6
       }
+     ],
+     [
+      12,
+      {
+       "COW": 6,
+       "SHEEP": 8
+      }
      ]
     ]
    }
+  },
+  {
+   "name": "c8d12",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      12,
+      {
+       "COW": 8,
+       "SHEEP": 6
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "s6d9",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      9,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "swS",
+   "P": {
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
+    ]
+   }
+  },
+  {
+   "name": "fv",
+   "P": {
+    "feed_value_rule": "escape"
+   }
   }
  ],
- "agent_a": "agents/v64_sched.py",
- "agent_b": "agents/v64_sched.py",
- "episodes": "96",
- "seed0": "420000",
- "replicate": "48"
+ "agent_a": "agents/v65_sched.py",
+ "agent_b": "agents/v65_sched.py",
+ "episodes": "48",
+ "seed0": "430000",
+ "replicate": "32"
 }
