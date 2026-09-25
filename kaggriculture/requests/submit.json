@@ -1,8 +1,8 @@
 {
- "memo": "submit v60_sched (v58 + melon harvest waits for day 10, melons sold whole); pushes v57 out, leaving v60 and v58",
- "agent": "agents/v60_sched.py",
- "message": "v60: v58 with no refused melon harvests before day 10 and melons sold whole the turn they reach the shed. Head-to-head vs v58: win rate 0.84 over 96 games, margin +3,885 +/- 1,209.",
- "evidence": "vs v58_sched twin: GHA run 36085756363 (seeds 340000+, 96 games) win rate 0.84, margin +3,885 +/- 1,209 BETTER; replicated on 342000-342031 +4,621 +/- 1,486 HELD. vs public router: cloud sweep 48 games margin -996 +/- 3,917 tie.",
+ "memo": "submit v62_sched (v60 + melon carriers head for the shed at once); pushes v58 out, leaving v62 and v60",
+ "agent": "agents/v62_sched.py",
+ "message": "v62: v60 with a hand carrying melons heading for the shed at once, so they sell before the rival's. Head-to-head vs v60: win rate 0.91 over 96 games, margin +4,412 +/- 887.",
+ "evidence": "vs v60_sched twin: GHA run 36090747125 (seeds 360000+, 96 games) win rate 0.91, margin +4,412 +/- 887 BETTER; replicated on 362000-362031 +3,475 +/- 1,351 HELD. vs public router: cloud sweep 48 games margin +2,609 +/- 2,742 tie.",
  "confirm": "submit",
  "dry_run": false
 }

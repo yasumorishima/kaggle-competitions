@@ -1,37 +1,52 @@
 {
- "memo": "v59 twin vs v58: no refused melon harvests before day 10 (hr), melons sold whole on arrival (sw)",
+ "memo": "v61 twin vs v60: a hand carrying melons heads for the shed at once, so they sell before the rival (rush_items)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "hr",
+   "name": "rm1",
    "P": {
-    "hc_respect_first": true
-   }
-  },
-  {
-   "name": "sw",
-   "P": {
-    "sell_whole": [
+    "rush_items": [
      "MELON"
     ]
    }
   },
   {
-   "name": "hrsw",
+   "name": "rm3",
    "P": {
-    "hc_respect_first": true,
-    "sell_whole": [
+    "rush_items": [
      "MELON"
+    ],
+    "rush_weight": 3.0
+   }
+  },
+  {
+   "name": "rm03",
+   "P": {
+    "rush_items": [
+     "MELON"
+    ],
+    "rush_weight": 0.3
+   }
+  },
+  {
+   "name": "rm1S",
+   "P": {
+    "rush_items": [
+     "MELON"
+    ],
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
     ]
    }
   }
  ],
- "agent_a": "agents/v59_sched.py",
- "agent_b": "agents/v58_sched.py",
+ "agent_a": "agents/v61_sched.py",
+ "agent_b": "agents/v60_sched.py",
  "episodes": "48",
- "seed0": "340000",
+ "seed0": "360000",
  "replicate": "32"
 }

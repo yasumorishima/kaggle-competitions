@@ -1,0 +1,18 @@
+run: 36090747125  status: success
+memo: v61 twin vs v60: a hand carrying melons heads for the shed at once, so they sell before the rival (rush_items)
+agent_a: agents/v61_sched.py  agent_b: agents/v60_sched.py  episodes: 48  seed0: 360000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "rm1", "P": {"rush_items": ["MELON"]}}, {"name": "rm3", "P": {"rush_items": ["MELON"], "rush_weight": 3.0}}, {"name": "rm03", "P": {"rush_items": ["MELON"], "rush_weight": 0.3}}, {"name": "rm1S", "P": {"rush_items": ["MELON"], "sell_whole": ["MELON", "STRAWBERRY"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+rm3                          78374      4172     0.91     96            2936      2401      4412      887   BETTER
+rm1S                         77941      4334     0.85     96            2503      2297      3542     1036   BETTER
+rm1                          77835      4374     0.84     96            2397      2324      3361     1048   BETTER
+rm03                         78735      4693     0.77     96            3297      2509      3253     1132   BETTER
+base                         75438      3960     0.27     96               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "rm3", "mean": 78374, "margin": 4412, "ranked_on": "margin"}
+
+replicating 'rm3' against 'base' on seeds 362000-362031, both sides
+  rm3 vs base: margin +3475 +/- 1351 over 64 games (own money +1838 +/- 3776) -> HELD
+SWEEP_REPLICATE={"name": "rm3", "margin": 3475, "margin_ci95": 1351, "delta": 1838, "ci95": 3776, "games": 64, "verdict": "HELD", "judged_on": "margin"}

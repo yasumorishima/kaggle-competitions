@@ -1,0 +1,18 @@
+run: 36087603353  status: success
+memo: v60 twin vs v60: sell other goods whole on arrival too (wool / milk / strawberry / all)
+agent_a: agents/v60_sched.py  agent_b: agents/v60_sched.py  episodes: 48  seed0: 350000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "swW", "P": {"sell_whole": ["MELON", "WOOL"]}}, {"name": "swM", "P": {"sell_whole": ["MELON", "MILK"]}}, {"name": "swS", "P": {"sell_whole": ["MELON", "STRAWBERRY"]}}, {"name": "swAll", "P": {"sell_whole": ["MELON", "WOOL", "MILK", "STRAWBERRY", "TOMATO", "EGG"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+swM                          81903      3754     0.57     96             773      1422       337      881      tie
+swAll                        81514      3864     0.57     96             384      1976       178     1140      tie
+swS                          81160      3947     0.39     96              30        64        59       49   BETTER
+base                         81130      3966     0.30     96               0       nan         0        -      ref
+swW                          80130      4198     0.44     96           -1000      1534      -371      713      tie
+
+SWEEP_BEST={"name": "swM", "mean": 81903, "margin": 337, "ranked_on": "margin"}
+
+replicating 'swM' against 'base' on seeds 352000-352031, both sides
+  swM vs base: margin -368 +/- 1049 over 64 games (own money +669 +/- 1652) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "swM", "margin": -368, "margin_ci95": 1049, "delta": 669, "ci95": 1652, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
