@@ -1,0 +1,15 @@
+run: 36143104881  status: success
+memo: v65 twin vs v65, 192 games: strawberries sold whole on arrival (BETTER in 5 sweeps, never replicated)
+agent_a: agents/v65_sched.py  agent_b: agents/v65_sched.py  episodes: 96  seed0: 440000  replicate: 48
+variants: [{"name": "base", "P": {}}, {"name": "swS", "P": {"sell_whole": ["MELON", "STRAWBERRY"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+swS                          79960      3352     0.44    192              25        45       107       69   BETTER
+base                         79935      3352     0.33    192               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "swS", "mean": 79960, "margin": 107, "ranked_on": "margin"}
+
+replicating 'swS' against 'base' on seeds 442000-442047, both sides
+  swS vs base: margin +19 +/- 18 over 96 games (own money -6 +/- 7) -> HELD
+SWEEP_REPLICATE={"name": "swS", "margin": 19, "margin_ci95": 18, "delta": -6, "ci95": 7, "games": 96, "verdict": "HELD", "judged_on": "margin"}
