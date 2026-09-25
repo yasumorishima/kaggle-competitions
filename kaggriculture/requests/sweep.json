@@ -1,47 +1,32 @@
 {
- "memo": "v58 twin vs v58: 14 melon tiles, fertilizing from day 6/8, spending the day-10 melon cash on a third quadrant or a bigger herd",
+ "memo": "v59 twin vs v58: sell droppings again after the melons are fed (from day 9/12/20), and with a bigger herd from day 10",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "mel14",
+   "name": "fs9",
    "P": {
-    "open_melon": [
-     [
-      0,
-      14
-     ]
-    ]
+    "fert_sell_from": 9
    }
   },
   {
-   "name": "f5",
+   "name": "fs12",
    "P": {
-    "fert_sell_days": 5
+    "fert_sell_from": 12
    }
   },
   {
-   "name": "f7",
+   "name": "fs20",
    "P": {
-    "fert_sell_days": 7
+    "fert_sell_from": 20
    }
   },
   {
-   "name": "q3d10",
+   "name": "h10fs9",
    "P": {
-    "sched_land_floor": [
-     [
-      10,
-      3
-     ]
-    ]
-   }
-  },
-  {
-   "name": "h10",
-   "P": {
+    "fert_sell_from": 9,
     "sched_herd_floor": [
      [
       0,
@@ -89,9 +74,9 @@
    }
   }
  ],
- "agent_a": "agents/v58_sched.py",
+ "agent_a": "agents/v59_sched.py",
  "agent_b": "agents/v58_sched.py",
  "episodes": "48",
- "seed0": "320000",
+ "seed0": "330000",
  "replicate": "32"
 }
