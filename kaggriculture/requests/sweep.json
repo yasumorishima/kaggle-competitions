@@ -1,54 +1,52 @@
 {
- "memo": "v60 twin vs v60: sell other goods whole on arrival too (wool / milk / strawberry / all)",
+ "memo": "v61 twin vs v60: a hand carrying melons heads for the shed at once, so they sell before the rival (rush_items)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "swW",
+   "name": "rm1",
    "P": {
-    "sell_whole": [
-     "MELON",
-     "WOOL"
+    "rush_items": [
+     "MELON"
     ]
    }
   },
   {
-   "name": "swM",
+   "name": "rm3",
    "P": {
-    "sell_whole": [
-     "MELON",
-     "MILK"
-    ]
+    "rush_items": [
+     "MELON"
+    ],
+    "rush_weight": 3.0
    }
   },
   {
-   "name": "swS",
+   "name": "rm03",
    "P": {
+    "rush_items": [
+     "MELON"
+    ],
+    "rush_weight": 0.3
+   }
+  },
+  {
+   "name": "rm1S",
+   "P": {
+    "rush_items": [
+     "MELON"
+    ],
     "sell_whole": [
      "MELON",
      "STRAWBERRY"
     ]
    }
-  },
-  {
-   "name": "swAll",
-   "P": {
-    "sell_whole": [
-     "MELON",
-     "WOOL",
-     "MILK",
-     "STRAWBERRY",
-     "TOMATO",
-     "EGG"
-    ]
-   }
   }
  ],
- "agent_a": "agents/v60_sched.py",
+ "agent_a": "agents/v61_sched.py",
  "agent_b": "agents/v60_sched.py",
  "episodes": "48",
- "seed0": "350000",
+ "seed0": "360000",
  "replicate": "32"
 }
