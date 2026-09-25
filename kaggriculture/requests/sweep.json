@@ -1,28 +1,57 @@
 {
- "memo": "v63 twin vs v63: more hands (14 cap, 1.1/1.2x), herd 6/6 from day 10 with strawberries sold whole",
+ "memo": "v64 twin vs v64: herd 6/6 from day 10 (+strawberries whole), hands 1.05/1.15x, hands cap 16",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "mh14",
+   "name": "h10s",
    "P": {
-    "max_hands": 14,
-    "sched_hands_scale": 1.2
-   }
-  },
-  {
-   "name": "mh14s",
-   "P": {
-    "max_hands": 14,
-    "sched_hands_scale": 1.1
-   }
-  },
-  {
-   "name": "mh12s",
-   "P": {
-    "sched_hands_scale": 1.2
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ]
+    ]
    }
   },
   {
@@ -77,11 +106,29 @@
      "STRAWBERRY"
     ]
    }
+  },
+  {
+   "name": "hs105",
+   "P": {
+    "sched_hands_scale": 1.05
+   }
+  },
+  {
+   "name": "hs115",
+   "P": {
+    "sched_hands_scale": 1.15
+   }
+  },
+  {
+   "name": "mh16",
+   "P": {
+    "max_hands": 16
+   }
   }
  ],
- "agent_a": "agents/v63_sched.py",
- "agent_b": "agents/v63_sched.py",
+ "agent_a": "agents/v64_sched.py",
+ "agent_b": "agents/v64_sched.py",
  "episodes": "48",
- "seed0": "400000",
+ "seed0": "410000",
  "replicate": "32"
 }
