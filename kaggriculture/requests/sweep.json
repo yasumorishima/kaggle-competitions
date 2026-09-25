@@ -1,71 +1,97 @@
 {
- "memo": "v57 twin vs v57: melons fertilized on days 6-8 and picked at the cap, so they sell before the router (m9), without a second melon crop",
+ "memo": "v58 twin vs v58: 14 melon tiles, fertilizing from day 6/8, spending the day-10 melon cash on a third quadrant or a bigger herd",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "m9",
+   "name": "mel14",
    "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
-     "MELON"
+    "open_melon": [
+     [
+      0,
+      14
+     ]
     ]
    }
   },
   {
-   "name": "m9L8",
+   "name": "f5",
    "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
-     "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 8,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    "fert_sell_days": 5
    }
   },
   {
-   "name": "m9L4",
+   "name": "f7",
    "P": {
-    "fert_sell_days": 5,
-    "harvest_at_cap": [
-     "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 4,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    "fert_sell_days": 7
    }
   },
   {
-   "name": "m9f6",
+   "name": "q3d10",
    "P": {
-    "fert_sell_days": 6,
-    "harvest_at_cap": [
-     "MELON"
-    ],
-    "plant_last_day": {
-     "WHEAT": 24,
-     "CARROT": 25,
-     "MELON": 8,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    "sched_land_floor": [
+     [
+      10,
+      3
+     ]
+    ]
+   }
+  },
+  {
+   "name": "h10",
+   "P": {
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 8,
+       "SHEEP": 5
+      }
+     ]
+    ]
    }
   }
  ],
- "agent_a": "agents/v57_sched.py",
- "agent_b": "agents/v57_sched.py",
+ "agent_a": "agents/v58_sched.py",
+ "agent_b": "agents/v58_sched.py",
  "episodes": "48",
- "seed0": "310000",
+ "seed0": "320000",
  "replicate": "32"
 }
