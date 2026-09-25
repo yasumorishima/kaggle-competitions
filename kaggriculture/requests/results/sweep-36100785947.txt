@@ -1,0 +1,19 @@
+run: 36100785947  status: success
+memo: v63 twin vs v63: herd from day 10 (6/6, 8/5), rush weight 1/6, strawberries sold whole
+agent_a: agents/v63_sched.py  agent_b: agents/v63_sched.py  episodes: 48  seed0: 390000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "h10s", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]]}}, {"name": "h10", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 8, "SHEEP": 5}]]}}, {"name": "rw1", "P": {"rush_weight": 1.0}}, {"name": "rw6", "P": {"rush_weight": 6.0}}, {"name": "swS", "P": {"sell_whole": ["MELON", "STRAWBERRY"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+h10s                         84020      4058     0.58     96            -859      3230       704     1456      tie
+h10                          83383      4436     0.55     96           -1496      1798       426      949      tie
+rw6                          85161      4246     0.44     96             282       967       387      515      tie
+swS                          84887      4387     0.38     96               8        21        65       62   BETTER
+rw1                          83722      4176     0.52     96           -1157      2364        64      707      tie
+base                         84879      4396     0.28     96               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "h10s", "mean": 84020, "margin": 704, "ranked_on": "margin"}
+
+replicating 'h10s' against 'base' on seeds 392000-392031, both sides
+  h10s vs base: margin +596 +/- 1411 over 64 games (own money -1127 +/- 3163) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "h10s", "margin": 596, "margin_ci95": 1411, "delta": -1127, "ci95": 3163, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
