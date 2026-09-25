@@ -1,41 +1,53 @@
 {
- "memo": "v61 twin vs v60: a hand carrying melons heads for the shed at once, so they sell before the rival (rush_items)",
+ "memo": "v62 twin vs v62: rush other price-falling goods to the shed (wool / strawberry / milk), strawberries sold whole",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "rm1",
+   "name": "rW",
    "P": {
     "rush_items": [
-     "MELON"
+     "MELON",
+     "WOOL"
     ]
    }
   },
   {
-   "name": "rm3",
+   "name": "rS",
    "P": {
     "rush_items": [
-     "MELON"
-    ],
-    "rush_weight": 3.0
+     "MELON",
+     "STRAWBERRY"
+    ]
    }
   },
   {
-   "name": "rm03",
+   "name": "rM",
    "P": {
     "rush_items": [
-     "MELON"
-    ],
-    "rush_weight": 0.3
+     "MELON",
+     "MILK"
+    ]
    }
   },
   {
-   "name": "rm1S",
+   "name": "swS",
+   "P": {
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
+    ]
+   }
+  },
+  {
+   "name": "rWS",
    "P": {
     "rush_items": [
-     "MELON"
+     "MELON",
+     "WOOL",
+     "STRAWBERRY"
     ],
     "sell_whole": [
      "MELON",
@@ -44,9 +56,9 @@
    }
   }
  ],
- "agent_a": "agents/v61_sched.py",
- "agent_b": "agents/v60_sched.py",
+ "agent_a": "agents/v62_sched.py",
+ "agent_b": "agents/v62_sched.py",
  "episodes": "48",
- "seed0": "360000",
+ "seed0": "370000",
  "replicate": "32"
 }
