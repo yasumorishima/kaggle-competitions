@@ -1,37 +1,55 @@
 {
- "memo": "v62 twin vs v62 (2nd band): wool rushed too, 14/16 melon tiles now that they sell first, herd from day 10",
+ "memo": "v63 twin vs v63: herd from day 10 (6/6, 8/5), rush weight 1/6, strawberries sold whole",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "rW",
+   "name": "h10s",
    "P": {
-    "rush_items": [
-     "MELON",
-     "WOOL"
-    ]
-   }
-  },
-  {
-   "name": "mel14",
-   "P": {
-    "open_melon": [
+    "sched_herd_floor": [
      [
       0,
-      14
-     ]
-    ]
-   }
-  },
-  {
-   "name": "mel16",
-   "P": {
-    "open_melon": [
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
      [
-      0,
-      16
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
      ]
     ]
    }
@@ -86,58 +104,30 @@
    }
   },
   {
-   "name": "h10s",
+   "name": "rw1",
    "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ]
+    "rush_weight": 1.0
+   }
+  },
+  {
+   "name": "rw6",
+   "P": {
+    "rush_weight": 6.0
+   }
+  },
+  {
+   "name": "swS",
+   "P": {
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY"
     ]
    }
   }
  ],
- "agent_a": "agents/v62_sched.py",
- "agent_b": "agents/v62_sched.py",
+ "agent_a": "agents/v63_sched.py",
+ "agent_b": "agents/v63_sched.py",
  "episodes": "48",
- "seed0": "380000",
+ "seed0": "390000",
  "replicate": "32"
 }
