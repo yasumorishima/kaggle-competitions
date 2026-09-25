@@ -1,0 +1,17 @@
+run: 36087585824  status: success
+memo: v59 twin vs v58: no refused melon harvests before day 10 (hr), melons sold whole on arrival (sw)
+agent_a: agents/v59_sched.py  agent_b: agents/v58_sched.py  episodes: 48  seed0: 340000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "hr", "P": {"hc_respect_first": true}}, {"name": "sw", "P": {"sell_whole": ["MELON"]}}, {"name": "hrsw", "P": {"hc_respect_first": true, "sell_whole": ["MELON"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+hrsw                         78107      4250     0.84     96             263      2686      3885     1209   BETTER
+sw                           79325      4405     0.93     96            1482       502      2708      255   BETTER
+hr                           76483      4248     0.65     96           -1361      2634       645     1276      tie
+base                         77843      4390     0.28     96               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "hrsw", "mean": 78107, "margin": 3885, "ranked_on": "margin"}
+
+replicating 'hrsw' against 'base' on seeds 342000-342031, both sides
+  hrsw vs base: margin +4621 +/- 1486 over 64 games (own money +4112 +/- 2445) -> HELD
+SWEEP_REPLICATE={"name": "hrsw", "margin": 4621, "margin_ci95": 1486, "delta": 4112, "ci95": 2445, "games": 64, "verdict": "HELD", "judged_on": "margin"}
