@@ -1,0 +1,14 @@
+run: 36076120638  status: success
+memo: v57 twin vs v57: fewer strawberries (x0.5 / none), sheep floor 6, and the two together
+agent_a: agents/v57_sched.py  agent_b: agents/v57_sched.py  episodes: 48  seed0: 300000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "st05", "P": {"crop_pct_scale": {"STRAWBERRY": 0.5}}}, {"name": "st0", "P": {"crop_pct_scale": {"STRAWBERRY": 0.0}}}, {"name": "s6", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]]}}, {"name": "s6st05", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]], "crop_pct_scale": {"STRAWBERRY": 0.5}}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         79365      4346     0.28     96               0       nan         0        -      ref
+s6                           79478      3966     0.41     96             113      2229      -857     1371      tie
+s6st05                       78814      4707     0.34     96            -550      2988     -2977     1827    WORSE
+st05                         76337      4632     0.25     96           -3027      2896     -4170     1478    WORSE
+st0                          64043      3591     0.02     96          -15322      3118    -16643     2084    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 79365, "margin": 0, "ranked_on": "margin"}

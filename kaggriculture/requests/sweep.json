@@ -1,40 +1,71 @@
 {
- "memo": "v56 twin vs v56: keep the cows fed (feed_value_rule escape/asset), with and without 1.15x hands",
+ "memo": "v57 twin vs v57: melons fertilized on days 6-8 and picked at the cap, so they sell before the router (m9), without a second melon crop",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "esc",
+   "name": "m9",
    "P": {
-    "feed_value_rule": "escape"
+    "fert_sell_days": 5,
+    "harvest_at_cap": [
+     "MELON"
+    ]
    }
   },
   {
-   "name": "asset",
+   "name": "m9L8",
    "P": {
-    "feed_value_rule": "asset"
+    "fert_sell_days": 5,
+    "harvest_at_cap": [
+     "MELON"
+    ],
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 8,
+     "TOMATO": 16,
+     "STRAWBERRY": 16
+    }
    }
   },
   {
-   "name": "esch",
+   "name": "m9L4",
    "P": {
-    "feed_value_rule": "escape",
-    "sched_hands_scale": 1.15
+    "fert_sell_days": 5,
+    "harvest_at_cap": [
+     "MELON"
+    ],
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 4,
+     "TOMATO": 16,
+     "STRAWBERRY": 16
+    }
    }
   },
   {
-   "name": "asseth",
+   "name": "m9f6",
    "P": {
-    "feed_value_rule": "asset",
-    "sched_hands_scale": 1.15
+    "fert_sell_days": 6,
+    "harvest_at_cap": [
+     "MELON"
+    ],
+    "plant_last_day": {
+     "WHEAT": 24,
+     "CARROT": 25,
+     "MELON": 8,
+     "TOMATO": 16,
+     "STRAWBERRY": 16
+    }
    }
   }
  ],
- "agent_a": "agents/v56_sched.py",
- "agent_b": "agents/v56_sched.py",
+ "agent_a": "agents/v57_sched.py",
+ "agent_b": "agents/v57_sched.py",
  "episodes": "48",
- "seed0": "270000",
+ "seed0": "310000",
  "replicate": "32"
 }
