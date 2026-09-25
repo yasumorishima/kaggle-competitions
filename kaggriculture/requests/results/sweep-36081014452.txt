@@ -1,0 +1,18 @@
+run: 36081014452  status: success
+memo: v57 twin vs v57: melons fertilized on days 6-8 and picked at the cap, so they sell before the router (m9), without a second melon crop
+agent_a: agents/v57_sched.py  agent_b: agents/v57_sched.py  episodes: 48  seed0: 310000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "m9", "P": {"fert_sell_days": 5, "harvest_at_cap": ["MELON"]}}, {"name": "m9L8", "P": {"fert_sell_days": 5, "harvest_at_cap": ["MELON"], "plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 8, "TOMATO": 16, "STRAWBERRY": 16}}}, {"name": "m9L4", "P": {"fert_sell_days": 5, "harvest_at_cap": ["MELON"], "plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 4, "TOMATO": 16, "STRAWBERRY": 16}}}, {"name": "m9f6", "P": {"fert_sell_days": 6, "harvest_at_cap": ["MELON"], "plant_last_day": {"WHEAT": 24, "CARROT": 25, "MELON": 8, "TOMATO": 16, "STRAWBERRY": 16}}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+m9f6                         85066      4041     0.93     96            4428      3362      8672     1431   BETTER
+m9                           84620      3969     0.89     96            3982      3481      6540     1285   BETTER
+m9L8                         84620      3969     0.89     96            3982      3481      6540     1285   BETTER
+m9L4                         84620      3969     0.89     96            3982      3481      6540     1285   BETTER
+base                         80638      3714     0.25     96               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "m9f6", "mean": 85066, "margin": 8672, "ranked_on": "margin"}
+
+replicating 'm9f6' against 'base' on seeds 312000-312031, both sides
+  m9f6 vs base: margin +10205 +/- 1498 over 64 games (own money +8036 +/- 3575) -> HELD
+SWEEP_REPLICATE={"name": "m9f6", "margin": 10205, "margin_ci95": 1498, "delta": 8036, "ci95": 3575, "games": 64, "verdict": "HELD", "judged_on": "margin"}
