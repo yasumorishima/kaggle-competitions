@@ -1,0 +1,19 @@
+run: 36097208057  status: success
+memo: v62 twin vs v62 (2nd band): wool rushed too, 14/16 melon tiles now that they sell first, herd from day 10
+agent_a: agents/v62_sched.py  agent_b: agents/v62_sched.py  episodes: 48  seed0: 380000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "rW", "P": {"rush_items": ["MELON", "WOOL"]}}, {"name": "mel14", "P": {"open_melon": [[0, 14]]}}, {"name": "mel16", "P": {"open_melon": [[0, 16]]}}, {"name": "h10", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 8, "SHEEP": 5}]]}}, {"name": "h10s", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+rW                           82273      3767     0.62     96            1186      3791      1549     1058   BETTER
+mel14                        80039      4408     0.49     96           -1048      5611        14     1090      tie
+base                         81087      3973     0.38     96               0       nan         0        -      ref
+h10                          84221      4110     0.47     96            3135      2317      -445     1155      tie
+h10s                         82643      4092     0.41     96            1556      2494      -650     1385      tie
+mel16                        79304      4115     0.26     96           -1783      6242     -2637      793    WORSE
+
+SWEEP_BEST={"name": "rW", "mean": 82273, "margin": 1549, "ranked_on": "margin"}
+
+replicating 'rW' against 'base' on seeds 382000-382031, both sides
+  rW vs base: margin +1564 +/- 1559 over 64 games (own money -127 +/- 3767) -> HELD
+SWEEP_REPLICATE={"name": "rW", "margin": 1564, "margin_ci95": 1559, "delta": -127, "ci95": 3767, "games": 64, "verdict": "HELD", "judged_on": "margin"}
