@@ -1,0 +1,19 @@
+run: 36125899964  status: success
+memo: v64 twin vs v64: herd 6/6 from day 10 (+strawberries whole), hands 1.05/1.15x, hands cap 16
+agent_a: agents/v64_sched.py  agent_b: agents/v64_sched.py  episodes: 48  seed0: 410000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "h10s", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]]}}, {"name": "h10sS", "P": {"sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}]], "sell_whole": ["MELON", "STRAWBERRY"]}}, {"name": "hs105", "P": {"sched_hands_scale": 1.05}}, {"name": "hs115", "P": {"sched_hands_scale": 1.15}}, {"name": "mh16", "P": {"max_hands": 16}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+h10sS                        84474      4228     0.55     96            2165      3051      1077     1269      tie
+h10s                         84475      4228     0.55     96            2166      3049      1065     1266      tie
+base                         82309      4495     0.35     96               0       nan         0        -      ref
+mh16                         82309      4495     0.35     96               0         0         0        0      tie
+hs105                        81891      4247     0.41     96            -418      4803     -2348     1479    WORSE
+hs115                        75113      4698     0.16     96           -7196      4393     -4175     1053    WORSE
+
+SWEEP_BEST={"name": "h10sS", "mean": 84474, "margin": 1077, "ranked_on": "margin"}
+
+replicating 'h10sS' against 'base' on seeds 412000-412031, both sides
+  h10sS vs base: margin +591 +/- 1546 over 64 games (own money +2603 +/- 3309) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "h10sS", "margin": 591, "margin_ci95": 1546, "delta": 2603, "ci95": 3309, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
