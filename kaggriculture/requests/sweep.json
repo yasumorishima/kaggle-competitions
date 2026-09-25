@@ -1,5 +1,5 @@
 {
- "memo": "v64 twin vs v64: herd 6/6 from day 10 (+strawberries whole), hands 1.05/1.15x, hands cap 16",
+ "memo": "v64 twin vs v64, 192 games: herd floor 6 cows / 6 sheep from day 10 (router BETTER 5 times, twin always small plus)",
  "variants": [
   {
    "name": "base",
@@ -53,82 +53,11 @@
      ]
     ]
    }
-  },
-  {
-   "name": "h10sS",
-   "P": {
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ]
-    ],
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY"
-    ]
-   }
-  },
-  {
-   "name": "hs105",
-   "P": {
-    "sched_hands_scale": 1.05
-   }
-  },
-  {
-   "name": "hs115",
-   "P": {
-    "sched_hands_scale": 1.15
-   }
-  },
-  {
-   "name": "mh16",
-   "P": {
-    "max_hands": 16
-   }
   }
  ],
  "agent_a": "agents/v64_sched.py",
  "agent_b": "agents/v64_sched.py",
- "episodes": "48",
- "seed0": "410000",
- "replicate": "32"
+ "episodes": "96",
+ "seed0": "420000",
+ "replicate": "48"
 }
