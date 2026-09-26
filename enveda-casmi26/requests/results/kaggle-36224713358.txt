@@ -1,0 +1,18 @@
+request: wheels-3
+run: 36224713358  status: success  action: dataset  dir: enveda-casmi26/datasets/offline-pkgs  submit: no
+kernel:   version: 
+memo: offline wheels for the kernel: rdkit 2026.3.3 and ms_entropy 1.5.2 (cp312)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file ms_entropy-1.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/268k [00:00<?, ?B/s]100%|██████████| 268k/268k [00:00<00:00, 691kB/s]
+Upload successful: ms_entropy-1.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (268KB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/405 [00:00<?, ?B/s]100%|██████████| 405/405 [00:00<00:00, 1.07kB/s]
+Upload successful: prepare.sh (405B)
+Starting upload for file rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/35.5M [00:00<?, ?B/s]  4%|▍         | 1.41M/35.5M [00:00<00:03, 11.3MB/s] 45%|████▌     | 16.0M/35.5M [00:00<00:00, 84.7MB/s]100%|██████████| 35.5M/35.5M [00:00<00:00, 55.8MB/s]
+Upload successful: rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl (35MB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-offline-wheels
+
+output files:
