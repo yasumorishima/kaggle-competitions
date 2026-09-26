@@ -73,3 +73,24 @@ def mrr25(ranked_keys, truth_key):
         if k == truth_key:
             return 1.0 / (i + 1)
     return 0.0
+
+
+def load_peaks(rows, clean):
+    """{row: clean(mz_array, intensity_array)} for the given train rows, read one
+    row group at a time so the 3 GB peak columns never sit in memory at once."""
+    import pyarrow.parquet as pq
+    rows = np.unique(np.asarray(rows, dtype=np.int64))
+    f = pq.ParquetFile(DATA + "/train.parquet")
+    out, start = {}, 0
+    for g in range(f.num_row_groups):
+        n = f.metadata.row_group(g).num_rows
+        lo, hi = np.searchsorted(rows, [start, start + n])
+        if hi > lo:
+            local = rows[lo:hi] - start
+            t = f.read_row_group(g, columns=["ms2_mzs", "ms2_normalized_intensities"]).take(local)
+            for r, a, b in zip(rows[lo:hi], t.column(0).chunks[0] if t.column(0).num_chunks == 1 else t.column(0).combine_chunks(),
+                               t.column(1).chunks[0] if t.column(1).num_chunks == 1 else t.column(1).combine_chunks()):
+                out[int(r)] = clean(a.values.to_numpy(zero_copy_only=False), b.values.to_numpy(zero_copy_only=False))
+            del t
+        start += n
+    return out
