@@ -1,23 +1,164 @@
 {
- "memo": "v65 twin vs v65, 192 games: strawberries sold whole on arrival (BETTER in 5 sweeps, never replicated)",
+ "memo": "v66 twin vs v66: spend the day-12 melon cash on a third quadrant (+ herd 9/6, + more hands)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "swS",
+   "name": "L12",
    "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY"
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
     ]
+   }
+  },
+  {
+   "name": "L12H",
+   "P": {
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ],
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      12,
+      {
+       "COW": 9,
+       "SHEEP": 6
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "L12Hh",
+   "P": {
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ],
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      12,
+      {
+       "COW": 9,
+       "SHEEP": 6
+      }
+     ]
+    ],
+    "max_hands": 16,
+    "sched_hands_scale": 1.25
+   }
+  },
+  {
+   "name": "L12h",
+   "P": {
+    "sched_land_floor": [
+     [
+      12,
+      3
+     ]
+    ],
+    "max_hands": 16,
+    "sched_hands_scale": 1.25
    }
   }
  ],
- "agent_a": "agents/v65_sched.py",
- "agent_b": "agents/v65_sched.py",
- "episodes": "96",
- "seed0": "440000",
- "replicate": "48"
+ "agent_a": "agents/v66_sched.py",
+ "agent_b": "agents/v66_sched.py",
+ "episodes": "48",
+ "seed0": "460000",
+ "replicate": "32"
 }
