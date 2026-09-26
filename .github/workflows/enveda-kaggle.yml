@@ -6,6 +6,8 @@ name: Enveda CASMI26 Kaggle
 # enveda-casmi26/requests/results/kaggle-<run id>.txt.
 #
 # The request file holds:
+#   id       a new id for every request (required); a request whose id already
+#            appears in requests/results/ is skipped, so a replayed file never reruns
 #   memo     why this run (required)
 #   action   "kernel" (push a kernel and wait for it) or "dataset" (create or version a dataset)
 #   dir      a directory under enveda-casmi26/ holding kernel-metadata.json or dataset-metadata.json
@@ -52,6 +54,15 @@ jobs:
           python - <<'PY'
           import json, os
           r = json.load(open("enveda-casmi26/requests/kaggle.json", encoding="utf-8"))
+          rid = str(r.get("id", "")).strip()
+          assert rid, "id is required"
+          import glob
+          for f in glob.glob("enveda-casmi26/requests/results/*.txt"):
+              if f"request: {rid}\n" in open(f, encoding="utf-8").read():
+                  print(f"request {rid} already ran ({f}); skipping")
+                  with open(os.environ["GITHUB_ENV"], "a") as g:
+                      g.write("SKIP=yes\n")
+                  raise SystemExit(0)
           memo = str(r.get("memo", "")).strip()
           assert memo, "memo is required"
           action = r.get("action")
@@ -63,13 +74,13 @@ jobs:
           submit = r.get("submit", "") == "submit"
           msg = str(r.get("message", memo)).replace("\n", " ")
           with open(os.environ["GITHUB_ENV"], "a") as f:
-              f.write(f"ACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nMSG={msg}\n")
+              f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nMSG={msg}\n")
               f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
           print(action, d, "submit" if submit else "no submit", "|", memo)
           PY
 
       - name: Dataset create or version
-        if: env.ACTION == 'dataset'
+        if: env.ACTION == 'dataset' && env.SKIP != 'yes'
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
@@ -82,7 +93,7 @@ jobs:
           fi
 
       - name: Kernel push, wait, (submit)
-        if: env.ACTION == 'kernel'
+        if: env.ACTION == 'kernel' && env.SKIP != 'yes'
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
@@ -119,7 +130,7 @@ jobs:
           fi
 
       - name: Commit the outcome
-        if: always() && github.event_name == 'push'
+        if: always() && github.event_name == 'push' && env.SKIP != 'yes'
         env:
           RUN_ID: ${{ github.run_id }}
           OUTCOME: ${{ job.status }}
@@ -128,6 +139,7 @@ jobs:
           out="enveda-casmi26/requests/results/kaggle-${RUN_ID}.txt"
           mkdir -p "$(dirname "$out")"
           {
+            echo "request: ${RID:-}"
             echo "run: ${RUN_ID}  status: ${OUTCOME}  action: ${ACTION:-?}  dir: ${DIR:-?}  submit: ${SUBMIT:-?}"
             echo "kernel: ${KERNEL:-}  version: ${VERSION:-}"
             echo "memo: ${MEMO:-}"
