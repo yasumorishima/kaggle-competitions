@@ -11,7 +11,12 @@ top N_ANALOG hits are the analogs. A candidate scores
 and the final score is max(lib, W_ANALOG * analog), lib being B0's direct
 library similarity.
 
-    python analog.py [n_per_class]
+    python analog.py [n_per_class] [coco] [np]
+
+coco: the candidate pool also holds COCONUT (as the submitted kernel does).
+np:   adds class 4 = the enveda-np-examples molecules (natural products) as a
+      c2 that looks like the hidden one: every spectrum of those structures
+      leaves the library (all libraries), the structure stays in the pool.
 """
 import sys
 import time
@@ -50,6 +55,7 @@ def pick_reps(meta, keep_rows):
 
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 400
+    opts = set(sys.argv[2:])
     t0 = time.time()
     meta = pd.read_parquet(DATA + "/train_meta.parquet",
                            columns=["ingest_lib", "inchikey14", "precursor_mz", "adduct",
@@ -58,14 +64,23 @@ def main():
     split = pd.read_parquet(DATA + "/split.parquet")
     split = split[split.inchikey14.isin(
         split.drop_duplicates("inchikey14").groupby("cls").head(n).inchikey14)]
+    npx = set()
+    if "np" in opts:
+        e = meta[meta.ingest_lib == "enveda-np-examples"]
+        e = e.assign(row=e.index.values, cls=4).sample(frac=1, random_state=0).groupby("inchikey14").head(16)
+        npx = set(e.inchikey14)
+        split = pd.concat([split, e[["row", "inchikey14", "cls", "adduct"]]], ignore_index=True)
     S = pd.read_parquet(DATA + "/structures.parquet").dropna(subset=["fM"])
+    if "coco" in opts:
+        c = pd.read_parquet(DATA + "/coconut.parquet").rename(columns={"smiles": "normalized_smiles"})
+        S = pd.concat([S, c[~c.inchikey14.isin(set(S.inchikey14))]], ignore_index=True)
     smi = dict(zip(S.inchikey14, S.normalized_smiles))
     c3 = set(split.loc[split.cls == 3, "inchikey14"])
     pool = S[~S.inchikey14.isin(c3)].sort_values("fM")
     pm, pk = pool.fM.values, pool.inchikey14.values
 
     held = set(split.inchikey14)
-    drop = meta.inchikey14.isin(held) & (meta.ingest_lib == "enveda-180")
+    drop = (meta.inchikey14.isin(held) & (meta.ingest_lib == "enveda-180")) | meta.inchikey14.isin(npx)
     keep = np.flatnonzero(~drop.values)
     reps = pick_reps(meta, keep)
     print(f"reps {len(reps)} ({time.time()-t0:.0f}s)")
@@ -144,9 +159,11 @@ def main():
             ranked = sorted(cands, key=lambda c: -sc[c])
             rec.append((name, r.cls, mrr25(ranked, ik)))
     import pickle
-    pickle.dump(dump, open(DATA + f"/scores_analog_{n}.pkl", "wb"))
+    tag = "".join("_" + o for o in sorted(opts))
+    pickle.dump(dump, open(DATA + f"/scores_analog_{n}{tag}.pkl", "wb"))
     res = pd.DataFrame(rec, columns=["chan", "cls", "mrr"])
     print(res.pivot_table(index="cls", columns="chan", values="mrr", aggfunc="mean").round(3))
+    print("candidates/molecule median", qm.index.map(lambda k: len(cand[k])).to_series().groupby(qm.cls.values).median().to_dict())
     print(f"done ({time.time()-t0:.0f}s)")
 
 
