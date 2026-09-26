@@ -1,0 +1,14 @@
+run: 36204727954  status: success
+memo: v66 twin vs v66: spend the day-12 melon cash on a third quadrant (+ herd 9/6, + more hands)
+agent_a: agents/v66_sched.py  agent_b: agents/v66_sched.py  episodes: 48  seed0: 460000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "L12", "P": {"sched_land_floor": [[12, 3]]}}, {"name": "L12H", "P": {"sched_land_floor": [[12, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [12, {"COW": 9, "SHEEP": 6}]]}}, {"name": "L12Hh", "P": {"sched_land_floor": [[12, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [12, {"COW": 9, "SHEEP": 6}]], "max_hands": 16, "sched_hands_scale": 1.25}}, {"name": "L12h", "P": {"sched_land_floor": [[12, 3]], "max_hands": 16, "sched_hands_scale": 1.25}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         82382      5058     0.28     96               0       nan         0        -      ref
+L12                          81661      5117     0.43     96            -721      2400     -2274     1624    WORSE
+L12H                         81661      5117     0.43     96            -721      2400     -2274     1624    WORSE
+L12Hh                        80988      4096     0.18     96           -1395      5225     -6408     2000    WORSE
+L12h                         80988      4096     0.18     96           -1395      5225     -6408     2000    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 82382, "margin": 0, "ranked_on": "margin"}
