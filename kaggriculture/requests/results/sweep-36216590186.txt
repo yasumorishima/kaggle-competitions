@@ -1,0 +1,19 @@
+run: 36216590186  status: success
+memo: v68 twin vs v68: wheat_floor 10, cash buffer 60/250, feed_grow 0.1, one day of feed money reserved
+agent_a: agents/v68_sched.py  agent_b: agents/v68_sched.py  episodes: 48  seed0: 500000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "wf10", "P": {"wheat_floor": 10}}, {"name": "cb60", "P": {"cash_buffer": 60}}, {"name": "cb250", "P": {"cash_buffer": 250}}, {"name": "fg01", "P": {"feed_grow": 0.1}}, {"name": "fr05", "P": {"feed_reserve_days": 1}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+wf10                         83720      4592     0.56     96            1373      1964       416     1260      tie
+base                         82347      4698     0.31     96               0       nan         0        -      ref
+fg01                         82510      4580     0.43     96             163      1407      -541      841      tie
+fr05                         80999      4600     0.34     96           -1348      3549     -1808     1202    WORSE
+cb250                        81348      3839     0.35     96            -999      4771     -1986     1147    WORSE
+cb60                         80248      4495     0.10     96           -2099      6525     -4652     1032    WORSE
+
+SWEEP_BEST={"name": "wf10", "mean": 83720, "margin": 416, "ranked_on": "margin"}
+
+replicating 'wf10' against 'base' on seeds 502000-502031, both sides
+  wf10 vs base: margin +89 +/- 1099 over 64 games (own money +591 +/- 3554) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "wf10", "margin": 89, "margin_ci95": 1099, "delta": 591, "ci95": 3554, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
