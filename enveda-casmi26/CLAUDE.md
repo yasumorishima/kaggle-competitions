@@ -50,10 +50,25 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 
 ## 現在地（2026-09-26）
 
-- 参加済み。データ取得・スキーマ確認・公開ノートブックの読解まで。コードはまだ無い。
+- **提出経路は開通**：`enveda-casmi26/requests/kaggle.json` を push → `.github/workflows/enveda-kaggle.yml` が kernel を push・完了待ち・
+  （`"submit": "submit"` のとき）`kaggle competitions submit -k <kernel> -v <ver>` → 結果を同じブランチの `requests/results/kaggle-<run>.txt` へ。
+  run `36223094376`：`kernels/sample`（sample_submission の写し）を push → 提出一覧で PENDING を確認（点数 ≈ 0・経路確認用）。
+  `"action": "dataset"` で `dataset-metadata.json` のあるフォルダを Kaggle dataset として作成／版上げ（未試験）。
+- **cloud コンテナから外部 DB（COCONUT・PubChem・ChEBI・zenodo）は proxy が 403**。`www.kaggle.com` と pypi は届く。
+  ⇒ 外部 DB の取得と加工は GHA（インターネット可）でやり、Kaggle dataset にしてから使う。
+- **検証台**（`eval/`・データは `$CASMI_DATA`＝既定 `~/casmi_data` に train.parquet 等を置く）：
+  - `common.py`：付加イオン→中性質量・分子式→精密質量・metric（RDKit 互変異性正規化→InChIKey14）・MRR@25。
+  - `split.py`：`enveda-180`（timsTOF・テストの 10 付加イオン）から各 400 分子（≤16 スペクトル）。
+    c1＝公開ライブラリにも同じ構造がある（その公開スペクトルはライブラリに残す）／c2＝enveda だけ（スペクトルは全部抜き、構造は候補に残す）／c3＝構造も候補から抜く。
+  - timsTOF の精密質量誤差は 99% が 4.3 ppm 以内（候補窓 ±10 ppm で足りる）。
+- **B0 `baseline_lib.py`**（train 構造の ±10 ppm 候補を train スペクトルとの entropy 類似の最大で並べる）・各 100 分子：
+  c1 **0.922**（窓内 100%）／c2 0.012（窓内 100%・候補中央値 82）／c3 0（窓内 0%）。
+  公開の推定比率（16/27/55%）で重み付け ≈ 0.15 ＝ 公開の「ライブラリだけ LB 0.151」と一致 ⇒ 検証台は LB と整合。
 
 ## ▶▶ 次の一手
 
-1. 提出インフラ：`enveda-casmi26/requests/push.json` で GHA が kernel を push（と dataset 作成）する workflow。まず「sample_submission をそのまま出す」ノートブックで経路を確認。
-2. 検証台（`enveda-casmi26/eval/`）：C1/C2/C3 の分割と MRR@25。
-3. 最初の検索ベースライン：train ライブラリの entropy 類似（C1）＋ 質量窓の train 構造候補。
+1. **c2 の並べ替え**（得点の本体）：類縁体（質量シフト付き類似 × Tanimoto）と、スペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）。
+   c2 で 0.5 以上を目標（公開は約 0.6）。
+2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
+3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
+4. 最初の実提出：B0 相当を kernel にして LB を 1 本取り、検証台との対応を確認。
