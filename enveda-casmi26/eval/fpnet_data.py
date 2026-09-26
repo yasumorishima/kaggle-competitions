@@ -3,7 +3,7 @@
 X: per spectrum, sqrt intensities binned at 1 Da for fragments (0..MZ_BINS) and
 for neutral losses from the precursor (0..NL_BINS), plus a one-hot adduct block.
 Y: Morgan radius-2 2048-bit fingerprint of the structure (packed bits).
-Every molecule of the validation split is held out. At most PER_STRUCT spectra
+Every molecule of the validation split (and of enveda-np-examples) is held out. At most PER_STRUCT spectra
 per structure, preferring timsTOF.
 
     python fpnet_data.py      # writes $CASMI_DATA/fpnet_{X,Y,meta}
@@ -55,9 +55,10 @@ def fingerprints(smiles):
 
 def main():
     meta = pd.read_parquet(DATA + "/train_meta.parquet",
-                           columns=["inchikey14", "normalized_smiles", "precursor_mz", "adduct", "instrument_type"])
+                           columns=["ingest_lib", "inchikey14", "normalized_smiles", "precursor_mz", "adduct", "instrument_type"])
     meta["row"] = np.arange(len(meta))
     held = set(pd.read_parquet(DATA + "/split.parquet").inchikey14)
+    held |= set(meta.loc[meta.ingest_lib == "enveda-np-examples", "inchikey14"])   # class 4 of analog.py
     m = meta[~meta.inchikey14.isin(held)].copy()
     m["pri"] = (m.instrument_type == "timsTOF").astype(int)
     m = m.sample(frac=1, random_state=0).sort_values("pri", ascending=False, kind="stable")
