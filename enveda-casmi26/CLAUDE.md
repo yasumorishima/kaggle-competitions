@@ -93,6 +93,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 - データの置き場（コンテナは消える）：`~/casmi_data`→ scratchpad の `enveda/`（train.parquet・train_meta・structures・split・coconut・fpnet_*）。
   消えていたら取り直し：train/test は curl（上）、`coco_meta.pkl`/`coco_mass.npy` は `www.kaggle.com/api/v1/datasets/download/prvsiyan/coconut-casmi26-candidates/<file>`、
   あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
+- **analog の集約を改良（`analog_tune.py`・保存済みヒットから再採点・ゲート 0.8）**：b1 相当（Morgan r2・POW 3・max）c1 0.921／c2 0.764／c4 0.528 →
+  **Morgan r3 カウント・POW 2・上位 400 類縁体・候補ごとに上位 3 の和**で c1 0.939／c2 0.781／c4 0.570（全クラスで上）。全表は `$CASMI_DATA/analog_tune.csv`。
+  kernel に実装済み（b3・ローカル煙テスト 218 秒・400 行）。**09-27 00:01 UTC に request `b3-1` で提出予約**（send_later）。
 - 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 0.271）。
 - 得点の確認：`curl -sS https://www.kaggle.com/api/v1/competitions/submissions/list/enveda-CASMI26-molecule-id-mass-spectra`（cloud から届く）。
 
@@ -100,7 +103,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 
 1. **c4（天然物 c2）を上げる**：判定は `blend.py scores_analog_150_coco_np.pkl`。今の FP MLP は c4 で逆効果。
    ① ✗ フラグメント説明（`fragexp.py`・1〜2 結合切断）は単独 c4 0.120・足しても伸びない（単体では弱い＝使うなら学習合成の特徴として） ② FP を公開並み（単独 0.47 級）に強化（0.1 Da ビン・大きいモデル・学習は Kaggle GPU を GHA 経由）
-   ③ 類縁体の重み付け（POW・N_ANALOG・Tanimoto 以外の類似＝MCES 風）を c4 で調整 ④ チャネルを学習で合成（公開は HGB）。
+   ③ ✅ 類縁体の集約（上位 3 の和）→ b3。続き：類縁体検索そのもの（代表スペクトルを構造×極性×付加イオンに増やす・MAX_PEAKS）を c4 で ④ チャネルを学習で合成（公開は HGB）。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
 4. ✅ 実提出 b1＝0.275。次は c2 を上げる手（フィンガープリント予測・フラグメント説明）と、本番に近い c2 の検証（天然物寄り）。
