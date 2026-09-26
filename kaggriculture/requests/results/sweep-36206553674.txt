@@ -1,0 +1,19 @@
+run: 36206553674  status: success
+memo: v66 twin vs v66: feed wheat grown vs bought (feed_grow 0.2/0.7, feed_buy_days 1/3, wheat_floor 8)
+agent_a: agents/v66_sched.py  agent_b: agents/v66_sched.py  episodes: 48  seed0: 470000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "fg02", "P": {"feed_grow": 0.2}}, {"name": "fg07", "P": {"feed_grow": 0.7}}, {"name": "fb1", "P": {"feed_buy_days": 1}}, {"name": "fb3", "P": {"feed_buy_days": 3}}, {"name": "wf8", "P": {"wheat_floor": 8}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fg02                         84366      5075     0.62     96             150      3051       974     1166      tie
+fb1                          82978      4102     0.58     96           -1238      4947       653     1425      tie
+base                         84216      4876     0.25     96               0       nan         0        -      ref
+wf8                          84069      4880     0.49     96            -148      2454      -493     1015      tie
+fb3                          81971      4344     0.40     96           -2245      4551      -923      981      tie
+fg07                         73290      4661     0.02     96          -10926      6061    -13421     1344    WORSE
+
+SWEEP_BEST={"name": "fg02", "mean": 84366, "margin": 974, "ranked_on": "margin"}
+
+replicating 'fg02' against 'base' on seeds 472000-472031, both sides
+  fg02 vs base: margin +1460 +/- 1153 over 64 games (own money -38 +/- 2826) -> HELD
+SWEEP_REPLICATE={"name": "fg02", "margin": 1460, "margin_ci95": 1153, "delta": -38, "ci95": 2826, "games": 64, "verdict": "HELD", "judged_on": "margin"}
