@@ -1,0 +1,28 @@
+run: 36223094376  status: success  action: kernel  dir: enveda-casmi26/kernels/sample  submit: yes
+kernel: yasunorim/casmi26-sample-path-check  version: 1
+memo: path check: push the sample kernel, wait for it, submit its submission.csv (scores ~0 on purpose)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-sample-path-check
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-09-26 06:15:01.503000,path check: sample submission [run 36223094376],SubmissionStatus.PENDING,,
+
+output files:
+total 56
+drwxr-xr-x  2 runner runner  4096 Sep 26 06:15 .
+drwxrwxrwt 14 root   root    4096 Sep 26 06:15 ..
+-rw-r--r--  1 runner runner  1322 Sep 26 06:15 casmi26-sample-path-check.log
+-rw-r--r--  1 runner runner 43619 Sep 26 06:15 submission.csv
+[{"stream_name":"stdout","time":0.794251915,"data":"found: ['/kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra/sample_submission.csv']\n"}
+,{"stream_name":"stdout","time":0.802324646,"data":"molecule_id,smiles\n"}
+,{"stream_name":"stdout","time":0.802357286,"data":"m_005e53,CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO\n"}
+,{"stream_name":"stdout","time":0.802364037,"data":"m_006153,CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO;CCO\n"}
+,{"stream_name":"stderr","time":3.83104786,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":3.831106076,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":4.248449097,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":4.248479789,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":5.921175771,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":7.526317264,"data":"[NbConvertApp] Writing 273982 bytes to __results__.html\n"}
+]
