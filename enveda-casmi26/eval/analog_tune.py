@@ -27,7 +27,7 @@ GENS = {
     "maccs": MACCSkeys.GenMACCSKeys,
 }
 POWS = [2.0, 3.0, 4.0]
-NS = [100, 200, 400]
+NS = [100, 400]
 AGG = ["max", "top2", "top3", "top5", "top10"]
 GATE = 0.8
 
@@ -97,6 +97,8 @@ def main():
         print(t.sort_values(4, ascending=False).head(8), flush=True)
     r = pd.DataFrame(rows, columns=["fp", "pow", "n", "agg", "cls", "mrr"])
     t = r.pivot_table(index=["fp", "pow", "n", "agg"], columns="cls", values="mrr", aggfunc="mean").round(3)
+    t.to_csv(DATA + "/analog_tune.csv")
+    print(t.loc[("morgan2", 3.0, 100)] if ("morgan2", 3.0, 100, "max") in t.index else "")
     print("=== best on class 4")
     print(t.sort_values(4, ascending=False).head(15))
 
