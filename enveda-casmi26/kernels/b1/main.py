@@ -47,7 +47,7 @@ TOL_DA = 0.02
 N_ANALOG = 100
 POW = 3.0
 MAX_PEAKS = 64
-LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
+LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.95"))
 W_ANALOG = 0.9
 
 PROTON = 1.007276467
@@ -210,7 +210,8 @@ def main():
                     if w * tv > ana[cands[i]]:
                         ana[cands[i]] = w * tv
         # Local split (150/class): analog alone c1 0.924 c2 0.799; a direct library
-        # hit only helps when it is near-identical, so it is gated at 0.8.
+        # hit only helps when it is near-identical, so it is gated. On natural products
+        # (class 4 of analog.py, the LB-like c2) gate 0.8 -> 0.526, 0.95 -> 0.570, c1 unchanged.
         score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0) + ana[c] for c in cands}
         ranked = sorted(cands, key=lambda c: -score[c])[:25]
         smiles = [smi[c] for c in ranked if isinstance(smi.get(c), str)]
