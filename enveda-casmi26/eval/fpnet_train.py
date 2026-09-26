@@ -68,7 +68,7 @@ def evaluate(model):
     S = pd.read_parquet(DATA + "/structures.parquet")
     coco = pd.read_parquet(DATA + "/coconut.parquet")
     smi = {**dict(zip(coco.inchikey14, coco.smiles)), **dict(zip(S.inchikey14, S.normalized_smiles))}
-    iks = set(ik for d in dump for ik in [d[0]])
+    iks = set(d[0] for d in dump)
     q = split[split.inchikey14.isin(iks)]
     spec = load_peaks(q.row.values, lambda a, b: (a, b))
     model.eval()
@@ -79,7 +79,7 @@ def evaluate(model):
             p = torch.sigmoid(model(torch.from_numpy(x))).mean(0).clamp(1e-4, 1 - 1e-4).numpy()
             logp[ik] = (np.log(p), np.log(1 - p))
     rows = []
-    for ik, cls, cands, lib, ana in dump:
+    for ik, cls, cands, lib, ana, *_ in dump:
         fp, ok = fingerprints([smi.get(c) for c in cands])
         bits = np.unpackbits(fp, axis=1).astype(np.float32)
         lp1, lp0 = logp[ik]

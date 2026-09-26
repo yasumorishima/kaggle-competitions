@@ -111,6 +111,7 @@ def main():
         ana = {c: 0.0 for c in cands}
         cfp = [getfp(c) for c in cands]
         okc = [i for i, f in enumerate(cfp) if f is not None]
+        hits = []
         for row in r.rows:
             qs = spec[row]
             if not len(qs):
@@ -123,6 +124,7 @@ def main():
             res = e.search(precursor_mz=float(meta.precursor_mz.values[row]), peaks=qs, method="hybrid",
                            ms2_tolerance_in_da=TOL_DA, noise_threshold=0.0, max_peak_num=MAX_PEAKS)["hybrid_search"]
             top = np.argsort(-res)[:N_ANALOG]
+            hits.append([(float(res[j]), iks[j]) for j in top if res[j] > 0])
             for j in top:
                 s = float(res[j])
                 if s <= 0:
@@ -136,7 +138,7 @@ def main():
                     v = w * tv
                     if v > ana[cands[i]]:
                         ana[cands[i]] = v
-        dump.append((ik, r.cls, cands, [lib[c] for c in cands], [ana[c] for c in cands]))
+        dump.append((ik, r.cls, cands, [lib[c] for c in cands], [ana[c] for c in cands], hits))
         score = {c: max(lib[c], W_ANALOG * ana[c]) for c in cands}
         for name, sc in (("lib", lib), ("analog", ana), ("both", score)):
             ranked = sorted(cands, key=lambda c: -sc[c])
