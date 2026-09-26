@@ -1,0 +1,17 @@
+run: 36211786178  status: success
+memo: v66 twin vs v66, 192 games: less feed wheat grown (feed_grow 0.1/0.2/0.3; 0.7 was much WORSE)
+agent_a: agents/v66_sched.py  agent_b: agents/v66_sched.py  episodes: 96  seed0: 480000  replicate: 48
+variants: [{"name": "base", "P": {}}, {"name": "fg01", "P": {"feed_grow": 0.1}}, {"name": "fg02", "P": {"feed_grow": 0.2}}, {"name": "fg03", "P": {"feed_grow": 0.3}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fg02                         83301      3056     0.66    192            2357      1857      1308      723   BETTER
+fg01                         82315      2869     0.59    192            1371      1857      1144      783   BETTER
+fg03                         82289      3086     0.56    192            1346      1634       647      700      tie
+base                         80944      3045     0.28    192               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "fg02", "mean": 83301, "margin": 1308, "ranked_on": "margin"}
+
+replicating 'fg02' against 'base' on seeds 482000-482047, both sides
+  fg02 vs base: margin +2069 +/- 1224 over 96 games (own money +856 +/- 2818) -> HELD
+SWEEP_REPLICATE={"name": "fg02", "margin": 2069, "margin_ci95": 1224, "delta": 856, "ci95": 2818, "games": 96, "verdict": "HELD", "judged_on": "margin"}
