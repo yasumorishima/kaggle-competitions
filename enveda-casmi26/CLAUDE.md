@@ -79,10 +79,20 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   公開の推定比率（c1 16%・c2 27%）で逆算すると**本番 c2 ≈ 0.47**（当方の検証 c2 0.8 は楽観的＝近い類縁体が多すぎる）。
 - 注意：wheel 用フォルダ名 `wheels/` はリポの `.gitignore` に掛かる（`offline-pkgs/` にした）。`git mv -k` は黙って何もしないことがある。
 
+- **FP 予測 MLP**（`eval/fpnet_data.py`→`fpnet_train.py`・2026-09-26）：特徴＝1 Da ビンの断片＋中性損失（sqrt 強度・最大値）＋付加イオン one-hot（1,511 次元）、
+  目標＝Morgan r2 2048 ビット、学習 98 万スペクトル（構造あたり ≤4・検証の 1,200 分子は除外）、1024×2 層・3 エポック（CPU 約 6 分・`$CASMI_DATA/fpnet.pt`）。
+  各 150 分子：**FP 単独 c2 0.268**（公開の FPNet 0.47〜0.52 より弱い）、類縁体に足すと c2 0.768→0.710 以下に悪化（この楽観的な c2 では）。
+- **検証の較正（実行中）**：`analog.py` が類縁体ヒットも保存（`scores_analog_150.pkl` の 6 要素目）→ `calibrate.py` が「正解と Tanimoto ≥ T の類縁体を除く」
+  T ごとに c2 を再計算し、b1 の c2 が本番推定 ≈0.47 になる T を探す。その T で FP の重みを比べる（次セッションでまず結果を読む）。
+- データの置き場（コンテナは消える）：`~/casmi_data`→ scratchpad の `enveda/`（train.parquet・train_meta・structures・split・coconut・fpnet_*）。
+  消えていたら取り直し：train/test は curl（上）、`coco_meta.pkl`/`coco_mass.npy` は `www.kaggle.com/api/v1/datasets/download/prvsiyan/coconut-casmi26-candidates/<file>`、
+  あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
+- 提出枠：09-26 は 4 本使用（経路確認 3・b1 1）。
+
 ## ▶▶ 次の一手
 
-1. **c2 の検証を天然物寄りに**（RDKit の NP-likeness か COCONUT 近傍で抽出）→ B1 を測り直し、lib と analog の合成規則を決める。
-   次にスペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）を足す。
+1. **較正した c2 で FP の効きを判定**（`calibrate.py` の結果）。効くなら FP を強化（細かいビン・大きいモデル・学習は GHA）→ 重みを dataset にして b2 kernel。
+   効かないならフラグメント説明（MetFrag 風）を先に。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
 4. ✅ 実提出 b1＝0.275。次は c2 を上げる手（フィンガープリント予測・フラグメント説明）と、本番に近い c2 の検証（天然物寄り）。
