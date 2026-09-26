@@ -88,17 +88,18 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   （COCONUT を入れても enveda の c2 は 0.79 のまま＝本番が難しいのは天然物だから。）
 - `blend.py <dump>`：ゲート G × FP 重みの格子を class ごとに出す。c4：G 0.8→0.526、0.95→0.570、ライブラリ無し→0.576（c1 はどれも 0.924）。
   **FP（class 4 を学習から除いて再学習）は c4 で足すほど悪化**（w 0.05→0.566、0.3→0.506・単独 0.239）＝今の MLP は弱すぎる。
-- **b2**＝b1 のライブラリゲートを 0.95 に（kernel `yasunorim/casmi26-b1-library-analog` v2・request `b2-1`・run `36243920088`）。LB は下の提出枠の行に記録。
+- **b2**＝b1 のライブラリゲートを 0.95 に（kernel `yasunorim/casmi26-b1-library-analog` v2・request `b2-1`・run `36243920088`）。**LB 0.271（b1 0.275 より悪い）**＝c4 の +0.044 は LB に出ず、0.8〜0.95 のライブラリ一致は本番では当たりを含む ⇒ **ゲートは 0.8 に戻す**。
+  教訓：class 4 は c2 の分布には合うが、ライブラリ一致（c1 側）の判定には使えない。ゲートは LB で決めた値を動かさない。
 - データの置き場（コンテナは消える）：`~/casmi_data`→ scratchpad の `enveda/`（train.parquet・train_meta・structures・split・coconut・fpnet_*）。
   消えていたら取り直し：train/test は curl（上）、`coco_meta.pkl`/`coco_mass.npy` は `www.kaggle.com/api/v1/datasets/download/prvsiyan/coconut-casmi26-candidates/<file>`、
   あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
-- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 PENDING）。
+- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 0.271）。
 - 得点の確認：`curl -sS https://www.kaggle.com/api/v1/competitions/submissions/list/enveda-CASMI26-molecule-id-mass-spectra`（cloud から届く）。
 
 ## ▶▶ 次の一手
 
 1. **c4（天然物 c2）を上げる**：判定は `blend.py scores_analog_150_coco_np.pkl`。今の FP MLP は c4 で逆効果。
-   ① フラグメント説明（MetFrag 風：候補の 1〜2 結合切断断片がピークを説明する率）を c4 で測る ② FP を公開並み（単独 0.47 級）に強化（0.1 Da ビン・大きいモデル・学習は Kaggle GPU を GHA 経由）
+   ① ✗ フラグメント説明（`fragexp.py`・1〜2 結合切断）は単独 c4 0.120・足しても伸びない（単体では弱い＝使うなら学習合成の特徴として） ② FP を公開並み（単独 0.47 級）に強化（0.1 Da ビン・大きいモデル・学習は Kaggle GPU を GHA 経由）
    ③ 類縁体の重み付け（POW・N_ANALOG・Tanimoto 以外の類似＝MCES 風）を c4 で調整 ④ チャネルを学習で合成（公開は HGB）。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
