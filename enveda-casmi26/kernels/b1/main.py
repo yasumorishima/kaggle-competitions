@@ -44,8 +44,10 @@ RDLogger.DisableLog("rdApp.*")
 
 PPM, PPM_WIDE = 10.0, 30.0
 TOL_DA = 0.02
-N_ANALOG = 100
-POW = 3.0
+N_ANALOG = 100        # hybrid-search hits kept per query spectrum
+POW = 2.0             # weight = similarity ** POW
+N_KEEP = 400          # unique analogs per molecule (best similarity over its spectra)
+TOP_K = 3             # candidate analog score = sum of its TOP_K best weight * Tanimoto
 MAX_PEAKS = 64
 LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
 W_ANALOG = 0.9
@@ -103,12 +105,12 @@ def load_peaks(path, rows):
     return out
 
 
-_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+_gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=4096)
 
 
 def fp(smi):
     m = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
-    return _gen.GetFingerprint(m) if m is not None else None
+    return _gen.GetCountFingerprint(m) if m is not None else None
 
 
 def main():
@@ -179,9 +181,9 @@ def main():
     for mid, g in test.groupby("molecule_id"):
         cands = cand[mid]
         lib = dict.fromkeys(cands, 0.0)
-        ana = dict.fromkeys(cands, 0.0)
         cfp = [getfp(c) for c in cands]
         okc = [i for i, f in enumerate(cfp) if f is not None]
+        best = {}
         for _, s in g.iterrows():
             qs = peaks(s.ms2_mzs, s.ms2_normalized_intensities)
             if not len(qs):
@@ -201,14 +203,17 @@ def main():
                 w = float(res[j])
                 if w <= 0:
                     break
-                afp = getfp(iks[j])
-                if afp is None:
-                    continue
-                tan = DataStructs.BulkTanimotoSimilarity(afp, [cfp[i] for i in okc])
-                w = w ** POW
-                for i, tv in zip(okc, tan):
-                    if w * tv > ana[cands[i]]:
-                        ana[cands[i]] = w * tv
+                if w > best.get(iks[j], 0.0):
+                    best[iks[j]] = w
+        items = sorted(((w, a) for a, w in best.items() if getfp(a) is not None), key=lambda x: -x[0])[:N_KEEP]
+        M = np.zeros((max(len(items), 1), len(cands)))
+        for k, (w, a) in enumerate(items):
+            if okc:
+                M[k, okc] = (w ** POW) * np.array(DataStructs.BulkTanimotoSimilarity(getfp(a), [cfp[i] for i in okc]))
+        av = np.sort(M, 0)[-TOP_K:].sum(0)
+        ana = dict(zip(cands, av))
+        # b3 (analog_tune.py, gate 0.8): Morgan r3 counts, POW 2, 400 analogs, top-3 sum
+        # c1 0.921 -> 0.939, c2 0.764 -> 0.781, NP c2 (class 4) 0.528 -> 0.570 vs b1's max.
         # Local split (150/class): analog alone c1 0.924 c2 0.799; a direct library
         # hit only helps when it is near-identical, so it is gated. On natural products
         # (class 4 of analog.py) gate 0.95 looked +0.044, but on the LB 0.95 gave 0.271 vs 0.275 at 0.8.
