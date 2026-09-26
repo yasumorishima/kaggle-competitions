@@ -1,15 +1,9 @@
 {
- "memo": "v67 twin vs v67: feed wheat further (feed_grow 0, wheat_floor 10, early floor 3, buy 1 day, wheat last sow 20)",
+ "memo": "v68 twin vs v68: wheat_floor 10, cash buffer 60/250, feed_grow 0.1, one day of feed money reserved",
  "variants": [
   {
    "name": "base",
    "P": {}
-  },
-  {
-   "name": "fg0",
-   "P": {
-    "feed_grow": 0.0
-   }
   },
   {
    "name": "wf10",
@@ -18,33 +12,33 @@
    }
   },
   {
-   "name": "wfe3",
+   "name": "cb60",
    "P": {
-    "wheat_floor_early": 3
+    "cash_buffer": 60
    }
   },
   {
-   "name": "fb1",
+   "name": "cb250",
    "P": {
-    "feed_buy_days": 1
+    "cash_buffer": 250
    }
   },
   {
-   "name": "wl20",
+   "name": "fg01",
    "P": {
-    "plant_last_day": {
-     "WHEAT": 20,
-     "CARROT": 25,
-     "MELON": 8,
-     "TOMATO": 16,
-     "STRAWBERRY": 16
-    }
+    "feed_grow": 0.1
+   }
+  },
+  {
+   "name": "fr05",
+   "P": {
+    "feed_reserve_days": 1
    }
   }
  ],
- "agent_a": "agents/v67_sched.py",
- "agent_b": "agents/v67_sched.py",
+ "agent_a": "agents/v68_sched.py",
+ "agent_b": "agents/v68_sched.py",
  "episodes": "48",
- "seed0": "490000",
+ "seed0": "500000",
  "replicate": "32"
 }
