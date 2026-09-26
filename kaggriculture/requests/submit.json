@@ -1,8 +1,8 @@
 {
- "memo": "submit v65_sched (v64 + herd floor 6 cows / 6 sheep from day 10); pushes v63 out, leaving v65 and v64",
- "agent": "agents/v65_sched.py",
- "message": "v65: v64 with a herd floor of 6 cows and 6 sheep from day 10. Head-to-head vs v64: win rate 0.54 over 192 games, margin +887 +/- 871; router BETTER in 5 sweeps.",
- "evidence": "vs v64_sched twin: GHA run 36130608392 (seeds 420000+, 192 games) margin +887 +/- 871 BETTER; replicated on 422000-422047 (96 games) +1,377 +/- 1,218 HELD. vs public router: BETTER in 5 sweeps (+2,292 to +3,950).",
+ "memo": "submit v66_sched (v65 + strawberries sold whole); pushes v64 out, leaving v66 and v65",
+ "agent": "agents/v66_sched.py",
+ "message": "v66: v65 with strawberries sold whole the turn they reach the shed. Head-to-head vs v65: win rate 0.44 vs 0.33 over 192 games, margin +107 +/- 69.",
+ "evidence": "vs v65_sched twin: GHA run 36138497648 (seeds 440000+, 192 games) margin +107 +/- 69 BETTER; replicated on 442000-442047 (96 games) +19 +/- 18 HELD. BETTER vs both twin and router in 5 earlier sweeps.",
  "confirm": "submit",
  "dry_run": false
 }
