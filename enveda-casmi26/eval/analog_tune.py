@@ -3,7 +3,7 @@
 Uses the saved hits (per query spectrum: top analogs with their hybrid
 similarity), so nothing is searched again. Varies the fingerprint used for
 candidate-analog similarity, the power on the spectral similarity, how many
-analogs count, and max vs. sum-of-top-k aggregation. Library gate 0.95 as b2.
+analogs count, and max vs. sum-of-top-k aggregation. Library gate GATE (0.8 = b1; 0.95 lost on the LB).
 
     python analog_tune.py scores_analog_150_coco_np.pkl
 """
@@ -26,9 +26,10 @@ GENS = {
     "apair": rdFingerprintGenerator.GetAtomPairGenerator(fpSize=4096).GetCountFingerprint,
     "maccs": MACCSkeys.GenMACCSKeys,
 }
-POWS = [1.0, 3.0, 6.0]
-NS = [10, 30, 100]
-AGG = ["max", "top3", "soft"]
+POWS = [2.0, 3.0, 4.0]
+NS = [100, 200, 400]
+AGG = ["max", "top2", "top3", "top5", "top10"]
+GATE = 0.8
 
 
 def sim(f, fs):
@@ -64,7 +65,7 @@ def main():
 
         for ik, cls, cands, lib, _, hits in dump:
             lib = np.asarray(lib)
-            gate = np.where(lib >= 0.95, lib + 1.0, 0.0)
+            gate = np.where(lib >= GATE, lib + 1.0, 0.0)
             cf = [fp(c) for c in cands]
             okc = [i for i, f in enumerate(cf) if f is not None]
             best = {}
@@ -85,8 +86,8 @@ def main():
                     for agg in AGG:
                         if agg == "max":
                             a = M.max(0)
-                        elif agg == "top3":
-                            a = np.sort(M, 0)[-3:].sum(0)
+                        elif agg.startswith("top"):
+                            a = np.sort(M, 0)[-int(agg[3:]):].sum(0)
                         else:
                             a = (w[:, None] * T[:n] ** 4).sum(0) / (w.sum() + 1e-9) if len(w) else M.max(0)
                         sc = gate + a
