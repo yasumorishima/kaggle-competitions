@@ -82,17 +82,24 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 - **FP 予測 MLP**（`eval/fpnet_data.py`→`fpnet_train.py`・2026-09-26）：特徴＝1 Da ビンの断片＋中性損失（sqrt 強度・最大値）＋付加イオン one-hot（1,511 次元）、
   目標＝Morgan r2 2048 ビット、学習 98 万スペクトル（構造あたり ≤4・検証の 1,200 分子は除外）、1024×2 層・3 エポック（CPU 約 6 分・`$CASMI_DATA/fpnet.pt`）。
   各 150 分子：**FP 単独 c2 0.268**（公開の FPNet 0.47〜0.52 より弱い）、類縁体に足すと c2 0.768→0.710 以下に悪化（この楽観的な c2 では）。
-- **検証の較正（実行中）**：`analog.py` が類縁体ヒットも保存（`scores_analog_150.pkl` の 6 要素目）→ `calibrate.py` が「正解と Tanimoto ≥ T の類縁体を除く」
-  T ごとに c2 を再計算し、b1 の c2 が本番推定 ≈0.47 になる T を探す。その T で FP の重みを比べる（次セッションでまず結果を読む）。
+- **検証の較正（済）**：`calibrate.py`（正解と Tanimoto ≥ T の類縁体を除く）では T=0.5 でも c2 0.664 ＝**近い類縁体は楽観の原因ではない**。
+  原因は**問題の分子の種類**：`analog.py 150 coco np` の **class 4＝`enveda-np-examples` 250 分子（天然物）**を c2 扱い（全ライブラリから当該構造のスペクトルを抜き、構造は候補に残す）、
+  候補＝train＋COCONUT（kernel と同じ・c4 の候補中央値 58）→ **b1 の式で c4 0.526 ≈ 本番推定 0.47〜0.55**。**以後の判定は class 4**（`scores_analog_150_coco_np.pkl`・約 43 分）。
+  （COCONUT を入れても enveda の c2 は 0.79 のまま＝本番が難しいのは天然物だから。）
+- `blend.py <dump>`：ゲート G × FP 重みの格子を class ごとに出す。c4：G 0.8→0.526、0.95→0.570、ライブラリ無し→0.576（c1 はどれも 0.924）。
+  **FP（class 4 を学習から除いて再学習）は c4 で足すほど悪化**（w 0.05→0.566、0.3→0.506・単独 0.239）＝今の MLP は弱すぎる。
+- **b2**＝b1 のライブラリゲートを 0.95 に（kernel `yasunorim/casmi26-b1-library-analog` v2・request `b2-1`・run `36243920088`）。LB は下の提出枠の行に記録。
 - データの置き場（コンテナは消える）：`~/casmi_data`→ scratchpad の `enveda/`（train.parquet・train_meta・structures・split・coconut・fpnet_*）。
   消えていたら取り直し：train/test は curl（上）、`coco_meta.pkl`/`coco_mass.npy` は `www.kaggle.com/api/v1/datasets/download/prvsiyan/coconut-casmi26-candidates/<file>`、
   あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
-- 提出枠：09-26 は 4 本使用（経路確認 3・b1 1）。
+- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 PENDING）。
+- 得点の確認：`curl -sS https://www.kaggle.com/api/v1/competitions/submissions/list/enveda-CASMI26-molecule-id-mass-spectra`（cloud から届く）。
 
 ## ▶▶ 次の一手
 
-1. **較正した c2 で FP の効きを判定**（`calibrate.py` の結果）。効くなら FP を強化（細かいビン・大きいモデル・学習は GHA）→ 重みを dataset にして b2 kernel。
-   効かないならフラグメント説明（MetFrag 風）を先に。
+1. **c4（天然物 c2）を上げる**：判定は `blend.py scores_analog_150_coco_np.pkl`。今の FP MLP は c4 で逆効果。
+   ① フラグメント説明（MetFrag 風：候補の 1〜2 結合切断断片がピークを説明する率）を c4 で測る ② FP を公開並み（単独 0.47 級）に強化（0.1 Da ビン・大きいモデル・学習は Kaggle GPU を GHA 経由）
+   ③ 類縁体の重み付け（POW・N_ANALOG・Tanimoto 以外の類似＝MCES 風）を c4 で調整 ④ チャネルを学習で合成（公開は HGB）。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
 4. ✅ 実提出 b1＝0.275。次は c2 を上げる手（フィンガープリント予測・フラグメント説明）と、本番に近い c2 の検証（天然物寄り）。
