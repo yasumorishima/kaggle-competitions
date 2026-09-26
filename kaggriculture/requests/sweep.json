@@ -1,32 +1,50 @@
 {
- "memo": "v66 twin vs v66, 192 games: less feed wheat grown (feed_grow 0.1/0.2/0.3; 0.7 was much WORSE)",
+ "memo": "v67 twin vs v67: feed wheat further (feed_grow 0, wheat_floor 10, early floor 3, buy 1 day, wheat last sow 20)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "fg01",
+   "name": "fg0",
    "P": {
-    "feed_grow": 0.1
+    "feed_grow": 0.0
    }
   },
   {
-   "name": "fg02",
+   "name": "wf10",
    "P": {
-    "feed_grow": 0.2
+    "wheat_floor": 10
    }
   },
   {
-   "name": "fg03",
+   "name": "wfe3",
    "P": {
-    "feed_grow": 0.3
+    "wheat_floor_early": 3
+   }
+  },
+  {
+   "name": "fb1",
+   "P": {
+    "feed_buy_days": 1
+   }
+  },
+  {
+   "name": "wl20",
+   "P": {
+    "plant_last_day": {
+     "WHEAT": 20,
+     "CARROT": 25,
+     "MELON": 8,
+     "TOMATO": 16,
+     "STRAWBERRY": 16
+    }
    }
   }
  ],
- "agent_a": "agents/v66_sched.py",
- "agent_b": "agents/v66_sched.py",
- "episodes": "96",
- "seed0": "480000",
- "replicate": "48"
+ "agent_a": "agents/v67_sched.py",
+ "agent_b": "agents/v67_sched.py",
+ "episodes": "48",
+ "seed0": "490000",
+ "replicate": "32"
 }

@@ -1,0 +1,19 @@
+run: 36211877719  status: success
+memo: v67 twin vs v67: feed wheat further (feed_grow 0, wheat_floor 10, early floor 3, buy 1 day, wheat last sow 20)
+agent_a: agents/v67_sched.py  agent_b: agents/v67_sched.py  episodes: 48  seed0: 490000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "fg0", "P": {"feed_grow": 0.0}}, {"name": "wf10", "P": {"wheat_floor": 10}}, {"name": "wfe3", "P": {"wheat_floor_early": 3}}, {"name": "fb1", "P": {"feed_buy_days": 1}}, {"name": "wl20", "P": {"plant_last_day": {"WHEAT": 20, "CARROT": 25, "MELON": 8, "TOMATO": 16, "STRAWBERRY": 16}}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fb1                          83383      5555     0.70     96            1865      3521      2197     1437   BETTER
+wf10                         81719      4766     0.65     96             201      2260       885      947      tie
+base                         81518      4759     0.26     96               0       nan         0        -      ref
+fg0                          81839      4574     0.50     96             321      5658      -784     1419      tie
+wl20                         79170      4806     0.17     96           -2348       677     -2387      509    WORSE
+wfe3                         84565      4192     0.26     96            3048      5279     -3258     1189    WORSE
+
+SWEEP_BEST={"name": "fb1", "mean": 83383, "margin": 2197, "ranked_on": "margin"}
+
+replicating 'fb1' against 'base' on seeds 492000-492031, both sides
+  fb1 vs base: margin +2005 +/- 1637 over 64 games (own money +4027 +/- 4419) -> HELD
+SWEEP_REPLICATE={"name": "fb1", "margin": 2005, "margin_ci95": 1637, "delta": 4027, "ci95": 4419, "games": 64, "verdict": "HELD", "judged_on": "margin"}
