@@ -1,8 +1,8 @@
 {
- "memo": "submit v67_sched (v66 + feed_grow 0.2); pushes v65 out, leaving v67 and v66",
- "agent": "agents/v67_sched.py",
- "message": "v67: v66 buying more of its feed wheat instead of growing it (feed_grow 0.2). Head-to-head vs v66: win rate 0.66 over 192 games, margin +1,308 +/- 723.",
- "evidence": "vs v66_sched twin: GHA run 36209548150 (seeds 480000+, 192 games) win rate 0.66, margin +1,308 +/- 723 BETTER; replicated on 482000-482047 (96 games) +2,069 +/- 1,224 HELD. vs public router: tie (-223 +/- 1,928, run 36206553674 sweep).",
+ "memo": "submit v68_sched (v67 + feed_buy_days 1); pushes v66 out, leaving v68 and v67",
+ "agent": "agents/v68_sched.py",
+ "message": "v68: v67 holding one day of bought feed instead of two. Head-to-head vs v67: win rate 0.70 over 96 games, margin +2,197 +/- 1,437.",
+ "evidence": "vs v67_sched twin: GHA run 36211877719 (seeds 490000+, 96 games) win rate 0.70, margin +2,197 +/- 1,437 BETTER; replicated on 492000-492031 +2,005 +/- 1,637 HELD. vs public router: cloud sweep 48 games +2,908 +/- 3,596 tie.",
  "confirm": "submit",
  "dry_run": false
 }
