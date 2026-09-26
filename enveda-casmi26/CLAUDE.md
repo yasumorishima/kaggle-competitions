@@ -52,7 +52,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 
 - **提出経路は開通**：`enveda-casmi26/requests/kaggle.json` を push → `.github/workflows/enveda-kaggle.yml` が kernel を push・完了待ち・
   （`"submit": "submit"` のとき）`kaggle competitions submit -k <kernel> -v <ver>` → 結果を同じブランチの `requests/results/kaggle-<run>.txt` へ。
-  run `36223094376`：`kernels/sample`（sample_submission の写し）を push → 提出一覧で PENDING を確認（点数 ≈ 0・経路確認用）。
+  run `36223094376`：`kernels/sample`（sample_submission の写し）を push → 提出一覧で PENDING を確認（点数 0.000・経路確認用）。
+  ⚠️ 依頼ファイルが main への merge とブランチの作り直しで再生され、**経路確認の提出が 09-26 に 3 回**走った（全部 0.000）。
+  対策済み：workflow は main では動かない（`branches-ignore`）＋ **依頼には毎回新しい `id` が必須**（結果ファイルに同じ id があれば何もしない）。
   `"action": "dataset"` で `dataset-metadata.json` のあるフォルダを Kaggle dataset として作成／版上げ（未試験）。
 - **cloud コンテナから外部 DB（COCONUT・PubChem・ChEBI・zenodo）は proxy が 403**。`www.kaggle.com` と pypi は届く。
   ⇒ 外部 DB の取得と加工は GHA（インターネット可）でやり、Kaggle dataset にしてから使う。
@@ -64,11 +66,16 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 - **B0 `baseline_lib.py`**（train 構造の ±10 ppm 候補を train スペクトルとの entropy 類似の最大で並べる）・各 100 分子：
   c1 **0.922**（窓内 100%）／c2 0.012（窓内 100%・候補中央値 82）／c3 0（窓内 0%）。
   公開の推定比率（16/27/55%）で重み付け ≈ 0.15 ＝ 公開の「ライブラリだけ LB 0.151」と一致 ⇒ 検証台は LB と整合。
+- **B1 `analog.py`**（各 60 分子・約 10 分）：類縁体＝構造×極性ごとの代表スペクトル 37 万本に FlashEntropy の hybrid 検索（ずれた一致も数える）、
+  上位 100 本の類縁体について sim³ × Tanimoto(候補, 類縁体) の最大。**c2：類縁体だけで 0.815**（ライブラリだけ 0.007）、c1 0.942。
+  ⚠️ 公開（NP 寄りの C2）は 0.52〜0.55。当方の c2 は `enveda-180` の無作為抽出＝合成系列の近い類縁体が多く**楽観的**。天然物寄りの c2 を作り直すこと。
+  単純合成 `max(lib, 0.9·analog)` は c2 0.106 に崩れる（スペクトルを持つ異性体の lib 値が勝つ）＝「lib が高い時だけ lib、他は analog」か学習で合成する。
+  メモリ：train のピーク列を丸ごと読むと落ちる（15GB）→ `common.load_peaks` で行グループごとに読む。
 
 ## ▶▶ 次の一手
 
-1. **c2 の並べ替え**（得点の本体）：類縁体（質量シフト付き類似 × Tanimoto）と、スペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）。
-   c2 で 0.5 以上を目標（公開は約 0.6）。
+1. **c2 の検証を天然物寄りに**（RDKit の NP-likeness か COCONUT 近傍で抽出）→ B1 を測り直し、lib と analog の合成規則を決める。
+   次にスペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）を足す。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
 4. 最初の実提出：B0 相当を kernel にして LB を 1 本取り、検証台との対応を確認。
