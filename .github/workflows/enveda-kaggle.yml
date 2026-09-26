@@ -85,6 +85,8 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -o pipefail
+          # A dataset folder may carry prepare.sh to fetch what should not live in git.
+          if [ -f "$DIR/prepare.sh" ]; then sh "$DIR/prepare.sh"; fi
           ID=$(python -c "import json;print(json.load(open('$DIR/dataset-metadata.json'))['id'])")
           if kaggle datasets status "$ID" >/dev/null 2>&1; then
             kaggle datasets version -p "$DIR" -m "$MSG" -r zip 2>&1 | tee /tmp/out.txt

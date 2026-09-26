@@ -104,7 +104,7 @@ def main():
             fps[ik] = fp(smi.get(ik))
         return fps[ik]
 
-    rec = []
+    rec, dump = [], []
     for ik, r in qm.iterrows():
         cands = cand[ik]
         lib = {c: 0.0 for c in cands}
@@ -136,10 +136,13 @@ def main():
                     v = w * tv
                     if v > ana[cands[i]]:
                         ana[cands[i]] = v
+        dump.append((ik, r.cls, cands, [lib[c] for c in cands], [ana[c] for c in cands]))
         score = {c: max(lib[c], W_ANALOG * ana[c]) for c in cands}
         for name, sc in (("lib", lib), ("analog", ana), ("both", score)):
             ranked = sorted(cands, key=lambda c: -sc[c])
             rec.append((name, r.cls, mrr25(ranked, ik)))
+    import pickle
+    pickle.dump(dump, open(DATA + f"/scores_analog_{n}.pkl", "wb"))
     res = pd.DataFrame(rec, columns=["chan", "cls", "mrr"])
     print(res.pivot_table(index="cls", columns="chan", values="mrr", aggfunc="mean").round(3))
     print(f"done ({time.time()-t0:.0f}s)")
