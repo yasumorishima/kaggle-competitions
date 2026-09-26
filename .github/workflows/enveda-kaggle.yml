@@ -16,6 +16,9 @@ name: Enveda CASMI26 Kaggle
 on:
   workflow_dispatch:
   push:
+    # Not on main: merging a work branch would replay its last request there
+    # (2026-09-26: the path-check submit ran twice that way).
+    branches-ignore: [main]
     paths:
       - 'enveda-casmi26/requests/kaggle.json'
 
