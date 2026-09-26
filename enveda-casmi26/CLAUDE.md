@@ -72,10 +72,17 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   単純合成 `max(lib, 0.9·analog)` は c2 0.106 に崩れる（スペクトルを持つ異性体の lib 値が勝つ）＝「lib が高い時だけ lib、他は analog」か学習で合成する。
   メモリ：train のピーク列を丸ごと読むと落ちる（15GB）→ `common.load_peaks` で行グループごとに読む。
 
+- **初の実提出 b1＝LB 0.275**（2026-09-26・request `b1-1`・run `36225977495`・kernel `yasunorim/casmi26-b1-library-analog` v1・Kaggle 上 約 3.5 分）。
+  中身：train＋COCONUT（公開 dataset `prvsiyan/coconut-casmi26-candidates` の `coco_meta.pkl`/`coco_mass.npy`・計 71 万構造）の ±10 ppm（中央値 107 候補）を
+  類縁体（上の B1）＋ライブラリ一致（0.8 以上だけ加点）で並べる。wheel は自前 dataset `yasunorim/casmi26-offline-wheels`（rdkit 2026.3.3・ms_entropy 1.5.2・`datasets/offline-pkgs/prepare.sh` で GHA が取得）。
+  合成規則は `scores_analog_150.pkl` で決めた（各 150 分子）：類縁体だけ c1 0.924・c2 0.799、lib を混ぜると c2 が落ち（加算 w=1 で 0.101）、lib≥0.8 のゲートだけ同等。
+  公開の推定比率（c1 16%・c2 27%）で逆算すると**本番 c2 ≈ 0.47**（当方の検証 c2 0.8 は楽観的＝近い類縁体が多すぎる）。
+- 注意：wheel 用フォルダ名 `wheels/` はリポの `.gitignore` に掛かる（`offline-pkgs/` にした）。`git mv -k` は黙って何もしないことがある。
+
 ## ▶▶ 次の一手
 
 1. **c2 の検証を天然物寄りに**（RDKit の NP-likeness か COCONUT 近傍で抽出）→ B1 を測り直し、lib と analog の合成規則を決める。
    次にスペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）を足す。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
-4. 最初の実提出：B0 相当を kernel にして LB を 1 本取り、検証台との対応を確認。
+4. ✅ 実提出 b1＝0.275。次は c2 を上げる手（フィンガープリント予測・フラグメント説明）と、本番に近い c2 の検証（天然物寄り）。
