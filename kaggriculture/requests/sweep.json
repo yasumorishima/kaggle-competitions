@@ -1,47 +1,49 @@
 {
- "memo": "v68 twin vs v68 (09-27 #2, 192 games): fertilizer sell day 5/4, wool sold whole, and fs5+wool",
+ "memo": "v69 twin vs v69 (09-27, 192 games): small ties stacked - opening melon 10 plots, wheat floor 10, feed_grow 0.1, melon10+wheat10",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "fs5",
+   "name": "om10",
    "P": {
-    "fert_sell_days": 5
-   }
-  },
-  {
-   "name": "swW",
-   "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL"
+    "open_melon": [
+     [
+      0,
+      10
+     ]
     ]
    }
   },
   {
-   "name": "fs5swW",
+   "name": "wf10",
    "P": {
-    "fert_sell_days": 5,
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL"
-    ]
+    "wheat_floor": 10
    }
   },
   {
-   "name": "fs4",
+   "name": "fg01",
    "P": {
-    "fert_sell_days": 4
+    "feed_grow": 0.1
+   }
+  },
+  {
+   "name": "om10wf10",
+   "P": {
+    "open_melon": [
+     [
+      0,
+      10
+     ]
+    ],
+    "wheat_floor": 10
    }
   }
  ],
- "agent_a": "agents/v68_sched.py",
- "agent_b": "agents/v68_sched.py",
+ "agent_a": "agents/v69_sched.py",
+ "agent_b": "agents/v69_sched.py",
  "episodes": "96",
- "seed0": "540000",
+ "seed0": "560000",
  "replicate": "32"
 }
