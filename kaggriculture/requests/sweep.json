@@ -1,65 +1,273 @@
 {
- "memo": "v70 twin vs v70 (09-27 #3, 192 games): stacked small ties - wheat 12, rush 5, milk whole, feed_grow 0.1",
+ "memo": "v70 twin vs v70 (09-27 #4, 192 games): router shape - 3rd quadrant on day 11 with a sheep-heavy herd (7 cows, 8/10/12 sheep)",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "wf12rw5",
+   "name": "L11S10",
    "P": {
-    "wheat_floor": 12,
-    "rush_weight": 5.0
-   }
-  },
-  {
-   "name": "swMwf12",
-   "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL",
-     "MILK"
+    "sched_land_floor": [
+     [
+      11,
+      3
+     ]
     ],
-    "wheat_floor": 12
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      11,
+      {
+       "COW": 7,
+       "SHEEP": 10
+      }
+     ]
+    ]
    }
   },
   {
-   "name": "swMrw5",
+   "name": "L11S8",
    "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL",
-     "MILK"
+    "sched_land_floor": [
+     [
+      11,
+      3
+     ]
     ],
-    "rush_weight": 5.0
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      11,
+      {
+       "COW": 7,
+       "SHEEP": 8
+      }
+     ]
+    ]
    }
   },
   {
-   "name": "fg01wf12",
+   "name": "L11S12",
    "P": {
-    "feed_grow": 0.1,
-    "wheat_floor": 12
-   }
-  },
-  {
-   "name": "swMrw5wf12",
-   "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL",
-     "MILK"
+    "sched_land_floor": [
+     [
+      11,
+      3
+     ]
     ],
-    "rush_weight": 5.0,
-    "wheat_floor": 12
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      11,
+      {
+       "COW": 7,
+       "SHEEP": 12
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "L11S10c6",
+   "P": {
+    "sched_land_floor": [
+     [
+      11,
+      3
+     ]
+    ],
+    "sched_herd_floor": [
+     [
+      0,
+      {
+       "COW": 2,
+       "SHEEP": 2
+      }
+     ],
+     [
+      3,
+      {
+       "COW": 3,
+       "SHEEP": 2
+      }
+     ],
+     [
+      5,
+      {
+       "COW": 4,
+       "SHEEP": 2
+      }
+     ],
+     [
+      6,
+      {
+       "COW": 5,
+       "SHEEP": 3
+      }
+     ],
+     [
+      8,
+      {
+       "COW": 6,
+       "SHEEP": 3
+      }
+     ],
+     [
+      10,
+      {
+       "COW": 6,
+       "SHEEP": 6
+      }
+     ],
+     [
+      11,
+      {
+       "COW": 6,
+       "SHEEP": 10
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "L11",
+   "P": {
+    "sched_land_floor": [
+     [
+      11,
+      3
+     ]
+    ]
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "620000",
+ "seed0": "640000",
  "replicate": "32"
 }
