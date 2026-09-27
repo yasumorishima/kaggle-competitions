@@ -95,8 +95,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
 - **analog の集約を改良（`analog_tune.py`・保存済みヒットから再採点・ゲート 0.8）**：b1 相当（Morgan r2・POW 3・max）c1 0.921／c2 0.764／c4 0.528 →
   **Morgan r3 カウント・POW 2・上位 400 類縁体・候補ごとに上位 3 の和**で c1 0.939／c2 0.781／c4 0.570（全クラスで上）。全表は `$CASMI_DATA/analog_tune.csv`。
-  kernel に実装済み（b3・ローカル煙テスト 218 秒・400 行）。**09-27 00:01 UTC に request `b3-1` で提出予約**（send_later）。
-- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 0.271）。
+  kernel に実装済み（b3・ローカル煙テスト 218 秒・400 行）。**b3＝LB 0.283**（09-27・request `b3-1`・run `36281249190`・kernel v3・b1 0.275 から +0.008）＝検証（c4）の向きと LB が一致した初の改善。
+- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 0.271）。09-27：b3 0.283（1 本）。
 - 得点の確認：`curl -sS https://www.kaggle.com/api/v1/competitions/submissions/list/enveda-CASMI26-molecule-id-mass-spectra`（cloud から届く）。
 
 ## ▶▶ 次の一手
