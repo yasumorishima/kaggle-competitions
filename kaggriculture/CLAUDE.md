@@ -333,7 +333,7 @@ wf12 −215・wf14 −509・fg03 −544 tie、fs4 −1,628・fb2（`feed_buy_day
 ## ▶▶ 次の一手
 
 - **cloud の節約（09-27 確定）**：idle-compact（50 分放置で自動コンパクトするプラグイン）は **cloud では動かない**（Baggage セッションで実測：1 時間 40 分放置でも起きず、`compacts at` の行も出ない。cloud の Claude Code は `--output-format=stream-json` で動き function hooks が働かないとみられる）。
-  節約は「予約を毎回新しいセッションで始める」方式で行う（Baggage は `trig_01HvQKC9PfNbTeHRZuiKuJjv` で切り替え済み）。新しいセッションは repo を clone してから CLAUDE.md を読む。kaggriculture への適用は、新しいセッションで clone・push・GitHub ツール（PR の作成と merge）が使えるかの確認（`probe2`）の結果しだい。
+  節約は「予約を毎回新しいセッションで始める」方式で行う（Baggage は `trig_01HvQKC9PfNbTeHRZuiKuJjv` で切り替え済み）。新しいセッションは repo を clone してから CLAUDE.md を読む。**kaggriculture・enveda には使えない（09-27 `probe2` で確認）**：新しいセッションは 44 秒で終わり push できず、道具は Bash 等の基本だけ（`mcp__github__*`・`mcp__Claude_Code_Remote__*` 無し＝PR の作成・merge も予約もできない）。⇒ 毎日の再開は**このセッションへの send_later** で続ける。
 
 0. ✅ **v69・v70 を 09-27 に提出**（最新 2 本＝v70・v69・09-27 は 2 本使用）。次の候補は v70 に双子で勝つもの。
    v70 の上の 2 回の掃引（小麦・肥料・飼料・牛乳・rush の刻み）は全部 tie 以下＝既存ノブの刻みは尽きた。
