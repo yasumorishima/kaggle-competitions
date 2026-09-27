@@ -26,6 +26,20 @@
 - **最終評価が「最新 N 本」のコンペ（例：kaggriculture）**：現提出に勝てていない版で枠を埋めない（良い版を押し出して損をする）。勝つ候補が出るまで検証を回し続け、勝った版を出す。
 - **最終評価を自分で選ぶコンペ（例：enveda）**：余分な提出に損は無い。改良が無い日も、段取りの仮説を確かめる変種で枠を使い切る。
 
+## 💰 お金をかけない（2026-09-27 user 指示・必ず無料）
+
+GitHub の無料枠（個人アカウント）：Actions は**非公開リポジトリだけ**月 2,000 分、Codespaces のストレージは月 $1.05 相当。
+**公開リポジトリの標準ランナー（ubuntu-latest 等）は無料で、枠を減らさない。** 09-27 に Actions 90%（1,830/2,000 分）・Codespaces 100% の警告が来た。
+
+- **GitHub Actions は公開リポジトリか self-hosted runner（RPi5）でだけ回す。** 非公開リポジトリで重い処理（ベンチ・学習・掃引・長い待ち）を ubuntu-latest で回さない。
+  - 非公開が必要なコンペ（例：SIGNATE の配布物を扱う `signate-comp`）は、ジョブを `runs-on: self-hosted`（RPi5）にするか、計算を cloud コンテナか Kaggle Notebook に移す。
+  - `kaggle-competitions`（公開）の GHA は無料。ただし larger runner（GPU・大きいマシン）は公開でも有料なので使わない。
+- **待つだけのジョブを長く走らせない**（例：Kaggle kernel の完了待ちで 100 分ランナーを占有）。公開なら無料だが、非公開に同じ形を持ち込まない。
+- **重い計算の置き場所の優先順**：cloud コンテナ（無料）→ Kaggle Notebook（GPU 週 30 時間まで無料）→ 公開リポジトリの GHA → self-hosted（RPi5）。**有料になるもの（非公開の GitHub ランナー・Codespaces・larger runner・有料 API）は使わない。**
+- Codespaces は作らない。
+- 無料枠の警告メールが来たら、どのリポジトリが使っているかを確かめ、上のどれかへ移す。
+  最後の安全策として、Billing の Budgets で Actions・Codespaces に $0 の予算を置いておく（超えても止まるだけで請求されない）。
+
 ## cloud セッションの決まり
 
 - **作業は cloud セッションだけで完結させる。** user に手元の PC などへ持っていかせない。

@@ -1,0 +1,27 @@
+request: fp2-train-2
+run: 36335798134  status: success  action: kernel  dir: enveda-casmi26/kernels/fp2  submit: no
+kernel: yasunorim/casmi26-fp2-peak-transformer  version: 2
+memo: plan step 1: fp2 bigger (d 384, 16 epochs); v1 (d 256, 8 ep) gave FP-alone np 0.406 / rnd 0.768, loss still falling
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-fp2-peak-transformer
+
+output files:
+total 39260
+drwxr-xr-x  2 runner runner     4096 Sep 27 18:52 .
+drwxrwxrwt 14 root   root       4096 Sep 27 18:52 ..
+-rw-r--r--  1 runner runner     6835 Sep 27 18:52 casmi26-fp2-peak-transformer.log
+-rw-r--r--  1 runner runner 40181131 Sep 27 18:52 fp2.pt
+-rw-r--r--  1 runner runner      140 Sep 27 18:52 fp2_eval.txt
+[{"stream_name":"stdout","time":10.365517133,"data":"[     9s] comp /kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra coco /kaggle/input/datasets/prvsiyan/coconut-casmi26-candidates wheels /kaggle/input/datasets/yasunorim/casmi26-offline-wheels\n"}
+,{"stream_name":"stdout","time":25.968528305,"data":"[    24s] train 2539608\n"}
+,{"stream_name":"stdout","time":98.577469741,"data":"[    97s] train spectra 943707 structures 269196\n"}
+,{"stream_name":"stdout","time":213.993901616,"data":"[   212s] tokens loaded\n"}
+,{"stream_name":"stderr","time":215.664567727,"data":"/kaggle/src/script.py:154: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True\n"}
+,{"stream_name":"stderr","time":215.664608012,"data":"  self.enc = nn.TransformerEncoder(layer, 4)\n"}
+,{"stream_name":"stderr","time":223.665075925,"data":"/kaggle/src/script.py:211: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.\n"}
+,{"stream_name":"stderr","time":223.66511702,"data":"  scaler = torch.cuda.amp.GradScaler(enabled=DEV == \"cuda\")\n"}
+,{"stream_name":"stdout","time":418.904101521,"data":"[   417s] ep 0 step 1000/29488 loss 0.1212\n"}
+,{"stream_name":"stdout","time":587.924404277,"data":"[   586s] epoch 0 done\n"}
+,{"stream_name":"stdout","time":619.503149345,"data":"[   618s] ep 1 step 2000/29488 loss 0.0657\n"}
+,{"stream_name":"stdout","time":820.940289

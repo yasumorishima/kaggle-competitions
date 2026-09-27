@@ -1,0 +1,19 @@
+run: 36317934062  status: success
+memo: v70 twin vs v70 (09-27 #3, 192 games): stacked small ties - wheat 12, rush 5, milk whole, feed_grow 0.1
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 620000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "wf12rw5", "P": {"wheat_floor": 12, "rush_weight": 5.0}}, {"name": "swMwf12", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL", "MILK"], "wheat_floor": 12}}, {"name": "swMrw5", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL", "MILK"], "rush_weight": 5.0}}, {"name": "fg01wf12", "P": {"feed_grow": 0.1, "wheat_floor": 12}}, {"name": "swMrw5wf12", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL", "MILK"], "rush_weight": 5.0, "wheat_floor": 12}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fg01wf12                     83429      3850     0.48    192             951      1522        26      713      tie
+base                         82479      3715     0.24    192               0       nan         0        -      ref
+swMrw5                       82458      3906     0.55    192             -21      1321       -20      485      tie
+swMrw5wf12                   82913      3801     0.46    192             434      1558      -236      652      tie
+swMwf12                      83387      3789     0.48    192             908      1482      -242      609      tie
+wf12rw5                      82337      3883     0.48    192            -141      1394      -388      586      tie
+
+SWEEP_BEST={"name": "fg01wf12", "mean": 83429, "margin": 26, "ranked_on": "margin"}
+
+replicating 'fg01wf12' against 'base' on seeds 622000-622031, both sides
+  fg01wf12 vs base: margin -562 +/- 967 over 64 games (own money +630 +/- 3131) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "fg01wf12", "margin": -562, "margin_ci95": 967, "delta": 630, "ci95": 3131, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
