@@ -1,44 +1,63 @@
 {
- "memo": "v70 twin vs v70 (09-27, 192 games): wheat floor 12/14, fertilizer from day 4, feed_grow 0.3, feed_buy_days 2",
+ "memo": "v70 twin vs v70 (09-27 #2, 192 games): milk sold whole, milk rushed to the shed, rush weight 2/5, milk whole+rush",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "wf12",
+   "name": "swM",
    "P": {
-    "wheat_floor": 12
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL",
+     "MILK"
+    ]
    }
   },
   {
-   "name": "wf14",
+   "name": "rMk",
    "P": {
-    "wheat_floor": 14
+    "rush_items": [
+     "MELON",
+     "WOOL",
+     "MILK"
+    ]
    }
   },
   {
-   "name": "fs4",
+   "name": "rw2",
    "P": {
-    "fert_sell_days": 4
+    "rush_weight": 2.0
    }
   },
   {
-   "name": "fg03",
+   "name": "rw5",
    "P": {
-    "feed_grow": 0.3
+    "rush_weight": 5.0
    }
   },
   {
-   "name": "fb2",
+   "name": "swMrMk",
    "P": {
-    "feed_buy_days": 2
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL",
+     "MILK"
+    ],
+    "rush_items": [
+     "MELON",
+     "WOOL",
+     "MILK"
+    ]
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "580000",
+ "seed0": "600000",
  "replicate": "32"
 }
