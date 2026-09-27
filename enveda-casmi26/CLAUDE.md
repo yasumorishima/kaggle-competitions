@@ -68,6 +68,12 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   **FP 単独 MRR：天然物（class 4 と同じ 250 分子）0.406・無作為 enveda 400 分子 0.768**（1 Da ビンの MLP は 0.24／0.27）。合格線 0.45 まであと少し・損失はまだ下降中。
   → **d 384・16 エポック（`fp2-train-2`・約 103 分）：天然物 0.494・無作為 0.875＝段取り 1 の合格線（0.45）を越えた**（公開 FPNet 級）。次に `kernels/fp2dump`（学習済み重みを kernel_sources で読み、class 4 の候補ごとの FP 対数尤度をログに出す）で
   手元の類縁体スコアと合成して重みを決め、b5（類縁体＋FP）を作って LB で確かめる。
+- 09-27：**段取り 2（学習で再順位付け）の第 1 版**：`kernels/fp2dump` で class 4 の候補ごとの fp2 対数尤度を取り（ログ経由）、`eval/rerank.py` で LightGBM ランカー。
+  特徴＝類縁体（上位 3 和・最大・相対・順位）＋fp2（相対対数尤度・順位）＋候補数（`intrain`・`lib` は class 4 で答えが漏れるので除外）。
+  **class 4 の 5 分割 CV：0.647〜0.660（類縁体だけ 0.616・fp2 だけ 0.496・単純な重み和は最良 0.590）**。
+  → **b5**（`kernels/b5`＝b1＋fp2 推論＋ランカー・`b5/build.py` で生成・ライブラリのゲート 0.8 は据え置き）を作成、ローカル煙テスト 297 秒で 400 行。
+  **09-28 の最初の提出は b5**（request `b5-1`・dir `kernels/b5`）。LB の見込みは c2 分の +0.01 前後＝銅にはまだ足りない。
+  次：ランカーの学習データを増やす（c4 の 250 分子だけ → fp2 の無作為 400 分子にも類縁体スコアを付けて足す）、特徴に断片説明・質量誤差・候補の出どころ（COCONUT か）を足す。
   注意：`www.kaggleusercontent.com`（kernel 出力のファイル本体）は cloud の proxy で拒否＝重みは取れない。ログは `www.kaggle.com/api/v1/kernels/output?userName=…&kernelSlug=…` の `log` で読める。
 
 ## 🔴 提出の決まり（2026-09-27 user 指示・最優先）
