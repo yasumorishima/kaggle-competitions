@@ -1,50 +1,50 @@
 {
- "memo": "v70 twin vs v70 (09-27 #6, 192 games): unswept knobs - slice_frac, tile_margin, dist_weight, goose_cap, fill_idle, drop_load",
+ "memo": "v70 twin vs v70 (09-28 #7, 192 games): opposite direction of #6 losers - tile_margin, dist_weight, drop_load up; goose_cap 5",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "sl85",
+   "name": "tm13",
    "P": {
-    "slice_frac": 0.85
+    "tile_margin": 1.3
    }
   },
   {
-   "name": "tm10",
+   "name": "dw12",
    "P": {
-    "tile_margin": 1.0
+    "dist_weight": 1.2
    }
   },
   {
-   "name": "dw06",
+   "name": "dw10",
    "P": {
-    "dist_weight": 0.6
+    "dist_weight": 1.0
    }
   },
   {
-   "name": "gc8",
+   "name": "dl8",
    "P": {
-    "goose_cap": 8
+    "drop_load": 8
    }
   },
   {
-   "name": "fill",
+   "name": "dl7",
    "P": {
-    "fill_idle": true
+    "drop_load": 7
    }
   },
   {
-   "name": "dl4",
+   "name": "gc5",
    "P": {
-    "drop_load": 4
+    "goose_cap": 5
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "670000",
+ "seed0": "680000",
  "replicate": "32"
 }
