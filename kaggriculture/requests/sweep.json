@@ -1,50 +1,50 @@
 {
- "memo": "v70 twin vs v70 (09-27 #5, 192 games): operating efficiency - care urgency/deadline, drop urgency, jobs per hand, stickiness, sheep cap",
+ "memo": "v70 twin vs v70 (09-27 #6, 192 games): unswept knobs - slice_frac, tile_margin, dist_weight, goose_cap, fill_idle, drop_load",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "cu15",
+   "name": "sl85",
    "P": {
-    "care_urgency": 1.5
+    "slice_frac": 0.85
    }
   },
   {
-   "name": "cd4",
+   "name": "tm10",
    "P": {
-    "care_deadline": 4
+    "tile_margin": 1.0
    }
   },
   {
-   "name": "du02",
+   "name": "dw06",
    "P": {
-    "drop_urgency": 0.2
+    "dist_weight": 0.6
    }
   },
   {
-   "name": "jph8",
+   "name": "gc8",
    "P": {
-    "jobs_per_hand": 8
+    "goose_cap": 8
    }
   },
   {
-   "name": "st15",
+   "name": "fill",
    "P": {
-    "stickiness": 1.5
+    "fill_idle": true
    }
   },
   {
-   "name": "sc7",
+   "name": "dl4",
    "P": {
-    "sheep_cap": 7
+    "drop_load": 4
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "660000",
+ "seed0": "670000",
  "replicate": "32"
 }
