@@ -48,6 +48,7 @@ N_ANALOG = 100        # hybrid-search hits kept per query spectrum
 POW = 2.0             # weight = similarity ** POW
 N_KEEP = 400          # unique analogs per molecule (best similarity over its spectra)
 TOP_K = 3             # candidate analog score = sum of its TOP_K best weight * Tanimoto
+FP_RADIUS, FP_SIZE, FP_COUNT = 3, 4096, True   # Morgan fingerprint for candidate-analog Tanimoto
 MAX_PEAKS = 64
 LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
 W_ANALOG = 0.9
@@ -105,12 +106,14 @@ def load_peaks(path, rows):
     return out
 
 
-_gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=4096)
+_gen = rdFingerprintGenerator.GetMorganGenerator(radius=FP_RADIUS, fpSize=FP_SIZE)
 
 
 def fp(smi):
     m = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
-    return _gen.GetCountFingerprint(m) if m is not None else None
+    if m is None:
+        return None
+    return _gen.GetCountFingerprint(m) if FP_COUNT else _gen.GetFingerprint(m)
 
 
 def main():

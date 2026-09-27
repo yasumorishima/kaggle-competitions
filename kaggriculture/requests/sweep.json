@@ -1,45 +1,19 @@
 {
- "memo": "v70 twin vs v70 (09-27 #2, 192 games): milk sold whole, milk rushed to the shed, rush weight 2/5, milk whole+rush",
+ "memo": "v70 twin vs v70 (09-27 #3, 192 games): stacked small ties - wheat 12, rush 5, milk whole, feed_grow 0.1",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "swM",
+   "name": "wf12rw5",
    "P": {
-    "sell_whole": [
-     "MELON",
-     "STRAWBERRY",
-     "WOOL",
-     "MILK"
-    ]
-   }
-  },
-  {
-   "name": "rMk",
-   "P": {
-    "rush_items": [
-     "MELON",
-     "WOOL",
-     "MILK"
-    ]
-   }
-  },
-  {
-   "name": "rw2",
-   "P": {
-    "rush_weight": 2.0
-   }
-  },
-  {
-   "name": "rw5",
-   "P": {
+    "wheat_floor": 12,
     "rush_weight": 5.0
    }
   },
   {
-   "name": "swMrMk",
+   "name": "swMwf12",
    "P": {
     "sell_whole": [
      "MELON",
@@ -47,17 +21,45 @@
      "WOOL",
      "MILK"
     ],
-    "rush_items": [
+    "wheat_floor": 12
+   }
+  },
+  {
+   "name": "swMrw5",
+   "P": {
+    "sell_whole": [
      "MELON",
+     "STRAWBERRY",
      "WOOL",
      "MILK"
-    ]
+    ],
+    "rush_weight": 5.0
+   }
+  },
+  {
+   "name": "fg01wf12",
+   "P": {
+    "feed_grow": 0.1,
+    "wheat_floor": 12
+   }
+  },
+  {
+   "name": "swMrw5wf12",
+   "P": {
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL",
+     "MILK"
+    ],
+    "rush_weight": 5.0,
+    "wheat_floor": 12
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "600000",
+ "seed0": "620000",
  "replicate": "32"
 }

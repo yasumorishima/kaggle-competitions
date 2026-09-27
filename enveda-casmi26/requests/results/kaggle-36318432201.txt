@@ -1,0 +1,32 @@
+request: b4b-1
+run: 36318432201  status: success  action: kernel  dir: enveda-casmi26/kernels/b1  submit: yes
+kernel: yasunorim/casmi26-b1-library-analog  version: 5
+memo: b4b: r2 bits, POW 2, 400 analogs, top-5 sum
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 5 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-b1-library-analog
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-09-27 12:22:40.820000,"b4b: r2 bits, POW 2, 400 analogs, top-5 sum [run 36318432201]",SubmissionStatus.PENDING,,
+submission.csv,2026-09-27 12:15:28.740000,"b4a: r3 counts, POW 2, 400 analogs, top-5 sum [run 36317983381]",SubmissionStatus.PENDING,,
+submission.csv,2026-09-27 00:09:15.950000,"b3: analog top-3 sum (Morgan r3 counts, 400 analogs, POW 2), gate 0.8 [run 36281249190]",SubmissionStatus.COMPLETE,0.283,
+
+output files:
+total 392
+drwxr-xr-x  2 runner runner   4096 Sep 27 12:22 .
+drwxrwxrwt 14 root   root     4096 Sep 27 12:22 ..
+-rw-r--r--  1 runner runner   1648 Sep 27 12:22 casmi26-b1-library-analog.log
+-rw-r--r--  1 runner runner 387597 Sep 27 12:22 submission.csv
+[{"stream_name":"stdout","time":7.457621044,"data":"[     7s] comp /kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra coco /kaggle/input/datasets/prvsiyan/coconut-casmi26-candidates wheels /kaggle/input/datasets/yasunorim/casmi26-offline-wheels\n"}
+,{"stream_name":"stdout","time":11.514233447,"data":"[    11s] train 2539608 test 1213 400 molecules\n"}
+,{"stream_name":"stdout","time":14.255749621,"data":"[    13s] pool 711678\n"}
+,{"stream_name":"stdout","time":14.315413425,"data":"[    13s] candidates/molecule median 107.0\n"}
+,{"stream_name":"stdout","time":117.182421409,"data":"[   116s] library spectra 586337\n"}
+,{"stream_name":"stdout","time":171.47467373,"data":"[   171s] indexes {'negative': 112999, 'positive': 258539}\n"}
+,{"stream_name":"stdout","time":318.895357775,"data":"[   318s] wrote 400 rows\n"}
+,{"stream_name":"stderr","time":322.583497502,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":322.583555937,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":322.901919732,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":322.901952688,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":323.911186231,"data":"[NbConvertApp] Converting note
