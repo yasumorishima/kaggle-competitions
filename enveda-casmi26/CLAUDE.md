@@ -68,7 +68,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 
 - **提出枠は毎日上限（5 本）まで自動で使い切る**。user に聞かない。「今日はここまで」で止めない。
 - 最終評価は**自分で選ぶ 2 本**なので、余分な提出に損は無い ⇒ 改良候補が無い日も、検証で上位の変種（集約・重み・候補窓など）を LB で確かめるのに使う。
-- 提出は依頼ファイル（`requests/kaggle.json`・毎回新しい `id`）を作業ブランチに push → GHA が kernel を push して提出。1 本ずつ、前の結果ファイルが来てから次（`scratchpad/enveda_variants.sh` の形）。
+- 提出は依頼ファイル（`requests/kaggle.json`・毎回新しい `id`）を作業ブランチに push → GHA が kernel を push して提出。1 本ずつ、前の結果ファイルが来てから次（`tools/submit_variants.sh`（変種の run 行を書き換えて実行））。
 - 締切前の数日で最終 2 本を選ぶ（LB と検証の両方で上位のもの）。
 
 ## 方針
