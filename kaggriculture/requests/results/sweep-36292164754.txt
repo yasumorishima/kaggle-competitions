@@ -1,0 +1,15 @@
+run: 36292164754  status: success
+memo: v70 twin vs v70 (09-27, 192 games): wheat floor 12/14, fertilizer from day 4, feed_grow 0.3, feed_buy_days 2
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 580000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "wf12", "P": {"wheat_floor": 12}}, {"name": "wf14", "P": {"wheat_floor": 14}}, {"name": "fs4", "P": {"fert_sell_days": 4}}, {"name": "fg03", "P": {"feed_grow": 0.3}}, {"name": "fb2", "P": {"feed_buy_days": 2}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         84991      3714     0.31    192               0       nan         0        -      ref
+wf12                         85032      3912     0.53    192              41      1330      -215      525      tie
+wf14                         84120      3810     0.44    192            -871      1361      -509      586      tie
+fg03                         84044      3774     0.44    192            -947      1779      -544      577      tie
+fs4                          84081      3435     0.38    192            -911      2963     -1628      962    WORSE
+fb2                          81250      3763     0.26    192           -3741      3478     -3151      934    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 84991, "margin": 0, "ranked_on": "margin"}

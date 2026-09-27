@@ -1,49 +1,63 @@
 {
- "memo": "v69 twin vs v69 (09-27, 192 games): small ties stacked - opening melon 10 plots, wheat floor 10, feed_grow 0.1, melon10+wheat10",
+ "memo": "v70 twin vs v70 (09-27 #2, 192 games): milk sold whole, milk rushed to the shed, rush weight 2/5, milk whole+rush",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "om10",
+   "name": "swM",
    "P": {
-    "open_melon": [
-     [
-      0,
-      10
-     ]
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL",
+     "MILK"
     ]
    }
   },
   {
-   "name": "wf10",
+   "name": "rMk",
    "P": {
-    "wheat_floor": 10
+    "rush_items": [
+     "MELON",
+     "WOOL",
+     "MILK"
+    ]
    }
   },
   {
-   "name": "fg01",
+   "name": "rw2",
    "P": {
-    "feed_grow": 0.1
+    "rush_weight": 2.0
    }
   },
   {
-   "name": "om10wf10",
+   "name": "rw5",
    "P": {
-    "open_melon": [
-     [
-      0,
-      10
-     ]
+    "rush_weight": 5.0
+   }
+  },
+  {
+   "name": "swMrMk",
+   "P": {
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL",
+     "MILK"
     ],
-    "wheat_floor": 10
+    "rush_items": [
+     "MELON",
+     "WOOL",
+     "MILK"
+    ]
    }
   }
  ],
- "agent_a": "agents/v69_sched.py",
- "agent_b": "agents/v69_sched.py",
+ "agent_a": "agents/v70_sched.py",
+ "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "560000",
+ "seed0": "600000",
  "replicate": "32"
 }
