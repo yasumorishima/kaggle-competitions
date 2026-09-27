@@ -1,0 +1,18 @@
+run: 36287959303  status: success
+memo: v68 twin vs v68 (09-27 #2, 192 games): fertilizer sell day 5/4, wool sold whole, and fs5+wool
+agent_a: agents/v68_sched.py  agent_b: agents/v68_sched.py  episodes: 96  seed0: 540000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "fs5", "P": {"fert_sell_days": 5}}, {"name": "swW", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL"]}}, {"name": "fs5swW", "P": {"fert_sell_days": 5, "sell_whole": ["MELON", "STRAWBERRY", "WOOL"]}}, {"name": "fs4", "P": {"fert_sell_days": 4}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fs5swW                       83062      3221     0.63    192           -1460      3063      1720      799   BETTER
+fs5                          82247      3596     0.57    192           -2276      2948       976      788   BETTER
+swW                          85199      3514     0.54    192             676      2548       429      773      tie
+fs4                          84613      3286     0.52    192              90      2707       293      782      tie
+base                         84523      3704     0.28    192               0       nan         0        -      ref
+
+SWEEP_BEST={"name": "fs5swW", "mean": 83062, "margin": 1720, "ranked_on": "margin"}
+
+replicating 'fs5swW' against 'base' on seeds 542000-542031, both sides
+  fs5swW vs base: margin +1641 +/- 1593 over 64 games (own money +144 +/- 4909) -> HELD
+SWEEP_REPLICATE={"name": "fs5swW", "margin": 1641, "margin_ci95": 1593, "delta": 144, "ci95": 4909, "games": 64, "verdict": "HELD", "judged_on": "margin"}
