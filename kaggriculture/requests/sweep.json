@@ -1,49 +1,44 @@
 {
- "memo": "v69 twin vs v69 (09-27, 192 games): small ties stacked - opening melon 10 plots, wheat floor 10, feed_grow 0.1, melon10+wheat10",
+ "memo": "v70 twin vs v70 (09-27, 192 games): wheat floor 12/14, fertilizer from day 4, feed_grow 0.3, feed_buy_days 2",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "om10",
+   "name": "wf12",
    "P": {
-    "open_melon": [
-     [
-      0,
-      10
-     ]
-    ]
+    "wheat_floor": 12
    }
   },
   {
-   "name": "wf10",
+   "name": "wf14",
    "P": {
-    "wheat_floor": 10
+    "wheat_floor": 14
    }
   },
   {
-   "name": "fg01",
+   "name": "fs4",
    "P": {
-    "feed_grow": 0.1
+    "fert_sell_days": 4
    }
   },
   {
-   "name": "om10wf10",
+   "name": "fg03",
    "P": {
-    "open_melon": [
-     [
-      0,
-      10
-     ]
-    ],
-    "wheat_floor": 10
+    "feed_grow": 0.3
+   }
+  },
+  {
+   "name": "fb2",
+   "P": {
+    "feed_buy_days": 2
    }
   }
  ],
- "agent_a": "agents/v69_sched.py",
- "agent_b": "agents/v69_sched.py",
+ "agent_a": "agents/v70_sched.py",
+ "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "560000",
+ "seed0": "580000",
  "replicate": "32"
 }
