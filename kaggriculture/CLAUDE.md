@@ -36,6 +36,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
   du02（`drop_urgency 0.2`）・jph8（`jobs_per_hand 8`）・st15（`stickiness 1.5`）・sc7（`sheep_cap 7`）。勝てば 09-27 の残り 3 枠で出す（23:59 UTC まで）。
   **09-28 起動時にまず**：#5 の結果（`requests/results/` で memo「09-27 #5」）を読み、BETTER＋HELD の変種は router 48 試合（cloud・`sim/sweep.py --b opponents/...router.py`）→ tie 以上なら v71 として固定・提出。
   無ければ、#5 の中で単独 tie だった上位 2〜3 個の組み合わせと、上の未計測ノブ一覧（`main.py` の P で GHA 掃引に出ていないもの）から次の 6 個を 192 試合で。
+- 09-27 #5 結果：勝ちなし。cd4・jph8 は効き目ゼロ（完全一致）、sc7 tie（-39）、cu15 -1,015・du02 -1,446・st15 -1,770＝WORSE。
+- 09-27 #6（seed 670000〜・192 試合）実行中：sl85（`slice_frac 0.85`）・tm10（`tile_margin 1.0`）・dw06（`dist_weight 0.6`）・gc8（`goose_cap 8`）・fill（`fill_idle True`）・dl4（`drop_load 4`）。
 
 ## 最終順位の決まり方（一次資料で確認済み）
 
