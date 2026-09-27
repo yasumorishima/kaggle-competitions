@@ -1,0 +1,20 @@
+run: 36352288077  status: success
+memo: v70 twin vs v70 (09-27 #6, 192 games): unswept knobs - slice_frac, tile_margin, dist_weight, goose_cap, fill_idle, drop_load
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 670000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "sl85", "P": {"slice_frac": 0.85}}, {"name": "tm10", "P": {"tile_margin": 1.0}}, {"name": "dw06", "P": {"dist_weight": 0.6}}, {"name": "gc8", "P": {"goose_cap": 8}}, {"name": "fill", "P": {"fill_idle": true}}, {"name": "dl4", "P": {"drop_load": 4}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fill                         84444      3564     0.37    192             110       176        37      105      tie
+base                         84334      3582     0.32    192               0       nan         0        -      ref
+sl85                         84377      3571     0.43    192              43       193        -7       24      tie
+gc8                          83792      3566     0.36    192            -542      1817      -425      517      tie
+tm10                         81930      3406     0.29    192           -2404      2537     -2657      905    WORSE
+dw06                         83664      3205     0.19    192            -670      3450     -4538      981    WORSE
+dl4                          83870      3228     0.21    192            -464      3403     -4581     1149    WORSE
+
+SWEEP_BEST={"name": "fill", "mean": 84444, "margin": 37, "ranked_on": "margin"}
+
+replicating 'fill' against 'base' on seeds 672000-672031, both sides
+  fill vs base: margin +5 +/- 8 over 64 games (own money -53 +/- 123) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "fill", "margin": 5, "margin_ci95": 8, "delta": -53, "ci95": 123, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
