@@ -1,44 +1,68 @@
 {
- "memo": "v68 twin vs v68: wheat_floor 10, cash buffer 60/250, feed_grow 0.1, one day of feed money reserved",
+ "memo": "v68 twin vs v68 (09-27): strawberry rush, wool sold whole, opening melon plots 10/14, fertilizer sell days 5/7",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "wf10",
+   "name": "rS",
    "P": {
-    "wheat_floor": 10
+    "rush_items": [
+     "MELON",
+     "WOOL",
+     "STRAWBERRY"
+    ]
    }
   },
   {
-   "name": "cb60",
+   "name": "swW",
    "P": {
-    "cash_buffer": 60
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL"
+    ]
    }
   },
   {
-   "name": "cb250",
+   "name": "om14",
    "P": {
-    "cash_buffer": 250
+    "open_melon": [
+     [
+      0,
+      14
+     ]
+    ]
    }
   },
   {
-   "name": "fg01",
+   "name": "om10",
    "P": {
-    "feed_grow": 0.1
+    "open_melon": [
+     [
+      0,
+      10
+     ]
+    ]
    }
   },
   {
-   "name": "fr05",
+   "name": "fs5",
    "P": {
-    "feed_reserve_days": 1
+    "fert_sell_days": 5
+   }
+  },
+  {
+   "name": "fs7",
+   "P": {
+    "fert_sell_days": 7
    }
   }
  ],
  "agent_a": "agents/v68_sched.py",
  "agent_b": "agents/v68_sched.py",
  "episodes": "48",
- "seed0": "500000",
+ "seed0": "520000",
  "replicate": "32"
 }
