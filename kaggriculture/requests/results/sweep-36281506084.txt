@@ -1,0 +1,20 @@
+run: 36281506084  status: success
+memo: v68 twin vs v68 (09-27): strawberry rush, wool sold whole, opening melon plots 10/14, fertilizer sell days 5/7
+agent_a: agents/v68_sched.py  agent_b: agents/v68_sched.py  episodes: 48  seed0: 520000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "rS", "P": {"rush_items": ["MELON", "WOOL", "STRAWBERRY"]}}, {"name": "swW", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL"]}}, {"name": "om14", "P": {"open_melon": [[0, 14]]}}, {"name": "om10", "P": {"open_melon": [[0, 10]]}}, {"name": "fs5", "P": {"fert_sell_days": 5}}, {"name": "fs7", "P": {"fert_sell_days": 7}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+fs5                          81341      4746     0.58     96            2685      4219      1111     1504      tie
+swW                          80517      4680     0.43     96            1860      3386       107      941      tie
+base                         78657      4656     0.27     96               0       nan         0        -      ref
+fs7                          80849      4957     0.45     96            2192      4457      -523     1158      tie
+om10                         82629      4421     0.36     96            3972      5496     -1060     1211      tie
+rS                           76097      4405     0.19     96           -2560      1152     -3250      754    WORSE
+om14                         79678      5190     0.19     96            1021      7000     -4014     1465    WORSE
+
+SWEEP_BEST={"name": "fs5", "mean": 81341, "margin": 1111, "ranked_on": "margin"}
+
+replicating 'fs5' against 'base' on seeds 522000-522031, both sides
+  fs5 vs base: margin +452 +/- 1211 over 64 games (own money +1383 +/- 4610) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "fs5", "margin": 452, "margin_ci95": 1211, "delta": 1383, "ci95": 4610, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
