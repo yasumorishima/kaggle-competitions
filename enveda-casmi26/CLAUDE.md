@@ -79,10 +79,31 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   公開の推定比率（c1 16%・c2 27%）で逆算すると**本番 c2 ≈ 0.47**（当方の検証 c2 0.8 は楽観的＝近い類縁体が多すぎる）。
 - 注意：wheel 用フォルダ名 `wheels/` はリポの `.gitignore` に掛かる（`offline-pkgs/` にした）。`git mv -k` は黙って何もしないことがある。
 
+- **FP 予測 MLP**（`eval/fpnet_data.py`→`fpnet_train.py`・2026-09-26）：特徴＝1 Da ビンの断片＋中性損失（sqrt 強度・最大値）＋付加イオン one-hot（1,511 次元）、
+  目標＝Morgan r2 2048 ビット、学習 98 万スペクトル（構造あたり ≤4・検証の 1,200 分子は除外）、1024×2 層・3 エポック（CPU 約 6 分・`$CASMI_DATA/fpnet.pt`）。
+  各 150 分子：**FP 単独 c2 0.268**（公開の FPNet 0.47〜0.52 より弱い）、類縁体に足すと c2 0.768→0.710 以下に悪化（この楽観的な c2 では）。
+- **検証の較正（済）**：`calibrate.py`（正解と Tanimoto ≥ T の類縁体を除く）では T=0.5 でも c2 0.664 ＝**近い類縁体は楽観の原因ではない**。
+  原因は**問題の分子の種類**：`analog.py 150 coco np` の **class 4＝`enveda-np-examples` 250 分子（天然物）**を c2 扱い（全ライブラリから当該構造のスペクトルを抜き、構造は候補に残す）、
+  候補＝train＋COCONUT（kernel と同じ・c4 の候補中央値 58）→ **b1 の式で c4 0.526 ≈ 本番推定 0.47〜0.55**。**以後の判定は class 4**（`scores_analog_150_coco_np.pkl`・約 43 分）。
+  （COCONUT を入れても enveda の c2 は 0.79 のまま＝本番が難しいのは天然物だから。）
+- `blend.py <dump>`：ゲート G × FP 重みの格子を class ごとに出す。c4：G 0.8→0.526、0.95→0.570、ライブラリ無し→0.576（c1 はどれも 0.924）。
+  **FP（class 4 を学習から除いて再学習）は c4 で足すほど悪化**（w 0.05→0.566、0.3→0.506・単独 0.239）＝今の MLP は弱すぎる。
+- **b2**＝b1 のライブラリゲートを 0.95 に（kernel `yasunorim/casmi26-b1-library-analog` v2・request `b2-1`・run `36243920088`）。**LB 0.271（b1 0.275 より悪い）**＝c4 の +0.044 は LB に出ず、0.8〜0.95 のライブラリ一致は本番では当たりを含む ⇒ **ゲートは 0.8 に戻す**。
+  教訓：class 4 は c2 の分布には合うが、ライブラリ一致（c1 側）の判定には使えない。ゲートは LB で決めた値を動かさない。
+- データの置き場（コンテナは消える）：`~/casmi_data`→ scratchpad の `enveda/`（train.parquet・train_meta・structures・split・coconut・fpnet_*）。
+  消えていたら取り直し：train/test は curl（上）、`coco_meta.pkl`/`coco_mass.npy` は `www.kaggle.com/api/v1/datasets/download/prvsiyan/coconut-casmi26-candidates/<file>`、
+  あとは `split.py`→`fpnet_data.py` の順で作り直す（structures/train_meta は `baseline_lib.py` 前の一行スクリプトと同じ内容＝common で再生成）。
+- **analog の集約を改良（`analog_tune.py`・保存済みヒットから再採点・ゲート 0.8）**：b1 相当（Morgan r2・POW 3・max）c1 0.921／c2 0.764／c4 0.528 →
+  **Morgan r3 カウント・POW 2・上位 400 類縁体・候補ごとに上位 3 の和**で c1 0.939／c2 0.781／c4 0.570（全クラスで上）。全表は `$CASMI_DATA/analog_tune.csv`。
+  kernel に実装済み（b3・ローカル煙テスト 218 秒・400 行）。**b3＝LB 0.283**（09-27・request `b3-1`・run `36281249190`・kernel v3・b1 0.275 から +0.008）＝検証（c4）の向きと LB が一致した初の改善。
+- 提出枠：09-26 は 5 本使用（経路確認 3・b1 0.275・b2 0.271）。09-27：b3 0.283（1 本）。
+- 得点の確認：`curl -sS https://www.kaggle.com/api/v1/competitions/submissions/list/enveda-CASMI26-molecule-id-mass-spectra`（cloud から届く）。
+
 ## ▶▶ 次の一手
 
-1. **c2 の検証を天然物寄りに**（RDKit の NP-likeness か COCONUT 近傍で抽出）→ B1 を測り直し、lib と analog の合成規則を決める。
-   次にスペクトル→フィンガープリント予測（CPU で学べる小さい MLP から）を足す。
+1. **c4（天然物 c2）を上げる**：判定は `blend.py scores_analog_150_coco_np.pkl`。今の FP MLP は c4 で逆効果。
+   ① ✗ フラグメント説明（`fragexp.py`・1〜2 結合切断）は単独 c4 0.120・足しても伸びない（単体では弱い＝使うなら学習合成の特徴として） ② FP を公開並み（単独 0.47 級）に強化（0.1 Da ビン・大きいモデル・学習は Kaggle GPU を GHA 経由）
+   ③ ✅ 類縁体の集約（上位 3 の和）→ b3。続き：類縁体検索そのもの（代表スペクトルを構造×極性×付加イオンに増やす・MAX_PEAKS）を c4 で ④ チャネルを学習で合成（公開は HGB）。
 2. **候補 DB**：GHA で COCONUT（と PubChem の天然物寄り部分集合）を取得→分子式・精密質量・InChIKey14 の表→Kaggle dataset。c2 の窓内率と候補数を再測定。
 3. **c3（de novo）**：分子式で縛った生成。GPU は Kaggle Notebook（週 30 時間）を GHA 経由で使う。
 4. ✅ 実提出 b1＝0.275。次は c2 を上げる手（フィンガープリント予測・フラグメント説明）と、本番に近い c2 の検証（天然物寄り）。

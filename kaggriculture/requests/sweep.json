@@ -1,44 +1,47 @@
 {
- "memo": "v68 twin vs v68: wheat_floor 10, cash buffer 60/250, feed_grow 0.1, one day of feed money reserved",
+ "memo": "v68 twin vs v68 (09-27 #2, 192 games): fertilizer sell day 5/4, wool sold whole, and fs5+wool",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "wf10",
+   "name": "fs5",
    "P": {
-    "wheat_floor": 10
+    "fert_sell_days": 5
    }
   },
   {
-   "name": "cb60",
+   "name": "swW",
    "P": {
-    "cash_buffer": 60
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL"
+    ]
    }
   },
   {
-   "name": "cb250",
+   "name": "fs5swW",
    "P": {
-    "cash_buffer": 250
+    "fert_sell_days": 5,
+    "sell_whole": [
+     "MELON",
+     "STRAWBERRY",
+     "WOOL"
+    ]
    }
   },
   {
-   "name": "fg01",
+   "name": "fs4",
    "P": {
-    "feed_grow": 0.1
-   }
-  },
-  {
-   "name": "fr05",
-   "P": {
-    "feed_reserve_days": 1
+    "fert_sell_days": 4
    }
   }
  ],
  "agent_a": "agents/v68_sched.py",
  "agent_b": "agents/v68_sched.py",
- "episodes": "48",
- "seed0": "500000",
+ "episodes": "96",
+ "seed0": "540000",
  "replicate": "32"
 }
