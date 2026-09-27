@@ -51,11 +51,11 @@ from torch import nn  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
-EPOCHS = int(os.environ.get("FP2_EPOCHS", "8"))
+EPOCHS = int(os.environ.get("FP2_EPOCHS", "16"))
 PER_STRUCT = 4
 N_PEAKS = 64
 FP_BITS = 2048
-D = 256
+D = int(os.environ.get("FP2_D", "384"))
 PPM = 10.0
 TEST_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                 "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
