@@ -1,0 +1,15 @@
+run: 36346092118  status: success
+memo: v70 twin vs v70 (09-27 #4, 192 games): router shape - 3rd quadrant on day 11 with a sheep-heavy herd (7 cows, 8/10/12 sheep)
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 640000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "L11S10", "P": {"sched_land_floor": [[11, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [11, {"COW": 7, "SHEEP": 10}]]}}, {"name": "L11S8", "P": {"sched_land_floor": [[11, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [11, {"COW": 7, "SHEEP": 8}]]}}, {"name": "L11S12", "P": {"sched_land_floor": [[11, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [11, {"COW": 7, "SHEEP": 12}]]}}, {"name": "L11S10c6", "P": {"sched_land_floor": [[11, 3]], "sched_herd_floor": [[0, {"COW": 2, "SHEEP": 2}], [3, {"COW": 3, "SHEEP": 2}], [5, {"COW": 4, "SHEEP": 2}], [6, {"COW": 5, "SHEEP": 3}], [8, {"COW": 6, "SHEEP": 3}], [10, {"COW": 6, "SHEEP": 6}], [11, {"COW": 6, "SHEEP": 10}]]}}, {"name": "L11", "P": {"sched_land_floor": [[11, 3]]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         85907      3363     0.27    192               0       nan         0        -      ref
+L11S12                       79545      3373     0.27    192           -6362      3029     -3622     1314    WORSE
+L11S10                       80183      3329     0.27    192           -5724      2810     -4239     1229    WORSE
+L11S10c6                     80183      3329     0.27    192           -5724      2810     -4239     1229    WORSE
+L11S8                        79481      3606     0.19    192           -6427      2966     -4413     1116    WORSE
+L11                          78726      3631     0.12    192           -7181      2870     -6028      909    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 85907, "margin": 0, "ranked_on": "margin"}
