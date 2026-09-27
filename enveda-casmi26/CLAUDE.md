@@ -66,7 +66,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   ⇒ **集約・重みの刻みは b3 で頭打ち**（手元 c4 の差 0.01 は LB に出ない）。r3 カウント指紋・POW 2・上位 3 を固定し、段取り 1（FP 予測の強化）へ進む。
 - 09-27：**段取り 1 の第 1 歩＝fp2（ピークのトランスフォーマー・正確な m/z の埋め込み）**：Kaggle GPU で 8 エポック（約 33 分）、
   **FP 単独 MRR：天然物（class 4 と同じ 250 分子）0.406・無作為 enveda 400 分子 0.768**（1 Da ビンの MLP は 0.24／0.27）。合格線 0.45 まであと少し・損失はまだ下降中。
-  → d 384・16 エポック（`fp2-train-2`）を学習中。次に `kernels/fp2dump`（学習済み重みを kernel_sources で読み、class 4 の候補ごとの FP 対数尤度をログに出す）で
+  → **d 384・16 エポック（`fp2-train-2`・約 103 分）：天然物 0.494・無作為 0.875＝段取り 1 の合格線（0.45）を越えた**（公開 FPNet 級）。次に `kernels/fp2dump`（学習済み重みを kernel_sources で読み、class 4 の候補ごとの FP 対数尤度をログに出す）で
   手元の類縁体スコアと合成して重みを決め、b5（類縁体＋FP）を作って LB で確かめる。
   注意：`www.kaggleusercontent.com`（kernel 出力のファイル本体）は cloud の proxy で拒否＝重みは取れない。ログは `www.kaggle.com/api/v1/kernels/output?userName=…&kernelSlug=…` の `log` で読める。
 
