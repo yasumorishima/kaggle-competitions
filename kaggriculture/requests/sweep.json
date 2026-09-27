@@ -1,273 +1,50 @@
 {
- "memo": "v70 twin vs v70 (09-27 #4, 192 games): router shape - 3rd quadrant on day 11 with a sheep-heavy herd (7 cows, 8/10/12 sheep)",
+ "memo": "v70 twin vs v70 (09-27 #5, 192 games): operating efficiency - care urgency/deadline, drop urgency, jobs per hand, stickiness, sheep cap",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "L11S10",
+   "name": "cu15",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 10
-      }
-     ]
-    ]
+    "care_urgency": 1.5
    }
   },
   {
-   "name": "L11S8",
+   "name": "cd4",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 8
-      }
-     ]
-    ]
+    "care_deadline": 4
    }
   },
   {
-   "name": "L11S12",
+   "name": "du02",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 12
-      }
-     ]
-    ]
+    "drop_urgency": 0.2
    }
   },
   {
-   "name": "L11S10c6",
+   "name": "jph8",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 6,
-       "SHEEP": 10
-      }
-     ]
-    ]
+    "jobs_per_hand": 8
    }
   },
   {
-   "name": "L11",
+   "name": "st15",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ]
+    "stickiness": 1.5
+   }
+  },
+  {
+   "name": "sc7",
+   "P": {
+    "sheep_cap": 7
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "640000",
+ "seed0": "660000",
  "replicate": "32"
 }
