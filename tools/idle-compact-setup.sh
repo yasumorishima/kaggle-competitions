@@ -1,3 +1,5 @@
+# ⚠️ 2026-09-27 実測：claude.ai の cloud セッションでは動かない（1 時間 40 分放置でもコンパクトされず、`compacts at` の行も出ない）。
+#    cloud の Claude Code は --output-format=stream-json で動き、function hooks が働かないとみられる。手元の対話型 Claude Code 向けの記録として残す。
 # --- idle-compact: 50 分放置で 1 回だけ自動コンパクト（全セッション共通） ---
 IC=/opt/idle-compact
 if [ ! -d "$IC/plugins/idle-compact" ]; then
