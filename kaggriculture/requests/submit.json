@@ -1,8 +1,8 @@
 {
- "memo": "submit v69_sched (v68 + fert_sell_days 5 + wool sold whole); pushes v67 out, leaving v69 and v68",
- "agent": "agents/v69_sched.py",
- "message": "v69: v68 selling fertilizer from day 5 and selling wool whole. Head-to-head vs v68: win rate 0.63 over 192 games, margin +1,720 +/- 799.",
- "evidence": "vs v68_sched twin: GHA run 36283599958 (seeds 540000+, 192 games) win rate 0.63, margin +1,720 +/- 799 BETTER; replicated on 542000-542031 +1,641 +/- 1,593 HELD. vs public router: cloud sweep 48 games (seeds 88000+) margin -2,482 +/- 3,025 tie. v69 equals the variant to the coin on router seeds 90000/82000.",
+ "memo": "submit v70_sched (v69 + wheat_floor 10); pushes v68 out, leaving v70 and v69",
+ "agent": "agents/v70_sched.py",
+ "message": "v70: v69 keeping at least 10 wheat in stock. Head-to-head vs v69: win rate 0.58 over 192 games, margin +841 +/- 586.",
+ "evidence": "vs v69_sched twin: GHA run 36288057202 (seeds 560000+, 192 games) win rate 0.58, margin +841 +/- 586 BETTER; replicated on 562000-562031 +1,330 +/- 1,294 HELD. vs public router: cloud sweep 48 games (seeds 88000+) margin -1,075 +/- 2,427 tie. v70 equals the variant to the coin on router seeds 90000/82000.",
  "confirm": "submit",
  "dry_run": false
 }
