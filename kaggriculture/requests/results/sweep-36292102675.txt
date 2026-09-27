@@ -1,0 +1,18 @@
+run: 36292102675  status: success
+memo: v69 twin vs v69 (09-27, 192 games): small ties stacked - opening melon 10 plots, wheat floor 10, feed_grow 0.1, melon10+wheat10
+agent_a: agents/v69_sched.py  agent_b: agents/v69_sched.py  episodes: 96  seed0: 560000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "om10", "P": {"open_melon": [[0, 10]]}}, {"name": "wf10", "P": {"wheat_floor": 10}}, {"name": "fg01", "P": {"feed_grow": 0.1}}, {"name": "om10wf10", "P": {"open_melon": [[0, 10]], "wheat_floor": 10}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+wf10                         84562      3587     0.58    192             328      1547       841      586   BETTER
+base                         84234      3717     0.27    192               0       nan         0        -      ref
+fg01                         82692      3648     0.52    192           -1541      1857       -37      626      tie
+om10wf10                     82155      3579     0.44    192           -2078      4811      -709      844      tie
+om10                         79189      3300     0.27    192           -5044      4720     -2803      768    WORSE
+
+SWEEP_BEST={"name": "wf10", "mean": 84562, "margin": 841, "ranked_on": "margin"}
+
+replicating 'wf10' against 'base' on seeds 562000-562031, both sides
+  wf10 vs base: margin +1330 +/- 1294 over 64 games (own money +623 +/- 2568) -> HELD
+SWEEP_REPLICATE={"name": "wf10", "margin": 1330, "margin_ci95": 1294, "delta": 623, "ci95": 2568, "games": 64, "verdict": "HELD", "judged_on": "margin"}
