@@ -1,0 +1,19 @@
+run: 36300747669  status: success
+memo: v70 twin vs v70 (09-27 #2, 192 games): milk sold whole, milk rushed to the shed, rush weight 2/5, milk whole+rush
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 600000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "swM", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL", "MILK"]}}, {"name": "rMk", "P": {"rush_items": ["MELON", "WOOL", "MILK"]}}, {"name": "rw2", "P": {"rush_weight": 2.0}}, {"name": "rw5", "P": {"rush_weight": 5.0}}, {"name": "swMrMk", "P": {"sell_whole": ["MELON", "STRAWBERRY", "WOOL", "MILK"], "rush_items": ["MELON", "WOOL", "MILK"]}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+swM                          82837      3458     0.63    192             192       843       420      348   BETTER
+base                         82645      3461     0.30    192               0       nan         0        -      ref
+rw5                          82456      3414     0.43    192            -190       665       -54      308      tie
+rw2                          82643      3351     0.46    192              -3      1025       -72      589      tie
+swMrMk                       83036      2771     0.43    192             391      2505     -1556     1079    WORSE
+rMk                          82950      2821     0.41    192             305      2357     -1883     1016    WORSE
+
+SWEEP_BEST={"name": "swM", "mean": 82837, "margin": 420, "ranked_on": "margin"}
+
+replicating 'swM' against 'base' on seeds 602000-602031, both sides
+  swM vs base: margin -267 +/- 491 over 64 games (own money -1818 +/- 1921) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "swM", "margin": -267, "margin_ci95": 491, "delta": -1818, "ci95": 1921, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
