@@ -48,7 +48,7 @@ N_ANALOG = 100        # hybrid-search hits kept per query spectrum
 POW = 2.0             # weight = similarity ** POW
 N_KEEP = 400          # unique analogs per molecule (best similarity over its spectra)
 TOP_K = 5             # candidate analog score = sum of its TOP_K best weight * Tanimoto
-FP_RADIUS, FP_SIZE, FP_COUNT = 3, 4096, True   # Morgan fingerprint for candidate-analog Tanimoto
+FP_RADIUS, FP_SIZE, FP_COUNT = 2, 2048, False   # Morgan fingerprint for candidate-analog Tanimoto
 MAX_PEAKS = 64
 LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
 W_ANALOG = 0.9
