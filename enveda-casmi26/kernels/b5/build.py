@@ -4,9 +4,17 @@ Kaggle uploads only the code file, so the re-ranker (lgb_model.txt, written by
 eval/rerank.py) is embedded as a string. fp2's weights come from the fp2 kernel's
 output (kernel_sources). Run after either input changes:
 
-    python enveda-casmi26/kernels/b5/build.py
+    python enveda-casmi26/kernels/b5/build.py [MODE]
+
+MODE (default lgb) picks how the analog and fp2 channels are fused outside the gate:
+  lgb     the LightGBM re-ranker (class-4 CV 0.65)
+  rrfK    reciprocal-rank fusion 1/(K+rank_analog) + 1/(K+rank_fp2) (local 0.590 at K=5)
+  expT_W  analog + W * exp((ll - max ll) / T) (local 0.579 at T=25, W=0.1)
 """
 import os
+import sys
+
+MODE = sys.argv[1] if len(sys.argv) > 1 else "lgb"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -24,6 +32,7 @@ from torch import nn  # noqa: E402
 FP2 = '''
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
+FUSE = "''' + MODE + '''"
 FP2_WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
@@ -136,11 +145,22 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
             bits, okb = fp2_bits([smi.get(c) for c in cands])
             ll = bits @ np.log(p) + (1 - bits) @ np.log(1 - p)
             ll[~okb] = -1e9
-            pred = ranker.predict(rr_features(M[:, :len(cands)], ll))
+            if FUSE == "lgb":
+                pred = ranker.predict(rr_features(M[:, :len(cands)], ll))
+            else:
+                a = np.array([ana[c] for c in cands])
+                if FUSE.startswith("rrf"):
+                    k = float(FUSE[3:])
+                    ra = np.argsort(np.argsort(-a, kind="stable"))
+                    rf = np.argsort(np.argsort(-ll, kind="stable"))
+                    pred = 1 / (k + ra) + 1 / (k + rf)
+                else:
+                    t, w = map(float, FUSE[3:].split("_"))
+                    pred = a + w * np.exp((ll - ll.max()) / t)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''
 assert old_score in src
 src = src.replace(old_score, new_score, 1)
 
 open(os.path.join(HERE, "main.py"), "w", encoding="utf-8").write(src)
-print("wrote", os.path.join(HERE, "main.py"), len(src), "chars")
+print("wrote", os.path.join(HERE, "main.py"), MODE, len(src), "chars")
