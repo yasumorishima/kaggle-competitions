@@ -1,0 +1,20 @@
+run: 36361897243  status: success
+memo: v70 twin vs v70 (09-28 #8, 192 games): combinations of #5-#7 ties - goose_cap 5, drop_load 7, fill_idle, slice_frac 0.85, sheep_cap 7
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 690000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "gd", "P": {"goose_cap": 5, "drop_load": 7}}, {"name": "gdf", "P": {"goose_cap": 5, "drop_load": 7, "fill_idle": true}}, {"name": "fs", "P": {"fill_idle": true, "slice_frac": 0.85}}, {"name": "all4", "P": {"goose_cap": 5, "drop_load": 7, "fill_idle": true, "slice_frac": 0.85}}, {"name": "gs", "P": {"goose_cap": 5, "sheep_cap": 7}}, {"name": "dl6f", "P": {"fill_idle": true, "fill_floor": 0.6}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+gd                           83638      3381     0.49    192           -1059      1159        53      571      tie
+gdf                          83590      3407     0.49    192           -1107      1155         6      583      tie
+base                         84697      3524     0.26    192               0       nan         0        -      ref
+fs                           84683      3529     0.43    192             -14        91       -40       56      tie
+dl6f                         84689      3528     0.26    192              -7        24       -41       56      tie
+all4                         83566      3405     0.46    192           -1131      1159      -113      574      tie
+gs                           84862      3348     0.46    192             166      1547      -132      613      tie
+
+SWEEP_BEST={"name": "gd", "mean": 83638, "margin": 53, "ranked_on": "margin"}
+
+replicating 'gd' against 'base' on seeds 692000-692031, both sides
+  gd vs base: margin +356 +/- 633 over 64 games (own money +1412 +/- 2357) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "gd", "margin": 356, "margin_ci95": 633, "delta": 1412, "ci95": 2357, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
