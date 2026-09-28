@@ -1,273 +1,59 @@
 {
- "memo": "v70 twin vs v70 (09-27 #4, 192 games): router shape - 3rd quadrant on day 11 with a sheep-heavy herd (7 cows, 8/10/12 sheep)",
+ "memo": "v70 twin vs v70 (09-28 #8, 192 games): combinations of #5-#7 ties - goose_cap 5, drop_load 7, fill_idle, slice_frac 0.85, sheep_cap 7",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "L11S10",
+   "name": "gd",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 10
-      }
-     ]
-    ]
+    "goose_cap": 5,
+    "drop_load": 7
    }
   },
   {
-   "name": "L11S8",
+   "name": "gdf",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 8
-      }
-     ]
-    ]
+    "goose_cap": 5,
+    "drop_load": 7,
+    "fill_idle": true
    }
   },
   {
-   "name": "L11S12",
+   "name": "fs",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 7,
-       "SHEEP": 12
-      }
-     ]
-    ]
+    "fill_idle": true,
+    "slice_frac": 0.85
    }
   },
   {
-   "name": "L11S10c6",
+   "name": "all4",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ],
-    "sched_herd_floor": [
-     [
-      0,
-      {
-       "COW": 2,
-       "SHEEP": 2
-      }
-     ],
-     [
-      3,
-      {
-       "COW": 3,
-       "SHEEP": 2
-      }
-     ],
-     [
-      5,
-      {
-       "COW": 4,
-       "SHEEP": 2
-      }
-     ],
-     [
-      6,
-      {
-       "COW": 5,
-       "SHEEP": 3
-      }
-     ],
-     [
-      8,
-      {
-       "COW": 6,
-       "SHEEP": 3
-      }
-     ],
-     [
-      10,
-      {
-       "COW": 6,
-       "SHEEP": 6
-      }
-     ],
-     [
-      11,
-      {
-       "COW": 6,
-       "SHEEP": 10
-      }
-     ]
-    ]
+    "goose_cap": 5,
+    "drop_load": 7,
+    "fill_idle": true,
+    "slice_frac": 0.85
    }
   },
   {
-   "name": "L11",
+   "name": "gs",
    "P": {
-    "sched_land_floor": [
-     [
-      11,
-      3
-     ]
-    ]
+    "goose_cap": 5,
+    "sheep_cap": 7
+   }
+  },
+  {
+   "name": "dl6f",
+   "P": {
+    "fill_idle": true,
+    "fill_floor": 0.6
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "640000",
+ "seed0": "690000",
  "replicate": "32"
 }

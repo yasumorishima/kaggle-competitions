@@ -1,0 +1,16 @@
+run: 36346209510  status: success
+memo: v70 twin vs v70 (09-27 #5, 192 games): operating efficiency - care urgency/deadline, drop urgency, jobs per hand, stickiness, sheep cap
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 660000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "cu15", "P": {"care_urgency": 1.5}}, {"name": "cd4", "P": {"care_deadline": 4}}, {"name": "du02", "P": {"drop_urgency": 0.2}}, {"name": "jph8", "P": {"jobs_per_hand": 8}}, {"name": "st15", "P": {"stickiness": 1.5}}, {"name": "sc7", "P": {"sheep_cap": 7}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         82541      3386     0.24    192               0       nan         0        -      ref
+cd4                          82541      3386     0.24    192               0         0         0        0      tie
+jph8                         82541      3386     0.24    192               0         0         0        0      tie
+sc7                          81275      3068     0.34    192           -1267      1415       -39      426      tie
+cu15                         81182      3287     0.44    192           -1360      2389     -1015      836    WORSE
+du02                         83043      3223     0.36    192             502      2206     -1446      841    WORSE
+st15                         79531      3668     0.32    192           -3010      3841     -1770      884    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 82541, "margin": 0, "ranked_on": "margin"}
