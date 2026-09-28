@@ -79,7 +79,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   `b5/build.py [lgb|rrfK|expT_W]` で生成。
   **LB 結果：b5（LGB）0.279・b5r5 0.272・b5r20 0.263・b5e（w 0.1）0.290＝自己最高**。
   ⇒ fp2 は**弱い同点崩しとして効く（+0.007）が、強く効かせると下がる**（class 4 以外で fp2 が外す／手元 class 4 だけで学習した LGB は LB に移らない）。
-  5 本目＝**b5e05**（w 0.05）：さらに弱い方が良いかで重みの山を探す。
+  5 本目＝**b5e05**（w 0.05）＝**0.284**（w 0.1 の 0.290 より下）⇒ 重みの山は 0.1〜0.2 付近（強すぎる rrf は下がる）。
+  **09-29 の提出**：exp25 の w 0.15・0.2（山の位置）＋ fp2all（`kernels/fp2all`・class 1〜3 を学習から外した fp2・09-28 に GPU で実行）の結果で全クラスの手元重みを決めた版。
   次：(1) fp2 を class 1〜3 相当（無作為 enveda 400 分子）でも手元評価し、重みを全クラスで決める、(2) LGB を全クラスの学習データで作り直す（class 4 だけの合わせ込みを避ける）、(3) fp2 自体の強化（アンサンブル・エポック増）。
   注意：`www.kaggleusercontent.com`（kernel 出力のファイル本体）は cloud の proxy で拒否＝重みは取れない。ログは `www.kaggle.com/api/v1/kernels/output?userName=…&kernelSlug=…` の `log` で読める。
 
