@@ -74,6 +74,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   → **b5**（`kernels/b5`＝b1＋fp2 推論＋ランカー・`b5/build.py` で生成・ライブラリのゲート 0.8 は据え置き）を作成、ローカル煙テスト 297 秒で 400 行。
   **09-28 の最初の提出は b5**（request `b5-1`・dir `kernels/b5`）。LB の見込みは c2 分の +0.01 前後＝銅にはまだ足りない。
   次：ランカーの学習データを増やす（c4 の 250 分子だけ → fp2 の無作為 400 分子にも類縁体スコアを付けて足す）、特徴に断片説明・質量誤差・候補の出どころ（COCONUT か）を足す。
+- 09-28：提出（段取り 2 の LB 確認）＝**b5-1**（LGB）→ `tools/submit_b5_modes.sh` で融合方式の変種を順に：
+  **b5r5-1**（順位融合 k5・手元 0.590）＝学習ランカーの伸び（手元 +0.06）が LB に移るか／**b5r20-1**（k20）＝融合定数の感度／**b5e-1**（類縁体＋0.1·exp(ll/25)）＝fp2 を同点崩しだけに使う。
+  5 本目：b5e の重み 0.3（fp2 の重みを上げる向きが LB で効くか）。`b5/build.py [lgb|rrfK|expT_W]` で生成。
   注意：`www.kaggleusercontent.com`（kernel 出力のファイル本体）は cloud の proxy で拒否＝重みは取れない。ログは `www.kaggle.com/api/v1/kernels/output?userName=…&kernelSlug=…` の `log` で読める。
 
 ## 🔴 提出の決まり（2026-09-27 user 指示・最優先）
