@@ -1,0 +1,16 @@
+run: 36356610861  status: success
+memo: v70 twin vs v70 (09-28 #7, 192 games): opposite direction of #6 losers - tile_margin, dist_weight, drop_load up; goose_cap 5
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 680000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "tm13", "P": {"tile_margin": 1.3}}, {"name": "dw12", "P": {"dist_weight": 1.2}}, {"name": "dw10", "P": {"dist_weight": 1.0}}, {"name": "dl8", "P": {"drop_load": 8}}, {"name": "dl7", "P": {"drop_load": 7}}, {"name": "gc5", "P": {"goose_cap": 5}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+base                         81480      3103     0.28    192               0       nan         0        -      ref
+gc5                          82240      2771     0.39    192             760      1200      -157      398      tie
+dl7                          82361      3054     0.41    192             882      1121      -184      509      tie
+dl8                          82291      2977     0.43    192             811      1203      -432      485      tie
+tm13                         81153      2950     0.45    192            -326      1366      -921      666    WORSE
+dw10                         81337      3284     0.35    192            -142      2705     -1861      940    WORSE
+dw12                         82886      3292     0.24    192            1406      2994     -2464      705    WORSE
+
+SWEEP_BEST={"name": "base", "mean": 81480, "margin": 0, "ranked_on": "margin"}
