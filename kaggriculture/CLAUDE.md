@@ -40,6 +40,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
 - 09-27 #6（seed 670000〜・192 試合）実行中：sl85（`slice_frac 0.85`）・tm10（`tile_margin 1.0`）・dw06（`dist_weight 0.6`）・gc8（`goose_cap 8`）・fill（`fill_idle True`）・dl4（`drop_load 4`）。
   結果：勝ちなし。fill +37（再現 +5±8＝NOT CONFIRMED）・sl85 -7・gc8 -425＝tie、tm10 -2,657・dw06 -4,538・dl4 -4,581＝WORSE（下げると大きく悪化）。
 - 09-28 #7（seed 680000〜）：#6 で悪化したノブの逆向き：tm13・dw12・dw10・dl8・dl7・gc5。
+  結果：勝ちなし。gc5 -157・dl7 -184・dl8 -432＝tie、tm13 -921・dw10 -1,861・dw12 -2,464＝WORSE ⇒ **v70 はノブの両方向で局所最適**。
+- 09-28 #8（seed 690000〜）：tie の組み合わせ（gd・gdf・fs・all4・gs・fill＋fill_floor 0.6）。並行して手元で router 24×2 試合（base・gc5・dl7・fill・sc7）＝双子で差が出ないので対 router の勝率で選ぶ。
 
 ## 最終順位の決まり方（一次資料で確認済み）
 

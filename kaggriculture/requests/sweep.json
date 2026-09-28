@@ -1,50 +1,59 @@
 {
- "memo": "v70 twin vs v70 (09-28 #7, 192 games): opposite direction of #6 losers - tile_margin, dist_weight, drop_load up; goose_cap 5",
+ "memo": "v70 twin vs v70 (09-28 #8, 192 games): combinations of #5-#7 ties - goose_cap 5, drop_load 7, fill_idle, slice_frac 0.85, sheep_cap 7",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "tm13",
+   "name": "gd",
    "P": {
-    "tile_margin": 1.3
-   }
-  },
-  {
-   "name": "dw12",
-   "P": {
-    "dist_weight": 1.2
-   }
-  },
-  {
-   "name": "dw10",
-   "P": {
-    "dist_weight": 1.0
-   }
-  },
-  {
-   "name": "dl8",
-   "P": {
-    "drop_load": 8
-   }
-  },
-  {
-   "name": "dl7",
-   "P": {
+    "goose_cap": 5,
     "drop_load": 7
    }
   },
   {
-   "name": "gc5",
+   "name": "gdf",
    "P": {
-    "goose_cap": 5
+    "goose_cap": 5,
+    "drop_load": 7,
+    "fill_idle": true
+   }
+  },
+  {
+   "name": "fs",
+   "P": {
+    "fill_idle": true,
+    "slice_frac": 0.85
+   }
+  },
+  {
+   "name": "all4",
+   "P": {
+    "goose_cap": 5,
+    "drop_load": 7,
+    "fill_idle": true,
+    "slice_frac": 0.85
+   }
+  },
+  {
+   "name": "gs",
+   "P": {
+    "goose_cap": 5,
+    "sheep_cap": 7
+   }
+  },
+  {
+   "name": "dl6f",
+   "P": {
+    "fill_idle": true,
+    "fill_floor": 0.6
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "680000",
+ "seed0": "690000",
  "replicate": "32"
 }
