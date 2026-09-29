@@ -47,6 +47,8 @@ GPU は使わない。このファイルが作業の正本。**セッション�
   見立て：kaggriculture の銅は届かない。v69・v70 を最終 2 本として維持し、#8 で双子 BETTER＋HELD が出た場合だけ出す。
 - 09-28 #8 結果：勝ちなし。gd +53（再現 +356±633＝NOT CONFIRMED）・gdf +6・fs -40・dl6f -41・all4 -113・gs -132＝全部 tie。
 - 09-29 #9（seed 700000〜）：方式の切り替え 6 個＝capF（`cap_rule forward`）・roi（`animal_order roi`）・asgL（`assign_rule local`）・paySpot・lastSow・gResow。
+  結果：勝ちなし。gResow +265（再現 -227±650＝NOT CONFIRMED）・roi -33・capF -195・paySpot -368・lastSow -373＝tie、asgL -7,630＝WORSE。
+  ⇒ **09-29 も提出 0 本。最終 2 本は v69・v70 で確定の見込み**（09-30 は新しい勝ち候補が出たときだけ出す）。
   ⇒ **09-28 は提出 0 本**（勝つ版が無いので v69・v70 を押し出さない）。09-29・09-30 も同じ基準：双子 BETTER＋HELD＋router tie 以上が出たときだけ出す。
 
 ## 最終順位の決まり方（一次資料で確認済み）
