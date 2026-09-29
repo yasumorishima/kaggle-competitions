@@ -15,7 +15,7 @@ MODE (default lgb) picks how the analog and fp2 channels are fused outside the g
 import os
 import sys
 
-MODE = sys.argv[1] if len(sys.argv) > 1 else "lgb"
+MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2"   # LB best 0.294 (09-29)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()

@@ -27,8 +27,8 @@ Claude-Session: https://claude.ai/code/session_01GNS5mWzU1hvsZ2JVZ3rsPV"
 }
 [ -n "$FIRST_WAIT" ] && wait_for "$FIRST_WAIT"
 for spec in "$@"; do IFS='|' read -r id mode memo <<< "$spec"; run "$id" "$mode" "$memo"; done
-python3 enveda-casmi26/kernels/b5/build.py lgb >/dev/null
-git add enveda-casmi26/kernels/b5/main.py && git commit -q -m "enveda-casmi26: b5 back to the lgb fusion after the LB probes
+python3 enveda-casmi26/kernels/b5/build.py >/dev/null
+git add enveda-casmi26/kernels/b5/main.py && git commit -q -m "enveda-casmi26: b5 back to the default fusion after the LB probes
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01GNS5mWzU1hvsZ2JVZ3rsPV" && push
