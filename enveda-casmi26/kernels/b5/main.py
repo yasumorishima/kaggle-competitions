@@ -123,7 +123,7 @@ def fp(smi):
 
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
-FUSE = "exp100_0.3"
+FUSE = "exp50_0.2"
 FP2_WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
