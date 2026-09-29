@@ -1,0 +1,20 @@
+run: 36501468603  status: success
+memo: v70 twin vs v70 (09-29 #9, 192 games): rule switches - cap_rule forward, animal_order roi, assign_rule local, payback spot, respect_last_sow_day, global_resow
+agent_a: agents/v70_sched.py  agent_b: agents/v70_sched.py  episodes: 96  seed0: 700000  replicate: 32
+variants: [{"name": "base", "P": {}}, {"name": "capF", "P": {"cap_rule": "forward"}}, {"name": "roi", "P": {"animal_order": "roi"}}, {"name": "asgL", "P": {"assign_rule": "local"}}, {"name": "paySpot", "P": {"animal_payback_rule": "spot"}}, {"name": "lastSow", "P": {"respect_last_sow_day": true}}, {"name": "gResow", "P": {"global_resow": true}}]
+
+
+variant                 mean money    +/-95%  winrate  games         vs base    +/-95%    margin   +/-95%  verdict
+gResow                       83810      3731     0.41    192              71      1377       265      357      tie
+base                         83739      3731     0.28    192               0       nan         0        -      ref
+roi                          82923      3732     0.29    192            -816      1060       -33      309      tie
+capF                         83213      3798     0.41    192            -525      2158      -195      637      tie
+paySpot                      82881      3683     0.41    192            -857      1502      -368      543      tie
+lastSow                      83306      3901     0.41    192            -433      1218      -373      474      tie
+asgL                         77052      2990     0.05    192           -6687      4874     -7630      953    WORSE
+
+SWEEP_BEST={"name": "gResow", "mean": 83810, "margin": 265, "ranked_on": "margin"}
+
+replicating 'gResow' against 'base' on seeds 702000-702031, both sides
+  gResow vs base: margin -227 +/- 650 over 64 games (own money +1595 +/- 3683) -> NOT CONFIRMED
+SWEEP_REPLICATE={"name": "gResow", "margin": -227, "margin_ci95": 650, "delta": 1595, "ci95": 3683, "games": 64, "verdict": "NOT CONFIRMED", "judged_on": "margin"}
