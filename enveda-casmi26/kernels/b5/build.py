@@ -10,11 +10,12 @@ MODE (default lgb) picks how the analog and fp2 channels are fused outside the g
   lgb     the LightGBM re-ranker (class-4 CV 0.65)
   rrfK    reciprocal-rank fusion 1/(K+rank_analog) + 1/(K+rank_fp2) (local 0.590 at K=5)
   expT_W  analog + W * exp((ll - max ll) / T) (local 0.579 at T=25, W=0.1)
+  expT_W_rel  the same with W scaled by the molecule's best analog score (all-class local 0.587 at T=50, W=0.5)
 """
 import os
 import sys
 
-MODE = sys.argv[1] if len(sys.argv) > 1 else "lgb"
+MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2"   # LB best 0.294 (09-29)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -155,7 +156,10 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
                     rf = np.argsort(np.argsort(-ll, kind="stable"))
                     pred = 1 / (k + ra) + 1 / (k + rf)
                 else:
-                    t, w = map(float, FUSE[3:].split("_"))
+                    parts = FUSE[3:].split("_")
+                    t, w = float(parts[0]), float(parts[1])
+                    if parts[2:] == ["rel"]:
+                        w *= max(float(a.max()), 1e-9)
                     pred = a + w * np.exp((ll - ll.max()) / t)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''

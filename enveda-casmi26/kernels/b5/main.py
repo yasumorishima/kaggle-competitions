@@ -123,7 +123,7 @@ def fp(smi):
 
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
-FUSE = "lgb"
+FUSE = "exp50_0.2"
 FP2_WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
@@ -4290,7 +4290,10 @@ def main():
                     rf = np.argsort(np.argsort(-ll, kind="stable"))
                     pred = 1 / (k + ra) + 1 / (k + rf)
                 else:
-                    t, w = map(float, FUSE[3:].split("_"))
+                    parts = FUSE[3:].split("_")
+                    t, w = float(parts[0]), float(parts[1])
+                    if parts[2:] == ["rel"]:
+                        w *= max(float(a.max()), 1e-9)
                     pred = a + w * np.exp((ll - ll.max()) / t)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}

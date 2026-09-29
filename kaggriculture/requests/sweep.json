@@ -1,59 +1,50 @@
 {
- "memo": "v70 twin vs v70 (09-28 #8, 192 games): combinations of #5-#7 ties - goose_cap 5, drop_load 7, fill_idle, slice_frac 0.85, sheep_cap 7",
+ "memo": "v70 twin vs v70 (09-29 #9, 192 games): rule switches - cap_rule forward, animal_order roi, assign_rule local, payback spot, respect_last_sow_day, global_resow",
  "variants": [
   {
    "name": "base",
    "P": {}
   },
   {
-   "name": "gd",
+   "name": "capF",
    "P": {
-    "goose_cap": 5,
-    "drop_load": 7
+    "cap_rule": "forward"
    }
   },
   {
-   "name": "gdf",
+   "name": "roi",
    "P": {
-    "goose_cap": 5,
-    "drop_load": 7,
-    "fill_idle": true
+    "animal_order": "roi"
    }
   },
   {
-   "name": "fs",
+   "name": "asgL",
    "P": {
-    "fill_idle": true,
-    "slice_frac": 0.85
+    "assign_rule": "local"
    }
   },
   {
-   "name": "all4",
+   "name": "paySpot",
    "P": {
-    "goose_cap": 5,
-    "drop_load": 7,
-    "fill_idle": true,
-    "slice_frac": 0.85
+    "animal_payback_rule": "spot"
    }
   },
   {
-   "name": "gs",
+   "name": "lastSow",
    "P": {
-    "goose_cap": 5,
-    "sheep_cap": 7
+    "respect_last_sow_day": true
    }
   },
   {
-   "name": "dl6f",
+   "name": "gResow",
    "P": {
-    "fill_idle": true,
-    "fill_floor": 0.6
+    "global_resow": true
    }
   }
  ],
  "agent_a": "agents/v70_sched.py",
  "agent_b": "agents/v70_sched.py",
  "episodes": "96",
- "seed0": "690000",
+ "seed0": "700000",
  "replicate": "32"
 }
