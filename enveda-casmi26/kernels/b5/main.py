@@ -56,7 +56,7 @@ N_KEEP = 400          # unique analogs per molecule (best similarity over its sp
 TOP_K = 3             # candidate analog score = sum of its TOP_K best weight * Tanimoto
 FP_RADIUS, FP_SIZE, FP_COUNT = 3, 4096, True   # Morgan fingerprint for candidate-analog Tanimoto
 MAX_PEAKS = 64
-LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "1.01"))
+LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
 W_ANALOG = 0.9
 
 PROTON = 1.007276467
@@ -124,7 +124,7 @@ def fp(smi):
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "exp50_0.2"
-FP2_ENS = True
+FP2_ENS = False
 # fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
