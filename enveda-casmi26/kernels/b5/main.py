@@ -124,7 +124,9 @@ def fp(smi):
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "exp50_0.2"
-FP2_WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)
+FP2_ENS = False
+# fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
+FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
@@ -4219,13 +4221,14 @@ def main():
             fps[ik] = fp(smi.get(ik))
         return fps[ik]
 
-    fp2 = None
-    if FP2_WEIGHTS:
-        fp2 = FP2Net()
-        fp2.load_state_dict(torch.load(FP2_WEIGHTS[0], map_location="cpu"))
-        fp2.eval()
+    fp2s = []
+    for path in FP2_WEIGHTS[:len(FP2_WEIGHTS) if FP2_ENS else 1]:
+        net = FP2Net()
+        net.load_state_dict(torch.load(path, map_location="cpu"))
+        fp2s.append(net.eval())
+    fp2 = fp2s[0] if fp2s else None
     ranker = lgb.Booster(model_str=LGB_MODEL)
-    log("fp2", FP2_WEIGHTS[:1], "re-ranker trees", ranker.num_trees())
+    log("fp2", FP2_WEIGHTS[:len(fp2s)], "gate", LIB_GATE, "re-ranker trees", ranker.num_trees())
     aidx = {a: i for i, a in enumerate(FP2_ADDUCTS)}
 
     out = []
@@ -4272,10 +4275,11 @@ def main():
         if fp2 is not None and cands:
             toks = [fp2_tokens(s.ms2_mzs, s.ms2_normalized_intensities, float(s.precursor_mz)) for _, s in g.iterrows()]
             with torch.no_grad():
-                p = torch.sigmoid(fp2(torch.from_numpy(np.stack([t[0] for t in toks])),
-                                      torch.from_numpy(np.stack([t[1] for t in toks])),
-                                      torch.from_numpy(g.precursor_mz.values.astype(np.float32)),
-                                      torch.from_numpy(g.adduct.map(aidx).fillna(len(FP2_ADDUCTS)).values.astype(np.int64))))
+                p = torch.stack([torch.sigmoid(net(torch.from_numpy(np.stack([t[0] for t in toks])),
+                                                   torch.from_numpy(np.stack([t[1] for t in toks])),
+                                                   torch.from_numpy(g.precursor_mz.values.astype(np.float32)),
+                                                   torch.from_numpy(g.adduct.map(aidx).fillna(len(FP2_ADDUCTS)).values.astype(np.int64))))
+                                 for net in fp2s]).mean(0)
             p = p.mean(0).clamp(1e-4, 1 - 1e-4).numpy()
             bits, okb = fp2_bits([smi.get(c) for c in cands])
             ll = bits @ np.log(p) + (1 - bits) @ np.log(1 - p)

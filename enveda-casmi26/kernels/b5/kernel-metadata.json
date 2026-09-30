@@ -16,7 +16,8 @@
     "enveda-CASMI26-molecule-id-mass-spectra"
   ],
   "kernel_sources": [
-    "yasunorim/casmi26-fp2-peak-transformer"
+    "yasunorim/casmi26-fp2-peak-transformer",
+    "yasunorim/casmi26-fp2all-heldout"
   ],
   "model_sources": []
 }
