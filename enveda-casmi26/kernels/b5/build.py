@@ -11,11 +11,18 @@ MODE (default lgb) picks how the analog and fp2 channels are fused outside the g
   rrfK    reciprocal-rank fusion 1/(K+rank_analog) + 1/(K+rank_fp2) (local 0.590 at K=5)
   expT_W  analog + W * exp((ll - max ll) / T) (local 0.579 at T=25, W=0.1)
   expT_W_rel  the same with W scaled by the molecule's best analog score (all-class local 0.587 at T=50, W=0.5)
+Options appended with "+":
+  ens     average fp2's bit probabilities over every fp2.pt found (fp2 v2 + fp2all; c4 local +0.002)
+  gX      library gate X instead of 0.8
+e.g. exp50_0.2+ens+g0.75
 """
 import os
 import sys
 
 MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2"   # LB best 0.294 (09-29)
+FUSE, *OPTS = MODE.split("+")
+ENS = "ens" in OPTS
+GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -33,8 +40,10 @@ from torch import nn  # noqa: E402
 FP2 = '''
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
-FUSE = "''' + MODE + '''"
-FP2_WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)
+FUSE = "''' + FUSE + '''"
+FP2_ENS = ''' + str(ENS) + '''
+# fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
+FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
@@ -121,13 +130,14 @@ assert anchor in src
 src = src.replace(anchor, FP2 + anchor, 1)
 
 src = src.replace('''    out = []
-    for mid, g in test.groupby("molecule_id"):''', '''    fp2 = None
-    if FP2_WEIGHTS:
-        fp2 = FP2Net()
-        fp2.load_state_dict(torch.load(FP2_WEIGHTS[0], map_location="cpu"))
-        fp2.eval()
+    for mid, g in test.groupby("molecule_id"):''', '''    fp2s = []
+    for path in FP2_WEIGHTS[:len(FP2_WEIGHTS) if FP2_ENS else 1]:
+        net = FP2Net()
+        net.load_state_dict(torch.load(path, map_location="cpu"))
+        fp2s.append(net.eval())
+    fp2 = fp2s[0] if fp2s else None
     ranker = lgb.Booster(model_str=LGB_MODEL)
-    log("fp2", FP2_WEIGHTS[:1], "re-ranker trees", ranker.num_trees())
+    log("fp2", FP2_WEIGHTS[:len(fp2s)], "gate", LIB_GATE, "re-ranker trees", ranker.num_trees())
     aidx = {a: i for i, a in enumerate(FP2_ADDUCTS)}
 
     out = []
@@ -138,10 +148,11 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
         if fp2 is not None and cands:
             toks = [fp2_tokens(s.ms2_mzs, s.ms2_normalized_intensities, float(s.precursor_mz)) for _, s in g.iterrows()]
             with torch.no_grad():
-                p = torch.sigmoid(fp2(torch.from_numpy(np.stack([t[0] for t in toks])),
-                                      torch.from_numpy(np.stack([t[1] for t in toks])),
-                                      torch.from_numpy(g.precursor_mz.values.astype(np.float32)),
-                                      torch.from_numpy(g.adduct.map(aidx).fillna(len(FP2_ADDUCTS)).values.astype(np.int64))))
+                p = torch.stack([torch.sigmoid(net(torch.from_numpy(np.stack([t[0] for t in toks])),
+                                                   torch.from_numpy(np.stack([t[1] for t in toks])),
+                                                   torch.from_numpy(g.precursor_mz.values.astype(np.float32)),
+                                                   torch.from_numpy(g.adduct.map(aidx).fillna(len(FP2_ADDUCTS)).values.astype(np.int64))))
+                                 for net in fp2s]).mean(0)
             p = p.mean(0).clamp(1e-4, 1 - 1e-4).numpy()
             bits, okb = fp2_bits([smi.get(c) for c in cands])
             ll = bits @ np.log(p) + (1 - bits) @ np.log(1 - p)
@@ -165,6 +176,11 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''
 assert old_score in src
 src = src.replace(old_score, new_score, 1)
+
+if GATE is not None:
+    old = 'LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))'
+    assert old in src
+    src = src.replace(old, 'LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "' + GATE + '"))', 1)
 
 open(os.path.join(HERE, "main.py"), "w", encoding="utf-8").write(src)
 print("wrote", os.path.join(HERE, "main.py"), MODE, len(src), "chars")
