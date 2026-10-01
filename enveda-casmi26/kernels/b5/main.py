@@ -56,7 +56,7 @@ N_KEEP = 400          # unique analogs per molecule (best similarity over its sp
 TOP_K = 3             # candidate analog score = sum of its TOP_K best weight * Tanimoto
 FP_RADIUS, FP_SIZE, FP_COUNT = 3, 4096, True   # Morgan fingerprint for candidate-analog Tanimoto
 MAX_PEAKS = 64
-LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.01"))
+LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))
 W_ANALOG = 0.9
 
 PROTON = 1.007276467
