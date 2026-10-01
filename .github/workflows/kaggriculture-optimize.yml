@@ -15,9 +15,7 @@ name: Kaggriculture Optimize
 # time, so it never accumulates history for a file that changes every run.
 
 on:
-  schedule:
-    # every six hours, so one climb hands over to the next
-    - cron: '20 */6 * * *'
+  # The six-hourly schedule was removed after the competition closed (2026-09-30).
   workflow_dispatch:
     # These defaults are the chain's settings and must match the fallbacks in
     # `env:` below. They did not, and the RPi5 backstop dispatches with only
