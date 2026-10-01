@@ -124,6 +124,8 @@ jobs:
           ls -la /tmp/kout
           ls -la /tmp/kout/submission.zip 2>/dev/null || echo "no submission.zip in the output"
           unzip -l /tmp/kout/submission.zip 2>/dev/null | tee -a /tmp/out.txt || true
+          # the kernel's own log (probes and training print their findings there)
+          python3 -c "import json,glob;[print(''.join(x.get('data','') for x in json.load(open(f)))[-12000:]) for f in glob.glob('/tmp/kout/*.log')]" 2>/dev/null | tee -a /tmp/out.txt || true
           if [ "$SUBMIT" = "yes" ]; then
             test -s /tmp/kout/submission.zip || { echo "::error::no submission.zip to submit"; exit 1; }
             kaggle competitions submit "$COMP" -k "$ID" -v "$VER" -f submission.zip -m "$MSG [run ${GITHUB_RUN_ID}]" 2>&1 | tee -a /tmp/out.txt
