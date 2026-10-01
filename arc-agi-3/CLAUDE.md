@@ -54,4 +54,9 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 - 重い計算：手元の 25 ゲーム評価は cloud コンテナ（LLM なし）、LLM は Kaggle Notebook の GPU。有料のものは使わない。
 
 ### 進捗
+- 10-01：`kernels/explore`（LLM なしの状態グラフ探索・自作）と `.github/workflows/arc3-kaggle.yml`（enveda と同じ依頼ファイル方式・`arc-agi-3/requests/kaggle.json` を push）を用意。
+  模擬ゲーム（迷路 2 レベル・端に手数カウンタ）で動作確認：カウンタの行を隠す処理を入れて 726 手で 2 レベル。
+  **気づき：レベルの点は (人間の手数 / agent の手数)² なので、総当たりで解いても点はほぼ 0**（15 手のところ 363 手なら 0.002）。公開の BFS が 1 点未満なのはこのため。
+  ⇒ 探索 agent は LB に載せる土台。点を取るのは「少ない手で仕組みを掴む」部分＝段取り 2（LLM）が本命。
+  データはルール同意待ちで、kernel も同意しないと動かない（competition_sources の取得に同意が要る）。同意後の最初の 1 本＝explore（仮説：自前の土台が LB 0 点より上に載る）。
 - 10-01：着手。ページと公開ノートブックを読解、メダル線を取得。データはルール同意待ち（user に依頼済み）。PyPI の `arc-agi` は 0.0.7（古い）＝配布 wheel を使う。

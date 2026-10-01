@@ -1,0 +1,13 @@
+{
+  "id": "yasunorim/arc3-explorer",
+  "title": "arc3-explorer",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["arc-prize-2026-arc-agi-3"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
