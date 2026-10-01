@@ -1,0 +1,32 @@
+request: b5g70-1
+run: 36796726740  status: success  action: kernel  dir: enveda-casmi26/kernels/b5  submit: yes
+kernel: yasunorim/casmi26-b5-analog-fp2-rerank  version: 16
+memo: H1 hidden library hits are more reliable than local: gate 0.7 (local c2 drops to .746)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 16 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-b5-analog-fp2-rerank
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-01 00:40:19.657000,b5g70-1: b5 with fusion exp50_0.2+g0.7 [run 36796726740],SubmissionStatus.PENDING,,
+submission.csv,2026-09-30 00:54:43.777000,b5g101t-1: b5 with fusion exp100_0.3+g1.01 [run 36652006426],SubmissionStatus.COMPLETE,0.287,
+submission.csv,2026-09-30 00:46:09.533000,b5g101e-1: b5 with fusion exp50_0.2+g1.01+ens [run 36651415380],SubmissionStatus.COMPLETE,0.280,
+
+output files:
+total 392
+drwxr-xr-x  2 runner runner   4096 Oct  1 00:40 .
+drwxrwxrwt 14 root   root     4096 Oct  1 00:40 ..
+-rw-r--r--  1 runner runner   2131 Oct  1 00:40 casmi26-b5-analog-fp2-rerank.log
+-rw-r--r--  1 runner runner 388339 Oct  1 00:40 submission.csv
+[{"stream_name":"stdout","time":8.854837694,"data":"[     8s] comp /kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra coco /kaggle/input/datasets/prvsiyan/coconut-casmi26-candidates wheels /kaggle/input/datasets/yasunorim/casmi26-offline-wheels\n"}
+,{"stream_name":"stdout","time":25.038807321,"data":"[    24s] train 2539608 test 1213 400 molecules\n"}
+,{"stream_name":"stdout","time":28.160087655,"data":"[    27s] pool 711678\n"}
+,{"stream_name":"stdout","time":28.22059487,"data":"[    27s] candidates/molecule median 107.0\n"}
+,{"stream_name":"stdout","time":141.479477642,"data":"[   140s] library spectra 586337\n"}
+,{"stream_name":"stdout","time":190.602589822,"data":"[   190s] indexes {'negative': 112999, 'positive': 258539}\n"}
+,{"stream_name":"stderr","time":190.72729231,"data":"/kaggle/src/script.py:155: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True\n"}
+,{"stream_name":"stderr","time":190.727355242,"data":"  self.enc = nn.TransformerEncoder(layer, 4)\n"}
+,{"stream_name":"stdout","time":191.878829155,"data":"[   191s] fp2 ['/kaggle/input/notebooks/yasunorim/casmi26-fp2-peak-transformer/fp2.pt'] gate 0.7 re-ranker trees 200\n"}
+,{"stream_name":"stdout","time":401.454358972,"data":"[   400s] wrote 400 rows\n"}
+,{"stream_name":"stderr","time":406.814177546,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"st
