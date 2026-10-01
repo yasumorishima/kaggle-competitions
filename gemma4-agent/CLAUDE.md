@@ -38,3 +38,11 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
 ### 進捗
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
+- 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
+  公開 walkthrough の読解（流用なし）から疑わしい点：`max_time_minutes: 4.5`（小数）、`include_thoughts: true`（採点で動いた公開版は全部 thinking 切り）、
+  `search_similar_code` が関数本体を上限なしで返し文脈 32k を溢れさせる（未捕捉エラー）。また全課題は**直列**で 12 時間（1 課題あたり準備・テスト込み約 6 分）。
+  ⇒ **v2**（`submission/` 更新済み・検証/コンパイル済み・未提出）：整数の予算（4 分・120 秒・50 回・80 ターン）、thinking 切り・出力 4,096、prompt で `search_similar_code` を禁止し `git grep`（`rg` は無い）を指示。10-02 の枠で出す。
+- 10-01：TPU。`TpuV6E8` は 5.5 時間 QUEUED のまま（無料枠では割り当てられないと見る。公開の TPU notebook は 9 月に `TpuV5E8` 23 本・`TpuV38` 系 3 本）。
+  「batch TPU session は同時 1 本」なので、待ち続けた kernel を workflow の `action: delete` で消し、`yasunorim/gemma4-tpu-probe-v5e`（`TpuV5E8`）で再 probe（tpuprobe-3）。
+  **LoRA の重い注意（forum 報告）：adapter を入れると vLLM が LoRA 枠 8・rank 128 で起動し、4×L4 の KV cache が約 46k→約 7.6k トークンに縮む＝長い agent 会話が詰まる。**
+  LoRA は「短い会話で済む agent」と組み合わせるか、KV の縮みを上回る効果が手元評価で出たときだけ出す。
