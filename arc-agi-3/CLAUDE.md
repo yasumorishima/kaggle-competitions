@@ -54,6 +54,9 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 - 重い計算：手元の 25 ゲーム評価は cloud コンテナ（LLM なし）、LLM は Kaggle Notebook の GPU。有料のものは使わない。
 
 ### 進捗
+- 10-01（下調べ）：段取り 2 の LLM 候補＝公式の公開重み（Kaggle Models）：`qwen-lm/qwen-3`（各サイズ）・`qwen-lm/qwen3-next-80b`・`google/gemma-4`・`danielhanchen/gpt-oss-20b/120b`。
+  RTX Pro 6000（96GB）なら 27〜32B を bf16/FP8 で載る。推論系（vLLM が Kaggle の画像にあるか・無ければ transformers）を最初の GPU kernel で確かめる。
+  他人の wheelhouse・解法 dataset（taaf 系）は使わない（自前で組む）。
 - 10-01（同意後）：データ取得（44MB・`arc_agi_3_wheels` は cp312＝cloud では `python3.12 -m venv` に入れる）。
   手元の 25 ゲーム（`ARC3_LOCAL=1 ARC3_COMP_DIR=… ARC3_WORK=… v312/bin/python kernels/explore/main.py`・約 2 分）：**explore＝0.11（183 レベル中 12）**。
   解けたのは cd82・sp80・vc33（2）・su15・tu93（4）・lf52・ls20・r11l（1 レベルで 2.40）。2,500 手の総当たりなので効率の点はほぼ 0。
