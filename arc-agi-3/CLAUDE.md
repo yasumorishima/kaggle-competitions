@@ -54,6 +54,10 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 - 重い計算：手元の 25 ゲーム評価は cloud コンテナ（LLM なし）、LLM は Kaggle Notebook の GPU。有料のものは使わない。
 
 ### 進捗
+- 10-01（同意後）：データ取得（44MB・`arc_agi_3_wheels` は cp312＝cloud では `python3.12 -m venv` に入れる）。
+  手元の 25 ゲーム（`ARC3_LOCAL=1 ARC3_COMP_DIR=… ARC3_WORK=… v312/bin/python kernels/explore/main.py`・約 2 分）：**explore＝0.11（183 レベル中 12）**。
+  解けたのは cd82・sp80・vc33（2）・su15・tu93（4）・lf52・ls20・r11l（1 レベルで 2.40）。2,500 手の総当たりなので効率の点はほぼ 0。
+  **提出 explore-1**（仮説：提出の流れが動き、LB は手元の 0.11 前後）→ run 36812669367。**LB 0.15**（手元 0.11 とほぼ同じ＝手元の 25 ゲームで LB の見当がつく）。約 2,650 位相当（中央値 0.33 より下）。
 - 10-01：`kernels/explore`（LLM なしの状態グラフ探索・自作）と `.github/workflows/arc3-kaggle.yml`（enveda と同じ依頼ファイル方式・`arc-agi-3/requests/kaggle.json` を push）を用意。
   模擬ゲーム（迷路 2 レベル・端に手数カウンタ）で動作確認：カウンタの行を隠す処理を入れて 726 手で 2 レベル。
   **気づき：レベルの点は (人間の手数 / agent の手数)² なので、総当たりで解いても点はほぼ 0**（15 手のところ 363 手なら 0.002）。公開の BFS が 1 点未満なのはこのため。
