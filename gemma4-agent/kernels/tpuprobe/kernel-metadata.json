@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/gemma4-tpu-probe",
-  "title": "gemma4-tpu-probe",
+  "id": "yasunorim/gemma4-tpu-probe-v5e",
+  "title": "gemma4-tpu-probe-v5e",
   "code_file": "main.py",
   "language": "python",
   "kernel_type": "script",
