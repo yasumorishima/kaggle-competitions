@@ -18,16 +18,18 @@ import sys
 import time
 from collections import deque
 
-COMP_DIR = "/kaggle/input/competitions/arc-prize-2026-arc-agi-3"
+COMP_DIR = os.getenv("ARC3_COMP_DIR", "/kaggle/input/competitions/arc-prize-2026-arc-agi-3")
+WORK = os.getenv("ARC3_WORK", "/kaggle/working")   # both overridable for a local run
 RERUN = bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
 
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-index", "--find-links",
-                       COMP_DIR + "/arc_agi_3_wheels", "arc-agi", "python-dotenv"])
+if not os.getenv("ARC3_LOCAL"):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-index", "--find-links",
+                           COMP_DIR + "/arc_agi_3_wheels", "arc-agi", "python-dotenv"])
 
 import numpy as np  # noqa: E402
 
 # Budgets: 110 games in under 9 hours (leave margin for the gateway and start-up).
-TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else 2.0 * 3600  # the offline check (25 games) stays short
+TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 * 3600))  # the offline check (25 games) stays short
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "2500"))
 MAX_CLICKS = 24          # click targets per node
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
@@ -40,11 +42,11 @@ def write_env():
                         "--retry-max-time 600 http://gateway:8001/api/games > /dev/null", shell=True)
     mode = "online" if RERUN else "offline"
     envdir = "" if RERUN else COMP_DIR + "/environment_files/"
-    with open("/kaggle/working/.env", "w") as f:
+    with open(WORK + "/.env", "w") as f:
         f.write("SCHEME=http\nHOST=gateway\nPORT=8001\nARC_API_KEY=test-key-123\n"
                 "ARC_BASE_URL=http://gateway:8001/\n"
                 f"OPERATION_MODE={mode}\nENVIRONMENTS_DIR={envdir}\n"
-                "RECORDINGS_DIR=/kaggle/working/server_recording\n")
+                f"RECORDINGS_DIR={WORK}/server_recording\n")
 
 
 def grid_of(resp):
@@ -227,7 +229,7 @@ def main():
     import arc_agi
     import dotenv
 
-    os.chdir("/kaggle/working")
+    os.chdir(WORK)
     write_env()
     dotenv.load_dotenv(dotenv_path=".env", override=True)
     arcade = arc_agi.Arcade()
@@ -248,7 +250,7 @@ def main():
             print(f"  {e.id:<20} {e.score:8.2f} {e.levels_completed:4} {e.actions:6}")
         import pandas as pd
         pd.DataFrame([["1_0", "1", True, 1]], columns=["row_id", "game_id", "end_of_game", "score"]) \
-            .to_parquet("/kaggle/working/submission.parquet", index=False)
+            .to_parquet(WORK + "/submission.parquet", index=False)
 
 
 if __name__ == "__main__":
