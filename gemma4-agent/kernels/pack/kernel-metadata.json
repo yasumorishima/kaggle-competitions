@@ -1,0 +1,13 @@
+{
+  "id": "yasunorim/gemma4-agent-pack",
+  "title": "gemma4-agent-pack",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["gemma-4-developer-agent"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
