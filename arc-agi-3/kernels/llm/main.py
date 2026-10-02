@@ -325,7 +325,9 @@ def start_llm_server():
         proc = subprocess.Popen([sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", model,
                                  "--served-model-name", "q", "--port", str(LLM_PORT), "--max-model-len", "16384",
                                  "--gpu-memory-utilization", "0.88", "--max-num-seqs", "32"] + extra,
-                                stdout=log, stderr=subprocess.STDOUT)
+                                stdout=log, stderr=subprocess.STDOUT,
+                                # DeepGEMM's FP8 JIT needs NVCC >= 12.9, newer than the image's (llm0-2)
+                                env={**os.environ, "VLLM_USE_DEEP_GEMM": "0"})
         for _ in range(180):
             time.sleep(10)
             try:
