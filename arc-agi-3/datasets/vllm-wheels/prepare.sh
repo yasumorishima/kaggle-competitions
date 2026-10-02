@@ -7,10 +7,9 @@ cd "$(dirname "$0")"
 # the hosted runner has ~14GB free; torch + CUDA libraries need room
 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
 df -h . | tail -1
-pip download -q --only-binary=:all: --python-version 3.12 \
-  --platform manylinux2014_x86_64 --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64 \
-  --platform manylinux_2_31_x86_64 --platform manylinux_2_34_x86_64 --platform linux_x86_64 --platform any \
-  -d . "vllm==0.30.0"
+# the runner is x86_64 Linux with Python 3.12 (setup-python), the same ABI as Kaggle: resolve natively
+python -V
+pip download -q --only-binary=:all: -d . "vllm==0.30.0"
 ls -la | head -200
 du -sh .
 df -h . | tail -1
