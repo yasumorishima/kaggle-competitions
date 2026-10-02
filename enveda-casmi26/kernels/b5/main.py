@@ -124,7 +124,7 @@ def fp(smi):
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "exp50_0.2"
-TP_F, TP_L = 0.7, 9.0  # demotion of train structures whose spectra do not match
+TP_F, TP_L = 0.5, 9.0  # demotion of train structures whose spectra do not match
 FP2_ENS = False
 # fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
