@@ -1,0 +1,7 @@
+request: vllmwheels-1
+run: 36958674753  status: failure  action: dataset  dir: arc-agi-3/datasets/vllm-wheels  submit: no
+kernel:   version: 
+memo: own vLLM 0.30.0 wheel set (with deps) for the no-internet RTX Pro 6000 kernel; the image has torch 2.10+cu128 and no vLLM
+
+
+output files:
