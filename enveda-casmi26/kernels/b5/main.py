@@ -124,6 +124,7 @@ def fp(smi):
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "exp50_0.2"
+TP_F, TP_L = 0.7, 9.0  # demotion of train structures whose spectra do not match
 FP2_ENS = False
 # fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
@@ -4299,6 +4300,9 @@ def main():
                     if parts[2:] == ["rel"]:
                         w *= max(float(a.max()), 1e-9)
                     pred = a + w * np.exp((ll - ll.max()) / t)
+            if TP_F != 1.0:
+                dem = np.array([bool(lib_by_ik.get(c)) and lib[c] < LIB_GATE and lib[c] < TP_L for c in cands])
+                pred = np.where(dem, TP_F * pred, pred)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}
         ranked = sorted(cands, key=lambda c: -score[c])[:25]
