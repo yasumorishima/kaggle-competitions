@@ -62,7 +62,10 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
   **probe の結果**：GPU＋インターネット有りの kernel は push が `SaveKernel 400`（RTX Pro 6000・L4 とも）。CPU＋インターネット有りは通る＝**GPU kernel はインターネット無しで作る**（enveda の GPU kernel も無し）。
   CPU 画像（gpuprobe-3）：Python 3.12.13・torch 2.10.0+cpu・transformers 5.0.0・**vLLM／sglang／flash_attn は無し**。`pip install vllm` で 0.30.0（torch 2.13 を連れてくる・242 秒）、
   同じプロセスで import すると古い torch が読み込み済みで落ちる（別プロセスなら動く見込み）。モデルは `/kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1`（30GB）にマウント。
-  GPU 画像（gpuprobe-4・インターネット無し）で torch/CUDA の版と vLLM の有無を確かめ、wheel dataset の中身を決める。
+  **GPU 画像（gpuprobe-4・RTX Pro 6000・インターネット無し）**：RTX PRO 6000 Blackwell 96GB・ドライバ CUDA 13.0・torch 2.10.0+cu128・CPU 46・RAM 176GB・ディスク 20GB・**vLLM 無し**。
+  30GB のモデルのマウントに約 20 分（kernel 起動の待ち時間に含まれる）。
+  ⇒ **自前の wheel dataset `yasunorim/arc3-vllm-wheels`**（`datasets/vllm-wheels/prepare.sh`＝GHA で vllm 0.30.0 と依存を全部 wheel で取得）を作成中（vllmwheels-1）。
+  kernel では `pip install --no-index --find-links <dataset> vllm` で入れ、vLLM は別プロセス（OpenAI 互換サーバ）で動かす（同じプロセスだと古い torch と衝突）。
 - 10-01（下調べ）：段取り 2 の LLM 候補＝公式の公開重み（Kaggle Models）：`qwen-lm/qwen-3`（各サイズ）・`qwen-lm/qwen3-next-80b`・`google/gemma-4`・`danielhanchen/gpt-oss-20b/120b`。
   RTX Pro 6000（96GB）なら 27〜32B を bf16/FP8 で載る。推論系（vLLM が Kaggle の画像にあるか・無ければ transformers）を最初の GPU kernel で確かめる。
   他人の wheelhouse・解法 dataset（taaf 系）は使わない（自前で組む）。
