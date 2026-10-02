@@ -1,0 +1,9 @@
+request: gpuprobe-1
+run: 36946871690  status: failure  action: kernel  dir: arc-agi-3/kernels/gpuprobe  submit: no
+kernel: yasunorim/arc3-gpu-probe  version: 
+memo: step 2 groundwork: RTX Pro 6000 image (GPU, torch/CUDA, vllm preinstalled or pip), Qwen3-30B-A3B-Instruct-2507-FP8 mount, vLLM load time and generation speed on a 64x64 grid prompt
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+400 Client Error: Bad Request for url: https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel
+
+output files:

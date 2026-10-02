@@ -33,6 +33,7 @@ TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 *
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "2500"))
 MAX_CLICKS = 24          # click targets per node
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
+NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "2"))  # tries of a move kind before its no-op rate counts (0 = off)
 EDGE = 3                 # rows/columns this close to the border may hold a counter bar
 
 
@@ -88,7 +89,11 @@ class Explorer:
         self.actions = actions          # GameAction members other than RESET
         self.reset_level()
 
+    noop = None                         # move kind -> [no-op count, tries]; kept across levels
+
     def reset_level(self):
+        if self.noop is None:
+            self.noop = {}
         self.edges = {}                 # node -> {move: node}
         self.todo = {}                  # node -> [move, ...] not yet tried
         self.changes = None             # per-cell change counts
@@ -141,6 +146,25 @@ class Explorer:
             self.todo[k] = self.moves_for(g)
             self.edges[k] = {}
         return k
+
+    @staticmethod
+    def kind(g, mv):
+        """What a move is, independent of the state: the action, plus the clicked colour."""
+        a, xy = mv
+        return (int(a.value), int(g[xy[1], xy[0]]) if xy is not None else -1)
+
+    def pick(self, g, todo):
+        """Untried move whose kind has most often changed the frame (unknown kinds first)."""
+        def rate(mv):
+            n0, n = self.noop.get(self.kind(g, mv), (0, 0))
+            return (n0 + 0.5) / (n + 1.0) if n >= NOOP_MIN else 0.0
+        i = min(range(len(todo)), key=lambda j: (rate(todo[j]), j))
+        return todo.pop(i)
+
+    def record(self, g, mv, changed):
+        k = self.kind(g, mv)
+        n0, n = self.noop.get(k, (0, 0))
+        self.noop[k] = (n0 + (not changed), n + 1)
 
     def path_to_todo(self, start):
         """Shortest known move sequence from start to a node with untried moves."""
@@ -196,7 +220,7 @@ def play(env, game_id, deadline):
         if plan:
             mv = plan.pop(0)
         elif ex.todo[cur]:
-            mv = ex.todo[cur].pop(0)
+            mv = ex.pick(g, ex.todo[cur]) if NOOP_MIN else ex.todo[cur].pop(0)
         else:
             path = ex.path_to_todo(cur)
             if not path:
@@ -216,6 +240,7 @@ def play(env, game_id, deadline):
             ex.reset_level()
             plan = []
         elif g2 is not None and nxt.state == GameState.NOT_FINISHED:
+            ex.record(g, mv, g2.shape != g.shape or bool((g2 != g).any()))
             ex.observe(g, g2)
             nk = ex.node(g2)
             if ex.edges[cur].get(mv, nk) != nk:

@@ -1,0 +1,13 @@
+request: tpudel-1
+run: 36886945477  status: success  action: delete  dir: ?  submit: ?
+kernel: yasunorim/gemma4-tpu-probe  version: 
+memo: Delete the TpuV6E8 probe (version 1) that has sat QUEUED since 09:50 UTC and holds the one batch TPU session, so a TpuV5E8 probe can start
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+yasunorim/gemma4-tpu-probe has status "KernelWorkerStatus.QUEUED"
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel yasunorim/gemma4-tpu-probe deleted successfully
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+
+output files:

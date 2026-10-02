@@ -54,6 +54,11 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 - 重い計算：手元の 25 ゲーム評価は cloud コンテナ（LLM なし）、LLM は Kaggle Notebook の GPU。有料のものは使わない。
 
 ### 進捗
+- 10-02：**explore-2**（探索の手数削減）：「手の種類」（行動＋クリックした色）ごとに、画面が変わらなかった割合を数え、2 回以上試して変わらないことの多い種類を後回し（`ARC3_NOOP_MIN`）。
+  手元 25 ゲーム：**0.113→0.262（12→15 レベル）**・NOOP_MIN 1/2/3/6＝.228/.262/.173/.105（値に敏感＝ゲームの数が少ない）。提出（仮説：無駄手が減り LB が explore-1 の 0.15 を上回る）。
+  段取り 2 の下準備：公開上位は全部 `NvidiaRtxPro6000`＋自前の vLLM 実行環境 dataset＋Qwen 系（流用しない）。公式の Kaggle Models に `qwen-lm/qwen-3`（30b-a3b-instruct-2507-fp8・32b-fp8 ほか）・`google/gemma-4` がある。
+  `kernels/gpuprobe`（RTX Pro 6000・Qwen3-30B-A3B-Instruct-2507-FP8・vLLM が画像にあるか／pip で入るか・読み込み時間・生成速度）を投入（gpuprobe-1）。
+  本番はインターネット不可なので、vLLM が画像に無ければ wheel を GHA で取って自前 dataset にする（enveda の offline-wheels と同じ方式）。
 - 10-01（下調べ）：段取り 2 の LLM 候補＝公式の公開重み（Kaggle Models）：`qwen-lm/qwen-3`（各サイズ）・`qwen-lm/qwen3-next-80b`・`google/gemma-4`・`danielhanchen/gpt-oss-20b/120b`。
   RTX Pro 6000（96GB）なら 27〜32B を bf16/FP8 で載る。推論系（vLLM が Kaggle の画像にあるか・無ければ transformers）を最初の GPU kernel で確かめる。
   他人の wheelhouse・解法 dataset（taaf 系）は使わない（自前で組む）。

@@ -1,0 +1,16 @@
+{
+  "id": "yasunorim/gemma4-tpu-probe-v5e",
+  "title": "gemma4-tpu-probe-v5e",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": true,
+  "machine_shape": "TpuV5E8",
+  "enable_internet": true,
+  "competition_sources": ["gemma-4-developer-agent"],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "model_sources": ["google/gemma-4/transformers/gemma-4-31b-it-qat-q4_0-unquantized/2"]
+}

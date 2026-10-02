@@ -14,15 +14,21 @@ MODE (default lgb) picks how the analog and fp2 channels are fused outside the g
 Options appended with "+":
   ens     average fp2's bit probabilities over every fp2.pt found (fp2 v2 + fp2all; c4 local +0.002)
   gX      library gate X instead of 0.8
-e.g. exp50_0.2+ens+g0.75
+  tpF     scale the fused score by F for train structures that have library spectra but no match
+          at the gate (hidden class 2/3 answers never carry public spectra; eval/blend_trainpen.py:
+          F 0.7 -> c1 .935 c2 .860 c4 .628 vs F 1 .936 .820 .568)
+  tpF_L   the same, only when the candidate's best own-spectrum match is below L
+e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7
 """
 import os
 import sys
 
-MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2"   # LB best 0.294 (09-29)
+MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2+tp0.5_0.5"   # LB best 0.297 (10-02; exp50_0.2 alone 0.294)
 FUSE, *OPTS = MODE.split("+")
 ENS = "ens" in OPTS
 GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
+TP = next((o[2:].split("_") for o in OPTS if o.startswith("tp")), None)
+TP_F, TP_L = (float(TP[0]), float(TP[1]) if len(TP) > 1 else 9.0) if TP else (1.0, 9.0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -41,6 +47,7 @@ FP2 = '''
 
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "''' + FUSE + '''"
+TP_F, TP_L = ''' + repr(TP_F) + ", " + repr(TP_L) + '''  # demotion of train structures whose spectra do not match
 FP2_ENS = ''' + str(ENS) + '''
 # fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
@@ -172,6 +179,9 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
                     if parts[2:] == ["rel"]:
                         w *= max(float(a.max()), 1e-9)
                     pred = a + w * np.exp((ll - ll.max()) / t)
+            if TP_F != 1.0:
+                dem = np.array([bool(lib_by_ik.get(c)) and lib[c] < LIB_GATE and lib[c] < TP_L for c in cands])
+                pred = np.where(dem, TP_F * pred, pred)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''
 assert old_score in src

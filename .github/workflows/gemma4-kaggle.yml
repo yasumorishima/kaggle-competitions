@@ -9,7 +9,9 @@ name: Gemma 4 Agent Kaggle
 #   id       a new id for every request (required); a request whose id already
 #            appears in requests/results/ is skipped, so a replayed file never reruns
 #   memo     why this run (required)
-#   action   "kernel" (push a kernel and wait for it) or "dataset" (create or version a dataset)
+#   action   "kernel" (push a kernel and wait for it), "dataset" (create or version a dataset)
+#            or "delete" (delete one of our kernels, e.g. a TPU run stuck in the queue that
+#            holds the one batch TPU session; needs "kernel": "yasunorim/<slug>", no dir)
 #   dir      a directory under gemma4-agent/ holding kernel-metadata.json or dataset-metadata.json
 #   submit   kernel only: "submit" to send the finished kernel's submission.zip to the competition
 #   message  submission / dataset version message
@@ -66,7 +68,15 @@ jobs:
           memo = str(r.get("memo", "")).strip()
           assert memo, "memo is required"
           action = r.get("action")
-          assert action in ("kernel", "dataset"), "action must be kernel or dataset"
+          assert action in ("kernel", "dataset", "delete"), "action must be kernel, dataset or delete"
+          if action == "delete":
+              k = str(r.get("kernel", ""))
+              assert k.startswith("yasunorim/") and "/" not in k[10:] and len(k) > 10, "kernel must be yasunorim/<slug>"
+              with open(os.environ["GITHUB_ENV"], "a") as f:
+                  f.write(f"RID={rid}\nACTION=delete\nKERNEL={k}\n")
+                  f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
+              print("delete", k, "|", memo)
+              raise SystemExit(0)
           d = str(r.get("dir", ""))
           assert d and ".." not in d and not d.startswith("/"), "dir must be relative, without .."
           d = os.path.join("gemma4-agent", d)
@@ -93,6 +103,16 @@ jobs:
           else
             kaggle datasets create -p "$DIR" -r zip 2>&1 | tee /tmp/out.txt
           fi
+
+      - name: Kernel delete
+        if: env.ACTION == 'delete' && env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          { kaggle kernels status "$KERNEL" 2>&1 || true; } | tee /tmp/out.txt
+          kaggle kernels delete "$KERNEL" -y 2>&1 | tee -a /tmp/out.txt
+          sleep 20
+          { kaggle kernels status "$KERNEL" 2>&1 || true; } | tee -a /tmp/out.txt
 
       - name: Kernel push, wait, (submit)
         if: env.ACTION == 'kernel' && env.SKIP != 'yes'
@@ -124,6 +144,8 @@ jobs:
           ls -la /tmp/kout
           ls -la /tmp/kout/submission.zip 2>/dev/null || echo "no submission.zip in the output"
           unzip -l /tmp/kout/submission.zip 2>/dev/null | tee -a /tmp/out.txt || true
+          # the kernel's own log (probes and training print their findings there)
+          python3 -c "import json,glob;[print(''.join(x.get('data','') for x in json.load(open(f)))[-12000:]) for f in glob.glob('/tmp/kout/*.log')]" 2>/dev/null | tee -a /tmp/out.txt || true
           if [ "$SUBMIT" = "yes" ]; then
             test -s /tmp/kout/submission.zip || { echo "::error::no submission.zip to submit"; exit 1; }
             kaggle competitions submit "$COMP" -k "$ID" -v "$VER" -f submission.zip -m "$MSG [run ${GITHUB_RUN_ID}]" 2>&1 | tee -a /tmp/out.txt
