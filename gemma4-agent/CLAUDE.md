@@ -46,3 +46,5 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   「batch TPU session は同時 1 本」なので、待ち続けた kernel を workflow の `action: delete` で消し、`yasunorim/gemma4-tpu-probe-v5e`（`TpuV5E8`）で再 probe（tpuprobe-3）。
   **LoRA の重い注意（forum 報告）：adapter を入れると vLLM が LoRA 枠 8・rank 128 で起動し、4×L4 の KV cache が約 46k→約 7.6k トークンに縮む＝長い agent 会話が詰まる。**
   LoRA は「短い会話で済む agent」と組み合わせるか、KV の縮みを上回る効果が手元評価で出たときだけ出す。
+- 10-02：TPU の再 probe（tpuprobe-3・`TpuV5E8`）も GHA の待ち上限（5.8 時間）まで QUEUED のまま＝**Kaggle の無料 TPU は今つかまらない**。kernel は Kaggle 側で待ち続けている（動けば後で出力を読む）。
+  **g4v2-1 を提出**（v2・仮説：設定の脆い所を直せば再実行エラーが消え、LB 0.08 以上）。
