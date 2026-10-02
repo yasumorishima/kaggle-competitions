@@ -66,6 +66,14 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
   30GB のモデルのマウントに約 20 分（kernel 起動の待ち時間に含まれる）。
   ⇒ **自前の wheel dataset `yasunorim/arc3-vllm-wheels`**（`datasets/vllm-wheels/prepare.sh`＝GHA で vllm 0.30.0 と依存を全部 wheel で取得）を作成中（vllmwheels-1）。
   kernel では `pip install --no-index --find-links <dataset> vllm` で入れ、vLLM は別プロセス（OpenAI 互換サーバ）で動かす（同じプロセスだと古い torch と衝突）。
+- 10-02：**LLM agent v0 が Kaggle で通しで動いた**（`kernels/llm`＝`build.py` で explorer＋`agent_llm.py` を 1 ファイルに・dataset `yasunorim/arc3-vllm-wheels`（3.9GB・vllm 0.30.0 一式）・開発用 kernel `yasunorim/arc3-llm-agent`）。
+  動かすまでの詰まり（全部環境変数で解決）：①DeepGEMM の FP8 JIT が NVCC 12.9 以上を要求→`VLLM_USE_DEEP_GEMM=0`、②FlashInfer のサンプラーが sm120 を sm75 未満と誤判定→`VLLM_USE_FLASHINFER_SAMPLER=0`。
+  pip で入れると torch 2.13.0+cu130 に上がる（CUDA 使用可・(12,0)）。vLLM の起動は約 6 分（重みの読み込み約 2 分＋CUDA グラフ）。
+  **v0 の手元 25 ゲーム：0.084（12 レベル）＝explore-2（0.262）より下**。LLM 1 手あたり約 6 秒（25 ゲーム並列）、250 手のうち 35〜97% は解釈不能か既知の無効手で explorer に回った。
+  ⇒ 生の hex 格子を毎手読ませるだけでは仕組みを掴めない（予想どおり）。次の版で直す点：
+  (1) 格子をそのまま渡さず「物体の一覧（色・大きさ・位置）と、各行動で何がどう動いたかの表」に要約して渡す、
+  (2) LLM は毎手ではなく、数手ごとに「仮説と次の数手の計画」を出させる（呼び出し回数を減らし、explorer の情報を土台にする）、
+  (3) LLM が新しくレベルを解いたかを数えて効果を測る（今回は explorer 単独と同じ程度）。
 - 10-01（下調べ）：段取り 2 の LLM 候補＝公式の公開重み（Kaggle Models）：`qwen-lm/qwen-3`（各サイズ）・`qwen-lm/qwen3-next-80b`・`google/gemma-4`・`danielhanchen/gpt-oss-20b/120b`。
   RTX Pro 6000（96GB）なら 27〜32B を bf16/FP8 で載る。推論系（vLLM が Kaggle の画像にあるか・無ければ transformers）を最初の GPU kernel で確かめる。
   他人の wheelhouse・解法 dataset（taaf 系）は使わない（自前で組む）。
