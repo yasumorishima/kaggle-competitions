@@ -318,21 +318,30 @@ def start_llm_server():
     t = time.time()
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-index", "--find-links", wheels, "vllm"])
     print(f"vllm installed in {time.time() - t:.0f}s", flush=True)
-    log = open(WORK + "/vllm.log", "w")
-    proc = subprocess.Popen([sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", model,
-                             "--served-model-name", "q", "--port", str(LLM_PORT), "--max-model-len", "16384",
-                             "--gpu-memory-utilization", "0.88", "--max-num-seqs", "32"],
-                            stdout=log, stderr=subprocess.STDOUT)
-    for _ in range(240):
-        time.sleep(10)
-        try:
-            _url.urlopen(f"http://127.0.0.1:{LLM_PORT}/v1/models", timeout=5)
-            print(f"vllm up after {time.time() - t:.0f}s", flush=True)
-            return proc
-        except Exception:
-            if proc.poll() is not None:
-                break
-    print(open(WORK + "/vllm.log").read()[-4000:], flush=True)
+    subprocess.call([sys.executable, "-c", "import torch;print('torch', torch.__version__, torch.version.cuda, "
+                     "torch.cuda.is_available(), torch.cuda.get_device_capability())"])
+    for extra in ([], ["--enforce-eager"]):
+        log = open(WORK + "/vllm.log", "w")
+        proc = subprocess.Popen([sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", model,
+                                 "--served-model-name", "q", "--port", str(LLM_PORT), "--max-model-len", "16384",
+                                 "--gpu-memory-utilization", "0.88", "--max-num-seqs", "32"] + extra,
+                                stdout=log, stderr=subprocess.STDOUT)
+        for _ in range(180):
+            time.sleep(10)
+            try:
+                _url.urlopen(f"http://127.0.0.1:{LLM_PORT}/v1/models", timeout=5)
+                print(f"vllm up after {time.time() - t:.0f}s {extra}", flush=True)
+                return proc
+            except Exception:
+                if proc.poll() is not None:
+                    break
+        proc.kill()
+        lines = open(WORK + "/vllm.log").read().splitlines()
+        print(f"vllm failed {extra}: {len(lines)} log lines; error lines:", flush=True)
+        keep = [i for i, x in enumerate(lines) if any(k in x for k in ("Error", "error", "Exception", "CUDA", "sm_", "not supported"))]
+        for i in keep[:60]:
+            print("   ", lines[i][:400])
+        print("first lines:\n" + "\n".join(x[:300] for x in lines[:40]), flush=True)
     raise RuntimeError("vllm server did not start")
 
 
