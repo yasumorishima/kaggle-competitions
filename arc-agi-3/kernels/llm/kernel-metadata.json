@@ -1,0 +1,15 @@
+{
+  "id": "yasunorim/arc3-llm-agent",
+  "title": "arc3-llm-agent",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaRtxPro6000",
+  "enable_internet": false,
+  "competition_sources": ["arc-prize-2026-arc-agi-3"],
+  "dataset_sources": ["yasunorim/arc3-vllm-wheels"],
+  "kernel_sources": [],
+  "model_sources": ["qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1"]
+}
