@@ -1,0 +1,37 @@
+request: llm0-1
+run: 36959634460  status: failure  action: kernel  dir: arc-agi-3/kernels/llm  submit: no
+kernel: yasunorim/arc3-llm-agent  version: 1
+memo: step 2 v0: Qwen3-30B-A3B (vLLM, own wheels) picks moves from hex grid + recent effects, explorer underneath (fallback, and alone after 250 LLM moves); 25 local games in parallel; compare with explore-2 local 0.262
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-llm-agent
+
+output files:
+total 56
+drwxr-xr-x  2 runner runner  4096 Oct  2 03:24 .
+drwxrwxrwt 14 root   root    4096 Oct  2 03:24 ..
+-rw-r--r--  1 runner runner 15695 Oct  2 03:24 arc3-llm-agent.log
+-rw-r--r--  1 runner runner 31487 Oct  2 03:24 vllm.log
+==> /tmp/kout/arc3-llm-agent.log <==
+[{"stream_name":"stderr","time":4.086444324,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":4.086468164,"data":"dopamine-rl 4.1.2 requires gym\u003c=0.25.2, but you have gym 0.26.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":4.086470314,"data":"gradio 5.50.0 requires pillow\u003c12.0,\u003e=8.0, but you have pillow 12.2.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":5.912669243,"data":"wheels /kaggle/input/datasets/yasunorim/arc3-vllm-wheels model /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1\n"}
+,{"stream_name":"stderr","time":123.279719843,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":123.279742883,"data":"bigframes 2.39.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":123.279745283,"data":"google-adk 1.29.0 requires google-cloud-bigquery-storage\u003e=2.0.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":123.279747033,"data":"grpcio-tools 1.71.2 requires protobuf\u003c6.0dev,\u003e=5.26.1, but you have protobuf 7.36.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":123.2797483
+==> /tmp/kout/vllm.log <==
+/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/api_server.py:24: DeprecationWarning: `vllm.entrypoints.openai.api_server` is deprecated and will likely beunsupported in a future version. Use the corresponding function from `vllm.entrypoints.launchers` instead.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/api_server.py:51: DeprecationWarning: The `python -m vllm.entrypoints.openai.api_server` command is deprecated and may be removed in a future release. Please use `vllm server` instead.
+  warnings.warn(
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347] 
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.30.0
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:347] 
+(APIServer pid=69) INFO 10-02 03:22:14 [api_utils.py:286] non-default args: {'port': 8011, 'model': '/kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1', 'max_model_len': 16384, 'served_model_name': ['q'], 'gpu_memory_utilization': 0.88, 'max_num_seqs': 32}
+(APIServer p
