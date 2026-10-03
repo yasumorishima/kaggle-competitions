@@ -25,7 +25,7 @@ e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7
 import os
 import sys
 
-MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2+tp0.5_0.5"   # LB best 0.297 (10-02; exp50_0.2 alone 0.294)
+MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2+tp0.7_0.5"   # LB best 0.299 (10-03; tp0.5_0.5 0.297, exp50_0.2 alone 0.294)
 FUSE, *OPTS = MODE.split("+")
 ENS = "ens" in OPTS
 GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
