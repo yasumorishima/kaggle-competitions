@@ -27,6 +27,7 @@ GEN = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=4096)
 POW, N_KEEP, TOP_K, GATE, T, W = 2.0, 400, 3, 0.8, 50.0, 0.2
 FS = [1.0, 0.9, 0.8, 0.7, 0.5, 0.3, 0.0]
 LIB_FLOORS = [0.0, 0.3, 0.5]   # only demote when the candidate's best own-spectrum match is below this ... or any
+LAS = [(0.3, 0.5), (1.0, 0.5), (0.3, 0.65), (1.0, 0.65)]   # H3: + A * lib for L <= lib < gate, on top of F 0.5 below 0.5
 
 
 def main():
@@ -78,6 +79,10 @@ def main():
         hs = np.array([c in has_spec for c in cands])
         share.append((cls, hs.mean(), ik in has_spec))
         rank = lambda sc: [cands[i] for i in np.argsort(-sc, kind="stable")]  # noqa: E731
+        tp = np.where(hs & (lib < 0.5), 0.5 * base, base)
+        for a, lo in LAS:
+            band = (lib >= lo) & (lib < GATE)
+            rows.append((f"tp0.5_0.5+la{a:g}_{lo:g}", mrr25(rank(gate + tp + np.where(band, a * lib, 0.0)), ik), cls))
         for floor in LIB_FLOORS:
             for f in FS:
                 if f == 1.0 and floor > 0:

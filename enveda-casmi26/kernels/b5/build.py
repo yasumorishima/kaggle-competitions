@@ -18,6 +18,8 @@ Options appended with "+":
           at the gate (hidden class 2/3 answers never carry public spectra; eval/blend_trainpen.py:
           F 0.7 -> c1 .935 c2 .860 c4 .628 vs F 1 .936 .820 .568)
   tpF_L   the same, only when the candidate's best own-spectrum match is below L
+  laA_L   add A * lib to candidates whose library match is in [L, gate) (H3: on the LB, matches
+          between 0.5 and the gate are right more often than in the local bench)
 e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7
 """
 import os
@@ -29,6 +31,8 @@ ENS = "ens" in OPTS
 GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
 TP = next((o[2:].split("_") for o in OPTS if o.startswith("tp")), None)
 TP_F, TP_L = (float(TP[0]), float(TP[1]) if len(TP) > 1 else 9.0) if TP else (1.0, 9.0)
+LA = next((o[2:].split("_") for o in OPTS if o.startswith("la")), None)
+LA_A, LA_L = (float(LA[0]), float(LA[1])) if LA else (0.0, 9.0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -48,6 +52,7 @@ FP2 = '''
 # ---- fp2: peak transformer spectrum -> Morgan r2 2048 bits (kernels/fp2) ----
 FUSE = "''' + FUSE + '''"
 TP_F, TP_L = ''' + repr(TP_F) + ", " + repr(TP_L) + '''  # demotion of train structures whose spectra do not match
+LA_A, LA_L = ''' + repr(LA_A) + ", " + repr(LA_L) + '''  # boost of library matches in [LA_L, gate)
 FP2_ENS = ''' + str(ENS) + '''
 # fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
@@ -182,6 +187,9 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
             if TP_F != 1.0:
                 dem = np.array([bool(lib_by_ik.get(c)) and lib[c] < LIB_GATE and lib[c] < TP_L for c in cands])
                 pred = np.where(dem, TP_F * pred, pred)
+            if LA_A:
+                lv = np.array([lib[c] for c in cands])
+                pred = pred + np.where((lv >= LA_L) & (lv < LIB_GATE), LA_A * lv, 0.0)
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''
 assert old_score in src
