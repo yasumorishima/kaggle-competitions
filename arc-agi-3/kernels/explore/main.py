@@ -33,7 +33,7 @@ TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 *
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "2500"))
 MAX_CLICKS = 24          # click targets per node
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
-NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "2"))  # tries of a move kind before its no-op rate counts (0 = off)
+NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "0"))  # tries of a move kind before its no-op rate counts (0 = off; LB: off 0.15, 2 0.09)
 EDGE = 3                 # rows/columns this close to the border may hold a counter bar
 LEVEL_LOG = {}           # game -> actions (RESETs included) spent on each completed level, for comp_score
 
