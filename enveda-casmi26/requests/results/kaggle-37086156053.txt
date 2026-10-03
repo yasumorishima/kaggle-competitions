@@ -1,0 +1,15 @@
+request: pubpop-1
+run: 37086156053  status: success  action: dataset  dir: enveda-casmi26/datasets/pubchem-pop  submit: no
+kernel:   version: 
+memo: Own PubChem popularity table (CID-PMID x CID-InChI-Key -> max PubMed links per InChIKey14) as a Kaggle dataset, for a popularity prior on candidates (public stacks gain ~+0.01 from one; ours is built from PubChem FTP, not from another user's dataset)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file pubchem_pop.parquet
+  0%|          | 0.00/38.3M [00:00<?, ?B/s]  4%|▍         | 1.62M/38.3M [00:00<00:02, 14.7MB/s] 36%|███▌      | 13.8M/38.3M [00:00<00:00, 76.4MB/s] 69%|██████▉   | 26.5M/38.3M [00:00<00:00, 100MB/s] 100%|██████████| 38.3M/38.3M [00:00<00:00, 46.9MB/s]
+Upload successful: pubchem_pop.parquet (38MB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/1.72k [00:00<?, ?B/s]100%|██████████| 1.72k/1.72k [00:00<00:00, 4.39kB/s]
+Upload successful: prepare.sh (2KB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-pubchem-popularity
+
+output files:
