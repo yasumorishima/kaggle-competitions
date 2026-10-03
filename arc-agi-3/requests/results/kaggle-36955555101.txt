@@ -1,0 +1,9 @@
+request: gpuprobe-2
+run: 36955555101  status: failure  action: kernel  dir: arc-agi-3/kernels/gpuprobe  submit: no
+kernel: yasunorim/arc3-gpu-probe  version: 
+memo: gpuprobe-1 got 400 Bad Request on SaveKernel; same probe on NvidiaL4 to tell whether the RTX Pro 6000 shape or the model source is refused
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+400 Client Error: Bad Request for url: https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel
+
+output files:

@@ -18,7 +18,8 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
 
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
-**LB（10-01・1,167 チーム）：1 位 0.17・金 0.13・銀 0.12・銅 117 位前後＝0.12・中央値 0.06。** 自分：未提出。締切 12-02（残り 62 日）。
+**LB（10-03 取り直し・1,443 チーム）：1 位 0.24・金 12 位＝0.15・銀 72 位＝0.13・銅 144 位＝0.12・中央値 0.08。** 自分：g4v2-1＝0.03（1,236 位）。締切 12-02。
+（10-01 は 1 位 0.17・中央値 0.06。0.10・0.08 に各 270 チーム余り＝公開 walkthrough 系が並ぶ帯。）
 点の刻みが粗い（課題数が少ない）ので、銅は「上位と同じくらい解ける agent」で届く範囲。
 
 ### 差の中身
@@ -48,3 +49,10 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   LoRA は「短い会話で済む agent」と組み合わせるか、KV の縮みを上回る効果が手元評価で出たときだけ出す。
 - 10-02：TPU の再 probe（tpuprobe-3・`TpuV5E8`）も GHA の待ち上限（5.8 時間）まで QUEUED のまま＝**Kaggle の無料 TPU は今つかまらない**。kernel は Kaggle 側で待ち続けている（動けば後で出力を読む）。
   **g4v2-1 を提出**（v2・仮説：設定の脆い所を直せば再実行エラーが消え、LB 0.08 以上）。
+- 10-03：**g4v2-1＝LB 0.03**（エラーは消えた・約 2 課題分）。公開 walkthrough は v1 系 0.06〜0.12。HARNESS_README と walkthrough の読解で分かった落とし穴：
+  `write_file`／`read_file` は /workspace の外を拒む（v2 は「/tmp に検証スクリプトを書け」と指示＝失敗の連鎖）、`run_command` は出力の**先頭** 5,000 文字だけ返す（pytest の判定は末尾）、
+  会話が 14k トークンを超えると古い道具の出力が消える（モデル自身の文は残る）。`{problem_description}` は instruction に差し込める（README 5.1）。
+  ⇒ **v3**：検証スクリプトは `run_command` の heredoc で /tmp に、長い出力は `| tail`、所見を文で書かせる、issue を instruction の末尾に再掲。検証・コンパイル済み。
+  **g4v3-1 を提出**（仮説：検証の失敗と文脈の消失が低得点の原因＝LB 0.06 以上）。
+- 10-03：**TPU probe（`gemma4-tpu-probe-v5e`・`TpuV5E8`）は待ちの末に動いた**：v5litepod-8・RAM 377GB・jax 0.10.2・flax 0.12.7・keras 3.15・keras_hub 0.29.1・torch 2.8 (cpu)。
+  probe 最後の torch_xla の import 付近で Segmentation fault（jax/keras_hub 系で組めば使える見込み）。割り当ては数時間待ち＝**LoRA 学習は夜間に 1 本投げて待つ運用**。KV の縮みの件があるので優先度は prompt 改良の後。

@@ -28,8 +28,12 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
-**LB（10-01・3,521 チーム）：1 位 50.65・金 17 位＝9.60・銀 176 位＝4.54・銅 352 位＝3.99・中央値 0.33。** 100〜500 位が 4〜5 点に密集（公開系統の派生が並ぶ帯）。
-**自分：未提出。銅まで 3.99 点。締切 11-02（残り 32 日・提出は最大 32 本）。**
+**LB（10-03 取り直し・3,610 チーム）：1 位 52.51・金 17 位＝32.13・銀 180 位＝27.80・銅 361 位＝24.65・中央値 0.36。**
+（10-01 は銅 3.99。09-30 に Milestone 2 の受賞解法 `dfranzen/arc-agi-3-milestone-2-solution`（Tufa Labs の Duck harness＋Qwen3.8-Flash-Next・SGLang）が公開され、
+400 チームほどがその fork で 25〜33 点に並んだ。500 位で 5.35 点。）
+**自分：explore-1＝0.15（2,704 位）。銅まで 24.5 点。締切 11-02。**
+**正直な見立て（10-03）：銅は公開の受賞解法（または Duck harness）を使わない限り届かない。** 自前の LLM agent は手元 0.08〜0.15（探索だけの 0.11〜0.26 以下）。
+「公開ノートブック・runtime dataset の流用はしない」方針のままなら、ARC は**メダル圏外を受け入れて最小の手間（1 日 1 本の探索の仮説確認）に留め、GPU 枠と時間を enveda・Gemma に回す**のが妥当。方針の判断は user に仰ぐ。
 
 ### 差の中身（どこで点を取るか）
 - LLM なしの探索は 1 点未満＝銅（4 点）には **LLM でゲームの仕組みを読む agent が要る**。公開の duck 系は流用できないので、**自前の harness を組む**。
@@ -54,11 +58,33 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 - 重い計算：手元の 25 ゲーム評価は cloud コンテナ（LLM なし）、LLM は Kaggle Notebook の GPU。有料のものは使わない。
 
 ### 進捗
+- 10-03：**explore-2＝LB 0.09**（explore-1 0.15 より下・手元は 0.262 対 0.113 で逆）。手元の点は r11l 1 本（4 点）でほぼ決まる＝25 本では探索の変種を並べられない。
+  採点の仕組みを読んだ（`arc_agi/scorecard.py`・`arcengine/base_game.py`）：本番は `ONLY_RESET_LEVELS=true` 相当（RESET はレベルのやり直しだけ・1 手に数える）、レベルの点＝min(115, 100·(基準/手数)²)、重み＝レベル番号。
+  手元で同じ規則の採点器（`comp_score`・`LEVEL_LOG`）を作り、従来の scorecard と一致を確認（0.1131・0.2620）＝手元の採点は正しい。
+  **LLM v1**（物体の一覧・行動の効果を物体の動きで・モデル自身のメモを持ち越し・12 手までの計画・レベルあたり 12 回）：Instruct＝**0.149**、Thinking-2507（6,000 トークン）＝**0.084**。
+  モデルが解いたレベルは 0（全部 explorer の手）。Thinking は hex 格子の文字数え（「この行は 5 が 25 個…」）で予算を使い切り、計画を出せないことが多い。
+  ⇒ 30B 級の文字格子読みでは届かない。**提出 explore-3**（explore-1 と同じ手順・仮説：LB は再現する＝0.15 が出れば explore-2 の負けは本物）。
+  公開の上位（25〜33 点）は Milestone 2 の受賞解法の fork（上の見立て）。
 - 10-02：**explore-2**（探索の手数削減）：「手の種類」（行動＋クリックした色）ごとに、画面が変わらなかった割合を数え、2 回以上試して変わらないことの多い種類を後回し（`ARC3_NOOP_MIN`）。
   手元 25 ゲーム：**0.113→0.262（12→15 レベル）**・NOOP_MIN 1/2/3/6＝.228/.262/.173/.105（値に敏感＝ゲームの数が少ない）。提出（仮説：無駄手が減り LB が explore-1 の 0.15 を上回る）。
   段取り 2 の下準備：公開上位は全部 `NvidiaRtxPro6000`＋自前の vLLM 実行環境 dataset＋Qwen 系（流用しない）。公式の Kaggle Models に `qwen-lm/qwen-3`（30b-a3b-instruct-2507-fp8・32b-fp8 ほか）・`google/gemma-4` がある。
   `kernels/gpuprobe`（RTX Pro 6000・Qwen3-30B-A3B-Instruct-2507-FP8・vLLM が画像にあるか／pip で入るか・読み込み時間・生成速度）を投入（gpuprobe-1）。
   本番はインターネット不可なので、vLLM が画像に無ければ wheel を GHA で取って自前 dataset にする（enveda の offline-wheels と同じ方式）。
+  **probe の結果**：GPU＋インターネット有りの kernel は push が `SaveKernel 400`（RTX Pro 6000・L4 とも）。CPU＋インターネット有りは通る＝**GPU kernel はインターネット無しで作る**（enveda の GPU kernel も無し）。
+  CPU 画像（gpuprobe-3）：Python 3.12.13・torch 2.10.0+cpu・transformers 5.0.0・**vLLM／sglang／flash_attn は無し**。`pip install vllm` で 0.30.0（torch 2.13 を連れてくる・242 秒）、
+  同じプロセスで import すると古い torch が読み込み済みで落ちる（別プロセスなら動く見込み）。モデルは `/kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1`（30GB）にマウント。
+  **GPU 画像（gpuprobe-4・RTX Pro 6000・インターネット無し）**：RTX PRO 6000 Blackwell 96GB・ドライバ CUDA 13.0・torch 2.10.0+cu128・CPU 46・RAM 176GB・ディスク 20GB・**vLLM 無し**。
+  30GB のモデルのマウントに約 20 分（kernel 起動の待ち時間に含まれる）。
+  ⇒ **自前の wheel dataset `yasunorim/arc3-vllm-wheels`**（`datasets/vllm-wheels/prepare.sh`＝GHA で vllm 0.30.0 と依存を全部 wheel で取得）を作成中（vllmwheels-1）。
+  kernel では `pip install --no-index --find-links <dataset> vllm` で入れ、vLLM は別プロセス（OpenAI 互換サーバ）で動かす（同じプロセスだと古い torch と衝突）。
+- 10-02：**LLM agent v0 が Kaggle で通しで動いた**（`kernels/llm`＝`build.py` で explorer＋`agent_llm.py` を 1 ファイルに・dataset `yasunorim/arc3-vllm-wheels`（3.9GB・vllm 0.30.0 一式）・開発用 kernel `yasunorim/arc3-llm-agent`）。
+  動かすまでの詰まり（全部環境変数で解決）：①DeepGEMM の FP8 JIT が NVCC 12.9 以上を要求→`VLLM_USE_DEEP_GEMM=0`、②FlashInfer のサンプラーが sm120 を sm75 未満と誤判定→`VLLM_USE_FLASHINFER_SAMPLER=0`。
+  pip で入れると torch 2.13.0+cu130 に上がる（CUDA 使用可・(12,0)）。vLLM の起動は約 6 分（重みの読み込み約 2 分＋CUDA グラフ）。
+  **v0 の手元 25 ゲーム：0.084（12 レベル）＝explore-2（0.262）より下**。LLM 1 手あたり約 6 秒（25 ゲーム並列）、250 手のうち 35〜97% は解釈不能か既知の無効手で explorer に回った。
+  ⇒ 生の hex 格子を毎手読ませるだけでは仕組みを掴めない（予想どおり）。次の版で直す点：
+  (1) 格子をそのまま渡さず「物体の一覧（色・大きさ・位置）と、各行動で何がどう動いたかの表」に要約して渡す、
+  (2) LLM は毎手ではなく、数手ごとに「仮説と次の数手の計画」を出させる（呼び出し回数を減らし、explorer の情報を土台にする）、
+  (3) LLM が新しくレベルを解いたかを数えて効果を測る（今回は explorer 単独と同じ程度）。
 - 10-01（下調べ）：段取り 2 の LLM 候補＝公式の公開重み（Kaggle Models）：`qwen-lm/qwen-3`（各サイズ）・`qwen-lm/qwen3-next-80b`・`google/gemma-4`・`danielhanchen/gpt-oss-20b/120b`。
   RTX Pro 6000（96GB）なら 27〜32B を bf16/FP8 で載る。推論系（vLLM が Kaggle の画像にあるか・無ければ transformers）を最初の GPU kernel で確かめる。
   他人の wheelhouse・解法 dataset（taaf 系）は使わない（自前で組む）。

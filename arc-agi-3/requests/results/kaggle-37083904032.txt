@@ -1,0 +1,171 @@
+request: llm1-1
+run: 37083904032  status: success  action: kernel  dir: arc-agi-3/kernels/llm  submit: no
+kernel: yasunorim/arc3-llm-agent  version: 5
+memo: LLM agent v1 local eval (25 games): object list, per-action effects in object terms, model notes carried across calls and levels, plans of up to 12 moves, 12 calls per level after probing each simple action. Hypothesis: giving the model the explorer's knowledge in words beats explore-2's local 0.262
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 5 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-llm-agent
+==> /tmp/kout/arc3-llm-agent.log <==
+50t.py\n"}
+,{"stream_name":"stdout","time":749.8743187,"data":"sb26-7fbdac44: actions=2500 calls=12 llm_moves=124 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (108s)\n"}
+,{"stream_name":"stdout","time":771.168413155,"data":"bp35-0a0ad940: actions=2500 calls=12 llm_moves=27 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (129s)\n"}
+,{"stream_name":"stdout","time":776.95311576,"data":"lp85-305b61c3: actions=2500 calls=12 llm_moves=4 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (135s)\n"}
+,{"stream_name":"stdout","time":799.514095268,"data":"ft09-0d8bbf25: actions=2500 calls=12 llm_moves=4 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (157s)\n"}
+,{"stream_name":"stdout","time":817.534101072,"data":"wa30-ee6fef47: actions=2500 calls=12 llm_moves=29 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (175s)\n"}
+,{"stream_name":"stdout","time":824.295478313,"data":"tu93-0768757b: actions=2500 calls=12 llm_moves=22 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (182s)\n"}
+,{"stream_name":"stdout","time":834.098124756,"data":"s5i5-18d95033: actions=2500 calls=12 llm_moves=57 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (192s)\n"}
+,{"stream_name":"stdout","time":840.667559565,"data":"dc22-fdcac232: actions=2500 calls=12 llm_moves=19 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (198s)\n"}
+,{"stream_name":"stdout","time":841.656378498,"data":"cn04-2fe56bfb: actions=2500 calls=12 llm_moves=66 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (199s)\n"}
+,{"stream_name":"stdout","time":842.426240591,"data":"tr87-cd924810: actions=2500 calls=12 llm_moves=121 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (200s)\n"}
+,{"stream_name":"stdout","time":844.744849358,"data":"ka59-38d34dbb: actions=2500 calls=12 llm_moves=12 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (202s)\n"}
+,{"stream_name":"stdout","time":846.064079618,"data":"ar25-0c556536: actions=2500 calls=12 llm_moves=33 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (204s)\n"}
+,{"stream_name":"stdout","time":870.139605795,"data":"sk48-d8078629: actions=2500 calls=12 llm_moves=19 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (228s)\n"}
+,{"stream_name":"stdout","time":871.953902236,"data":"tn36-ef4dde99: actions=2500 calls=12 llm_moves=35 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (230s)\n"}
+,{"stream_name":"stdout","time":873.208688625,"data":"ls20-9607627b: actions=2500 calls=24 llm_moves=22 state=NOT_FINISHED levels=1 level_moves=[476] last_move_by=['ex'] (231s)\n"}
+,{"stream_name":"stdout","time":879.471394426,"data":"sp80-589a99af: actions=2500 calls=24 llm_moves=50 state=NOT_FINISHED levels=1 level_moves=[451] last_move_by=['ex'] (237s)\n"}
+,{"stream_name":"stdout","time":882.982976851,"data":"cd82-fb555c5d: actions=2500 calls=24 llm_moves=59 state=NOT_FINISHED levels=1 level_moves=[474] last_move_by=['ex'] (241s)\n"}
+,{"stream_name":"stdout","time":886.461678283,"data":"m0r0-492f87ba: actions=2500 calls=24 llm_moves=39 state=GAME_OVER levels=1 level_moves=[525] last_move_by=['ex'] (244s)\n"}
+,{"stream_name":"stdout","time":892.206766418,"data":"sc25-635fd71a: actions=2500 calls=24 llm_moves=49 state=NOT_FINISHED levels=1 level_moves=[128] last_move_by=['ex'] (250s)\n"}
+,{"stream_name":"stdout","time":896.34268879,"data":"vc33-5430563c: actions=2500 calls=36 llm_moves=104 state=NOT_FINISHED levels=2 level_moves=[149, 732] last_move_by=['ex', 'ex'] (254s)\n"}
+,{"stream_name":"stdout","time":899.191321469,"data":"re86-8af5384d: actions=2500 calls=12 llm_moves=53 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (257s)\n"}
+,{"stream_name":"stdout","time":901.692114321,"data":"g50t-5849a774: actions=2500 calls=12 llm_moves=15 state=NOT_FINISHED levels=0 level_moves=[] last_move_by=[] (259s)\n"}
+,{"stream_name":"stdout","time":910.378325199,"data":"r11l-495a7899: actions=2500 calls=24 llm_moves=67 state=NOT_FINISHED levels=1 level_moves=[27] last_move_by=['ex'] (268s)\n"}
+,{"stream_name":"stdout","time":911.517719674,"data":"lf52-271a04aa: actions=2500 calls=24 llm_moves=49 state=NOT_FINISHED levels=1 level_moves=[205] last_move_by=['ex'] (269s)\n"}
+,{"stream_name":"stdout","time":932.427661981,"data":"su15-1944f8ab: actions=2500 calls=24 llm_moves=121 state=NOT_FINISHED levels=1 level_moves=[2376] last_move_by=['ex'] (290s)\n"}
+,{"stream_name":"stdout","time":932.428005111,"data":"Comp score (level resets only): 0.1487  levels 10\n"}
+,{"stream_name":"stdout","time":932.507526602,"data":"Score: 0.1487  levels 10/183  actions 52838\n"}
+,{"stream_name":"stdout","time":932.507541582,"data":"  sk48-d8078629            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.507542892,"data":"  tn36-ef4dde99            0.00    0   1801\n"}
+,{"stream_name":"stdout","time":932.507544012,"data":"  m0r0-492f87ba            0.02    1   2500\n"}
+,{"stream_name":"stdout","time":932.507678902,"data":"  bp35-0a0ad940            0.00    0    710\n"}
+,{"stream_name":"stdout","time":932.507682542,"data":"  cn04-2fe56bfb            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.507683592,"data":"  dc22-fdcac232            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.507824951,"data":"  tu93-0768757b            0.00    0    269\n"}
+,{"stream_name":"stdout","time":932.507990471,"data":"  lp85-305b61c3            0.00    0     29\n"}
+,{"stream_name":"stdout","time":932.507991671,"data":"  ka59-38d34dbb            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.507993281,"data":"  wa30-ee6fef47            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.507994401,"data":"  vc33-5430563c            0.01    2   2500\n"}
+,{"stream_name":"stdout","time":932.507995421,"data":"  lf52-271a04aa            0.04    1   2500\n"}
+,{"stream_name":"stdout","time":932.507996521,"data":"  r11l-495a7899            3.16    1   2500\n"}
+,{"stream_name":"stdout","time":932.507997451,"data":"  sc25-635fd71a            0.38    1   2500\n"}
+,{"stream_name":"stdout","time":932.508008051,"data":"  sp80-589a99af            0.04    1   2500\n"}
+,{"stream_name":"stdout","time":932.508028401,"data":"  ar25-0c556536            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.508029991,"data":"  sb26-7fbdac44            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.508031051,"data":"  cd82-fb555c5d            0.06    1   2500\n"}
+,{"stream_name":"stdout","time":932.508031841,"data":"  re86-8af5384d            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.508032751,"data":"  s5i5-18d95033            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.508034371,"data":"  ls20-9607627b            0.01    1   2500\n"}
+,{"stream_name":"stdout","time":932.508178721,"data":"  ft09-0d8bbf25            0.00    0     29\n"}
+,{"stream_name":"stdout","time":932.508179741,"data":"  su15-1944f8ab            0.00    1   2500\n"}
+,{"stream_name":"stdout","time":932.508180481,"data":"  tr87-cd924810            0.00    0   2500\n"}
+,{"stream_name":"stdout","time":932.508181231,"data":"  g50t-5849a774            0.00    0   2500\n"}
+,{"stream_name":"stderr","time":933.913629025,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":933.913648525,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":934.022746301,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":934.022760261,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":934.435247047,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":935.114822681,"data":"[NbConvertApp] Writing 440466 bytes to __results__.html\n"}
+]
+==> /tmp/kout/vllm.log <==
+0.1:58056 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:58082 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:58106 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:07:27 [loggers.py:315] Engine 000: Avg prompt throughput: 6342.7 tokens/s, Avg generation throughput: 333.3 tokens/s, Running: 3 reqs, Waiting: 0 reqs, GPU KV cache usage: 3.4%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:58108 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:58124 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:58116 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38156 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38154 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38158 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38174 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:07:37 [loggers.py:315] Engine 000: Avg prompt throughput: 3434.3 tokens/s, Avg generation throughput: 177.7 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.4%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:38184 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38394 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38408 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38410 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38426 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:07:47 [loggers.py:315] Engine 000: Avg prompt throughput: 3552.2 tokens/s, Avg generation throughput: 169.2 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.1%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:38416 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:40762 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:40776 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:40780 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:40786 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:07:57 [loggers.py:315] Engine 000: Avg prompt throughput: 3439.9 tokens/s, Avg generation throughput: 148.5 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.3%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:40794 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38016 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38028 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38032 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:38034 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:08:07 [loggers.py:315] Engine 000: Avg prompt throughput: 3703.9 tokens/s, Avg generation throughput: 151.0 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.4%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:38040 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:32822 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:08:17 [loggers.py:315] Engine 000: Avg prompt throughput: 760.1 tokens/s, Avg generation throughput: 42.3 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO 10-03 01:08:27 [loggers.py:315] Engine 000: Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:36844 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:08:37 [loggers.py:315] Engine 000: Avg prompt throughput: 1084.7 tokens/s, Avg generation throughput: 33.1 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.1%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:36852 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:54958 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:54972 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:54986 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:54998 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:55004 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:08:47 [loggers.py:315] Engine 000: Avg prompt throughput: 3714.5 tokens/s, Avg generation throughput: 155.4 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 1.1%, Prefix cache hit rate: 3.9%
+(APIServer pid=117) INFO:     127.0.0.1:55018 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:39606 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:39620 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:39628 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO:     127.0.0.1:39642 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+(APIServer pid=117) INFO 10-03 01:08:56 [launcher.py:129] [shutdown] API server: shutdown triggered
+(APIServer pid=117) INFO 10-03 01:08:56 [launcher.py:145] [shutdown] API server: stopping engine client mode=abort timeout=0s
+(APIServer pid=117) INFO 10-03 01:08:56 [core_client.py:744] [shutdown] MPClient: start timeout=0s
+(APIServer pid=117) INFO 10-03 01:08:56 [core_client.py:746] [shutdown] MPClient: stopping engine manager
+(APIServer pid=117) INFO 10-03 01:08:56 [utils.py:632] [shutdown] Process manager: send sigterm to process EngineCore
+(APIServer pid=117) WARNING 10-03 01:08:56 [utils.py:652] [shutdown] Process manager: force killing remaining processes count=1
+(APIServer pid=117) WARNING 10-03 01:08:56 [utils.py:657] [shutdown] Process manager: force killing remaining process EngineCore pid 633
+(EngineCore pid=633) INFO 10-03 01:08:56 [core.py:1342] [shutdown] EngineCore: trigger received signal=SIGTERM
+(EngineCore pid=633) INFO 10-03 01:08:56 [core.py:1493] [shutdown] EngineCore: start mode=abort timeout=0s
+(EngineCore pid=633) INFO 10-03 01:08:56 [core.py:1524] [shutdown] EngineCore: request processing complete; starting resource teardown
+(EngineCore pid=633) INFO 10-03 01:08:56 [core.py:1355] [shutdown] EngineCore: exiting busy loop
+(APIServer pid=117) INFO 10-03 01:08:56 [core_client.py:748] [shutdown] MPClient: engine manager stopped
+(APIServer pid=117) INFO 10-03 01:08:56 [core_client.py:749] [shutdown] MPClient: cleaning up background resources
+(APIServer pid=117) INFO 10-03 01:08:56 [core_client.py:751] [shutdown] MPClient: complete
+(APIServer pid=117) INFO 10-03 01:08:56 [launcher.py:154] [shutdown] API server: engine client stopped
+(APIServer pid=117) INFO 10-03 01:08:56 [launcher.py:157] [shutdown] API server: signalling HTTP server shutdown
+(APIServer pid=117) INFO 10-03 01:08:56 [launcher.py:179] [shutdown] API server: shutting down FastAPI HTTP server
+(APIServer pid=117) INFO:     Shutting down
+(APIServer pid=117) INFO:     Waiting for application shutdown.
+(APIServer pid=117) INFO:     Application shutdown complete.
+/usr/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+
+output files:
+total 108
+drwxr-xr-x  2 runner runner  4096 Oct  3 01:09 .
+drwxrwxrwt 14 root   root    4096 Oct  3 01:09 ..
+-rw-r--r--  1 runner runner   253 Oct  3 01:09 .env
+-rw-r--r--  1 runner runner 21027 Oct  3 01:09 arc3-llm-agent.log
+-rw-r--r--  1 runner runner  2648 Oct  3 01:09 submission.parquet
+-rw-r--r--  1 runner runner 67906 Oct  3 01:09 vllm.log
+==> /tmp/kout/arc3-llm-agent.log <==
+[{"stream_name":"stderr","time":4.064574919,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":4.064597069,"data":"dopamine-rl 4.1.2 requires gym\u003c=0.25.2, but you have gym 0.26.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":4.064599239,"data":"gradio 5.50.0 requires pillow\u003c12.0,\u003e=8.0, but you have pillow 12.2.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":8.869517464,"data":"wheels /kaggle/input/datasets/yasunorim/arc3-vllm-wheels model /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1\n"}
+,{"stream_name":"stderr","time":206.739070397,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":206.739090997,"data":"bigframes 2.39.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":206.739093347,"data":"google-adk 1.29.0 requires google-cloud-bigquery-storage\u003e=2.0.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":206.739094877,"data":"grpcio-tools 1.71.2 requires protobuf\u003c6.0dev,\u003e=5.26.1, but you have protobuf 7.36.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":206.7390960
+==> /tmp/kout/vllm.log <==
+/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/api_server.py:24: DeprecationWarning: `vllm.entrypoints.openai.api_server` is deprecated and will likely beunsupported in a future version. Use the corresponding function from `vllm.entrypoints.launchers` instead.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/api_server.py:51: DeprecationWarning: The `python -m vllm.entrypoints.openai.api_server` command is deprecated and may be removed in a future release. Please use `vllm server` instead.
+  warnings.warn(
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347] 
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.30.0
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:347] 
+(APIServer pid=117) INFO 10-03 00:57:06 [api_utils.py:286] non-default args: {'port': 8011, 'model': '/kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1', 'max_model_len': 16384, 'served_model_name': ['q'], 'gpu_memory_utilization': 0.88, 'max_num_seqs': 32}
+(APIS

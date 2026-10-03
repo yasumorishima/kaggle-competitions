@@ -33,8 +33,9 @@ TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 *
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "2500"))
 MAX_CLICKS = 24          # click targets per node
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
-NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "2"))  # tries of a move kind before its no-op rate counts (0 = off)
+NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "0"))  # tries of a move kind before its no-op rate counts (0 = off; LB: off 0.15, 2 0.09)
 EDGE = 3                 # rows/columns this close to the border may hold a counter bar
+LEVEL_LOG = {}           # game -> actions (RESETs included) spent on each completed level, for comp_score
 
 
 def write_env():
@@ -201,6 +202,7 @@ def play(env, game_id, deadline):
     level = resp.levels_completed
     plan = []
     n = 0
+    start_n, LEVEL_LOG[game_id] = 0, []
     while n < MAX_ACTIONS and time.time() < deadline:
         if resp is None:
             break
@@ -237,6 +239,8 @@ def play(env, game_id, deadline):
         g2 = grid_of(nxt)
         if nxt.levels_completed > level:
             level = nxt.levels_completed
+            LEVEL_LOG[game_id].append(n - start_n)
+            start_n = n
             ex.reset_level()
             plan = []
         elif g2 is not None and nxt.state == GameState.NOT_FINISHED:
@@ -248,6 +252,25 @@ def play(env, game_id, deadline):
             ex.edges[cur][mv] = nk
         resp = nxt
     return f"{game_id}: actions={n} state={resp.state.name if resp else '?'} levels={resp.levels_completed if resp else 0}"
+
+
+def comp_score(arcade):
+    """The competition's score from LEVEL_LOG: levels weighted 1..n, each min(115, 100 (baseline / actions)^2).
+
+    Needed offline with ONLY_RESET_LEVELS=true (the competition's setting: RESET only restarts the level,
+    and costs an action), where the local scorecard never opens a play.
+    """
+    base = {e.game_id: e.baseline_actions or [] for e in arcade.available_environments}
+    out = {}
+    for gid, acts in LEVEL_LOG.items():
+        b = base.get(gid) or []
+        if not b:
+            continue
+        w = np.arange(1, len(b) + 1)
+        s = np.array([min(115.0, 100.0 * (b[i] / acts[i]) ** 2) if i < len(acts) and acts[i] > 0 else 0.0
+                      for i in range(len(b))])
+        out[gid] = min(float((w * s).sum() / w.sum()), 100.0 * float(w[s > 0].sum()) / w.sum())
+    return float(np.mean([out.get(g, 0.0) for g in base])), out
 
 
 def main():
@@ -269,6 +292,11 @@ def main():
         except Exception as e:  # one bad game must not lose the others
             print(f"{gid}: error {type(e).__name__}: {e}", flush=True)
     if not RERUN:
+        cs, per = comp_score(arcade)
+        print(f"Comp score (level resets only): {cs:.4f}  levels {sum(len(v) for v in LEVEL_LOG.values())}")
+        for g, v in sorted(per.items()):
+            if v > 0:
+                print(f"  {g:<20} {v:8.2f} {LEVEL_LOG[g]}")
         sc = arcade.get_scorecard()
         print(f"Score: {sc.score:.4f}  levels {sc.total_levels_completed}/{sc.total_levels}  actions {sc.total_actions}")
         for e in sc.environments:

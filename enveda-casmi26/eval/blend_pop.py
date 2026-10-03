@@ -1,4 +1,4 @@
-"""Demote train-structure candidates whose own spectra do not match the query.
+"""Popularity prior (own PubChem table, datasets/pubchem-pop) on top of the LB-best b5 fusion (tp0.7_0.5); copied from blend_trainpen.py.
 
 The hidden test's class 2 (structure in PubChem/COCONUT, no public spectra) and class 3
 (not in PubChem) answers are never train structures that carry library spectra. So a
@@ -47,6 +47,9 @@ def main():
     has_spec = set(meta.inchikey14) - stripped
     del meta
     cache = {}
+    pop = pd.read_parquet(DATA + "/pubchem_pop.parquet")
+    pop = dict(zip(pop.inchikey14, np.log1p(pop.n_pmid.values)))
+    cov = []
 
     def fp(ik):
         if ik not in cache:
@@ -79,23 +82,20 @@ def main():
         hs = np.array([c in has_spec for c in cands])
         share.append((cls, hs.mean(), ik in has_spec))
         rank = lambda sc: [cands[i] for i in np.argsort(-sc, kind="stable")]  # noqa: E731
-        tp = np.where(hs & (lib < 0.5), 0.5 * base, base)
-        for a, lo in LAS:
-            band = (lib >= lo) & (lib < GATE)
-            rows.append((f"tp0.5_0.5+la{a:g}_{lo:g}", mrr25(rank(gate + tp + np.where(band, a * lib, 0.0)), ik), cls))
-        for floor in LIB_FLOORS:
-            for f in FS:
-                if f == 1.0 and floor > 0:
-                    continue
-                dem = hs & (lib < GATE) & (lib >= floor if floor == 0 else lib < floor)
-                rows.append((f"floor<{floor:g} F{f:g}" if floor else f"F{f:g}",
-                             mrr25(rank(gate + np.where(dem, f * base, base)), ik), cls))
+        tp = np.where(hs & (lib < 0.5), 0.7 * base, base)
+        pv = np.array([pop.get(c, 0.0) for c in cands])
+        cov.append((cls, (pv > 0).mean(), pop.get(ik, 0.0) > 0, pv.max(), pop.get(ik, 0.0)))
+        for mu in [0, 0.02, 0.05, 0.1, 0.2, 0.4]:
+            rows.append((f"tp0.7_0.5+pop{mu:g}", mrr25(rank(gate + tp + mu * pv), ik), cls))
+        for mu in [0.1, 0.3]:   # relative: scale by the molecule's best non-gate score
+            rows.append((f"tp0.7_0.5+poprel{mu:g}", mrr25(rank(gate + tp + mu * tp.max() * pv / max(pv.max(), 1e-9)), ik), cls))
     r = pd.DataFrame(rows, columns=["method", "mrr", "cls"]).pivot_table("mrr", "method", "cls")
     r["mean"] = r.mean(1)
     print(f"molecules joined: {n_join}")
     sh = pd.DataFrame(share, columns=["cls", "cand_with_spec", "answer_with_spec"]).groupby("cls").mean()
     print(sh.round(3).to_string())
     print(r.round(3).to_string())
+    print(pd.DataFrame(cov, columns=["cls", "cand_with_pop", "answer_with_pop", "max_logpop", "answer_logpop"]).groupby("cls").mean().round(3).to_string())
 
 
 if __name__ == "__main__":

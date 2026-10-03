@@ -1,0 +1,606 @@
+request: vllmwheels-2
+run: 36958861119  status: failure  action: dataset  dir: arc-agi-3/datasets/vllm-wheels  submit: no
+kernel:   version: 
+memo: retry: resolve vllm 0.30.0 wheels natively on the py3.12 runner (explicit platform tags missed nvidia-cudnn-cu13)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file pyzmq-27.2.0-cp312-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/852k [00:00<?, ?B/s]100%|██████████| 852k/852k [00:00<00:00, 2.20MB/s]
+Upload successful: pyzmq-27.2.0-cp312-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (852KB)
+Starting upload for file nvidia_cutlass_dsl-4.7.1-py3-none-any.whl
+  0%|          | 0.00/10.2k [00:00<?, ?B/s]100%|██████████| 10.2k/10.2k [00:00<00:00, 26.6kB/s]
+Upload successful: nvidia_cutlass_dsl-4.7.1-py3-none-any.whl (10KB)
+Starting upload for file torchaudio-2.11.0-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/1.69M [00:00<?, ?B/s]100%|██████████| 1.69M/1.69M [00:00<00:00, 3.89MB/s]
+Upload successful: torchaudio-2.11.0-cp312-cp312-manylinux_2_28_x86_64.whl (2MB)
+Starting upload for file nvidia_cublas-13.1.1.3-py3-none-manylinux_2_27_x86_64.whl
+  0%|          | 0.00/404M [00:00<?, ?B/s]  0%|          | 1.67M/404M [00:00<00:29, 14.4MB/s]  4%|▍         | 17.5M/404M [00:00<00:04, 94.5MB/s]  8%|▊         | 32.1M/404M [00:00<00:03, 114MB/s]  11%|█         | 44.5M/404M [00:00<00:03, 120MB/s] 14%|█▍        | 58.0M/404M [00:00<00:02, 127MB/s] 19%|█▊        | 74.8M/404M [00:00<00:02, 139MB/s] 22%|██▏       | 88.1M/404M [00:00<00:02, 139MB/s] 25%|██▌       | 103M/404M [00:00<00:02, 143MB/s]  29%|██▉       | 117M/404M [00:01<00:02, 111MB/s] 32%|███▏      | 128M/404M [00:01<00:03, 95.6MB/s] 34%|███▍      | 138M/404M [00:01<00:02, 96.5MB/s] 38%|███▊      | 151M/404M [00:01<00:02, 103MB/s]  41%|████▏     | 167M/404M [00:01<00:02, 118MB/s] 46%|████▌     | 184M/404M [00:01<00:01, 134MB/s] 51%|█████     | 204M/404M [00:01<00:01, 149MB/s] 56%|█████▌    | 224M/404M [00:01<00:01, 165MB/s] 60%|██████    | 243M/404M [00:01<00:00, 172MB/s] 65%|██████▍   | 262M/404M [00:02<00:00, 180MB/s] 70%|██████▉   | 282M/404M [00:02<00:00, 190MB/s] 75%|███████▍  | 301M/404M [00:02<00:00, 189MB/s] 79%|███████▉  | 319M/404M [00:02<00:00, 185MB/s] 83%|████████▎ | 337M/404M [00:02<00:00, 182MB/s] 88%|████████▊ | 357M/404M [00:02<00:00, 189MB/s] 94%|█████████▍| 380M/404M [00:02<00:00, 204MB/s] 99%|█████████▉| 400M/404M [00:02<00:00, 203MB/s]100%|██████████| 404M/404M [00:03<00:00, 132MB/s]
+Upload successful: nvidia_cublas-13.1.1.3-py3-none-manylinux_2_27_x86_64.whl (404MB)
+Starting upload for file pycountry-26.2.16-py3-none-any.whl
+  0%|          | 0.00/7.67M [00:00<?, ?B/s] 21%|██        | 1.62M/7.67M [00:00<00:00, 16.9MB/s]100%|██████████| 7.67M/7.67M [00:00<00:00, 17.2MB/s]
+Upload successful: pycountry-26.2.16-py3-none-any.whl (8MB)
+Starting upload for file packaging-26.3-py3-none-any.whl
+  0%|          | 0.00/127k [00:00<?, ?B/s]100%|██████████| 127k/127k [00:00<00:00, 302kB/s]
+Upload successful: packaging-26.3-py3-none-any.whl (127KB)
+Starting upload for file nvidia_cutlass_dsl_libs_core-4.7.1-py3-none-any.whl
+  0%|          | 0.00/1.18M [00:00<?, ?B/s]100%|██████████| 1.18M/1.18M [00:00<00:00, 2.25MB/s]
+Upload successful: nvidia_cutlass_dsl_libs_core-4.7.1-py3-none-any.whl (1MB)
+Starting upload for file nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_x86_64.whl
+  0%|          | 0.00/192M [00:00<?, ?B/s]  1%|          | 1.69M/192M [00:00<00:15, 13.1MB/s]  4%|▍         | 7.67M/192M [00:00<00:05, 38.4MB/s]  8%|▊         | 15.7M/192M [00:00<00:03, 52.1MB/s] 11%|█         | 21.3M/192M [00:00<00:03, 46.1MB/s] 16%|█▌        | 31.0M/192M [00:00<00:02, 62.0MB/s] 24%|██▍       | 45.6M/192M [00:00<00:01, 88.0MB/s] 32%|███▏      | 60.8M/192M [00:00<00:01, 108MB/s]  38%|███▊      | 73.4M/192M [00:00<00:01, 110MB/s] 44%|████▍     | 84.2M/192M [00:01<00:01, 97.5MB/s] 49%|████▉     | 93.9M/192M [00:01<00:01, 87.0MB/s] 54%|█████▎    | 103M/192M [00:01<00:01, 88.5MB/s]  59%|█████▉    | 114M/192M [00:01<00:00, 93.8MB/s] 65%|██████▌   | 125M/192M [00:01<00:00, 95.5MB/s] 71%|███████   | 135M/192M [00:01<00:00, 97.0MB/s] 76%|███████▌  | 145M/192M [00:01<00:00, 97.0MB/s] 81%|████████  | 155M/192M [00:01<00:00, 99.1MB/s] 86%|████████▌ | 165M/192M [00:01<00:00, 98.8MB/s] 91%|█████████▏| 175M/192M [00:02<00:00, 97.9MB/s] 97%|█████████▋| 186M/192M [00:02<00:00, 102MB/s] 100%|██████████| 192M/192M [00:02<00:00, 76.8MB/s]
+Upload successful: nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_x86_64.whl (192MB)
+Starting upload for file protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl
+  0%|          | 0.00/335k [00:00<?, ?B/s]100%|██████████| 335k/335k [00:00<00:00, 940kB/s]
+Upload successful: protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl (335KB)
+Starting upload for file cuda_bindings-13.4.3-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/6.84M [00:00<?, ?B/s] 24%|██▍       | 1.67M/6.84M [00:00<00:00, 15.1MB/s]100%|██████████| 6.84M/6.84M [00:00<00:00, 14.8MB/s]
+Upload successful: cuda_bindings-13.4.3-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (7MB)
+Starting upload for file opentelemetry_semantic_conventions-0.66b0-py3-none-any.whl
+  0%|          | 0.00/201k [00:00<?, ?B/s]100%|██████████| 201k/201k [00:00<00:00, 524kB/s]
+Upload successful: opentelemetry_semantic_conventions-0.66b0-py3-none-any.whl (201KB)
+Starting upload for file httpcore-1.0.9-py3-none-any.whl
+  0%|          | 0.00/76.9k [00:00<?, ?B/s]100%|██████████| 76.9k/76.9k [00:00<00:00, 208kB/s]
+Upload successful: httpcore-1.0.9-py3-none-any.whl (77KB)
+Starting upload for file nvtx-0.2.15-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/787k [00:00<?, ?B/s]100%|██████████| 787k/787k [00:00<00:00, 1.88MB/s]
+Upload successful: nvtx-0.2.15-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (787KB)
+Starting upload for file jiter-0.17.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/337k [00:00<?, ?B/s]100%|██████████| 337k/337k [00:00<00:00, 920kB/s]
+Upload successful: jiter-0.17.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (337KB)
+Starting upload for file websockets-17.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/219k [00:00<?, ?B/s]100%|██████████| 219k/219k [00:00<00:00, 573kB/s]
+Upload successful: websockets-17.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (219KB)
+Starting upload for file sentencepiece-0.2.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/1.33M [00:00<?, ?B/s]100%|██████████| 1.33M/1.33M [00:00<00:00, 3.55MB/s]
+Upload successful: sentencepiece-0.2.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (1MB)
+Starting upload for file vllm-0.30.0-cp38-abi3-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/300M [00:00<?, ?B/s]  1%|          | 1.73M/300M [00:00<00:20, 15.5MB/s]  7%|▋         | 21.3M/300M [00:00<00:02, 120MB/s]  12%|█▏        | 36.3M/300M [00:00<00:02, 122MB/s] 16%|█▌        | 48.3M/300M [00:00<00:02, 109MB/s] 20%|█▉        | 59.0M/300M [00:00<00:02, 99.3MB/s] 23%|██▎       | 70.5M/300M [00:00<00:02, 105MB/s]  27%|██▋       | 80.9M/300M [00:00<00:02, 92.8MB/s] 30%|██▉       | 90.1M/300M [00:00<00:02, 93.6MB/s] 33%|███▎      | 99.3M/300M [00:01<00:02, 90.5MB/s] 37%|███▋      | 110M/300M [00:01<00:02, 96.1MB/s]  40%|███▉      | 119M/300M [00:01<00:02, 83.8MB/s] 42%|████▏     | 128M/300M [00:01<00:02, 77.3MB/s] 46%|████▌     | 138M/300M [00:01<00:02, 79.6MB/s] 49%|████▉     | 148M/300M [00:01<00:01, 80.2MB/s] 52%|█████▏    | 156M/300M [00:01<00:01, 77.7MB/s] 57%|█████▋    | 170M/300M [00:01<00:01, 93.9MB/s] 60%|█████▉    | 179M/300M [00:02<00:01, 86.3MB/s] 62%|██████▏   | 188M/300M [00:02<00:01, 76.9MB/s] 65%|██████▌   | 195M/300M [00:02<00:01, 73.2MB/s] 69%|██████▊   | 206M/300M [00:02<00:01, 78.2MB/s] 72%|███████▏  | 215M/300M [00:02<00:01, 82.4MB/s] 74%|███████▍  | 223M/300M [00:02<00:01, 78.9MB/s] 77%|███████▋  | 231M/300M [00:02<00:01, 68.2MB/s] 80%|███████▉  | 240M/300M [00:03<00:00, 68.1MB/s] 83%|████████▎ | 249M/300M [00:03<00:00, 76.2MB/s] 86%|████████▌ | 257M/300M [00:03<00:00, 68.6MB/s] 88%|████████▊ | 264M/300M [00:03<00:00, 70.7MB/s] 90%|█████████ | 271M/300M [00:03<00:00, 65.4MB/s] 93%|█████████▎| 279M/300M [00:03<00:00, 62.0MB/s] 95%|█████████▌| 287M/300M [00:03<00:00, 65.2MB/s] 99%|█████████▉| 298M/300M [00:03<00:00, 69.8MB/s]100%|██████████| 300M/300M [00:04<00:00, 68.1MB/s]
+Upload successful: vllm-0.30.0-cp38-abi3-manylinux_2_28_x86_64.whl (300MB)
+Starting upload for file truststore-0.10.4-py3-none-any.whl
+  0%|          | 0.00/18.2k [00:00<?, ?B/s]100%|██████████| 18.2k/18.2k [00:00<00:00, 51.8kB/s]
+Upload successful: truststore-0.10.4-py3-none-any.whl (18KB)
+Starting upload for file rignore-0.8.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/906k [00:00<?, ?B/s]100%|██████████| 906k/906k [00:00<00:00, 2.36MB/s]
+Upload successful: rignore-0.8.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (906KB)
+Starting upload for file pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/6.62M [00:00<?, ?B/s] 25%|██▌       | 1.69M/6.62M [00:00<00:00, 14.6MB/s]100%|██████████| 6.62M/6.62M [00:00<00:00, 14.6MB/s]
+Upload successful: pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7MB)
+Starting upload for file nvidia_ml_py-13.615.71-py3-none-any.whl
+  0%|          | 0.00/56.8k [00:00<?, ?B/s]100%|██████████| 56.8k/56.8k [00:00<00:00, 149kB/s]
+Upload successful: nvidia_ml_py-13.615.71-py3-none-any.whl (57KB)
+Starting upload for file nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
+  0%|          | 0.00/86.0M [00:00<?, ?B/s]  5%|▍         | 4.22M/86.0M [00:00<00:01, 44.2MB/s] 19%|█▊        | 16.1M/86.0M [00:00<00:00, 88.1MB/s] 31%|███       | 26.9M/86.0M [00:00<00:00, 97.1MB/s] 42%|████▏     | 36.1M/86.0M [00:00<00:00, 80.5MB/s] 61%|██████    | 52.4M/86.0M [00:00<00:00, 109MB/s]  77%|███████▋  | 66.2M/86.0M [00:00<00:00, 116MB/s] 91%|█████████ | 78.0M/86.0M [00:00<00:00, 114MB/s]100%|██████████| 86.0M/86.0M [00:01<00:00, 73.4MB/s]
+Upload successful: nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (86MB)
+Starting upload for file httpcore2-2.13.1-py3-none-any.whl
+  0%|          | 0.00/81.5k [00:00<?, ?B/s]100%|██████████| 81.5k/81.5k [00:00<00:00, 219kB/s]
+Upload successful: httpcore2-2.13.1-py3-none-any.whl (81KB)
+Starting upload for file outlines_core-0.2.14-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.23M [00:00<?, ?B/s] 78%|███████▊  | 1.75M/2.23M [00:00<00:00, 17.4MB/s]100%|██████████| 2.23M/2.23M [00:00<00:00, 5.47MB/s]
+Upload successful: outlines_core-0.2.14-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/217k [00:00<?, ?B/s]100%|██████████| 217k/217k [00:00<00:00, 561kB/s]
+Upload successful: cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (217KB)
+Starting upload for file typer-0.27.2-py3-none-any.whl
+  0%|          | 0.00/120k [00:00<?, ?B/s]100%|██████████| 120k/120k [00:00<00:00, 322kB/s]
+Upload successful: typer-0.27.2-py3-none-any.whl (120KB)
+Starting upload for file rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/358k [00:00<?, ?B/s]100%|██████████| 358k/358k [00:00<00:00, 886kB/s]
+Upload successful: rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (358KB)
+Starting upload for file aiosignal-1.4.0-py3-none-any.whl
+  0%|          | 0.00/7.31k [00:00<?, ?B/s]100%|██████████| 7.31k/7.31k [00:00<00:00, 20.4kB/s]
+Upload successful: aiosignal-1.4.0-py3-none-any.whl (7KB)
+Starting upload for file uvicorn-0.54.0-py3-none-any.whl
+  0%|          | 0.00/85.4k [00:00<?, ?B/s]100%|██████████| 85.4k/85.4k [00:00<00:00, 231kB/s]
+Upload successful: uvicorn-0.54.0-py3-none-any.whl (85KB)
+Starting upload for file opentelemetry_exporter_otlp_common-0.66b0-py3-none-any.whl
+  0%|          | 0.00/12.1k [00:00<?, ?B/s]100%|██████████| 12.1k/12.1k [00:00<00:00, 33.6kB/s]
+Upload successful: opentelemetry_exporter_otlp_common-0.66b0-py3-none-any.whl (12KB)
+Starting upload for file llvmlite-0.47.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/53.7M [00:00<?, ?B/s]  3%|▎         | 1.67M/53.7M [00:00<00:03, 16.1MB/s] 35%|███▍      | 18.6M/53.7M [00:00<00:00, 105MB/s]  65%|██████▌   | 35.0M/53.7M [00:00<00:00, 130MB/s]100%|██████████| 53.7M/53.7M [00:00<00:00, 77.1MB/s]
+Upload successful: llvmlite-0.47.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (54MB)
+Starting upload for file opentelemetry_proto-1.45.0-py3-none-any.whl
+  0%|          | 0.00/70.8k [00:00<?, ?B/s]100%|██████████| 70.8k/70.8k [00:00<00:00, 186kB/s]
+Upload successful: opentelemetry_proto-1.45.0-py3-none-any.whl (71KB)
+Starting upload for file torch-2.13.0-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/502M [00:00<?, ?B/s]  0%|          | 1.64M/502M [00:00<00:35, 14.6MB/s]  4%|▍         | 19.5M/502M [00:00<00:04, 109MB/s]   7%|▋         | 35.3M/502M [00:00<00:03, 134MB/s] 10%|▉         | 48.5M/502M [00:00<00:04, 105MB/s] 14%|█▍        | 69.6M/502M [00:00<00:03, 137MB/s] 17%|█▋        | 83.8M/502M [00:00<00:03, 135MB/s] 19%|█▉        | 97.3M/502M [00:00<00:03, 130MB/s] 22%|██▏       | 110M/502M [00:00<00:03, 122MB/s]  26%|██▌       | 132M/502M [00:01<00:02, 149MB/s] 29%|██▉       | 146M/502M [00:01<00:02, 134MB/s] 32%|███▏      | 160M/502M [00:01<00:02, 132MB/s] 35%|███▍      | 174M/502M [00:01<00:02, 137MB/s] 38%|███▊      | 190M/502M [00:01<00:02, 141MB/s] 41%|████      | 206M/502M [00:01<00:02, 146MB/s] 44%|████▍     | 221M/502M [00:01<00:02, 141MB/s] 47%|████▋     | 236M/502M [00:01<00:01, 148MB/s] 50%|████▉     | 251M/502M [00:01<00:01, 148MB/s] 53%|█████▎    | 269M/502M [00:02<00:01, 157MB/s] 56%|█████▋    | 284M/502M [00:02<00:01, 136MB/s] 59%|█████▉    | 297M/502M [00:02<00:01, 127MB/s] 63%|██████▎   | 315M/502M [00:02<00:01, 140MB/s] 65%|██████▌   | 328M/502M [00:02<00:01, 140MB/s] 68%|██████▊   | 342M/502M [00:02<00:01, 120MB/s] 71%|███████   | 354M/502M [00:02<00:01, 104MB/s] 74%|███████▎  | 370M/502M [00:02<00:01, 119MB/s] 77%|███████▋  | 386M/502M [00:03<00:00, 129MB/s] 80%|████████  | 402M/502M [00:03<00:00, 139MB/s] 83%|████████▎ | 416M/502M [00:03<00:00, 139MB/s] 86%|████████▌ | 430M/502M [00:03<00:00, 139MB/s] 88%|████████▊ | 444M/502M [00:03<00:00, 140MB/s] 91%|█████████ | 458M/502M [00:03<00:00, 129MB/s] 94%|█████████▍| 472M/502M [00:03<00:00, 134MB/s] 97%|█████████▋| 488M/502M [00:03<00:00, 141MB/s]100%|█████████▉| 501M/502M [00:03<00:00, 123MB/s]100%|██████████| 502M/502M [00:04<00:00, 121MB/s]
+Upload successful: torch-2.13.0-cp312-cp312-manylinux_2_28_x86_64.whl (502MB)
+Starting upload for file pydantic_settings-2.15.0-py3-none-any.whl
+  0%|          | 0.00/67.8k [00:00<?, ?B/s]100%|██████████| 67.8k/67.8k [00:00<00:00, 180kB/s]
+Upload successful: pydantic_settings-2.15.0-py3-none-any.whl (68KB)
+Starting upload for file huggingface_hub-1.33.0-py3-none-any.whl
+  0%|          | 0.00/827k [00:00<?, ?B/s]100%|██████████| 827k/827k [00:00<00:00, 2.13MB/s]
+Upload successful: huggingface_hub-1.33.0-py3-none-any.whl (827KB)
+Starting upload for file pycparser-3.0-py3-none-any.whl
+  0%|          | 0.00/47.0k [00:00<?, ?B/s]100%|██████████| 47.0k/47.0k [00:00<00:00, 131kB/s]
+Upload successful: pycparser-3.0-py3-none-any.whl (47KB)
+Starting upload for file opentelemetry_exporter_otlp-1.45.0-py3-none-any.whl
+  0%|          | 0.00/6.57k [00:00<?, ?B/s]100%|██████████| 6.57k/6.57k [00:00<00:00, 18.1kB/s]
+Upload successful: opentelemetry_exporter_otlp-1.45.0-py3-none-any.whl (7KB)
+Starting upload for file mdurl-0.1.2-py3-none-any.whl
+  0%|          | 0.00/9.75k [00:00<?, ?B/s]100%|██████████| 9.75k/9.75k [00:00<00:00, 25.1kB/s]
+Upload successful: mdurl-0.1.2-py3-none-any.whl (10KB)
+Starting upload for file nvidia_cuda_crt-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/157k [00:00<?, ?B/s]100%|██████████| 157k/157k [00:00<00:00, 407kB/s]
+Upload successful: nvidia_cuda_crt-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (157KB)
+Starting upload for file hf_xet-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/4.26M [00:00<?, ?B/s] 39%|███▉      | 1.67M/4.26M [00:00<00:00, 14.5MB/s]100%|██████████| 4.26M/4.26M [00:00<00:00, 9.45MB/s]
+Upload successful: hf_xet-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4MB)
+Starting upload for file click-8.5.0-py3-none-any.whl
+  0%|          | 0.00/122k [00:00<?, ?B/s]100%|██████████| 122k/122k [00:00<00:00, 322kB/s]
+Upload successful: click-8.5.0-py3-none-any.whl (122KB)
+Starting upload for file setuptools-80.10.2-py3-none-any.whl
+  0%|          | 0.00/1.01M [00:00<?, ?B/s]100%|██████████| 1.01M/1.01M [00:00<00:00, 2.68MB/s]
+Upload successful: setuptools-80.10.2-py3-none-any.whl (1MB)
+Starting upload for file prometheus_fastapi_instrumentator-8.1.0-py3-none-any.whl
+  0%|          | 0.00/19.2k [00:00<?, ?B/s]100%|██████████| 19.2k/19.2k [00:00<00:00, 51.3kB/s]
+Upload successful: prometheus_fastapi_instrumentator-8.1.0-py3-none-any.whl (19KB)
+Starting upload for file nvidia_cuda_nvcc-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/45.5M [00:00<?, ?B/s]  6%|▌         | 2.67M/45.5M [00:00<00:01, 28.0MB/s] 47%|████▋     | 21.6M/45.5M [00:00<00:00, 128MB/s]  78%|███████▊  | 35.4M/45.5M [00:00<00:00, 130MB/s]100%|██████████| 45.5M/45.5M [00:00<00:00, 69.0MB/s]
+Upload successful: nvidia_cuda_nvcc-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (45MB)
+Starting upload for file supervisor-4.3.0-py2.py3-none-any.whl
+  0%|          | 0.00/313k [00:00<?, ?B/s]100%|██████████| 313k/313k [00:00<00:00, 773kB/s]
+Upload successful: supervisor-4.3.0-py2.py3-none-any.whl (313KB)
+Starting upload for file setproctitle-1.3.8-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/32.2k [00:00<?, ?B/s]100%|██████████| 32.2k/32.2k [00:00<00:00, 78.3kB/s]
+Upload successful: setproctitle-1.3.8-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (32KB)
+Starting upload for file nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_x86_64.whl
+  0%|          | 0.00/56.8M [00:00<?, ?B/s]  3%|▎         | 1.97M/56.8M [00:00<00:03, 16.9MB/s] 53%|█████▎    | 29.9M/56.8M [00:00<00:00, 166MB/s]  83%|████████▎ | 47.0M/56.8M [00:00<00:00, 142MB/s]100%|██████████| 56.8M/56.8M [00:00<00:00, 72.4MB/s]
+Upload successful: nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_x86_64.whl (57MB)
+Starting upload for file opentelemetry_exporter_otlp_proto_common-1.45.0-py3-none-any.whl
+  0%|          | 0.00/15.0k [00:00<?, ?B/s]100%|██████████| 15.0k/15.0k [00:00<00:00, 37.5kB/s]
+Upload successful: opentelemetry_exporter_otlp_proto_common-1.45.0-py3-none-any.whl (15KB)
+Starting upload for file jsonschema_specifications-2025.9.1-py3-none-any.whl
+  0%|          | 0.00/18.0k [00:00<?, ?B/s]100%|██████████| 18.0k/18.0k [00:00<00:00, 51.7kB/s]
+Upload successful: jsonschema_specifications-2025.9.1-py3-none-any.whl (18KB)
+Starting upload for file pynvvideocodec-2.0.4-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/41.2M [00:00<?, ?B/s]  4%|▍         | 1.56M/41.2M [00:00<00:02, 15.5MB/s] 57%|█████▋    | 23.6M/41.2M [00:00<00:00, 138MB/s]  97%|█████████▋| 40.0M/41.2M [00:00<00:00, 146MB/s]100%|██████████| 41.2M/41.2M [00:00<00:00, 59.4MB/s]
+Upload successful: pynvvideocodec-2.0.4-cp312-cp312-manylinux_2_28_x86_64.whl (41MB)
+Starting upload for file cuda_core-1.2.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/6.30M [00:00<?, ?B/s] 35%|███▌      | 2.22M/6.30M [00:00<00:00, 20.5MB/s]100%|██████████| 6.30M/6.30M [00:00<00:00, 13.9MB/s]
+Upload successful: cuda_core-1.2.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (6MB)
+Starting upload for file quack_kernels-0.6.5-py3-none-any.whl
+  0%|          | 0.00/713k [00:00<?, ?B/s]100%|██████████| 713k/713k [00:00<00:00, 1.90MB/s]
+Upload successful: quack_kernels-0.6.5-py3-none-any.whl (713KB)
+Starting upload for file pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/1.97M [00:00<?, ?B/s] 89%|████████▉ | 1.75M/1.97M [00:00<00:00, 17.2MB/s]100%|██████████| 1.97M/1.97M [00:00<00:00, 5.11MB/s]
+Upload successful: pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file nvidia_nccl_cu13-2.29.7-py3-none-manylinux_2_18_x86_64.whl
+  0%|          | 0.00/196M [00:00<?, ?B/s]  1%|          | 1.69M/196M [00:00<00:12, 16.9MB/s] 11%|█         | 20.6M/196M [00:00<00:01, 119MB/s]  18%|█▊        | 36.2M/196M [00:00<00:01, 131MB/s] 26%|██▌       | 50.6M/196M [00:00<00:01, 125MB/s] 32%|███▏      | 62.5M/196M [00:00<00:01, 119MB/s] 38%|███▊      | 74.6M/196M [00:00<00:01, 121MB/s] 44%|████▍     | 86.3M/196M [00:00<00:00, 117MB/s] 51%|█████     | 100M/196M [00:00<00:00, 124MB/s]  57%|█████▋    | 112M/196M [00:00<00:00, 124MB/s] 63%|██████▎   | 124M/196M [00:01<00:00, 123MB/s] 70%|██████▉   | 137M/196M [00:01<00:00, 125MB/s] 78%|███████▊  | 153M/196M [00:01<00:00, 128MB/s] 84%|████████▍ | 165M/196M [00:01<00:00, 126MB/s] 90%|█████████ | 177M/196M [00:01<00:00, 119MB/s] 98%|█████████▊| 192M/196M [00:01<00:00, 129MB/s]100%|██████████| 196M/196M [00:02<00:00, 99.5MB/s]
+Upload successful: nvidia_nccl_cu13-2.29.7-py3-none-manylinux_2_18_x86_64.whl (196MB)
+Starting upload for file tilelang-0.1.12-cp38-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/48.2M [00:00<?, ?B/s]  4%|▍         | 1.86M/48.2M [00:00<00:02, 17.1MB/s] 23%|██▎       | 11.2M/48.2M [00:00<00:00, 61.6MB/s] 55%|█████▌    | 26.7M/48.2M [00:00<00:00, 106MB/s]  80%|████████  | 38.6M/48.2M [00:00<00:00, 112MB/s]100%|██████████| 48.2M/48.2M [00:00<00:00, 59.4MB/s]
+Upload successful: tilelang-0.1.12-cp38-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (48MB)
+Starting upload for file multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/329k [00:00<?, ?B/s]100%|██████████| 329k/329k [00:00<00:00, 872kB/s]
+Upload successful: multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (329KB)
+Starting upload for file tokenspeed_mla-0.1.8-py3-none-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/738k [00:00<?, ?B/s]100%|██████████| 738k/738k [00:00<00:00, 2.00MB/s]
+Upload successful: tokenspeed_mla-0.1.8-py3-none-manylinux_2_28_x86_64.whl (738KB)
+Starting upload for file pygments-2.21.0-py3-none-any.whl
+  0%|          | 0.00/1.19M [00:00<?, ?B/s]100%|██████████| 1.19M/1.19M [00:00<00:00, 3.29MB/s]
+Upload successful: pygments-2.21.0-py3-none-any.whl (1MB)
+Starting upload for file pydantic-2.13.5-py3-none-any.whl
+  0%|          | 0.00/462k [00:00<?, ?B/s]100%|██████████| 462k/462k [00:00<00:00, 1.26MB/s]
+Upload successful: pydantic-2.13.5-py3-none-any.whl (462KB)
+Starting upload for file jsonschema-4.26.0-py3-none-any.whl
+  0%|          | 0.00/88.5k [00:00<?, ?B/s]100%|██████████| 88.5k/88.5k [00:00<00:00, 241kB/s]
+Upload successful: jsonschema-4.26.0-py3-none-any.whl (89KB)
+Starting upload for file torchvision-0.28.0-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/7.32M [00:00<?, ?B/s] 23%|██▎       | 1.70M/7.32M [00:00<00:00, 17.7MB/s]100%|██████████| 7.32M/7.32M [00:00<00:00, 16.5MB/s]
+Upload successful: torchvision-0.28.0-cp312-cp312-manylinux_2_28_x86_64.whl (7MB)
+Starting upload for file opentelemetry_exporter_http_transport-0.66b0-py3-none-any.whl
+  0%|          | 0.00/11.9k [00:00<?, ?B/s]100%|██████████| 11.9k/11.9k [00:00<00:00, 33.7kB/s]
+Upload successful: opentelemetry_exporter_http_transport-0.66b0-py3-none-any.whl (12KB)
+Starting upload for file instanttensor-0.2.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/5.89M [00:00<?, ?B/s] 28%|██▊       | 1.64M/5.89M [00:00<00:00, 15.3MB/s]100%|██████████| 5.89M/5.89M [00:00<00:00, 13.0MB/s]
+Upload successful: instanttensor-0.2.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6MB)
+Starting upload for file opencv_python_headless-5.0.0.93-cp37-abi3-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/58.4M [00:00<?, ?B/s]  4%|▍         | 2.27M/58.4M [00:00<00:03, 18.1MB/s] 30%|███       | 17.6M/58.4M [00:00<00:00, 92.3MB/s] 60%|██████    | 35.3M/58.4M [00:00<00:00, 125MB/s]  86%|████████▋ | 50.4M/58.4M [00:00<00:00, 135MB/s]100%|██████████| 58.4M/58.4M [00:00<00:00, 72.0MB/s]
+Upload successful: opencv_python_headless-5.0.0.93-cp37-abi3-manylinux_2_28_x86_64.whl (58MB)
+Starting upload for file pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/789k [00:00<?, ?B/s]100%|██████████| 789k/789k [00:00<00:00, 2.11MB/s]
+Upload successful: pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (789KB)
+Starting upload for file safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/504k [00:00<?, ?B/s]100%|██████████| 504k/504k [00:00<00:00, 1.38MB/s]
+Upload successful: safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (504KB)
+Starting upload for file msgspec-0.22.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/225k [00:00<?, ?B/s]100%|██████████| 225k/225k [00:00<00:00, 632kB/s]
+Upload successful: msgspec-0.22.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (225KB)
+Starting upload for file googleapis_common_protos-1.75.5-py3-none-any.whl
+  0%|          | 0.00/301k [00:00<?, ?B/s]100%|██████████| 301k/301k [00:00<00:00, 855kB/s]
+Upload successful: googleapis_common_protos-1.75.5-py3-none-any.whl (301KB)
+Starting upload for file detect_installer-0.2.1-py3-none-any.whl
+  0%|          | 0.00/5.25k [00:00<?, ?B/s]100%|██████████| 5.25k/5.25k [00:00<00:00, 14.2kB/s]
+Upload successful: detect_installer-0.2.1-py3-none-any.whl (5KB)
+Starting upload for file blake3-1.0.10-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/373k [00:00<?, ?B/s]100%|██████████| 373k/373k [00:00<00:00, 961kB/s]
+Upload successful: blake3-1.0.10-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (373KB)
+Starting upload for file sympy-1.14.0-py3-none-any.whl
+  0%|          | 0.00/6.01M [00:00<?, ?B/s] 34%|███▍      | 2.03M/6.01M [00:00<00:00, 19.1MB/s]100%|██████████| 6.01M/6.01M [00:00<00:00, 14.0MB/s]
+Upload successful: sympy-1.14.0-py3-none-any.whl (6MB)
+Starting upload for file astor-0.8.1-py2.py3-none-any.whl
+  0%|          | 0.00/26.8k [00:00<?, ?B/s]100%|██████████| 26.8k/26.8k [00:00<00:00, 75.8kB/s]
+Upload successful: astor-0.8.1-py2.py3-none-any.whl (27KB)
+Starting upload for file cuda_tile-1.6.0-cp312-cp312-manylinux2014_x86_64.whl
+  0%|          | 0.00/373k [00:00<?, ?B/s]100%|██████████| 373k/373k [00:00<00:00, 1.04MB/s]
+Upload successful: cuda_tile-1.6.0-cp312-cp312-manylinux2014_x86_64.whl (373KB)
+Starting upload for file cachetools-7.2.0-py3-none-any.whl
+  0%|          | 0.00/16.5k [00:00<?, ?B/s]100%|██████████| 16.5k/16.5k [00:00<00:00, 45.3kB/s]
+Upload successful: cachetools-7.2.0-py3-none-any.whl (17KB)
+Starting upload for file llguidance-1.7.6-cp39-abi3-manylinux_2_31_x86_64.whl
+  0%|          | 0.00/2.93M [00:00<?, ?B/s] 67%|██████▋   | 1.97M/2.93M [00:00<00:00, 19.1MB/s]100%|██████████| 2.93M/2.93M [00:00<00:00, 7.27MB/s]
+Upload successful: llguidance-1.7.6-cp39-abi3-manylinux_2_31_x86_64.whl (3MB)
+Starting upload for file dill-0.4.1-py3-none-any.whl
+  0%|          | 0.00/117k [00:00<?, ?B/s]100%|██████████| 117k/117k [00:00<00:00, 313kB/s]
+Upload successful: dill-0.4.1-py3-none-any.whl (117KB)
+Starting upload for file torch_c_dlpack_ext-0.1.5-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/877k [00:00<?, ?B/s]100%|██████████| 877k/877k [00:00<00:00, 2.08MB/s]
+Upload successful: torch_c_dlpack_ext-0.1.5-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (877KB)
+Starting upload for file pydantic_extra_types-2.11.1-py3-none-any.whl
+  0%|          | 0.00/77.7k [00:00<?, ?B/s]100%|██████████| 77.7k/77.7k [00:00<00:00, 220kB/s]
+Upload successful: pydantic_extra_types-2.11.1-py3-none-any.whl (78KB)
+Starting upload for file charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/252k [00:00<?, ?B/s]100%|██████████| 252k/252k [00:00<00:00, 678kB/s]
+Upload successful: charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (252KB)
+Starting upload for file transformers-5.18.0-py3-none-any.whl
+  0%|          | 0.00/12.0M [00:00<?, ?B/s] 20%|██        | 2.44M/12.0M [00:00<00:00, 23.0MB/s]100%|██████████| 12.0M/12.0M [00:00<00:00, 25.6MB/s]
+Upload successful: transformers-5.18.0-py3-none-any.whl (12MB)
+Starting upload for file psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/152k [00:00<?, ?B/s]100%|██████████| 152k/152k [00:00<00:00, 412kB/s]
+Upload successful: psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (152KB)
+Starting upload for file tokenizers-0.23.2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/3.23M [00:00<?, ?B/s] 52%|█████▏    | 1.67M/3.23M [00:00<00:00, 16.4MB/s]100%|██████████| 3.23M/3.23M [00:00<00:00, 7.15MB/s]
+Upload successful: tokenizers-0.23.2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file nvidia_nvshmem_cu13-3.4.5-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/57.6M [00:00<?, ?B/s]  4%|▍         | 2.50M/57.6M [00:00<00:02, 22.9MB/s] 50%|████▉     | 28.7M/57.6M [00:00<00:00, 162MB/s]  78%|███████▊  | 45.0M/57.6M [00:00<00:00, 148MB/s]100%|██████████| 57.6M/57.6M [00:00<00:00, 68.2MB/s]
+Upload successful: nvidia_nvshmem_cu13-3.4.5-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (58MB)
+Starting upload for file email_validator-2.3.0-py3-none-any.whl
+  0%|          | 0.00/34.8k [00:00<?, ?B/s]100%|██████████| 34.8k/34.8k [00:00<00:00, 91.0kB/s]
+Upload successful: email_validator-2.3.0-py3-none-any.whl (35KB)
+Starting upload for file fastapi-0.136.3-py3-none-any.whl
+  0%|          | 0.00/115k [00:00<?, ?B/s]100%|██████████| 115k/115k [00:00<00:00, 311kB/s]
+Upload successful: fastapi-0.136.3-py3-none-any.whl (115KB)
+Starting upload for file aiohappyeyeballs-2.7.1-py3-none-any.whl
+  0%|          | 0.00/14.7k [00:00<?, ?B/s]100%|██████████| 14.7k/14.7k [00:00<00:00, 38.4kB/s]
+Upload successful: aiohappyeyeballs-2.7.1-py3-none-any.whl (15KB)
+Starting upload for file sentry_sdk-2.71.0-py3-none-any.whl
+  0%|          | 0.00/522k [00:00<?, ?B/s]100%|██████████| 522k/522k [00:00<00:00, 1.45MB/s]
+Upload successful: sentry_sdk-2.71.0-py3-none-any.whl (522KB)
+Starting upload for file idna-3.20-py3-none-any.whl
+  0%|          | 0.00/68.0k [00:00<?, ?B/s]100%|██████████| 68.0k/68.0k [00:00<00:00, 185kB/s]
+Upload successful: idna-3.20-py3-none-any.whl (68KB)
+Starting upload for file cbor2-6.1.5-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/452k [00:00<?, ?B/s]100%|██████████| 452k/452k [00:00<00:00, 1.21MB/s]
+Upload successful: cbor2-6.1.5-cp312-cp312-manylinux_2_28_x86_64.whl (452KB)
+Starting upload for file nvidia_nvvm-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
+  0%|          | 0.00/69.2M [00:00<?, ?B/s]  2%|▏         | 1.62M/69.2M [00:00<00:07, 9.47MB/s] 29%|██▊       | 19.9M/69.2M [00:00<00:00, 88.3MB/s] 58%|█████▊    | 40.0M/69.2M [00:00<00:00, 135MB/s]  79%|███████▉  | 55.0M/69.2M [00:00<00:00, 124MB/s]100%|██████████| 69.2M/69.2M [00:00<00:00, 74.2MB/s]
+Upload successful: nvidia_nvvm-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (69MB)
+Starting upload for file flashinfer_python-0.6.18.post1-py3-none-any.whl
+  0%|          | 0.00/17.5M [00:00<?, ?B/s] 10%|▉         | 1.69M/17.5M [00:00<00:01, 14.1MB/s]100%|██████████| 17.5M/17.5M [00:00<00:00, 36.2MB/s]
+Upload successful: flashinfer_python-0.6.18.post1-py3-none-any.whl (17MB)
+Starting upload for file annotated_doc-0.0.5-py3-none-any.whl
+  0%|          | 0.00/5.18k [00:00<?, ?B/s]100%|██████████| 5.18k/5.18k [00:00<00:00, 14.3kB/s]
+Upload successful: annotated_doc-0.0.5-py3-none-any.whl (5KB)
+Starting upload for file fastar-0.12.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/789k [00:00<?, ?B/s]100%|██████████| 789k/789k [00:00<00:00, 2.11MB/s]
+Upload successful: fastar-0.12.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (789KB)
+Starting upload for file markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/22.4k [00:00<?, ?B/s]100%|██████████| 22.4k/22.4k [00:00<00:00, 63.7kB/s]
+Upload successful: markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22KB)
+Starting upload for file ml_dtypes-0.6.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/400k [00:00<?, ?B/s]100%|██████████| 400k/400k [00:00<00:00, 1.10MB/s]
+Upload successful: ml_dtypes-0.6.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (400KB)
+Starting upload for file lark-1.2.2-py3-none-any.whl
+  0%|          | 0.00/108k [00:00<?, ?B/s]100%|██████████| 108k/108k [00:00<00:00, 302kB/s]
+Upload successful: lark-1.2.2-py3-none-any.whl (108KB)
+Starting upload for file h11-0.16.0-py3-none-any.whl
+  0%|          | 0.00/36.6k [00:00<?, ?B/s]100%|██████████| 36.6k/36.6k [00:00<00:00, 101kB/s]
+Upload successful: h11-0.16.0-py3-none-any.whl (37KB)
+Starting upload for file py_cpuinfo-9.0.0-py3-none-any.whl
+  0%|          | 0.00/21.8k [00:00<?, ?B/s]100%|██████████| 21.8k/21.8k [00:00<00:00, 60.1kB/s]
+Upload successful: py_cpuinfo-9.0.0-py3-none-any.whl (22KB)
+Starting upload for file nvidia_cufile-1.15.1.6-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/1.17M [00:00<?, ?B/s]100%|██████████| 1.17M/1.17M [00:00<00:00, 3.13MB/s]
+Upload successful: nvidia_cufile-1.15.1.6-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1MB)
+Starting upload for file httpx2-2.13.1-py3-none-any.whl
+  0%|          | 0.00/93.4k [00:00<?, ?B/s]100%|██████████| 93.4k/93.4k [00:00<00:00, 255kB/s]
+Upload successful: httpx2-2.13.1-py3-none-any.whl (93KB)
+Starting upload for file opentelemetry_sdk-1.45.0-py3-none-any.whl
+  0%|          | 0.00/137k [00:00<?, ?B/s]100%|██████████| 137k/137k [00:00<00:00, 350kB/s]
+Upload successful: opentelemetry_sdk-1.45.0-py3-none-any.whl (137KB)
+Starting upload for file numpy-2.3.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/15.8M [00:00<?, ?B/s] 10%|█         | 1.62M/15.8M [00:00<00:00, 15.0MB/s]100%|██████████| 15.8M/15.8M [00:00<00:00, 32.5MB/s]
+Upload successful: numpy-2.3.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16MB)
+Starting upload for file fsspec-2026.9.0-py3-none-any.whl
+  0%|          | 0.00/217k [00:00<?, ?B/s]100%|██████████| 217k/217k [00:00<00:00, 599kB/s]
+Upload successful: fsspec-2026.9.0-py3-none-any.whl (217KB)
+Starting upload for file prometheus_client-0.26.0-py3-none-any.whl
+  0%|          | 0.00/63.0k [00:00<?, ?B/s]100%|██████████| 63.0k/63.0k [00:00<00:00, 166kB/s]
+Upload successful: prometheus_client-0.26.0-py3-none-any.whl (63KB)
+Starting upload for file opentelemetry_exporter_otlp_proto_grpc-1.45.0-py3-none-any.whl
+  0%|          | 0.00/19.0k [00:00<?, ?B/s]100%|██████████| 19.0k/19.0k [00:00<00:00, 52.9kB/s]
+Upload successful: opentelemetry_exporter_otlp_proto_grpc-1.45.0-py3-none-any.whl (19KB)
+Starting upload for file nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/139M [00:00<?, ?B/s]  2%|▏         | 2.09M/139M [00:00<00:06, 22.0MB/s] 17%|█▋        | 23.0M/139M [00:00<00:00, 136MB/s]  28%|██▊       | 38.9M/139M [00:00<00:00, 143MB/s] 38%|███▊      | 52.4M/139M [00:00<00:00, 118MB/s] 47%|████▋     | 65.5M/139M [00:00<00:00, 122MB/s] 56%|█████▋    | 78.4M/139M [00:00<00:00, 119MB/s] 65%|██████▍   | 89.9M/139M [00:00<00:00, 116MB/s] 74%|███████▍  | 103M/139M [00:00<00:00, 116MB/s]  82%|████████▏ | 115M/139M [00:01<00:00, 108MB/s] 90%|████████▉ | 125M/139M [00:01<00:00, 107MB/s] 97%|█████████▋| 136M/139M [00:01<00:00, 99.1MB/s]100%|██████████| 139M/139M [00:01<00:00, 82.4MB/s]
+Upload successful: nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (139MB)
+Starting upload for file mcp-2.2.0-py3-none-any.whl
+  0%|          | 0.00/357k [00:00<?, ?B/s]100%|██████████| 357k/357k [00:00<00:00, 895kB/s]
+Upload successful: mcp-2.2.0-py3-none-any.whl (357KB)
+Starting upload for file nvidia_cudnn_cu13-9.20.0.48-py3-none-manylinux_2_27_x86_64.whl
+  0%|          | 0.00/349M [00:00<?, ?B/s]  1%|          | 2.38M/349M [00:00<00:16, 22.0MB/s]  8%|▊         | 29.0M/349M [00:00<00:02, 160MB/s]  14%|█▎        | 47.8M/349M [00:00<00:01, 176MB/s] 19%|█▊        | 64.8M/349M [00:00<00:01, 168MB/s] 24%|██▎       | 82.6M/349M [00:00<00:01, 170MB/s] 28%|██▊       | 99.0M/349M [00:00<00:01, 155MB/s] 34%|███▍      | 120M/349M [00:00<00:01, 170MB/s]  39%|███▉      | 136M/349M [00:00<00:01, 165MB/s] 44%|████▍     | 153M/349M [00:00<00:01, 166MB/s] 49%|████▉     | 172M/349M [00:01<00:01, 171MB/s] 55%|█████▍    | 191M/349M [00:01<00:00, 176MB/s] 61%|██████    | 211M/349M [00:01<00:00, 186MB/s] 66%|██████▌   | 229M/349M [00:01<00:00, 174MB/s] 71%|███████▏  | 249M/349M [00:01<00:00, 180MB/s] 76%|███████▋  | 267M/349M [00:01<00:00, 176MB/s] 82%|████████▏ | 287M/349M [00:01<00:00, 180MB/s] 88%|████████▊ | 307M/349M [00:01<00:00, 179MB/s] 93%|█████████▎| 325M/349M [00:01<00:00, 183MB/s] 98%|█████████▊| 343M/349M [00:02<00:00, 175MB/s]100%|██████████| 349M/349M [00:02<00:00, 146MB/s]
+Upload successful: nvidia_cudnn_cu13-9.20.0.48-py3-none-manylinux_2_27_x86_64.whl (349MB)
+Starting upload for file regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/789k [00:00<?, ?B/s]100%|██████████| 789k/789k [00:00<00:00, 1.99MB/s]
+Upload successful: regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (789KB)
+Starting upload for file anyio-4.15.1-py3-none-any.whl
+  0%|          | 0.00/129k [00:00<?, ?B/s]100%|██████████| 129k/129k [00:00<00:00, 341kB/s]
+Upload successful: anyio-4.15.1-py3-none-any.whl (129KB)
+Starting upload for file sse_starlette-3.5.0-py3-none-any.whl
+  0%|          | 0.00/17.0k [00:00<?, ?B/s]100%|██████████| 17.0k/17.0k [00:00<00:00, 48.0kB/s]
+Upload successful: sse_starlette-3.5.0-py3-none-any.whl (17KB)
+Starting upload for file nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_x86_64.whl
+  0%|          | 0.00/162M [00:00<?, ?B/s]  1%|          | 1.62M/162M [00:00<00:46, 3.61MB/s] 11%|█         | 18.1M/162M [00:00<00:03, 42.7MB/s] 22%|██▏       | 35.6M/162M [00:00<00:01, 76.3MB/s] 31%|███       | 49.7M/162M [00:00<00:01, 91.3MB/s] 38%|███▊      | 62.2M/162M [00:00<00:01, 98.2MB/s] 46%|████▌     | 74.4M/162M [00:01<00:00, 104MB/s]  53%|█████▎    | 86.1M/162M [00:01<00:00, 105MB/s] 61%|██████▏   | 99.8M/162M [00:01<00:00, 115MB/s] 69%|██████▉   | 112M/162M [00:01<00:00, 117MB/s]  76%|███████▋  | 124M/162M [00:01<00:00, 120MB/s] 84%|████████▍ | 136M/162M [00:01<00:00, 122MB/s] 91%|█████████▏| 148M/162M [00:01<00:00, 115MB/s] 98%|█████████▊| 159M/162M [00:01<00:00, 110MB/s]100%|██████████| 162M/162M [00:02<00:00, 77.8MB/s]
+Upload successful: nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_x86_64.whl (162MB)
+Starting upload for file interegular-0.3.3-py37-none-any.whl
+  0%|          | 0.00/23.1k [00:00<?, ?B/s]100%|██████████| 23.1k/23.1k [00:00<00:00, 63.0kB/s]
+Upload successful: interegular-0.3.3-py37-none-any.whl (23KB)
+Starting upload for file referencing-0.37.0-py3-none-any.whl
+  0%|          | 0.00/26.1k [00:00<?, ?B/s]100%|██████████| 26.1k/26.1k [00:00<00:00, 70.6kB/s]
+Upload successful: referencing-0.37.0-py3-none-any.whl (26KB)
+Starting upload for file pybase64-1.5.0-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/92.5k [00:00<?, ?B/s]100%|██████████| 92.5k/92.5k [00:00<00:00, 241kB/s]
+Upload successful: pybase64-1.5.0-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (92KB)
+Starting upload for file tokenspeed_triton-3.8.10.post20260920-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/95.3M [00:00<?, ?B/s]  2%|▏         | 1.73M/95.3M [00:00<00:05, 17.6MB/s] 18%|█▊        | 17.6M/95.3M [00:00<00:00, 102MB/s]  35%|███▍      | 33.1M/95.3M [00:00<00:00, 127MB/s] 47%|████▋     | 45.2M/95.3M [00:00<00:00, 112MB/s] 59%|█████▉    | 56.1M/95.3M [00:00<00:00, 103MB/s] 72%|███████▏  | 68.8M/95.3M [00:00<00:00, 112MB/s] 84%|████████▎ | 79.7M/95.3M [00:00<00:00, 112MB/s] 95%|█████████▌| 90.5M/95.3M [00:00<00:00, 106MB/s]100%|██████████| 95.3M/95.3M [00:01<00:00, 76.2MB/s]
+Upload successful: tokenspeed_triton-3.8.10.post20260920-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (95MB)
+Starting upload for file jmespath-1.1.0-py3-none-any.whl
+  0%|          | 0.00/19.9k [00:00<?, ?B/s]100%|██████████| 19.9k/19.9k [00:00<00:00, 55.5kB/s]
+Upload successful: jmespath-1.1.0-py3-none-any.whl (20KB)
+Starting upload for file starlette-1.7.0-py3-none-any.whl
+  0%|          | 0.00/77.1k [00:00<?, ?B/s]100%|██████████| 77.1k/77.1k [00:00<00:00, 213kB/s]
+Upload successful: starlette-1.7.0-py3-none-any.whl (77KB)
+Starting upload for file xgrammar-0.2.8-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/1.25M [00:00<?, ?B/s]100%|██████████| 1.25M/1.25M [00:00<00:00, 3.17MB/s]
+Upload successful: xgrammar-0.2.8-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (1MB)
+Starting upload for file annotated_types-0.8.0-py3-none-any.whl
+  0%|          | 0.00/13.1k [00:00<?, ?B/s]100%|██████████| 13.1k/13.1k [00:00<00:00, 33.5kB/s]
+Upload successful: annotated_types-0.8.0-py3-none-any.whl (13KB)
+Starting upload for file filelock-4.0.9-py3-none-any.whl
+  0%|          | 0.00/108k [00:00<?, ?B/s]100%|██████████| 108k/108k [00:00<00:00, 297kB/s]
+Upload successful: filelock-4.0.9-py3-none-any.whl (108KB)
+Starting upload for file shellingham-1.5.4-py2.py3-none-any.whl
+  0%|          | 0.00/9.53k [00:00<?, ?B/s]100%|██████████| 9.53k/9.53k [00:00<00:00, 26.4kB/s]
+Upload successful: shellingham-1.5.4-py2.py3-none-any.whl (10KB)
+Starting upload for file propcache-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/245k [00:00<?, ?B/s]100%|██████████| 245k/245k [00:00<00:00, 615kB/s]
+Upload successful: propcache-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (245KB)
+Starting upload for file rich-15.0.0-py3-none-any.whl
+  0%|          | 0.00/303k [00:00<?, ?B/s]100%|██████████| 303k/303k [00:00<00:00, 809kB/s]
+Upload successful: rich-15.0.0-py3-none-any.whl (303KB)
+Starting upload for file jinja2-3.1.6-py3-none-any.whl
+  0%|          | 0.00/132k [00:00<?, ?B/s]100%|██████████| 132k/132k [00:00<00:00, 354kB/s]
+Upload successful: jinja2-3.1.6-py3-none-any.whl (132KB)
+Starting upload for file tabulate-0.10.0-py3-none-any.whl
+  0%|          | 0.00/38.9k [00:00<?, ?B/s]100%|██████████| 38.9k/38.9k [00:00<00:00, 107kB/s]
+Upload successful: tabulate-0.10.0-py3-none-any.whl (39KB)
+Starting upload for file depyf-0.20.0-py3-none-any.whl
+  0%|          | 0.00/38.5k [00:00<?, ?B/s]100%|██████████| 38.5k/38.5k [00:00<00:00, 106kB/s]
+Upload successful: depyf-0.20.0-py3-none-any.whl (38KB)
+Starting upload for file nvidia_cuda_cccl-13.3.4.3.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/3.75M [00:00<?, ?B/s] 46%|████▋     | 1.73M/3.75M [00:00<00:00, 16.4MB/s]100%|██████████| 3.75M/3.75M [00:00<00:00, 8.69MB/s]
+Upload successful: nvidia_cuda_cccl-13.3.4.3.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4MB)
+Starting upload for file networkx-3.7-py3-none-any.whl
+  0%|          | 0.00/2.04M [00:00<?, ?B/s] 80%|███████▉  | 1.62M/2.04M [00:00<00:00, 14.5MB/s]100%|██████████| 2.04M/2.04M [00:00<00:00, 4.71MB/s]
+Upload successful: networkx-3.7-py3-none-any.whl (2MB)
+Starting upload for file nvidia_cufft-12.0.0.61-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/204M [00:00<?, ?B/s]  1%|          | 1.56M/204M [00:00<00:14, 14.9MB/s]  7%|▋         | 13.7M/204M [00:00<00:02, 76.0MB/s] 12%|█▏        | 24.0M/204M [00:00<00:02, 89.8MB/s] 17%|█▋        | 35.4M/204M [00:00<00:01, 93.2MB/s] 22%|██▏       | 44.3M/204M [00:00<00:01, 89.4MB/s] 26%|██▌       | 52.9M/204M [00:00<00:01, 81.2MB/s] 30%|██▉       | 60.8M/204M [00:00<00:02, 70.3MB/s] 33%|███▎      | 67.7M/204M [00:00<00:02, 65.1MB/s] 36%|███▋      | 74.1M/204M [00:01<00:02, 65.2MB/s] 40%|███▉      | 81.6M/204M [00:01<00:01, 64.6MB/s] 43%|████▎     | 88.2M/204M [00:01<00:01, 65.7MB/s] 47%|████▋     | 95.5M/204M [00:01<00:01, 68.0MB/s] 51%|█████     | 104M/204M [00:01<00:01, 74.6MB/s]  55%|█████▍    | 112M/204M [00:01<00:01, 68.3MB/s] 59%|█████▊    | 120M/204M [00:01<00:01, 73.5MB/s] 62%|██████▏   | 127M/204M [00:01<00:01, 67.8MB/s] 65%|██████▌   | 134M/204M [00:02<00:01, 54.7MB/s] 71%|███████   | 144M/204M [00:02<00:00, 67.2MB/s] 74%|███████▍  | 151M/204M [00:02<00:00, 66.0MB/s] 77%|███████▋  | 158M/204M [00:02<00:00, 66.1MB/s] 81%|████████  | 165M/204M [00:02<00:00, 65.7MB/s] 84%|████████▍ | 171M/204M [00:02<00:00, 65.9MB/s] 87%|████████▋ | 178M/204M [00:02<00:00, 65.0MB/s] 91%|█████████ | 185M/204M [00:02<00:00, 69.7MB/s] 95%|█████████▍| 194M/204M [00:02<00:00, 72.5MB/s] 98%|█████████▊| 201M/204M [00:03<00:00, 68.8MB/s]100%|██████████| 204M/204M [00:03<00:00, 59.1MB/s]
+Upload successful: nvidia_cufft-12.0.0.61-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (204MB)
+Starting upload for file nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_x86_64.whl
+  0%|          | 0.00/10.2M [00:00<?, ?B/s] 37%|███▋      | 3.73M/10.2M [00:00<00:00, 37.8MB/s]100%|██████████| 10.2M/10.2M [00:00<00:00, 24.3MB/s]
+Upload successful: nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_x86_64.whl (10MB)
+Starting upload for file aiohttp-3.14.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/1.71M [00:00<?, ?B/s]100%|██████████| 1.71M/1.71M [00:00<00:00, 4.50MB/s]
+Upload successful: aiohttp-3.14.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (2MB)
+Starting upload for file urllib3-2.8.0-py3-none-any.whl
+  0%|          | 0.00/133k [00:00<?, ?B/s]100%|██████████| 133k/133k [00:00<00:00, 365kB/s]
+Upload successful: urllib3-2.8.0-py3-none-any.whl (133KB)
+Starting upload for file torchcodec-0.17.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/9.51M [00:00<?, ?B/s] 27%|██▋       | 2.61M/9.51M [00:00<00:00, 27.4MB/s]100%|██████████| 9.51M/9.51M [00:00<00:00, 21.8MB/s]
+Upload successful: torchcodec-0.17.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (10MB)
+Starting upload for file typing_extensions-4.16.0-py3-none-any.whl
+  0%|          | 0.00/44.5k [00:00<?, ?B/s]100%|██████████| 44.5k/44.5k [00:00<00:00, 119kB/s]
+Upload successful: typing_extensions-4.16.0-py3-none-any.whl (45KB)
+Starting upload for file mistral_common-1.12.0-py3-none-any.whl
+  0%|          | 0.00/6.28M [00:00<?, ?B/s] 27%|██▋       | 1.67M/6.28M [00:00<00:00, 17.1MB/s]100%|██████████| 6.28M/6.28M [00:00<00:00, 14.7MB/s]
+Upload successful: mistral_common-1.12.0-py3-none-any.whl (6MB)
+Starting upload for file fastapi_cloud_cli-0.26.0-py3-none-any.whl
+  0%|          | 0.00/106k [00:00<?, ?B/s]100%|██████████| 106k/106k [00:00<00:00, 293kB/s]
+Upload successful: fastapi_cloud_cli-0.26.0-py3-none-any.whl (106KB)
+Starting upload for file typing_inspection-0.4.4-py3-none-any.whl
+  0%|          | 0.00/14.4k [00:00<?, ?B/s]100%|██████████| 14.4k/14.4k [00:00<00:00, 39.0kB/s]
+Upload successful: typing_inspection-0.4.4-py3-none-any.whl (14KB)
+Starting upload for file anthropic-1.11.0-py3-none-any.whl
+  0%|          | 0.00/1.60M [00:00<?, ?B/s]100%|██████████| 1.60M/1.60M [00:00<00:00, 3.88MB/s]
+Upload successful: anthropic-1.11.0-py3-none-any.whl (2MB)
+Starting upload for file httpx-0.28.1-py3-none-any.whl
+  0%|          | 0.00/71.8k [00:00<?, ?B/s]100%|██████████| 71.8k/71.8k [00:00<00:00, 174kB/s]
+Upload successful: httpx-0.28.1-py3-none-any.whl (72KB)
+Starting upload for file dnspython-2.8.0-py3-none-any.whl
+  0%|          | 0.00/323k [00:00<?, ?B/s]100%|██████████| 323k/323k [00:00<00:00, 867kB/s]
+Upload successful: dnspython-2.8.0-py3-none-any.whl (323KB)
+Starting upload for file python_multipart-0.0.32-py3-none-any.whl
+  0%|          | 0.00/29.3k [00:00<?, ?B/s]100%|██████████| 29.3k/29.3k [00:00<00:00, 80.3kB/s]
+Upload successful: python_multipart-0.0.32-py3-none-any.whl (29KB)
+Starting upload for file compressed_tensors-0.17.0-py3-none-any.whl
+  0%|          | 0.00/207k [00:00<?, ?B/s]100%|██████████| 207k/207k [00:00<00:00, 501kB/s]
+Upload successful: compressed_tensors-0.17.0-py3-none-any.whl (207KB)
+Starting upload for file cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl
+  0%|          | 0.00/4.53M [00:00<?, ?B/s] 38%|███▊      | 1.73M/4.53M [00:00<00:00, 16.8MB/s]100%|██████████| 4.53M/4.53M [00:00<00:00, 10.5MB/s]
+Upload successful: cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl (5MB)
+Starting upload for file rich_toolkit-0.20.5-py3-none-any.whl
+  0%|          | 0.00/38.4k [00:00<?, ?B/s]100%|██████████| 38.4k/38.4k [00:00<00:00, 105kB/s]
+Upload successful: rich_toolkit-0.20.5-py3-none-any.whl (38KB)
+Starting upload for file fastapi_cli-0.0.32-py3-none-any.whl
+  0%|          | 0.00/14.3k [00:00<?, ?B/s]100%|██████████| 14.3k/14.3k [00:00<00:00, 40.4kB/s]
+Upload successful: fastapi_cli-0.0.32-py3-none-any.whl (14KB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/704 [00:00<?, ?B/s]100%|██████████| 704/704 [00:00<00:00, 1.83kB/s]
+Upload successful: prepare.sh (704B)
+Starting upload for file fastsafetensors-0.4.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/2.00M [00:00<?, ?B/s] 84%|████████▎ | 1.67M/2.00M [00:00<00:00, 14.8MB/s]100%|██████████| 2.00M/2.00M [00:00<00:00, 4.81MB/s]
+Upload successful: fastsafetensors-0.4.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (2MB)
+Starting upload for file nvidia_cuda_nvdisasm-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/4.96M [00:00<?, ?B/s] 33%|███▎      | 1.62M/4.96M [00:00<00:00, 14.8MB/s]100%|██████████| 4.96M/4.96M [00:00<00:00, 11.3MB/s]
+Upload successful: nvidia_cuda_nvdisasm-13.4.92-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5MB)
+Starting upload for file frozenlist-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/237k [00:00<?, ?B/s]100%|██████████| 237k/237k [00:00<00:00, 633kB/s]
+Upload successful: frozenlist-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (237KB)
+Starting upload for file partial_json_parser-0.2.1.1.post7-py3-none-any.whl
+  0%|          | 0.00/10.6k [00:00<?, ?B/s]100%|██████████| 10.6k/10.6k [00:00<00:00, 29.8kB/s]
+Upload successful: partial_json_parser-0.2.1.1.post7-py3-none-any.whl (11KB)
+Starting upload for file nvidia_cutlass_dsl_libs_cu12-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/84.6M [00:00<?, ?B/s]  3%|▎         | 2.20M/84.6M [00:00<00:04, 19.9MB/s] 29%|██▉       | 24.4M/84.6M [00:00<00:00, 137MB/s]  50%|█████     | 42.6M/84.6M [00:00<00:00, 161MB/s] 73%|███████▎  | 61.8M/84.6M [00:00<00:00, 161MB/s] 93%|█████████▎| 78.5M/84.6M [00:00<00:00, 163MB/s]100%|██████████| 84.6M/84.6M [00:00<00:00, 95.5MB/s]
+Upload successful: nvidia_cutlass_dsl_libs_cu12-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl (85MB)
+Starting upload for file nccl4py-0.6.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/3.52M [00:00<?, ?B/s] 46%|████▌     | 1.62M/3.52M [00:00<00:00, 14.5MB/s]100%|██████████| 3.52M/3.52M [00:00<00:00, 7.59MB/s]
+Upload successful: nccl4py-0.6.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (4MB)
+Starting upload for file nvidia_nvjitlink-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
+  0%|          | 0.00/40.5M [00:00<?, ?B/s]  4%|▍         | 1.62M/40.5M [00:00<00:02, 14.2MB/s] 46%|████▌     | 18.5M/40.5M [00:00<00:00, 100MB/s]  90%|████████▉ | 36.3M/40.5M [00:00<00:00, 125MB/s]100%|██████████| 40.5M/40.5M [00:00<00:00, 52.2MB/s]
+Upload successful: nvidia_nvjitlink-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (40MB)
+Starting upload for file docstring_parser-0.18.0-py3-none-any.whl
+  0%|          | 0.00/22.0k [00:00<?, ?B/s]100%|██████████| 22.0k/22.0k [00:00<00:00, 62.5kB/s]
+Upload successful: docstring_parser-0.18.0-py3-none-any.whl (22KB)
+Starting upload for file loguru-0.7.3-py3-none-any.whl
+  0%|          | 0.00/60.2k [00:00<?, ?B/s]100%|██████████| 60.2k/60.2k [00:00<00:00, 159kB/s]
+Upload successful: loguru-0.7.3-py3-none-any.whl (60KB)
+Starting upload for file cuda_pathfinder-1.8.2-py3-none-any.whl
+  0%|          | 0.00/61.1k [00:00<?, ?B/s]100%|██████████| 61.1k/61.1k [00:00<00:00, 172kB/s]
+Upload successful: cuda_pathfinder-1.8.2-py3-none-any.whl (61KB)
+Starting upload for file cloudpickle-3.1.2-py3-none-any.whl
+  0%|          | 0.00/21.7k [00:00<?, ?B/s]100%|██████████| 21.7k/21.7k [00:00<00:00, 56.2kB/s]
+Upload successful: cloudpickle-3.1.2-py3-none-any.whl (22KB)
+Starting upload for file cuda_toolkit-13.0.3.0-py2.py3-none-any.whl
+  0%|          | 0.00/2.45k [00:00<?, ?B/s]100%|██████████| 2.45k/2.45k [00:00<00:00, 5.90kB/s]
+Upload successful: cuda_toolkit-13.0.3.0-py2.py3-none-any.whl (2KB)
+Starting upload for file requests-2.34.2-py3-none-any.whl
+  0%|          | 0.00/71.4k [00:00<?, ?B/s]100%|██████████| 71.4k/71.4k [00:00<00:00, 191kB/s]
+Upload successful: requests-2.34.2-py3-none-any.whl (71KB)
+Starting upload for file pyjwt-2.15.1-py3-none-any.whl
+  0%|          | 0.00/33.1k [00:00<?, ?B/s]100%|██████████| 33.1k/33.1k [00:00<00:00, 95.8kB/s]
+Upload successful: pyjwt-2.15.1-py3-none-any.whl (33KB)
+Starting upload for file nvidia_cudnn_frontend-1.30.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/8.39M [00:00<?, ?B/s] 20%|██        | 1.69M/8.39M [00:00<00:00, 13.4MB/s]100%|██████████| 8.39M/8.39M [00:00<00:00, 18.3MB/s]
+Upload successful: nvidia_cudnn_frontend-1.30.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (8MB)
+Starting upload for file lm_format_enforcer-0.11.3-py3-none-any.whl
+  0%|          | 0.00/44.4k [00:00<?, ?B/s]100%|██████████| 44.4k/44.4k [00:00<00:00, 111kB/s]
+Upload successful: lm_format_enforcer-0.11.3-py3-none-any.whl (44KB)
+Starting upload for file mcp_types-2.2.0-py3-none-any.whl
+  0%|          | 0.00/67.5k [00:00<?, ?B/s]100%|██████████| 67.5k/67.5k [00:00<00:00, 185kB/s]
+Upload successful: mcp_types-2.2.0-py3-none-any.whl (67KB)
+Starting upload for file opentelemetry_exporter_otlp_proto_http-1.45.0-py3-none-any.whl
+  0%|          | 0.00/21.7k [00:00<?, ?B/s]100%|██████████| 21.7k/21.7k [00:00<00:00, 36.1kB/s]
+Upload successful: opentelemetry_exporter_otlp_proto_http-1.45.0-py3-none-any.whl (22KB)
+Starting upload for file ijson-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/146k [00:00<?, ?B/s]100%|██████████| 146k/146k [00:00<00:00, 327kB/s]
+Upload successful: ijson-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (146KB)
+Starting upload for file mpmath-1.3.0-py3-none-any.whl
+  0%|          | 0.00/524k [00:00<?, ?B/s]100%|██████████| 524k/524k [00:00<00:00, 1.34MB/s]
+Upload successful: mpmath-1.3.0-py3-none-any.whl (524KB)
+Starting upload for file grpcio-1.84.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/6.82M [00:00<?, ?B/s] 33%|███▎      | 2.23M/6.82M [00:00<00:00, 23.4MB/s]100%|██████████| 6.82M/6.82M [00:00<00:00, 15.7MB/s]
+Upload successful: grpcio-1.84.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (7MB)
+Starting upload for file markdown_it_py-4.2.0-py3-none-any.whl
+  0%|          | 0.00/89.5k [00:00<?, ?B/s]100%|██████████| 89.5k/89.5k [00:00<00:00, 249kB/s]
+Upload successful: markdown_it_py-4.2.0-py3-none-any.whl (90KB)
+Starting upload for file nvidia_nvtx-13.0.85-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/145k [00:00<?, ?B/s]100%|██████████| 145k/145k [00:00<00:00, 383kB/s]
+Upload successful: nvidia_nvtx-13.0.85-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl (145KB)
+Starting upload for file model_hosting_container_standards-0.1.16-py3-none-any.whl
+  0%|          | 0.00/123k [00:00<?, ?B/s]100%|██████████| 123k/123k [00:00<00:00, 339kB/s]
+Upload successful: model_hosting_container_standards-0.1.16-py3-none-any.whl (123KB)
+Starting upload for file openai_harmony-0.0.8-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.82M [00:00<?, ?B/s] 59%|█████▉    | 1.67M/2.82M [00:00<00:00, 15.6MB/s]100%|██████████| 2.82M/2.82M [00:00<00:00, 6.06MB/s]
+Upload successful: openai_harmony-0.0.8-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file yarl-1.25.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/114k [00:00<?, ?B/s]100%|██████████| 114k/114k [00:00<00:00, 304kB/s]
+Upload successful: yarl-1.25.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (114KB)
+Starting upload for file cuda_python-13.4.1-py3-none-any.whl
+  0%|          | 0.00/7.42k [00:00<?, ?B/s]100%|██████████| 7.42k/7.42k [00:00<00:00, 19.6kB/s]
+Upload successful: cuda_python-13.4.1-py3-none-any.whl (7KB)
+Starting upload for file httptools-0.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
+  0%|          | 0.00/512k [00:00<?, ?B/s]100%|██████████| 512k/512k [00:00<00:00, 1.31MB/s]
+Upload successful: httptools-0.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (512KB)
+Starting upload for file nvidia_cutlass_dsl_libs_base-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/2.70M [00:00<?, ?B/s]100%|██████████| 2.70M/2.70M [00:00<00:00, 6.86MB/s]
+Upload successful: nvidia_cutlass_dsl_libs_base-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl (3MB)
+Starting upload for file uvloop-0.23.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/4.32M [00:00<?, ?B/s] 46%|████▌     | 1.97M/4.32M [00:00<00:00, 14.8MB/s]100%|██████████| 4.32M/4.32M [00:00<00:00, 9.56MB/s]
+Upload successful: uvloop-0.23.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (4MB)
+Starting upload for file einops-0.8.2-py3-none-any.whl
+  0%|          | 0.00/64.1k [00:00<?, ?B/s]100%|██████████| 64.1k/64.1k [00:00<00:00, 187kB/s]
+Upload successful: einops-0.8.2-py3-none-any.whl (64KB)
+Starting upload for file openai-3.23.0-py3-none-any.whl
+  0%|          | 0.00/2.02M [00:00<?, ?B/s]100%|██████████| 2.02M/2.02M [00:00<00:00, 4.87MB/s]
+Upload successful: openai-3.23.0-py3-none-any.whl (2MB)
+Starting upload for file python_dotenv-1.2.4-py3-none-any.whl
+  0%|          | 0.00/22.7k [00:00<?, ?B/s]100%|██████████| 22.7k/22.7k [00:00<00:00, 58.9kB/s]
+Upload successful: python_dotenv-1.2.4-py3-none-any.whl (23KB)
+Starting upload for file watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/448k [00:00<?, ?B/s]100%|██████████| 448k/448k [00:00<00:00, 1.21MB/s]
+Upload successful: watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (448KB)
+Starting upload for file six-1.17.0-py2.py3-none-any.whl
+  0%|          | 0.00/10.8k [00:00<?, ?B/s]100%|██████████| 10.8k/10.8k [00:00<00:00, 30.2kB/s]
+Upload successful: six-1.17.0-py2.py3-none-any.whl (11KB)
+Starting upload for file opentelemetry_semantic_conventions_ai-0.5.1-py3-none-any.whl
+  0%|          | 0.00/11.0k [00:00<?, ?B/s]100%|██████████| 11.0k/11.0k [00:00<00:00, 28.5kB/s]
+Upload successful: opentelemetry_semantic_conventions_ai-0.5.1-py3-none-any.whl (11KB)
+Starting upload for file triton-3.7.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/189M [00:00<?, ?B/s]  3%|▎         | 6.14M/189M [00:00<00:02, 64.4MB/s] 15%|█▍        | 28.1M/189M [00:00<00:01, 159MB/s]  23%|██▎       | 43.2M/189M [00:00<00:01, 125MB/s] 30%|██▉       | 55.8M/189M [00:00<00:01, 126MB/s] 36%|███▌      | 68.1M/189M [00:00<00:01, 117MB/s] 42%|████▏     | 80.1M/189M [00:00<00:00, 116MB/s] 49%|████▊     | 91.7M/189M [00:00<00:00, 116MB/s] 56%|█████▌    | 105M/189M [00:00<00:00, 118MB/s]  65%|██████▍   | 122M/189M [00:01<00:00, 127MB/s] 71%|███████   | 134M/189M [00:01<00:00, 127MB/s] 78%|███████▊  | 148M/189M [00:01<00:00, 131MB/s] 85%|████████▌ | 161M/189M [00:01<00:00, 134MB/s] 92%|█████████▏| 174M/189M [00:01<00:00, 134MB/s] 99%|█████████▉| 187M/189M [00:01<00:00, 125MB/s]100%|██████████| 189M/189M [00:02<00:00, 96.3MB/s]
+Upload successful: triton-3.7.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (189MB)
+Starting upload for file sniffio-1.3.1-py3-none-any.whl
+  0%|          | 0.00/10.0k [00:00<?, ?B/s]100%|██████████| 10.0k/10.0k [00:00<00:00, 26.6kB/s]
+Upload successful: sniffio-1.3.1-py3-none-any.whl (10KB)
+Starting upload for file apache_tvm_ffi-0.1.11-cp312-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/2.57M [00:00<?, ?B/s] 97%|█████████▋| 2.50M/2.57M [00:00<00:00, 20.9MB/s]100%|██████████| 2.57M/2.57M [00:00<00:00, 6.22MB/s]
+Upload successful: apache_tvm_ffi-0.1.11-cp312-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (3MB)
+Starting upload for file nvidia_cuda_runtime-13.0.96-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/2.14M [00:00<?, ?B/s] 90%|████████▉ | 1.92M/2.14M [00:00<00:00, 15.1MB/s]100%|██████████| 2.14M/2.14M [00:00<00:00, 4.96MB/s]
+Upload successful: nvidia_cuda_runtime-13.0.96-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (2MB)
+Starting upload for file numba-0.65.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/3.63M [00:00<?, ?B/s] 71%|███████   | 2.58M/3.63M [00:00<00:00, 24.5MB/s]100%|██████████| 3.63M/3.63M [00:00<00:00, 8.79MB/s]
+Upload successful: numba-0.65.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4MB)
+Starting upload for file humming_kernels-0.1.12-py3-none-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/315k [00:00<?, ?B/s]100%|██████████| 315k/315k [00:00<00:00, 910kB/s]
+Upload successful: humming_kernels-0.1.12-py3-none-manylinux_2_28_x86_64.whl (315KB)
+Starting upload for file agent_detector-2.0.0-py3-none-any.whl
+  0%|          | 0.00/9.13k [00:00<?, ?B/s]100%|██████████| 9.13k/9.13k [00:00<00:00, 24.2kB/s]
+Upload successful: agent_detector-2.0.0-py3-none-any.whl (9KB)
+Starting upload for file python_json_logger-4.2.0-py3-none-any.whl
+  0%|          | 0.00/14.6k [00:00<?, ?B/s]100%|██████████| 14.6k/14.6k [00:00<00:00, 40.6kB/s]
+Upload successful: python_json_logger-4.2.0-py3-none-any.whl (15KB)
+Starting upload for file tiktoken-0.14.0-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/1.15M [00:00<?, ?B/s]100%|██████████| 1.15M/1.15M [00:00<00:00, 2.92MB/s]
+Upload successful: tiktoken-0.14.0-cp312-cp312-manylinux_2_28_x86_64.whl (1MB)
+Starting upload for file z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/27.9M [00:00<?, ?B/s]  5%|▌         | 1.45M/27.9M [00:00<00:02, 13.4MB/s] 52%|█████▏    | 14.4M/27.9M [00:00<00:00, 80.1MB/s]100%|██████████| 27.9M/27.9M [00:00<00:00, 45.9MB/s]
+Upload successful: z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28MB)
+Starting upload for file tqdm-4.70.1-py3-none-any.whl
+  0%|          | 0.00/78.3k [00:00<?, ?B/s]100%|██████████| 78.3k/78.3k [00:00<00:00, 217kB/s]
+Upload successful: tqdm-4.70.1-py3-none-any.whl (78KB)
+Starting upload for file opentelemetry_api-1.45.0-py3-none-any.whl
+  0%|          | 0.00/58.6k [00:00<?, ?B/s]100%|██████████| 58.6k/58.6k [00:00<00:00, 171kB/s]
+Upload successful: opentelemetry_api-1.45.0-py3-none-any.whl (59KB)
+Starting upload for file attrs-26.1.0-py3-none-any.whl
+  0%|          | 0.00/66.0k [00:00<?, ?B/s]100%|██████████| 66.0k/66.0k [00:00<00:00, 180kB/s]
+Upload successful: attrs-26.1.0-py3-none-any.whl (66KB)
+Starting upload for file nvidia_cutlass_dsl_libs_cu13-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/84.2M [00:00<?, ?B/s]  2%|▏         | 1.67M/84.2M [00:00<00:05, 14.8MB/s] 18%|█▊        | 14.8M/84.2M [00:00<00:00, 81.1MB/s] 44%|████▍     | 37.4M/84.2M [00:00<00:00, 141MB/s]  64%|██████▍   | 53.7M/84.2M [00:00<00:00, 151MB/s] 81%|████████  | 68.2M/84.2M [00:00<00:00, 140MB/s]100%|██████████| 84.2M/84.2M [00:00<00:00, 91.2MB/s]
+Upload successful: nvidia_cutlass_dsl_libs_cu13-4.7.1-cp312-cp312-manylinux_2_28_x86_64.whl (84MB)
+Starting upload for file ninja-1.13.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/179k [00:00<?, ?B/s]100%|██████████| 179k/179k [00:00<00:00, 507kB/s]
+Upload successful: ninja-1.13.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (179KB)
+Starting upload for file certifi-2026.7.22-py3-none-any.whl
+  0%|          | 0.00/134k [00:00<?, ?B/s]100%|██████████| 134k/134k [00:00<00:00, 373kB/s]
+Upload successful: certifi-2026.7.22-py3-none-any.whl (134KB)
+Expecting value: line 1 column 1 (char 0)
+
+output files:

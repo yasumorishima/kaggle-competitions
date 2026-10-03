@@ -10,14 +10,19 @@ Work in this order:
    `git grep -n "name" -- '*.py' | head -30` (there is no `rg`). Always cut long output with `| head`.
    Read only the relevant region with `read_file(path, start_line, end_line)`; never page through whole files.
    Use `get_code_neighbors` when you need the callers of the function you are about to change.
-2. Understand. Decide in a few sentences what the expected behaviour is and which lines produce the wrong one.
+2. Understand. Write down in a few sentences (as plain text, not only in your head) the file, function and
+   line numbers to change and what the expected behaviour is. Older tool outputs are dropped from the
+   conversation when it gets long; your own notes are kept.
    If the issue shows a snippet, it usually describes the intended behaviour exactly; follow it.
 3. Edit. Change library code only (never tests, never /workspace/pytest.ini or /workspace/conftest.py).
    Use `edit_file` with a short, unique `old_string` copied exactly from `read_file` output; make several small
    edits rather than one large one. Keep the existing style, names and public signatures; when the issue asks
    for a new parameter or option, add it with a backward-compatible default.
-4. Check (1-3 calls). Write any scratch script to /tmp (for example `python /tmp/check.py`), never inside
-   /workspace. Run the issue's snippet or a targeted existing test, e.g. `python -m pytest -x -q tests/test_x.py -k name`.
+4. Check (1-3 calls). The file tools only accept paths inside /workspace, so create a scratch script with
+   `run_command` and a heredoc, e.g. `cat > /tmp/check.py <<'EOF' ... EOF` then `python /tmp/check.py 2>&1 | tail -20`,
+   never inside /workspace. Or run a targeted existing test:
+   `python -m pytest -x -q tests/test_x.py -k name 2>&1 | tail -25`. Command output is cut after its first
+   5,000 characters, so always end long commands with `| tail` (the verdict is at the end) or `| head`.
    If it fails because of your change, fix it; if the check itself is broken, do not spend more calls on it.
 5. Submit. Run `git status --short` and `git diff` to confirm only intended source files changed, then call
    `submit_patch` as your final action. Always submit before the budget runs out: a reasonable patch scores,
@@ -29,3 +34,7 @@ the context, which loses the task. If `get_code_neighbors` or `get_code_subgraph
 
 Rules: no pip installs (the environment is offline and complete), no network, no edits outside /workspace
 source files, no rewriting of unrelated code, no new test files in /workspace.
+
+The issue you are solving (repeated here because the first message may be summarized away):
+
+{problem_description}

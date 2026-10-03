@@ -1,0 +1,94 @@
+request: gpuprobe-3
+run: 36955614984  status: success  action: kernel  dir: arc-agi-3/kernels/gpuprobe  submit: no
+kernel: yasunorim/arc3-gpu-probe  version: 1
+memo: isolate the SaveKernel 400: same probe without GPU (model source + internet kept)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-gpu-probe
+s -la /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1 | head -30; du -sh /kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1\n"}
+,{"stream_name":"stdout","time":20.264703113,"data":"total 30463988\n"}
+,{"stream_name":"stdout","time":20.264732353,"data":"drwxr-xr-x 2 nobody nogroup           0 Oct  2 02:26 .\n"}
+,{"stream_name":"stdout","time":20.264736653,"data":"drwxr-xr-x 3 root   root           4096 Oct  2 02:31 ..\n"}
+,{"stream_name":"stdout","time":20.264740493,"data":"-rw-r--r-- 1 nobody nogroup         707 Oct  2 02:26 added_tokens.json\n"}
+,{"stream_name":"stdout","time":20.264743693,"data":"-rw-r--r-- 1 nobody nogroup        7156 Oct  2 02:26 config.json\n"}
+,{"stream_name":"stdout","time":20.264746683,"data":"-rw-r--r-- 1 nobody nogroup         121 Oct  2 02:26 generation_config.json\n"}
+,{"stream_name":"stdout","time":20.264749923,"data":"-rw-r--r-- 1 nobody nogroup        1570 Oct  2 02:26 .gitattributes\n"}
+,{"stream_name":"stdout","time":20.264752853,"data":"-rw-r--r-- 1 nobody nogroup     1671853 Oct  2 02:26 merges.txt\n"}
+,{"stream_name":"stdout","time":20.264756143,"data":"-rw-r--r-- 1 nobody nogroup 10001462368 Oct  2 02:31 model-00001-of-00004.safetensors\n"}
+,{"stream_name":"stdout","time":20.264759213,"data":"-rw-r--r-- 1 nobody nogroup 10000577408 Oct  2 02:31 model-00002-of-00004.safetensors\n"}
+,{"stream_name":"stdout","time":20.264762383,"data":"-rw-r--r-- 1 nobody nogroup 10000577448 Oct  2 02:31 model-00003-of-00004.safetensors\n"}
+,{"stream_name":"stdout","time":20.264765803,"data":"-rw-r--r-- 1 nobody nogroup  1173001360 Oct  2 02:26 model-00004-of-00004.safetensors\n"}
+,{"stream_name":"stdout","time":20.264769783,"data":"-rw-r--r-- 1 nobody nogroup     3565670 Oct  2 02:26 model.safetensors.index.json\n"}
+,{"stream_name":"stdout","time":20.264773013,"data":"-rw-r--r-- 1 nobody nogroup        6705 Oct  2 02:26 README.md\n"}
+,{"stream_name":"stdout","time":20.264775883,"data":"-rw-r--r-- 1 nobody nogroup         613 Oct  2 02:26 special_tokens_map.json\n"}
+,{"stream_name":"stdout","time":20.264789503,"data":"-rw-r--r-- 1 nobody nogroup        9762 Oct  2 02:26 tokenizer_config.json\n"}
+,{"stream_name":"stdout","time":20.264793253,"data":"-rw-r--r-- 1 nobody nogroup    11422654 Oct  2 02:26 tokenizer.json\n"}
+,{"stream_name":"stdout","time":20.264796413,"data":"-rw-r--r-- 1 nobody nogroup     2776833 Oct  2 02:26 vocab.json\n"}
+,{"stream_name":"stdout","time":20.264799623,"data":"30G\t/kaggle/input/models/qwen-lm/qwen-3/transformers/30b-a3b-instruct-2507-fp8/1\n"}
+,{"stream_name":"stdout","time":20.264803483,"data":"\n"}
+,{"stream_name":"stdout","time":20.264805503,"data":"$ ls /kaggle/input/competitions/arc-prize-2026-arc-agi-3/ | head\n"}
+,{"stream_name":"stdout","time":20.267347422,"data":"\n"}
+,{"stream_name":"stdout","time":20.267588983,"data":"$ /usr/bin/python3 -m pip install -q vllm 2\u003e\u00261 | tail -5\n"}
+,{"stream_name":"stdout","time":262.229832205,"data":"google-adk 1.29.0 requires opentelemetry-api\u003c1.39.0,\u003e=1.36.0, but you have opentelemetry-api 1.45.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":262.229921855,"data":"google-adk 1.29.0 requires opentelemetry-sdk\u003c1.39.0,\u003e=1.36.0, but you have opentelemetry-sdk 1.45.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":262.229927365,"data":"google-adk 1.29.0 requires starlette\u003c1.0.0,\u003e=0.49.1, but you have starlette 1.7.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":262.229930775,"data":"opentelemetry-exporter-gcp-logging 1.11.0a0 requires opentelemetry-sdk\u003c1.39.0,\u003e=1.35.0, but you have opentelemetry-sdk 1.45.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":262.229933875,"data":"gradio 5.50.0 requires starlette\u003c1.0,\u003e=0.40.0, but you have starlette 1.7.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":262.229936965,"data":"\n"}
+,{"stream_name":"stdout","time":262.229940045,"data":"pip install vllm took 242 s\n"}
+,{"stream_name":"stdout","time":262.229942935,"data":"$ /usr/bin/python3 -m pip show vllm torch | grep -E 'Name|Version'\n"}
+,{"stream_name":"stdout","time":265.712796453,"data":"Name: vllm\n"}
+,{"stream_name":"stdout","time":265.712916193,"data":"Version: 0.30.0\n"}
+,{"stream_name":"stdout","time":265.712921263,"data":"Name: torch\n"}
+,{"stream_name":"stdout","time":265.712924423,"data":"Version: 2.13.0\n"}
+,{"stream_name":"stdout","time":265.712927243,"data":"\n"}
+,{"stream_name":"stderr","time":266.194436169,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":266.194550398,"data":"  File \"/kaggle/src/script.py\", line 45, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194563158,"data":"    from vllm import LLM, SamplingParams\n"}
+,{"stream_name":"stderr","time":266.194568458,"data":"  File \"/usr/local/lib/python3.12/dist-packages/vllm/__init__.py\", line 14, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194573689,"data":"    import vllm.env_override  # noqa: F401\n"}
+,{"stream_name":"stderr","time":266.194578209,"data":"    ^^^^^^^^^^^^^^^^^^^^^^^^\n"}
+,{"stream_name":"stderr","time":266.194582889,"data":"  File \"/usr/local/lib/python3.12/dist-packages/vllm/env_override.py\", line 630, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194588018,"data":"    from torch._dynamo.convert_frame import GraphCaptureOutput\n"}
+,{"stream_name":"stderr","time":266.194614009,"data":"  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/__init__.py\", line 13, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194621929,"data":"    from . import (\n"}
+,{"stream_name":"stderr","time":266.194626418,"data":"  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/aot_compile.py\", line 17, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194649098,"data":"    from torch._dynamo.convert_frame import GraphRuntimeEnv\n"}
+,{"stream_name":"stderr","time":266.194652889,"data":"  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/convert_frame.py\", line 61, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194656538,"data":"    from torch._dynamo.distributed import get_compile_pg\n"}
+,{"stream_name":"stderr","time":266.194659809,"data":"  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/distributed.py\", line 19, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194663269,"data":"    from . import config\n"}
+,{"stream_name":"stderr","time":266.194666529,"data":"  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/config.py\", line 126, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":266.194669989,"data":"    skip_code_recursive_on_recompile_limit_hit: bool = Config(\n"}
+,{"stream_name":"stderr","time":266.194673069,"data":"                                                       ^^^^^^^\n"}
+,{"stream_name":"stderr","time":266.194680958,"data":"TypeError: Config() got an unexpected keyword argument 'deprecated'\n"}
+,{"stream_name":"stdout","time":266.194958848,"data":"vllm run failed Config() got an unexpected keyword argument 'deprecated'\n"}
+,{"stream_name":"stderr","time":270.209692883,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":270.209739793,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":270.68065719,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":270.680718341,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":271.806836542,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":273.711746848,"data":"[NbConvertApp] Writing 287787 bytes to __results__.html\n"}
+]
+output files:
+total 20
+drwxr-xr-x  2 runner runner 4096 Oct  2 02:37 .
+drwxrwxrwt 14 root   root   4096 Oct  2 02:37 ..
+-rw-r--r--  1 runner runner 9612 Oct  2 02:37 arc3-gpu-probe.log
+[{"stream_name":"stdout","time":0.768430573,"data":"$ nvidia-smi\n"}
+,{"stream_name":"stdout","time":0.775204611,"data":"\n"}
+,{"stream_name":"stdout","time":0.775234591,"data":"$ python -V; df -h /kaggle/working | tail -1; free -g | head -2; nproc\n"}
+,{"stream_name":"stdout","time":0.82161008,"data":"Python 3.12.13\n"}
+,{"stream_name":"stdout","time":0.82163824,"data":"/dev/loop2       20G  132K   20G   1% /kaggle/working\n"}
+,{"stream_name":"stdout","time":0.82164251,"data":"               total        used        free      shared  buff/cache   available\n"}
+,{"stream_name":"stdout","time":0.8216459,"data":"Mem:              31           0          26           0           4          30\n"}
+,{"stream_name":"stdout","time":0.82164835,"data":"4\n"}
+,{"stream_name":"stdout","time":0.82165026,"data":"\n"}
+,{"stream_name":"stdout","time":4.884263027,"data":"torch 2.10.0+cpu\n"}
+,{"stream_name":"stdout","time":19.188965929,"data":"transformers 5.0.0\n"}
+,{"stream_name":"stdout","time":19.188998719,"data":"vllm missing ModuleNotFoundError\n"}
+,{"stream_name":"stdout","time":19.189174179,"data":"sglang missing ModuleNotFoundError\n"}
+,{"stream_name":"stdout","time":19.189274309,"data":"flash_attn missing ModuleNotFoundError\n"}
+,{"stream_name":"stdout","time":20.045189209,"data":"accelerate 1.13.0\n"}
+,{"stream_name":"stdout","time":20.045225989,"data":"cuda None False \n"}
+,{"stream_name":"stdout","time":20.227317843,"data":"model configs ['/kaggle/input/models/qwen-lm/qwen-3/tra
