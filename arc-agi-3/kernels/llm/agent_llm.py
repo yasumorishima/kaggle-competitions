@@ -20,6 +20,8 @@ import urllib.request as _url  # noqa: E402
 
 LLM_CALLS = int(os.getenv("ARC3_LLM_CALLS", "12"))     # model calls per level before the explorer takes over
 PLAN_MAX = 12
+LLM_MAXTOK = int(os.getenv("ARC3_LLM_MAXTOK", "6000"))   # a thinking model spends most of this on its reasoning
+DEBUG_CALLS = 2                                          # per game: print this many model answers
 LLM_PORT = 8011
 LLM_URL = f"http://127.0.0.1:{LLM_PORT}/v1/chat/completions"
 HEX = "0123456789abcdef"
@@ -48,7 +50,7 @@ def start_llm_server():
     for extra in ([], ["--enforce-eager"]):
         log = open(WORK + "/vllm.log", "w")
         proc = subprocess.Popen([sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", model,
-                                 "--served-model-name", "q", "--port", str(LLM_PORT), "--max-model-len", "16384",
+                                 "--served-model-name", "q", "--port", str(LLM_PORT), "--max-model-len", "24576",
                                  "--gpu-memory-utilization", "0.88", "--max-num-seqs", "32"] + extra,
                                 stdout=log, stderr=subprocess.STDOUT,
                                 # DeepGEMM's FP8 JIT needs NVCC >= 12.9, newer than the image's (llm0-2)
@@ -83,10 +85,11 @@ def ask(messages, max_tokens=200):
         names = _re.findall(r"Available actions: ([^.]*)\.", messages[-1]["content"])[0].split(", ")
         return "NOTES: mock.\nPLAN: " + ", ".join(random.choice(names) + (" 10 10" if "6" in names[0] else "")
                                                   for _ in range(random.randint(1, 8)))
-    body = _json.dumps({"model": "q", "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}).encode()
+    body = _json.dumps({"model": "q", "messages": messages, "max_tokens": max_tokens, "temperature": 0.6}).encode()
     req = _url.Request(LLM_URL, body, {"Content-Type": "application/json"})
-    with _url.urlopen(req, timeout=120) as r:
-        return _json.load(r)["choices"][0]["message"]["content"] or ""
+    with _url.urlopen(req, timeout=1200) as r:
+        text = _json.load(r)["choices"][0]["message"]["content"] or ""
+    return text.split("</think>")[-1]     # a thinking model's answer follows its reasoning
 
 
 def grid_text(g):
@@ -240,7 +243,9 @@ def play_llm(env, game_id, deadline):
                     + objects_text(g) + "\n"
                     + f"Current grid ({g.shape[1]} columns x {g.shape[0]} rows, row 0 at the top):\n{grid_text(g)}")
             try:
-                out = ask([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}], max_tokens=600)
+                out = ask([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}], max_tokens=LLM_MAXTOK)
+                if calls < DEBUG_CALLS:
+                    print(f"--- {game_id} call {calls}:", out[-700:].replace("\n", " | "), flush=True)
                 notes = parse_notes(out) or notes
                 llm_plan = parse_plan(out, acts)
             except Exception as e:  # a slow or failed call falls back to the explorer
