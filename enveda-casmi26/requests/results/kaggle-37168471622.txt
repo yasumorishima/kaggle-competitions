@@ -1,0 +1,15 @@
+request: pctier-1
+run: 37168471622  status: success  action: dataset  dir: enveda-casmi26/datasets/pubchem-tier  submit: no
+kernel:   version: 
+memo: Own PubChem candidate tier (PubMed-linked, neutral, single fragment, CHNOPS+halogens, 100-1500 Da; inchikey14, smiles, fM, n_pmid) for hidden-test class-2 structures the library and COCONUT miss
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file pubchem_tier.parquet
+  0%|          | 0.00/96.3M [00:00<?, ?B/s]  0%|          | 272k/96.3M [00:00<00:37, 2.67MB/s]  9%|▊         | 8.41M/96.3M [00:00<00:02, 45.0MB/s] 25%|██▌       | 24.5M/96.3M [00:00<00:00, 95.6MB/s] 36%|███▌      | 34.7M/96.3M [00:00<00:00, 97.9MB/s] 46%|████▋     | 44.8M/96.3M [00:00<00:00, 97.8MB/s] 56%|█████▌    | 54.2M/96.3M [00:00<00:00, 95.6MB/s] 66%|██████▋   | 63.9M/96.3M [00:00<00:00, 96.9MB/s] 76%|███████▌  | 73.4M/96.3M [00:00<00:00, 97.3MB/s] 86%|████████▌ | 82.7M/96.3M [00:00<00:00, 91.0MB/s] 95%|█████████▍| 91.5M/96.3M [00:01<00:00, 82.4MB/s]100%|██████████| 96.3M/96.3M [00:01<00:00, 59.5MB/s]
+Upload successful: pubchem_tier.parquet (96MB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/2.70k [00:00<?, ?B/s]100%|██████████| 2.70k/2.70k [00:00<00:00, 4.67kB/s]
+Upload successful: prepare.sh (3KB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-pubchem-tier
+
+output files:
