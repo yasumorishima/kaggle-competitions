@@ -11,6 +11,7 @@ kaggle competitions download enveda-CASMI26-molecule-id-mass-spectra -f train.pa
 ls -la /tmp/comp
 B=https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras
 for f in CID-InChI-Key CID-PMID CID-Patent CID-SID; do curl -sSfL --retry 5 -o /tmp/$f.gz $B/$f.gz; done
+curl -sSfL --retry 5 -o /tmp/SID-Map.gz https://ftp.ncbi.nlm.nih.gov/pubchem/Substance/Extras/SID-Map.gz
 ls -la /tmp/*.gz
 pip install -q pyarrow pandas
 python3 - <<'PY' | tee coverage.txt
@@ -51,6 +52,26 @@ with gzip.open("/tmp/CID-SID.gz", "rt") as f:
             nsid[c] += 1
 best = [max(nsid.get(c, 0) for c in v) for v in cid_e.values()]
 print("SIDs per enveda-180 compound: quantiles", pd.Series(best).quantile([.1, .25, .5, .75, .9]).to_dict(), flush=True)
+# depositors: SID-Map = SID, source name, source id, CID (CID may be empty)
+src_e, src_all = collections.defaultdict(set), collections.Counter()   # src_all: substances with a CID per depositor
+k_of = {c: k for k, v in cid_e.items() for c in v}
+with gzip.open("/tmp/SID-Map.gz", "rt") as f:
+    for line in f:
+        a = line.rstrip("\n").split("\t")
+        if len(a) < 4 or not a[3]:
+            continue
+        c = int(a[3])
+        src_all[a[1]] += 1
+        if c in k_of:
+            src_e[a[1]].add(k_of[c])
+top = sorted(src_e, key=lambda s: -len(src_e[s]))[:25]
+print("depositors holding the most enveda-180 structures: share of enveda-180, substances with a CID", flush=True)
+for s in top:
+    print(f"  {s!r}: {len(src_e[s]) / len(E):.4f}  {src_all[s]}", flush=True)
+cum = set()
+for s in top[:10]:
+    cum |= src_e[s]
+    print("  cumulative top-to", repr(s), round(len(cum) / len(E), 4), flush=True)
 mincid = pd.Series([min(v) for v in cid_e.values()])
 print("smallest CID quantiles", mincid.quantile([.1, .25, .5, .75, .9]).to_dict(), flush=True)
 PY
