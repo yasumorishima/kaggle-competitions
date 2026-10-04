@@ -1,0 +1,15 @@
+request: pccov-4
+run: 37170713255  status: success  action: dataset  dir: enveda-casmi26/datasets/pubchem-cov  submit: no
+kernel:   version: 
+memo: Which PubChem depositors hold the enveda-180 structures (SID-Map), to build a candidate tier from those depositors only
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file coverage.txt
+  0%|          | 0.00/1.77k [00:00<?, ?B/s]100%|██████████| 1.77k/1.77k [00:00<00:00, 4.50kB/s]
+Upload successful: coverage.txt (2KB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/3.60k [00:00<?, ?B/s]100%|██████████| 3.60k/3.60k [00:00<00:00, 9.66kB/s]
+Upload successful: prepare.sh (4KB)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-pubchem-coverage
+
+output files:
