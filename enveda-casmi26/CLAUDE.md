@@ -132,6 +132,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   読み：手元で伸びたのは class 4（天然物・答えの 99% に文献あり）だけ。隠しテストの答えは文献の多い分子ではない（c2/c3 型が多い）＝**人気度を全候補に足すのはやめる**（公開の +0.01 は別の掛け方と見る）。
   自前 dataset の作成へ：`datasets/coconut-own`（COCONUT 公式の配布物→`coco_meta.pkl`＋`coco_mass.npy`・同じ形で差し替え・coco-own-1 依頼済み）、
   `datasets/pubchem-tier`（PubChem FTP の CID-PMID×CID-SMILES×CID-InChI-Key→文献 1 件以上・中性・単一成分・質量 100〜1500 の InChIKey14 表、`n_pmid` 付き。隠しテストは再実行で差し替わるので、テストの質量で絞らない）。
+  **自前 COCONUT 完成**（coco-own-3・`yasunorim/casmi26-own-coconut-candidates`・474,231 構造・100〜1,500 Da）：元の表の 99.9%（436,004／436,389）を含み 38,227 多い。b5 の kernel-metadata を差し替え済み。
+  （v1 は MORTAR の断片表を取った・v2 は固定長文字列で 3GB＝どちらも作り直し。）PubChem 層（pctier-1）は GHA に依頼済み。
   次：(1) 自前 COCONUT に差し替えた b5 を LB で確認（同点〜±0.005 なら置き換え完了）、(2) PubChem 層で c2 の窓内率を手元で測り、fp2 の類似で上位 k 件だけを固定枠に差し込む版を作る。
 
 ## 🔴 提出の決まり（2026-09-27 user 指示・最優先）
