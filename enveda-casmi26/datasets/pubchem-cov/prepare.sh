@@ -1,12 +1,13 @@
 #!/bin/sh
 # Measure which part of PubChem holds the enveda-180 structures (same instrument and source as the hidden test),
 # to choose a candidate tier with a high in-window rate. Writes coverage.txt (numbers only; no competition data kept).
-# Sources: competition train_meta.parquet (Kaggle API, read on the runner only) and PubChem FTP Compound/Extras.
+# Sources: competition train.parquet (two columns; Kaggle API, read on the runner only) and PubChem FTP Compound/Extras.
 set -e
 cd "$(dirname "$0")"
 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-kaggle competitions download enveda-CASMI26-molecule-id-mass-spectra -f train_meta.parquet -p /tmp/comp
-ls -la /tmp/comp; (cd /tmp/comp && for z in *.zip; do [ -f "$z" ] && unzip -o -q "$z"; done; true)
+mkdir -p /tmp/comp
+curl -sSfL --retry 5 -o /tmp/comp/train.parquet "https://www.kaggle.com/api/v1/competitions/data/download/enveda-CASMI26-molecule-id-mass-spectra/train.parquet"
+ls -la /tmp/comp
 B=https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras
 for f in CID-InChI-Key CID-PMID CID-Patent CID-SID; do curl -sSfL --retry 5 -o /tmp/$f.gz $B/$f.gz; done
 ls -la /tmp/*.gz
@@ -15,7 +16,7 @@ python3 - <<'PY' | tee coverage.txt
 import gzip, collections, time
 import pandas as pd
 t = time.time()
-m = pd.read_parquet("/tmp/comp/train_meta.parquet", columns=["inchikey14", "ingest_lib"])
+m = pd.read_parquet("/tmp/comp/train.parquet", columns=["inchikey14", "ingest_lib"])
 E = set(m.inchikey14[m.ingest_lib == "enveda-180"])
 O = set(m.inchikey14[m.ingest_lib != "enveda-180"])
 print("enveda-180 structures", len(E), "other-library structures", len(O), flush=True)
