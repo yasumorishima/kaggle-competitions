@@ -134,6 +134,10 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   `datasets/pubchem-tier`（PubChem FTP の CID-PMID×CID-SMILES×CID-InChI-Key→文献 1 件以上・中性・単一成分・質量 100〜1500 の InChIKey14 表、`n_pmid` 付き。隠しテストは再実行で差し替わるので、テストの質量で絞らない）。
   **自前 COCONUT 完成**（coco-own-3・`yasunorim/casmi26-own-coconut-candidates`・474,231 構造・100〜1,500 Da）：元の表の 99.9%（436,004／436,389）を含み 38,227 多い。b5 の kernel-metadata を差し替え済み。
   （v1 は MORTAR の断片表を取った・v2 は固定長文字列で 3GB＝どちらも作り直し。）PubChem 層（pctier-1）は GHA に依頼済み。
+  **PubChem 層完成**（pctier-1・`yasunorim/casmi26-own-pubchem-tier`・PubMed 1 件以上の 2,291,745 構造・うち train／COCONUT に無い 2,158,912）。
+  **ただし窓内率が低い**：隠しテストと同じ分布の `enveda-180` の構造（18.3 万）のうち、この層に入るのは **2.5%**、COCONUT は 0.03%。
+  ⇒ 隠しテストの c2 は「文献の無い PubChem 構造」（購入できる化合物の類）が中心と読める（人気度が LB で負けたのとも合う）。PubMed で絞った層ではほぼ拾えない。
+  次の調べ（GHA）：enveda-180 の構造が PubChem 全体（約 1.2 億）のどの部分に入るか（全体・登録元の種類別）を測り、窓内率 50% 以上を数百万構造で取れる絞り方を探す。
   次：(1) 自前 COCONUT に差し替えた b5 を LB で確認（同点〜±0.005 なら置き換え完了）、(2) PubChem 層で c2 の窓内率を手元で測り、fp2 の類似で上位 k 件だけを固定枠に差し込む版を作る。
 
 ## 🔴 提出の決まり（2026-09-27 user 指示・最優先）
