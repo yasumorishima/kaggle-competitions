@@ -1,0 +1,7 @@
+request: pccov-1
+run: 37169387274  status: failure  action: dataset  dir: enveda-casmi26/datasets/pubchem-cov  submit: no
+kernel:   version: 
+memo: Coverage of enveda-180 structures in PubChem (all, PubMed-linked, patent-linked, SIDs per compound) to choose a candidate tier; the PubMed tier holds only 2.5%
+
+
+output files:
