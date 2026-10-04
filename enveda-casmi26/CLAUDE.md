@@ -47,7 +47,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 **自分：tp07l5＝0.299（10-03・`b5/build.py exp50_0.2+tp0.7_0.5`）・1,218 位。銅まで +0.102。** 締切 12-14。
 **公開 0.409 の中身（10-03 読解・流用しない）**：①PubChem の人気度（文献数）の事前分布（+0.01）、②順方向モデル（ICEBERG・GLACIER：候補からスペクトルを予測して同じ分子式の異性体を並べ替え）、
 ③PubChem の大きい候補層を FP 予測で検索し、ライブラリが知らない分子だけ固定の枠（2・4・6…位）に差し込む、④別エンジンとの順位融合、⑤LightGBM ランカー。部品は全部他人の公開 dataset。
-⇒ 当方は**自前で**：(a) PubChem FTP から人気度表（`datasets/pubchem-pop`・GHA で作成中）→候補に事前分布、(b) PubChem の候補層（質量・SMILES・InChIKey）を自前 dataset に→fp2 で検索し固定枠で差し込む、
+⇒ 当方は**自前で**：(a) PubChem FTP から人気度表（`datasets/pubchem-pop`）→候補に事前分布＝**10-04 LB で負け（全候補に足す形は不可）**、(b) PubChem の候補層（質量・SMILES・InChIKey）を自前 dataset に→fp2 で検索し固定枠で差し込む、
 (c) 順方向モデルは公開論文の重みを自分で取得できるか調べる。注意：b1 以来の COCONUT 候補は `prvsiyan/coconut-casmi26-candidates`（他人の dataset）＝**自前の COCONUT 表に置き換える**（GHA で COCONUT を取得）。
 
 ### 差の中身（どこで点を取るか）
@@ -127,6 +127,12 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   **LB（10-03）：tp07l5（一致 0.5 未満だけ ×0.7）0.299（自己最高）・tpl4（×0.5・0.4 未満）0.296・tp03l5（×0.3・0.5 未満）0.296**・la01・la03h は採点待ち。
   ⇒ H2 の山は「一致 0.5 未満を ×0.5〜0.7」で平ら（+0.003〜0.005）＝**刻みはここで打ち止め**。b5 の既定を `exp50_0.2+tp0.7_0.5` に。
   銅（0.401）まで +0.10 は刻みでは届かない＝上の (a)〜(c)（人気度・PubChem 候補層・順方向モデル）と COCONUT の自前化へ移る。人気度の dataset（pubpop-1）を GHA に依頼済み。
+- 10-04：**H3 は負け**：la01（+0.1·lib・一致 0.5〜ゲート）0.291・la03h（+0.3·lib・0.65〜）0.292（10-03 最良 0.299 より下）。
+  **H4（人気度 `+popMU`＝MU·log1p(PubMed 数)）も LB で単調に負け**：MU 0.01 採点待ち・0.02＝0.288・0.05＝0.275・0.1＝0.259・0.2＝0.228。
+  読み：手元で伸びたのは class 4（天然物・答えの 99% に文献あり）だけ。隠しテストの答えは文献の多い分子ではない（c2/c3 型が多い）＝**人気度を全候補に足すのはやめる**（公開の +0.01 は別の掛け方と見る）。
+  自前 dataset の作成へ：`datasets/coconut-own`（COCONUT 公式の配布物→`coco_meta.pkl`＋`coco_mass.npy`・同じ形で差し替え・coco-own-1 依頼済み）、
+  `datasets/pubchem-tier`（PubChem FTP の CID-PMID×CID-SMILES×CID-InChI-Key→文献 1 件以上・中性・単一成分・質量 100〜1500 の InChIKey14 表、`n_pmid` 付き。隠しテストは再実行で差し替わるので、テストの質量で絞らない）。
+  次：(1) 自前 COCONUT に差し替えた b5 を LB で確認（同点〜±0.005 なら置き換え完了）、(2) PubChem 層で c2 の窓内率を手元で測り、fp2 の類似で上位 k 件だけを固定枠に差し込む版を作る。
 
 ## 🔴 提出の決まり（2026-09-27 user 指示・最優先）
 
