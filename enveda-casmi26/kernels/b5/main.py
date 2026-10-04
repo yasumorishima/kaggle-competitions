@@ -126,7 +126,7 @@ def fp(smi):
 FUSE = "exp50_0.2"
 TP_F, TP_L = 0.7, 0.5  # demotion of train structures whose spectra do not match
 LA_A, LA_L = 0.0, 9.0  # boost of library matches in [LA_L, gate)
-POP_MU = 0.02  # popularity prior weight (log1p PubMed links per InChIKey14)
+POP_MU = 0.1  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
 POP = dict(zip(*pd.read_parquet(_pop_path[0], columns=["inchikey14", "n_pmid"]).values.T)) if POP_MU and _pop_path else {}
 FP2_ENS = False
