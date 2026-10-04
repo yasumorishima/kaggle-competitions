@@ -1,0 +1,18 @@
+request: coco-own-3
+run: 37168041083  status: success  action: dataset  dir: enveda-casmi26/datasets/coconut-own  submit: no
+kernel:   version: 
+memo: Own COCONUT candidates v3: object-dtype arrays (v2 pickle was 3 GB of fixed-width unicode), mass 100-1500 like the table it replaces
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file coco_mass.npy
+  0%|          | 0.00/3.62M [00:00<?, ?B/s] 15%|█▍        | 544k/3.62M [00:00<00:00, 5.35MB/s]100%|██████████| 3.62M/3.62M [00:00<00:00, 5.81MB/s]
+Upload successful: coco_mass.npy (4MB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/2.91k [00:00<?, ?B/s]100%|██████████| 2.91k/2.91k [00:00<00:00, 5.03kB/s]
+Upload successful: prepare.sh (3KB)
+Starting upload for file coco_meta.pkl
+  0%|          | 0.00/43.6M [00:00<?, ?B/s]  2%|▏         | 1.05M/43.6M [00:00<00:04, 10.7MB/s] 19%|█▉        | 8.27M/43.6M [00:00<00:00, 48.4MB/s] 66%|██████▋   | 28.9M/43.6M [00:00<00:00, 120MB/s]  92%|█████████▏| 40.1M/43.6M [00:00<00:00, 92.8MB/s]100%|██████████| 43.6M/43.6M [00:01<00:00, 43.1MB/s]
+Upload successful: coco_meta.pkl (44MB)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-coconut-candidates
+
+output files:

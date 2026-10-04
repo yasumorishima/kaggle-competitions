@@ -1,0 +1,18 @@
+request: coco-own-1
+run: 37167519060  status: success  action: dataset  dir: enveda-casmi26/datasets/coconut-own  submit: no
+kernel:   version: 
+memo: Own COCONUT candidate table (coco_meta.pkl + coco_mass.npy, same layout the b5 kernel reads) from the official COCONUT dump (CC BY 4.0), to replace prvsiyan/coconut-casmi26-candidates
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file coco_mass.npy
+  0%|          | 0.00/12.6k [00:00<?, ?B/s]100%|██████████| 12.6k/12.6k [00:00<00:00, 31.5kB/s]
+Upload successful: coco_mass.npy (13KB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/2.64k [00:00<?, ?B/s]100%|██████████| 2.64k/2.64k [00:00<00:00, 6.26kB/s]
+Upload successful: prepare.sh (3KB)
+Starting upload for file coco_meta.pkl
+  0%|          | 0.00/839k [00:00<?, ?B/s] 19%|█▉        | 160k/839k [00:00<00:00, 1.29MB/s]100%|██████████| 839k/839k [00:00<00:00, 1.63MB/s]
+Upload successful: coco_meta.pkl (839KB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-coconut-candidates
+
+output files:

@@ -1,0 +1,15 @@
+request: pccov-3
+run: 37169595045  status: success  action: dataset  dir: enveda-casmi26/datasets/pubchem-cov  submit: no
+kernel:   version: 
+memo: Coverage of enveda-180 structures in PubChem, retry: train.parquet through the kaggle CLI (plain curl gets 401 on the runner)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file coverage.txt
+  0%|          | 0.00/408 [00:00<?, ?B/s]100%|██████████| 408/408 [00:00<00:00, 831B/s]
+Upload successful: coverage.txt (408B)
+Starting upload for file prepare.sh
+  0%|          | 0.00/2.61k [00:00<?, ?B/s]100%|██████████| 2.61k/2.61k [00:00<00:00, 6.09kB/s]
+Upload successful: prepare.sh (3KB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-pubchem-coverage
+
+output files:

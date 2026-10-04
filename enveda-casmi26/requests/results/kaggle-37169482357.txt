@@ -1,0 +1,7 @@
+request: pccov-2
+run: 37169482357  status: failure  action: dataset  dir: enveda-casmi26/datasets/pubchem-cov  submit: no
+kernel:   version: 
+memo: Coverage of enveda-180 structures in PubChem, retry: read train.parquet (v1 asked for a file the competition does not ship)
+
+
+output files:
