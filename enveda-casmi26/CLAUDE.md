@@ -142,6 +142,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   **登録元（pccov-4・SID-Map）：enveda-180 の 92.3% が「Enamine」の登録（約 520 万件）に入る**（AKos 68.7%・ZINC 55.7%・上位 3 つの和で 96.9%）。
   ⇒ Enveda のライブラリは Enamine のスクリーニング化合物が元。**隠しテストの c2（PubChem にあるが公開スペクトル無し）も同じ種類なら、Enamine の層で窓に入る**＝今 0 点の分子に点が付く。
   `datasets/enamine-tier`（PubChem の Enamine 登録→中性・単一成分・100〜1,500 Da の InChIKey14 表）を GHA に依頼（enamine-1）。
+  **Enamine 層完成**（enamine-1・`yasunorim/casmi26-own-enamine-tier`・4,733,318 構造・enveda-180 の 92.3% を含む）。窓（±10ppm）の候補は中央値 1,010・90% 点 2,407（今の候補プールは中央値 116）。
+  ⇒ そのまま混ぜると候補が約 9 倍＝c1 の順位を崩す。**fp2 の予測で Enamine 候補を絞り、上位 k 件だけを固定の順位（例：ライブラリ一致が弱いときに 2・4・6…位）に差し込む**形で。
   次：手元で class 2 相当（enveda-180 の構造をライブラリから抜く）に Enamine 層を候補として足し、fp2＋類縁体で何位に来るかを測る→候補が増えた分の順位の落ち込み（c1）とのつり合いを決めて LB へ。
   次：(1) 自前 COCONUT に差し替えた b5 を LB で確認（同点〜±0.005 なら置き換え完了）、(2) PubChem 層で c2 の窓内率を手元で測り、fp2 の類似で上位 k 件だけを固定枠に差し込む版を作る。
 
