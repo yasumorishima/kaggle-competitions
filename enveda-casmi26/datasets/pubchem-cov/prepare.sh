@@ -6,7 +6,8 @@ set -e
 cd "$(dirname "$0")"
 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
 mkdir -p /tmp/comp
-curl -sSfL --retry 5 -o /tmp/comp/train.parquet "https://www.kaggle.com/api/v1/competitions/data/download/enveda-CASMI26-molecule-id-mass-spectra/train.parquet"
+kaggle competitions download enveda-CASMI26-molecule-id-mass-spectra -f train.parquet -p /tmp/comp
+(cd /tmp/comp && for z in *.zip; do [ -f "$z" ] && unzip -o -q "$z" && rm -f "$z"; done; true)
 ls -la /tmp/comp
 B=https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras
 for f in CID-InChI-Key CID-PMID CID-Patent CID-SID; do curl -sSfL --retry 5 -o /tmp/$f.gz $B/$f.gz; done
