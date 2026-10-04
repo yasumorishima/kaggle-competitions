@@ -1,0 +1,15 @@
+request: enamine-1
+run: 37172501319  status: success  action: dataset  dir: enveda-casmi26/datasets/enamine-tier  submit: no
+kernel:   version: 
+memo: Own Enamine candidate tier from PubChem (SID-Map depositor Enamine): 92% of enveda-180 structures live there; for hidden-test class 2
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file prepare.sh
+  0%|          | 0.00/2.40k [00:00<?, ?B/s]100%|██████████| 2.40k/2.40k [00:00<00:00, 3.23kB/s]
+Upload successful: prepare.sh (2KB)
+Starting upload for file enamine_tier.parquet
+  0%|          | 0.00/160M [00:00<?, ?B/s]  1%|          | 1.56M/160M [00:00<00:18, 9.08MB/s]  7%|▋         | 11.9M/160M [00:00<00:02, 52.8MB/s] 14%|█▍        | 23.0M/160M [00:00<00:01, 77.5MB/s] 23%|██▎       | 36.6M/160M [00:00<00:01, 99.4MB/s] 29%|██▉       | 47.0M/160M [00:00<00:01, 92.2MB/s] 36%|███▋      | 58.2M/160M [00:00<00:01, 99.7MB/s] 43%|████▎     | 68.2M/160M [00:00<00:01, 90.6MB/s] 49%|████▉     | 78.4M/160M [00:00<00:00, 92.8MB/s] 55%|█████▍    | 87.6M/160M [00:01<00:00, 87.4MB/s] 60%|██████    | 96.2M/160M [00:01<00:00, 69.4MB/s] 70%|███████   | 112M/160M [00:01<00:00, 90.5MB/s]  76%|███████▌  | 122M/160M [00:01<00:00, 86.0MB/s] 82%|████████▏ | 131M/160M [00:01<00:00, 83.7MB/s] 88%|████████▊ | 140M/160M [00:01<00:00, 87.4MB/s] 93%|█████████▎| 149M/160M [00:01<00:00, 87.8MB/s]100%|██████████| 160M/160M [00:02<00:00, 61.5MB/s]
+Upload successful: enamine_tier.parquet (160MB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-own-enamine-tier
+
+output files:
