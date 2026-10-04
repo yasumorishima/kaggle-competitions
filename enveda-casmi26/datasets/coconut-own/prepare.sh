@@ -2,7 +2,7 @@
 # Build coco_meta.pkl + coco_mass.npy (same layout the b5 kernel reads) from the official COCONUT dump
 # (coconut.naturalproducts.net, CC BY 4.0), instead of another user's Kaggle dataset.
 # coco_meta.pkl = {"keys": InChIKey first block (14), "smiles", "nbits": 0}; coco_mass.npy = neutral monoisotopic mass,
-# one row per InChIKey14, sorted by mass.
+# one row per InChIKey14, mass 100-1500, sorted by mass.
 set -e
 cd "$(dirname "$0")"
 pip install -q rdkit pandas pyarrow
@@ -53,10 +53,11 @@ for s in df[col].dropna().astype(str):
     if len(k) == 14 and k not in best:
         best[k] = (Chem.MolToSmiles(m), ExactMolWt(m))
 print("blocks", len(best), round(time.time() - t), flush=True)
-keys = np.array(list(best))
-smi = np.array([v[0] for v in best.values()])
+keys = np.array(list(best), dtype=object)            # object dtype: fixed-width unicode made a 3 GB pickle
+smi = np.array([v[0] for v in best.values()], dtype=object)
 mass = np.array([v[1] for v in best.values()])
 o = np.argsort(mass, kind="stable")
+o = o[(mass[o] >= 100) & (mass[o] <= 1500)]
 pickle.dump({"keys": keys[o], "smiles": smi[o], "nbits": 0}, open("coco_meta.pkl", "wb"))
 np.save("coco_mass.npy", mass[o])
 print(pd.Series(mass).describe(), flush=True)
