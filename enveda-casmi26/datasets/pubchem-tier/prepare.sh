@@ -1,12 +1,12 @@
 #!/bin/sh
 # Build pubchem_tier.parquet: a PubChem candidate tier for structures the spectral library and COCONUT miss
-# (hidden-test class 2). Kept: compounds with >= MIN_PMID PubMed links (literature-known), neutral, single
+# (hidden-test class 2). Kept: compounds with >= MIN_PMID PubMed links (literature-known; 2.46M blocks at 1), neutral, single
 # fragment, CHNOPS + halogens, monoisotopic mass 100-1500. One row per InChIKey first block (best-linked CID).
 # Source: PubChem FTP Compound/Extras (public): CID-PMID, CID-SMILES, CID-InChI-Key.
 # Columns: inchikey14, smiles, fM (RDKit exact mass), n_pmid.
 set -e
 cd "$(dirname "$0")"
-MIN_PMID=3
+MIN_PMID=1   # n_pmid is kept, so the kernel can filter further
 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
 df -h . | tail -1
 B=https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras
