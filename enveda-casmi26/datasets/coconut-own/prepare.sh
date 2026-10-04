@@ -9,8 +9,8 @@ pip install -q rdkit pandas pyarrow
 P=https://coconut.naturalproducts.net/download
 curl -sSfL --retry 5 -A "Mozilla/5.0" -o /tmp/page.html "$P" || true
 grep -oE 'https?://[^"'"'"' <>]+\.(zip|csv\.gz|csv)' /tmp/page.html | sort -u | tee /tmp/links.txt || true
-URL=$(grep -i csv /tmp/links.txt | grep -iv lite | head -1)
-[ -n "$URL" ] || URL=$(grep -i csv /tmp/links.txt | head -1)
+# the full dump is coconut_csv-MM-YYYY.zip (not _lite, not the MORTAR fragment lists); newest first
+URL=$(grep -E '/coconut_csv-[0-9]{2}-[0-9]{4}\.zip$' /tmp/links.txt | sort -r | head -1)
 if [ -z "$URL" ]; then   # fallback: the COCONUT dumps deposited on Zenodo
   curl -sSfL --retry 5 "https://zenodo.org/api/records?q=COCONUT%20natural%20products%20csv&sort=mostrecent&size=10" -o /tmp/z.json
   URL=$(python3 -c "
@@ -41,6 +41,7 @@ RDLogger.DisableLog("rdApp.*")
 t = time.time()
 f = max(glob.glob("/tmp/coco/**/*.csv", recursive=True), key=lambda p: __import__("os").path.getsize(p))
 df = pd.read_csv(f, low_memory=False)
+assert len(df) > 100000, "not the full COCONUT dump"
 print(f, df.shape, list(df.columns)[:40], flush=True)
 col = next(c for c in ["canonical_smiles", "smiles", "SMILES", "isomeric_smiles"] if c in df.columns)
 best = {}
