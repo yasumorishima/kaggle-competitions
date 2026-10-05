@@ -22,7 +22,11 @@ Options appended with "+":
           datasets/pubchem-pop; local c1 .937 c2 .844 c4 .700 at MU 0.05 vs .938 .841 .585 without)
   laA_L   add A * lib to candidates whose library match is in [L, gate) (H3: on the LB, matches
           between 0.5 and the gate are right more often than in the local bench)
-e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7
+  enR.R.R put the best Enamine-tier candidates (own dataset from PubChem's Enamine deposit; 92% of
+          enveda-180 is there) at fixed 1-based ranks R, only when no library match reaches the gate.
+          Enamine candidates in the window that are not in the pool are scored like the pool (analog +
+          fp2), eval/enamine_slot.py
+e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7, exp50_0.2+tp0.7_0.5+en5.10.15.20.25
 """
 import os
 import sys
@@ -36,6 +40,9 @@ TP_F, TP_L = (float(TP[0]), float(TP[1]) if len(TP) > 1 else 9.0) if TP else (1.
 POP = next((float(o[3:]) for o in OPTS if o.startswith("pop")), 0.0)
 LA = next((o[2:].split("_") for o in OPTS if o.startswith("la")), None)
 LA_A, LA_L = (float(LA[0]), float(LA[1])) if LA else (0.0, 9.0)
+EN = next(([int(x) for x in o[2:].split(".")] for o in OPTS if o.startswith("en") and o != "ens"), [])
+EW = next((o[2:].split("_") for o in OPTS if o.startswith("ew")), None)
+EN_T, EN_W = (float(EW[0]), float(EW[1])) if EW else (50.0, 0.2)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
@@ -56,6 +63,9 @@ FP2 = '''
 FUSE = "''' + FUSE + '''"
 TP_F, TP_L = ''' + repr(TP_F) + ", " + repr(TP_L) + '''  # demotion of train structures whose spectra do not match
 LA_A, LA_L = ''' + repr(LA_A) + ", " + repr(LA_L) + '''  # boost of library matches in [LA_L, gate)
+EN_SLOTS = ''' + repr(EN) + '''  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_T, EN_W = ''' + repr(EN_T) + ", " + repr(EN_W) + '''  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
+_en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = ''' + repr(POP) + '''  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
 POP = dict(zip(*pd.read_parquet(_pop_path[0], columns=["inchikey14", "n_pmid"]).values.T)) if POP_MU and _pop_path else {}
@@ -202,6 +212,51 @@ new_score = '''        score = {c: (lib[c] + 1.0 if lib[c] >= LIB_GATE else 0.0)
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}'''
 assert old_score in src
 src = src.replace(old_score, new_score, 1)
+
+# ---- Enamine tier: extra candidates at fixed ranks (only when no library match reaches the gate) ----
+old = '    log("pool", len(S))\n'
+assert old in src
+src = src.replace(old, old + '''    em = None
+    if EN_SLOTS and _en_path:
+        E = pd.read_parquet(_en_path[0], columns=["inchikey14", "smiles", "fM"])
+        E = E[~E.inchikey14.isin(set(S.inchikey14))].sort_values("fM")
+        em, eik, esm = E.fM.values, E.inchikey14.values, E.smiles.values
+        del E
+        log("enamine tier (not in pool)", len(em), "slots", EN_SLOTS)
+''', 1)
+old = '''    for mid, g in test.groupby("molecule_id"):
+        cands = cand[mid]
+'''
+assert old in src
+src = src.replace(old, old + "        etop = []\n", 1)
+old = "            # the library gate keeps its LB-checked role"
+assert old in src
+src = src.replace(old, '''            if em is not None and np.isfinite(tm.M[mid]):
+                elo, ehi = np.searchsorted(em, [tm.M[mid] * (1 - PPM * 1e-6), tm.M[mid] * (1 + PPM * 1e-6)])
+                if ehi > elo:
+                    ek, es = eik[elo:ehi], esm[elo:ehi]
+                    efp = [fp(x) for x in es]
+                    eok = [i for i, f in enumerate(efp) if f is not None]
+                    EM = np.zeros((max(len(items), 1), len(es)))
+                    for k, (aw, a) in enumerate(items):
+                        if eok:
+                            EM[k, eok] = (aw ** POW) * np.array(DataStructs.BulkTanimotoSimilarity(getfp(a), [efp[i] for i in eok]))
+                    eb, ebok = fp2_bits(list(es))
+                    ell = eb @ np.log(p) + (1 - eb) @ np.log(1 - p)
+                    ell[~ebok] = -1e9
+                    epred = np.sort(EM, 0)[-TOP_K:].sum(0) + EN_W * np.exp((ell - ell.max()) / EN_T)
+                    epred[[f is None for f in efp]] = -1e9
+                    top = np.argsort(-epred, kind="stable")[:len(EN_SLOTS)]
+                    etop = [(ek[i], es[i]) for i in top if epred[i] > -1e8]
+''' + old, 1)
+old = "        ranked = sorted(cands, key=lambda c: -score[c])[:25]\n"
+assert old in src
+src = src.replace(old, old + '''        if etop and not any(lib[c] >= LIB_GATE for c in cands):
+            for r_, (k_, s_) in zip(EN_SLOTS, etop):
+                smi[k_] = s_
+                ranked.insert(r_ - 1, k_)
+            ranked = ranked[:25]
+''', 1)
 
 if GATE is not None:
     old = 'LIB_GATE = float(os.environ.get("CASMI_LIB_GATE", "0.8"))'

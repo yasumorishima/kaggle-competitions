@@ -126,6 +126,9 @@ def fp(smi):
 FUSE = "exp50_0.2"
 TP_F, TP_L = 0.7, 0.5  # demotion of train structures whose spectra do not match
 LA_A, LA_L = 0.0, 9.0  # boost of library matches in [LA_L, gate)
+EN_SLOTS = []  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_T, EN_W = 50.0, 0.2  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
+_en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = 0.0  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
 POP = dict(zip(*pd.read_parquet(_pop_path[0], columns=["inchikey14", "n_pmid"]).values.T)) if POP_MU and _pop_path else {}
@@ -4181,6 +4184,13 @@ def main():
     pm, pk = S.fM.values, S.inchikey14.values
     smi = dict(zip(S.inchikey14, S.smiles))
     log("pool", len(S))
+    em = None
+    if EN_SLOTS and _en_path:
+        E = pd.read_parquet(_en_path[0], columns=["inchikey14", "smiles", "fM"])
+        E = E[~E.inchikey14.isin(set(S.inchikey14))].sort_values("fM")
+        em, eik, esm = E.fM.values, E.inchikey14.values, E.smiles.values
+        del E
+        log("enamine tier (not in pool)", len(em), "slots", EN_SLOTS)
 
     test["M"] = [neutral_mass(m, a) for m, a in zip(test.precursor_mz, test.adduct)]
     tm = test.groupby("molecule_id").agg(M=("M", "median"))
@@ -4239,6 +4249,7 @@ def main():
     out = []
     for mid, g in test.groupby("molecule_id"):
         cands = cand[mid]
+        etop = []
         lib = dict.fromkeys(cands, 0.0)
         cfp = [getfp(c) for c in cands]
         okc = [i for i, f in enumerate(cfp) if f is not None]
@@ -4312,9 +4323,31 @@ def main():
             if LA_A:
                 lv = np.array([lib[c] for c in cands])
                 pred = pred + np.where((lv >= LA_L) & (lv < LIB_GATE), LA_A * lv, 0.0)
+            if em is not None and np.isfinite(tm.M[mid]):
+                elo, ehi = np.searchsorted(em, [tm.M[mid] * (1 - PPM * 1e-6), tm.M[mid] * (1 + PPM * 1e-6)])
+                if ehi > elo:
+                    ek, es = eik[elo:ehi], esm[elo:ehi]
+                    efp = [fp(x) for x in es]
+                    eok = [i for i, f in enumerate(efp) if f is not None]
+                    EM = np.zeros((max(len(items), 1), len(es)))
+                    for k, (aw, a) in enumerate(items):
+                        if eok:
+                            EM[k, eok] = (aw ** POW) * np.array(DataStructs.BulkTanimotoSimilarity(getfp(a), [efp[i] for i in eok]))
+                    eb, ebok = fp2_bits(list(es))
+                    ell = eb @ np.log(p) + (1 - eb) @ np.log(1 - p)
+                    ell[~ebok] = -1e9
+                    epred = np.sort(EM, 0)[-TOP_K:].sum(0) + EN_W * np.exp((ell - ell.max()) / EN_T)
+                    epred[[f is None for f in efp]] = -1e9
+                    top = np.argsort(-epred, kind="stable")[:len(EN_SLOTS)]
+                    etop = [(ek[i], es[i]) for i in top if epred[i] > -1e8]
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}
         ranked = sorted(cands, key=lambda c: -score[c])[:25]
+        if etop and not any(lib[c] >= LIB_GATE for c in cands):
+            for r_, (k_, s_) in zip(EN_SLOTS, etop):
+                smi[k_] = s_
+                ranked.insert(r_ - 1, k_)
+            ranked = ranked[:25]
         smiles = [smi[c] for c in ranked if isinstance(smi.get(c), str)]
         out.append((mid, ";".join(smiles) if smiles else "CCO"))
     sub = pd.DataFrame(out, columns=["molecule_id", "smiles"])
