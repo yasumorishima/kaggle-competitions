@@ -26,6 +26,10 @@ Options appended with "+":
           enveda-180 is there) at fixed 1-based ranks R, only when no library match reaches the gate.
           Enamine candidates in the window that are not in the pool are scored like the pool (analog +
           fp2), eval/enamine_slot.py
+  emF     instead of slots, the top 10 Enamine candidates join the ranking with F * their score
+          (eval/enamine_mix.py: F 1 -> c1 .931 c2 .819 answer-outside-pool .522 c4 .575;
+          slots 2.4.6 -> .935 .835 .273 .563)
+  ewT_W   Enamine ranking: analog + W * exp((ll - max ll) / T) (default T 50, W 0.2)
 e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7, exp50_0.2+tp0.7_0.5+en5.10.15.20.25
 """
 import os
@@ -41,6 +45,7 @@ POP = next((float(o[3:]) for o in OPTS if o.startswith("pop")), 0.0)
 LA = next((o[2:].split("_") for o in OPTS if o.startswith("la")), None)
 LA_A, LA_L = (float(LA[0]), float(LA[1])) if LA else (0.0, 9.0)
 EN = next(([int(x) for x in o[2:].split(".")] for o in OPTS if o.startswith("en") and o != "ens"), [])
+EM = next((float(o[2:]) for o in OPTS if o.startswith("em")), 0.0)
 EW = next((o[2:].split("_") for o in OPTS if o.startswith("ew")), None)
 EN_T, EN_W = (float(EW[0]), float(EW[1])) if EW else (50.0, 0.2)
 
@@ -64,6 +69,7 @@ FUSE = "''' + FUSE + '''"
 TP_F, TP_L = ''' + repr(TP_F) + ", " + repr(TP_L) + '''  # demotion of train structures whose spectra do not match
 LA_A, LA_L = ''' + repr(LA_A) + ", " + repr(LA_L) + '''  # boost of library matches in [LA_L, gate)
 EN_SLOTS = ''' + repr(EN) + '''  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_MERGE = ''' + repr(EM) + '''  # > 0: the top 10 Enamine candidates compete with the pool on EN_MERGE * score
 EN_T, EN_W = ''' + repr(EN_T) + ", " + repr(EN_W) + '''  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
 _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = ''' + repr(POP) + '''  # popularity prior weight (log1p PubMed links per InChIKey14)
@@ -217,7 +223,7 @@ src = src.replace(old_score, new_score, 1)
 old = '    log("pool", len(S))\n'
 assert old in src
 src = src.replace(old, old + '''    em = None
-    if EN_SLOTS and _en_path:
+    if (EN_SLOTS or EN_MERGE) and _en_path:
         E = pd.read_parquet(_en_path[0], columns=["inchikey14", "smiles", "fM"])
         E = E[~E.inchikey14.isin(set(S.inchikey14))].sort_values("fM")
         em, eik, esm = E.fM.values, E.inchikey14.values, E.smiles.values
@@ -246,16 +252,21 @@ src = src.replace(old, '''            if em is not None and np.isfinite(tm.M[mid
                     ell[~ebok] = -1e9
                     epred = np.sort(EM, 0)[-TOP_K:].sum(0) + EN_W * np.exp((ell - ell.max()) / EN_T)
                     epred[[f is None for f in efp]] = -1e9
-                    top = np.argsort(-epred, kind="stable")[:len(EN_SLOTS)]
-                    etop = [(ek[i], es[i]) for i in top if epred[i] > -1e8]
+                    top = np.argsort(-epred, kind="stable")[:10 if EN_MERGE else len(EN_SLOTS)]
+                    etop = [(ek[i], es[i], float(epred[i])) for i in top if epred[i] > -1e8]
 ''' + old, 1)
 old = "        ranked = sorted(cands, key=lambda c: -score[c])[:25]\n"
 assert old in src
 src = src.replace(old, old + '''        if etop and not any(lib[c] >= LIB_GATE for c in cands):
-            for r_, (k_, s_) in zip(EN_SLOTS, etop):
+            for k_, s_, _ in etop:
                 smi[k_] = s_
-                ranked.insert(r_ - 1, k_)
-            ranked = ranked[:25]
+            if EN_MERGE:
+                both = [(score[c], c) for c in cands] + [(EN_MERGE * v_, k_) for k_, _, v_ in etop]
+                ranked = [c for _, c in sorted(both, key=lambda x: -x[0])[:25]]
+            else:
+                for r_, (k_, _, _) in zip(EN_SLOTS, etop):
+                    ranked.insert(r_ - 1, k_)
+                ranked = ranked[:25]
 ''', 1)
 
 if GATE is not None:
