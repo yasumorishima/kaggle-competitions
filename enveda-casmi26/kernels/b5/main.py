@@ -126,7 +126,8 @@ def fp(smi):
 FUSE = "exp50_0.2"
 TP_F, TP_L = 0.7, 0.5  # demotion of train structures whose spectra do not match
 LA_A, LA_L = 0.0, 9.0  # boost of library matches in [LA_L, gate)
-EN_SLOTS = [2, 4, 6]  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_SLOTS = []  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_MERGE = 0.0  # > 0: the top 10 Enamine candidates compete with the pool on EN_MERGE * score
 EN_T, EN_W = 50.0, 0.2  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
 _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = 0.0  # popularity prior weight (log1p PubMed links per InChIKey14)
@@ -4185,7 +4186,7 @@ def main():
     smi = dict(zip(S.inchikey14, S.smiles))
     log("pool", len(S))
     em = None
-    if EN_SLOTS and _en_path:
+    if (EN_SLOTS or EN_MERGE) and _en_path:
         E = pd.read_parquet(_en_path[0], columns=["inchikey14", "smiles", "fM"])
         E = E[~E.inchikey14.isin(set(S.inchikey14))].sort_values("fM")
         em, eik, esm = E.fM.values, E.inchikey14.values, E.smiles.values
@@ -4338,16 +4339,21 @@ def main():
                     ell[~ebok] = -1e9
                     epred = np.sort(EM, 0)[-TOP_K:].sum(0) + EN_W * np.exp((ell - ell.max()) / EN_T)
                     epred[[f is None for f in efp]] = -1e9
-                    top = np.argsort(-epred, kind="stable")[:len(EN_SLOTS)]
-                    etop = [(ek[i], es[i]) for i in top if epred[i] > -1e8]
+                    top = np.argsort(-epred, kind="stable")[:10 if EN_MERGE else len(EN_SLOTS)]
+                    etop = [(ek[i], es[i], float(epred[i])) for i in top if epred[i] > -1e8]
             # the library gate keeps its LB-checked role; the re-ranker orders everything else
             score = {c: (1000.0 + lib[c] if lib[c] >= LIB_GATE else 0.0) + float(pr) for c, pr in zip(cands, pred)}
         ranked = sorted(cands, key=lambda c: -score[c])[:25]
         if etop and not any(lib[c] >= LIB_GATE for c in cands):
-            for r_, (k_, s_) in zip(EN_SLOTS, etop):
+            for k_, s_, _ in etop:
                 smi[k_] = s_
-                ranked.insert(r_ - 1, k_)
-            ranked = ranked[:25]
+            if EN_MERGE:
+                both = [(score[c], c) for c in cands] + [(EN_MERGE * v_, k_) for k_, _, v_ in etop]
+                ranked = [c for _, c in sorted(both, key=lambda x: -x[0])[:25]]
+            else:
+                for r_, (k_, _, _) in zip(EN_SLOTS, etop):
+                    ranked.insert(r_ - 1, k_)
+                ranked = ranked[:25]
         smiles = [smi[c] for c in ranked if isinstance(smi.get(c), str)]
         out.append((mid, ";".join(smiles) if smiles else "CCO"))
     sub = pd.DataFrame(out, columns=["molecule_id", "smiles"])
