@@ -61,7 +61,7 @@ def main():
             cache[ik] = GEN.GetCountFingerprint(m) if m is not None else None
         return cache[ik]
 
-    rows, stats = [], []
+    rows, stats, cache_rows = [], [], []
     for n, (ik, cls, cands, lib, _, hits) in enumerate(dump):
         lib = np.asarray(lib)
         # mass of the answer: from the Enamine table, else from the structure
@@ -106,6 +106,7 @@ def main():
         in_e = ik in set(e_rank)
         e_mrr = mrr25(e_rank, ik)
         gated = bool((lib >= GATE).any())
+        cache_rows.append((ik, cls, ranked, np.sort(sc)[::-1], e_rank, np.sort(e_ana)[::-1], gated))
         stats.append((cls, ik in epos, in_e, len(ecand), len(cands), e_mrr, gated, ik in cset))
         for name, sl in SLOTS.items():
             for only_weak in (True, False):
@@ -129,6 +130,7 @@ def main():
     r = pd.DataFrame(rows, columns=["method", "mrr", "cls"]).pivot_table("mrr", "method", "cls")
     print(r.round(3).to_string())
     st.to_csv(DATA + "/enamine_slot_stats.csv", index=False)
+    pickle.dump(cache_rows, open(DATA + "/enamine_slot_cache.pkl", "wb"))
 
 
 if __name__ == "__main__":
