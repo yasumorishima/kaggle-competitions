@@ -127,7 +127,7 @@ FUSE = "exp50_0.2"
 TP_F, TP_L = 0.7, 0.5  # demotion of train structures whose spectra do not match
 LA_A, LA_L = 0.0, 9.0  # boost of library matches in [LA_L, gate)
 EN_SLOTS = []  # 1-based ranks for Enamine-tier candidates (empty = off)
-EN_MERGE = 0.8  # > 0: the top 10 Enamine candidates compete with the pool on EN_MERGE * score
+EN_MERGE = 0.6  # > 0: the top 10 Enamine candidates compete with the pool on EN_MERGE * score
 EN_T, EN_W = 50.0, 0.2  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
 _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = 0.0  # popularity prior weight (log1p PubMed links per InChIKey14)
