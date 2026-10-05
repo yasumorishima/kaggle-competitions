@@ -1,0 +1,32 @@
+request: en246-1
+run: 37249316645  status: success  action: kernel  dir: enveda-casmi26/kernels/b5  submit: yes
+kernel: yasunorim/casmi26-b5-analog-fp2-rerank  version: 37
+memo: H5 Enamine tier: top-3 Enamine-only candidates (analog + 0.2 fp2) at ranks 2,4,6 when no library match reaches the gate. Local class-3 proxy (answer not in pool) 0 -> 0.273, c1 -0.003, c2 -0.006, c4 -0.023. Hypothesis: hidden class 2 = Enamine compounds; LB > 0.299
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 37 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-b5-analog-fp2-rerank
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-05 01:14:57.700000,en246-1: b5 with fusion exp50_0.2+tp0.7_0.5+en2.4.6 [run 37249316645],SubmissionStatus.PENDING,,
+submission.csv,2026-10-05 00:39:10.770000,cocoown-1: b5 with fusion exp50_0.2+tp0.7_0.5 [run 37247815941],SubmissionStatus.COMPLETE,0.303,
+submission.csv,2026-10-04 01:09:22.090000,pop001-1: b5 with fusion exp50_0.2+tp0.7_0.5+pop0.01 [run 37166769119],SubmissionStatus.COMPLETE,0.293,
+
+output files:
+total 408
+drwxr-xr-x  2 runner runner   4096 Oct  5 01:14 .
+drwxrwxrwt 14 root   root     4096 Oct  5 01:14 ..
+-rw-r--r--  1 runner runner   2250 Oct  5 01:14 casmi26-b5-analog-fp2-rerank.log
+-rw-r--r--  1 runner runner 403425 Oct  5 01:14 submission.csv
+[{"stream_name":"stdout","time":7.365419493,"data":"[     6s] comp /kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra coco /kaggle/input/casmi26-own-coconut-candidates wheels /kaggle/input/datasets/yasunorim/casmi26-offline-wheels\n"}
+,{"stream_name":"stdout","time":21.855186978,"data":"[    21s] train 2539608 test 1213 400 molecules\n"}
+,{"stream_name":"stdout","time":24.717644452000002,"data":"[    24s] pool 723933\n"}
+,{"stream_name":"stdout","time":34.840024912,"data":"[    34s] enamine tier (not in pool) 4533553 slots [2, 4, 6]\n"}
+,{"stream_name":"stdout","time":34.899862321,"data":"[    34s] candidates/molecule median 107.5\n"}
+,{"stream_name":"stdout","time":134.650931091,"data":"[   134s] library spectra 586912\n"}
+,{"stream_name":"stdout","time":188.96213734,"data":"[   188s] indexes {'negative': 112999, 'positive': 258539}\n"}
+,{"stream_name":"stderr","time":189.089675281,"data":"/kaggle/src/script.py:163: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True\n"}
+,{"stream_name":"stderr","time":189.089716556,"data":"  self.enc = nn.TransformerEncoder(layer, 4)\n"}
+,{"stream_name":"stdout","time":189.376582115,"data":"[   188s] fp2 ['/kaggle/input/notebooks/yasunorim/casmi26-fp2-peak-transformer/fp2.pt'] gate 0.8 re-ranker trees 200\n"}
+,{"stream_name":"stdout","time":1010.547951138,"data":"[  1010s] wrote 400 rows\n"}
+,{"stream_name":"stderr","time":1016.037323637,"data":"/usr/local/
