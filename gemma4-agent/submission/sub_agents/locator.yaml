@@ -1,0 +1,9 @@
+name: locator
+model: gemma-4-31b-it-qat-w4a16-ct
+description: Read-only code locator. Call it once with a short note on what to look for; it reads the repository and returns the file, function, line numbers and the change to make.
+instruction: !include ../prompts/locator.md
+tools:
+  - run_command
+  - read_file
+  - get_code_neighbors
+generate_content_config: !include ../configs/sampling.yaml

@@ -31,7 +31,7 @@ import numpy as np  # noqa: E402
 # Budgets: 110 games in under 9 hours (leave margin for the gateway and start-up).
 TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 * 3600))  # the offline check (25 games) stays short
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "10000"))  # local 25 games: 2500 -> 12 levels 0.1131, 10000 -> 16 levels 0.1138
-MAX_CLICKS = 24          # click targets per node
+MAX_CLICKS = int(os.getenv("ARC3_MAX_CLICKS", "64"))  # click targets per node (local 25 games: 8 -> 0.1165, 24 -> 0.1138, 64 -> 0.1536)
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
 NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "0"))  # tries of a move kind before its no-op rate counts (0 = off; LB: off 0.15, 2 0.09)
 EDGE = 3                 # rows/columns this close to the border may hold a counter bar

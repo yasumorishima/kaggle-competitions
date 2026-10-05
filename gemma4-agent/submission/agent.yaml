@@ -13,3 +13,6 @@ tools:
   - get_code_subgraph
   - get_status
   - submit_patch
+  - agent_tool:
+      config_path: sub_agents/locator.yaml
+      skip_summarization: false
