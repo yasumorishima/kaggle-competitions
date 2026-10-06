@@ -156,9 +156,8 @@ class Sinus(nn.Module):
 
 
 class FP2Net(nn.Module):
-    def __init__(self):
+    def __init__(self, D=FP2_D):
         super().__init__()
-        D = FP2_D
         self.sin = Sinus()
         self.peak = nn.Sequential(nn.Linear(128 * 2 + 1, D), nn.GELU(), nn.Linear(D, D))
         self.prec = nn.Sequential(nn.Linear(128, D), nn.GELU(), nn.Linear(D, D))
@@ -4242,8 +4241,9 @@ def main():
 
     fp2s = []
     for path in FP2_WEIGHTS[:len(FP2_WEIGHTS) if FP2_ENS else 1]:
-        net = FP2Net()
-        net.load_state_dict(torch.load(path, map_location="cpu"))
+        sd = torch.load(path, map_location="cpu")
+        net = FP2Net(sd["add.weight"].shape[1])   # d 384 (v2, seeds) or 512 (fp2L3)
+        net.load_state_dict(sd)
         fp2s.append(net.eval())
     fp2 = fp2s[0] if fp2s else None
     ranker = lgb.Booster(model_str=LGB_MODEL)
