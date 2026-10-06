@@ -1,0 +1,9 @@
+request: fp2s2-1
+run: 37394768253  status: success  action: kernel  dir: enveda-casmi26/kernels/fp2s2  submit: no
+kernel: yasunorim/casmi26-fp2s2  version: 1
+memo: fp2 ensemble member 2 (seed 2, 24 epochs: v2 loss was still falling at 16): plan (b); FP-alone MRR vs v2 (np .494 rnd .875)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-fp2s2
+
+output files:
