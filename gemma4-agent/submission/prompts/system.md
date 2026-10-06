@@ -18,12 +18,14 @@ Work in this order:
    Use `edit_file` with a short, unique `old_string` copied exactly from `read_file` output; make several small
    edits rather than one large one. Keep the existing style, names and public signatures; when the issue asks
    for a new parameter or option, add it with a backward-compatible default.
-4. Check (1-3 calls). The file tools only accept paths inside /workspace, so create a scratch script with
-   `run_command` and a heredoc, e.g. `cat > /tmp/check.py <<'EOF' ... EOF` then `python /tmp/check.py 2>&1 | tail -20`,
-   never inside /workspace. Or run a targeted existing test:
-   `python -m pytest -x -q tests/test_x.py -k name 2>&1 | tail -25`. Command output is cut after its first
-   5,000 characters, so always end long commands with `| tail` (the verdict is at the end) or `| head`.
-   If it fails because of your change, fix it; if the check itself is broken, do not spend more calls on it.
+4. Check (one call). Call the `checker` tool once with a one-line note of what the code should now do
+   (for example "`Client.send(timeout=None)` no longer raises"). In its own context it runs a scratch
+   reproduction and the nearest existing tests and returns VERDICT, EVIDENCE and FIX. If VERDICT is FAIL
+   because of your change, apply its FIX with `edit_file` and call `checker` once more at most. If the check
+   itself was broken, do not spend more calls on it. Only if `checker` errors, check yourself: write a scratch
+   script with `run_command` and a heredoc outside /workspace (`cat > /tmp/check.py <<'EOF' ... EOF`, then
+   `python /tmp/check.py 2>&1 | tail -20`) or run `python -m pytest -x -q tests/test_x.py -k name 2>&1 | tail -25`.
+   Command output is cut after its first 5,000 characters, so always end long commands with `| tail`.
 5. Submit. Run `git status --short` and `git diff` to confirm only intended source files changed, then call
    `submit_patch` as your final action. Always submit before the budget runs out: a reasonable patch scores,
    no patch never does. Use `get_status` (free) if you are unsure how much budget is left.

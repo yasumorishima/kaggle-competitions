@@ -1,0 +1,9 @@
+request: fp2L3-1
+run: 37397531597  status: failure  action: kernel  dir: enveda-casmi26/kernels/fp2L3  submit: no
+kernel: yasunorim/casmi26-fp2L3  version: 
+memo: fp2 larger member (d 512, seed 3, 24 epochs; v2 is d 384 / 16 ep and its loss was still falling): plan (b) fp2 strengthening; FP-alone MRR vs v2 (np .494 rnd .875)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch GPU session count of 2 reached.
+
+output files:

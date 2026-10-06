@@ -1,0 +1,24 @@
+request: wheels313-1
+run: 37394908109  status: success  action: dataset  dir: enveda-casmi26/datasets/offline-pkgs  submit: no
+kernel:   version: 
+memo: Kaggle image moved to Python 3.13 (fp2s1/fp2s2 failed: cp312 rdkit wheel not supported). Add cp313 rdkit/ms_entropy wheels next to cp312; kernels pick the wheels for their interpreter
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Starting upload for file ms_entropy-1.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/268k [00:00<?, ?B/s] 60%|█████▉    | 160k/268k [00:00<00:00, 1.35MB/s]100%|██████████| 268k/268k [00:00<00:00, 639kB/s] 
+Upload successful: ms_entropy-1.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (268KB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/545 [00:00<?, ?B/s]100%|██████████| 545/545 [00:00<00:00, 1.38kB/s]
+Upload successful: prepare.sh (545B)
+Starting upload for file ms_entropy-1.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  0%|          | 0.00/267k [00:00<?, ?B/s]100%|██████████| 267k/267k [00:00<00:00, 690kB/s]
+Upload successful: ms_entropy-1.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (267KB)
+Starting upload for file rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/35.5M [00:00<?, ?B/s]  2%|▏         | 640k/35.5M [00:00<00:05, 6.11MB/s] 33%|███▎      | 11.8M/35.5M [00:00<00:00, 68.6MB/s] 66%|██████▌   | 23.3M/35.5M [00:00<00:00, 90.8MB/s]100%|██████████| 35.5M/35.5M [00:00<00:00, 51.1MB/s]
+Upload successful: rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl (35MB)
+Starting upload for file rdkit-2026.3.3-cp313-cp313-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/35.5M [00:00<?, ?B/s]  5%|▌         | 1.86M/35.5M [00:00<00:02, 13.7MB/s] 58%|█████▊    | 20.5M/35.5M [00:00<00:00, 101MB/s] 100%|██████████| 35.5M/35.5M [00:00<00:00, 54.5MB/s]
+Upload successful: rdkit-2026.3.3-cp313-cp313-manylinux_2_28_x86_64.whl (35MB)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/casmi26-offline-wheels
+
+output files:

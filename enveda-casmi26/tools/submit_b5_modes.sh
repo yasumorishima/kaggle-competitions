@@ -14,9 +14,12 @@ wait_for() {
 }
 run() {  # id mode memo
   python3 enveda-casmi26/kernels/b5/build.py "$2" >/dev/null
-  python3 -c "
-import json
-json.dump({'id':'$1','memo':'$3','action':'kernel','dir':'kernels/b5','submit':'submit','message':'$1: b5 with fusion $2'},open('enveda-casmi26/requests/kaggle.json','w'),indent=1)"
+  # memo goes through the environment: quotes in it must not break the python source
+  RID="$1" MODE="$2" MEMO="$3" python3 -c "
+import json, os
+e = os.environ
+json.dump({'id': e['RID'], 'memo': e['MEMO'], 'action': 'kernel', 'dir': 'kernels/b5', 'submit': 'submit',
+           'message': e['RID'] + ': b5 with fusion ' + e['MODE']}, open('enveda-casmi26/requests/kaggle.json', 'w'), indent=1)" || { echo "request not written for $1"; exit 1; }
   git add enveda-casmi26/kernels/b5/main.py enveda-casmi26/requests/kaggle.json
   git commit -q -m "enveda-casmi26: submit $1 (b5 fusion $2)
 

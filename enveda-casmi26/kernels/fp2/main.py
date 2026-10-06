@@ -39,7 +39,7 @@ WHEELS = first("/kaggle/input/**/rdkit-*.whl")
 WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)   # present => evaluate only (fp2dump)
 if WHEELS:
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--no-index",
-                    *glob.glob(WHEELS + "/*.whl")], check=True)
+                    *glob.glob(WHEELS + f"/*-cp{sys.version_info[0]}{sys.version_info[1]}-*.whl")], check=True)
 log("comp", COMP, "coco", COCO, "wheels", WHEELS)
 
 import numpy as np  # noqa: E402
@@ -57,6 +57,7 @@ PER_STRUCT = 4
 N_PEAKS = 64
 FP_BITS = 2048
 D = int(os.environ.get("FP2_D", "384"))
+SEED = int(os.environ.get("FP2_SEED", "0"))   # 0 = fp2 v2; others = ensemble members (make_variant.py)
 PPM = 10.0
 TEST_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                 "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
@@ -176,10 +177,13 @@ def main():
     ev = meta.loc[(meta.ingest_lib == "enveda-180") & meta.adduct.isin(TEST_ADDUCTS), "inchikey14"].unique()
     rnd = set(rng.choice([m for m in ev if m not in pub and m not in npx], 400, replace=False))
     held = npx | rnd
+    if SEED:   # same held-out set, different spectra per structure, init and batch order
+        rng = np.random.default_rng(2026 + SEED)
+        torch.manual_seed(SEED)
 
     tr = meta[meta.adduct.isin(TEST_ADDUCTS) & ~meta.inchikey14.isin(held)].copy()
     tr["pri"] = (tr.instrument_type == "timsTOF").astype(int)
-    tr = tr.sample(frac=1, random_state=0).sort_values("pri", ascending=False, kind="stable")
+    tr = tr.sample(frac=1, random_state=SEED).sort_values("pri", ascending=False, kind="stable")
     tr = tr.groupby("inchikey14").head(PER_STRUCT)
     S = tr.drop_duplicates("inchikey14")
     bits, ok = fp_bits(S.normalized_smiles.values)

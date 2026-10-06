@@ -1,4 +1,4 @@
-"""CASMI26 FP2: spectrum -> Morgan fingerprint with a peak transformer (GPU).
+"""CASMI26 FP2 on TPU (JAX; built by fp2tpu/build.py: seed 4, 16 epochs, d 384): spectrum -> Morgan fingerprint with a peak transformer (GPU).
 
 Plan step 1 (enveda-casmi26/CLAUDE.md, "メダルへの道筋"): the fingerprint channel has to
 reach the public FPNet's level (FP alone ~0.45+ on natural-product c2) before it can help.
@@ -10,10 +10,7 @@ Held out from training and scored at the end, FP alone over the train+COCONUT po
 (+-10 ppm of the neutral mass), exactly as the ranking channel would use it:
   np   = enveda-np-examples structures (all their spectra, every library)  <- the LB-like c2
   rnd  = 400 random enveda-180-only structures
-  loc  = the 450 class 1-3 molecules of the local validation (eval/analog.py 150), their
-         enveda-180 spectra; held out so their candidate scores are honest
-Writes fp2.pt (weights) and fp2_eval.txt, and prints "FPLL <ik> cand:ll ..." (np) and
-"FPLLC <ik> cand:ll ..." (loc) for weighting fp2 against the analog channel on every class.
+Writes fp2.pt (weights) and fp2_eval.txt.
 """
 import glob
 import math
@@ -52,14 +49,19 @@ import torch  # noqa: E402
 from rdkit import Chem, RDLogger  # noqa: E402
 from rdkit.Chem import rdFingerprintGenerator  # noqa: E402
 from torch import nn  # noqa: E402
+import jax  # noqa: E402
+import jax.numpy as jnp  # noqa: E402
+import optax  # noqa: E402
+from jax.sharding import Mesh, NamedSharding, PartitionSpec  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
-DEV = "cuda" if torch.cuda.is_available() else "cpu"
+DEV = "cpu"   # torch only builds the initial weights and checks parity
 EPOCHS = int(os.environ.get("FP2_EPOCHS", "16"))
 PER_STRUCT = 4
 N_PEAKS = 64
 FP_BITS = 2048
 D = int(os.environ.get("FP2_D", "384"))
+SEED = int(os.environ.get("FP2_SEED", "4"))   # 0 = fp2 v2; others = ensemble members (make_variant.py)
 PPM = 10.0
 TEST_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                 "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
@@ -167,7 +169,60 @@ class Net(nn.Module):
         return self.out(self.enc(x, src_key_padding_mask=mask)[:, 0])
 
 
-LOCAL = set("""ABMZSNRXQRQCQT ABXSOVZQGXSQFJ ACEVBXFFUIVURG ACVAWGBVBDKBNY AENQNWUGBTYFNA AHRHVDQWRVQTLE AJCDLEYPSOBETK AKSMHRLDUSCSFZ AMTGFQINBAELGK AOQDFQVZGMOAAV APNYTNJCMJKLME AQXMFFJRKWGGRJ ATAFFQWFLHETHW ATDKSRRCEZVVOZ AUGJHPHQKVCLIR AUQBYRUDSWHOGP AVCAIVDUYBWCLK BAGFBVGQJYQNFB BBRFEEJDMPBESZ BCAWDEJTNZGEIW BDLWXZBUXOZHEI BEJMWMODHXWCBA BELJYKZJBHPKFG BEVIMMAXNBLRPG BGCPOZIXSJQHLW BHTIYSKEQOTPBS BHVAMDKEFOHXOT BIIUGSDWXHVMTO BKIPVLNAQOSHIS BMMKINCXTJDRHP BMODUEWTOYIBDD BOFKIKDDUIKHLR BPOZRTPHQUMFAA BPZYBVZQMVUCJG BSFLPVBVKFGYRX BVAAAJMYIKDCPZ BVKNKUQYNDREIA BWEMWIDJIALVCM BWTFCJRCFFQYHX BZISFYHUXCUTHY CAJTWHRYWMQHDI CANMCMVNWGMVQF CBELIOVTXIMQTN CESWIVPVDDJQDF CFFOLRNTDZBXTN CHNRLSDGPYIHCC CHPZIIKLDBNHBX CMNLYMLFSNJOTL CMRWPUUYDVZDEX CPFWIOHCQYPFRX CRQBLWPSGUDJBV CTKRUSAEWQDXGG CTMOYBZTVLDKKS CVZSVDXNYLHOPN CWOAOGXDXMWESY CWQKVCHHXFHMPX CWSSEICFNKXPJB DBXJHCZWKPNERJ DEBBJKXLUFLJLY DHEBMEOGIMGULX DIGPZUKDSCFEKB DJGQXMNVFJUWAM DKUBNQJMOPRGCW DKXIQBUNGNVJPZ DMFDWWJTKWKTGD DMINWBKJSOWPBJ DMSJOPZGANCRJP DNHRMBOJLORDMQ DOBAANARNBVWEI DOOCERUDKWWGHD DPLZXRMDPUMYGJ DPWBMISMGXCDPT DQCRHDRIBYNUMF DRHFOIXHRIWZLO DSXPMAVVRLTONM DVYYZSVVKJISGC DWOYHVMHUINMAJ DXTFGKVWLRHOKR DZQDNVFRDZJTOP DZYNJXSJKQYRRD FABNIRXBZYWGSU FADPEUJKKSQDAE FAOZNIIGGQNROA FCQIMUNIDOADLA FGUCZYDUUZCXNO FHJSDRIWENFUTO FKKVEQLIHQGBRQ FLDOYNCWVGCZPS FSPXNFHILFFWRB FUSPQRXORVQBNU FVBWMJCJGPRURZ FZNOPRQKPQIJMS GAOPNANJFAVKHV GDZTURVYNAVWHC GEKIZZCGKMEOTI GEQKDQBJXKZOMS GFSMWJSJEKUEOX GFTKBARRWJQIDR GKSNDFPJMRAUEO GLBQXWUEEBTQRY GMVPYVMTHNPFBU GPDWXSWNDBDABI GQAPDGRHGHKGQA GRABUYZRTNLRNB GRMPWCDTFWZLRX GSHJTKSEJUAEQT GVRLRPCJTHDQGK GWSJYKJKIZPCFF GXMLSTZPJNYTPC GYCGXLPEXLYXAY GZZOENHWXUHYBD HALPJZSWALHUMU HCECOCVPFGGBML HCLOOHAZKANNAO HFDMYGBHRHTUAN HHACLPIXZYLLLL HHHXZSAYRZFVBM HKRBKTZBCSRISY HLRZTSRGUGSXRI HMDPOORVLQLQKU HMNUTFAFLIVQDT HNFUXGKVOMUNPI HNZUIWZWQKGVAP HOLOTUISZHKMIA HPRBYHNUKRYHLK HTBWYCSIRDWKJW HWCZQQXYFOQUTP HZFUPWQLEFTQKL IAFYQJVTUBSHNH ICTBZXZCHAKCCY IEZOOQQGMQQJBD IGLXARCHGFRGSR IJCVJQPRZGIHFC IJPQFAHGANYUCW IJXYKGAFDSHXHH IPZFDRKPXGZHJI IRJGTIYBJHACDX IRLUFIJFZSNLIF ISLAVDOFEDXDMT IUFBPGOHOIDISM IVFSAODXALIWLT IZRFBFUSKKNJKT JAPNDYXQNHAQBM JCAFGYWSIWYMOX JDZNCFKUZUJLLU JGQFKQCPEOKNNB JHTMGDZBHNEBFW JJQJVMONONIRMV JLOFFVYRMSPKBD JOSJHPJQGZIICN JOSVECYHQIINJI JRPYGTODYXUOQI JRYUQCVCFHTTMU JXNFPUXVQGEZBK JYUVQMSZNNJONV KBZCLUITKWTPOM KCFNITBAUKJSIJ KCGOMOPYOJXFSS KEKXLNXMYLKJTL KFCPZYUGQTVQIU KGMKWEVELSEAKY KICHUHFNXKZPKI KIVXHRQFHRNUFB KLNQYPHOPLSZSG KMURCBYJXNNZLL KNQWBBGUZBYBIE KOMXTVDASXZTOC KOOKTDWWSIDBAQ KPWGGMFVRSWORV KQMUXTYQMUTAKD KQULBNKOEIPFRK KSDGKTMKZLVBJF KTDIPOSPVUDXTG LCCPJWWPUAAUSP LFANBHUYKNSXFU LFLZINJYIDBQNQ LLGBEPFCPMDJBG LLINOOSDTOEBGA LMBNFDLVMIKMLQ LMLITORSZYWNOI LNABWTAJAKLZLB LOHIZPJKJROADY LOXLBRYIRQGSMR LPBYFVCWKJTHFH LQTRVBSINDZYEA LRBCFMXOLFSSPM LSKBJUPZABPAEH LTRDMOXWNYDEQX LUDCRDFLYQBROL MAOXQFVPCJHMHV MAQFWSLABWWNSW MBHNEWFUFVHDJH MDTRYEOQYSCIJR MDWGWKQOTSXGOA MEQOJVUJNAKFQU MERQMAIZKXALFF MEWUODMALAAUGV MFIUWUDXYRJIOC MGGAZQZFKKMXNU MHSNRGAXHFUJJI MJSHNDIJYOGLLI MKQWOKNYUWXYLB MMQCOVQGVUQONT MOOCNJMZSZHZNV MOVQFMIVLQKKNN MSGXGVDUOVUKLP MUVNKTGMBODOFX MXRUBWYDERXQKJ MYHCBGWIPOMPHL MYVLTMSUUBUSNI MZSQBWJRMGSBCE NAZANDXWEJHDTA NBIJSRNVSDHKST NCCUCVBBGGWOAE NCJXGGDZDIYLPA NCRUHMQGKNBOAW NCUYADIFXOXSGU NEOSOBMTFBZLGL NEQODIPPRHWLIJ NFXXCNWOYRJXRP NGOIILVUQWIWAM NGTBXWDYZCBIHG NHLPMACTJSEQJO NJMSJEREUBSWDD NKVYEIIWFTURSO NNUTWBIIDJMERY NODLNRUXGWVECN NOWSCPYZLZEPAJ NPAAYGVXEVQOCK NQYKAVYTROIOCS NRVBHSYXEQXHID NRZJPDRMSXJXPN NSDIZIKJLOODGT NUNMTRHVQJFKCW NVGDSTIPQRSYQI NVOURNOWOJKTDC NWTHSLLHRLFDAM NYMVYTZPSFHQOT NYWUSMRFIGMDBX OCUOUBGWLUMMBL ODBSYKWKXWGJFE ODXQVDWKTUCWTA OFQSBHBIOYSIPG OFRKKKULYSYOHH ONWKJRYGPMWCHY OPTOTRITMWERGJ OQTASOWNJGDZRS ORWSVAKFERQMCY OSKRAAMFQIQGNS OUGMZCVXFMBXEQ OUKVVISQXPEDCK OVLCLMZNLVRXMG OVPBXVQABUJZCR OVPQYEMCFMLRFL OXSNWTRFBREMEF PAHUCTMRDFKAAC PBGSTOBGKZZHFZ PBLFQZSSGWMCIC PCPKPDLVNQIQST PFTWVUDRORHURI PGDRMERWVYBVBD PHOIWKDWWOGHBI PILWCPLOLJGQAE PIXCABCRLQBRBZ PJIHLZTYMRMZCO PMIAGTCVJNIBRW PORVODHTBMMFEH PTGGIDKNPOGWPN PUBOHNQRWBNERK PVFFJWBPPAOIJZ PVQXAWSQCGYOIB PWCYOXNAVUWDJK PZCYVNXVFNSGLV PZKNHUKYHZCBDD PZMMMGLGLFMVQD QCGPIAOTRHHLDA QFLNXCIAKAHDKY QFMKYGDXCYZSPB QHEFVGNITSLTKH QIAWYZAEBBQIAR QIPCIJMAMSEXCE QKMABLPZFOXOPO QMFOPWLPFLKHSG QMMAJGMSDXLQQD QMVUUVGCOAOXCD QRQJLVHBDHHDBO QZCBSVXHAFAPHB QZMVSOJDJKBEMU QZOMOXMXSWFGEJ RAGGVTRGPWIDLA RBFLBBDZNPRMCM RCEHGEYMASZCTA RDSLPVFECLTWLU RGKJDKWWIUBNAK RGMVLDCTMIIDBH RGONIDQCTQMBPV RGUVRJHNMRWITQ RHGFADBNBGNRSJ RJAAVBBNQGPFEB RMMDIBSLBAMZGV RNBCNTSKWRLFAQ ROTXPUCCOWBLKX RPUVYZWUTRGZPJ RQHHCOOFYVHBBL RQJPRHMHBZAQCU RSSFWMYMFHVZFM RSYNCHIKBDIVOX RTMAVDMJEVFEIS RUIQIGMFUGOJAU RVHJGFQWWBPMAF RVWJUJMZFCHHLP RXEQWZGIMPPUMX RYPDERWJOJQCKR SAJUIJJQVXOCTF SBLKRDVGJWVIPQ SBMCPUHTLWHMHW SCDGWXSOACRVRK SDGQIXQSOHFZRP SFPGCOANKYFLFQ SITVFUGIMGLERE SIUZWEOUKLGGSF SLRGLOVYAHGAAR SMDUNIPVYQCCCR SMGDXEPTRMFZLL SMJQMFIVYOBALE SORQKDQXBHMUIF SOWXHPBCJZBVRI SQEVQBDXGVGKJH SSKXNRFTTJSBQJ SSNVJKYLBZRPPD SSWIIVATGIURTM SUEVMKVWYVLVHK SWVGAYOSRMGFQR SXAFTRQCZSMUJS TVEUJWXWXBQTKO TVPWSWNFQXZFHP TVVVCOCDKXAESU TWGJQWSVKXZBBZ TWNQFDGSWBSDTK TYFPZSWLUQOPQC UCGLLKGBRGOITN UDHJMCZAWXFFJP UFXVMSRGIYUQLD UHYRVAYMXIBPGX ULNDFBRTWDBBLV UMONRFAOKAEZGD UNUDJEZMZMGTTC UOQPTPASZLEBOJ UQICXLLSAXAXND URUBBEYQODDOGQ UUPVLGXVVZYZDU VEFLGJXSFFQALE VENATOHNZUXPIE VESLPXRALSPFRJ VFZOSVMTIBMGKG VJCQXYIBXDHPGS VJNFOMPQZSQHBW VMTIJVHQCPNORG VOJYGQTUQPNCJF VOKLDTLWVDHMCQ VPHHKUJKVNRAAM VQFJIXCUDLBHNE VQHBZBODAHYZBS VQPYEEUYOTVPIR VRAKBYSJWPBUHH VRRYSYFOOOSZSI VSLWFLGXQSTGGE VTPSFVFTODPTQQ VUMBKWNBQMBKAC VUMFKFHTZHXCNH VVZDVAHFVXHKNV VWFFGHPKPABDJQ VXLYALYVJFVNLY VXPJRXNPYABIAJ VXSFWWZEUGRVJB VYTQMGLVODMYJZ VZZCCZWPCXMIHU VZZIANKUSGMJIB WANDLNWLKHMHGG WBHHZZPBKBBHJW WELPNJVMJBOHIW WGWRCVSYZNZMPH WJCRFYWMPFMWES WKJIWNSMDKHCFP WKNFZWHJUZCMBP WLBNZJCBUXTREF WLXYPXIGJUKUIA WMWNUPPZXJYHSD WMYPZVBLKHNFCM WRFLSABVUKQWPQ WTIIOHOPUBOIEK WUZUINUHOIGGQB WVRVOKSSZJLKRL WWMGLRSNFXCPIV XBBPMVYFCNVJFT XELQHPQWBHLQSY XGBQCUIYGFIUOF XGWWRMJULXMMGV XGYZTHJMLJSEMQ XIGLQYRNJLWBIM XJJSKMHONMZJCL XKJYXXFWXBPOQH XMYWIFWMEKKOPT XOXUUFNTCJYHHW XRTZUHOHBQCUFY XRZPDOZCZNVPEA XSKPNMGNUGEVNJ XTTIHUKCTGSUGW XUBFJMLEFMRTAB XVTXRRFKWPGLKB XWLYXYALMKSKDR XYBOSBHTIPHQMY XYGZRKXUXAMXOE XYIWSWUCSBXOGD XYRNPNFLVXPCSS YAEBATXLEZEPKI YANQFUQRWPRJHI YBIFJVBTBDHLCV YCDJURXVKZLBLF YDWRZCMVSPKPMH YFABXERGRYOIDD YFYKCIYYYCJFGB YIBWOQOMWWWCOL YICPVLBFTGFKFB YIKMNVNBILUFMI YJYWYUAGOSXQEP YKLJRUNWFUTPRK YKTHFBQZSPFDIF YMPJYZWRBYBWSN YMZABCBNHRNPIO YPUDLTSRTBUBOW YQKIZCBBCITZJE YSCDEWOPSPDLEU YSQJVEZEYUNJMG YTKUULIRLKNHHH YZODXVNCDRQFAW YZUTYCSOBFXPCB ZAKRYKZLOWWYFD ZAUIWKMMTLGMNY ZBDLTLSZOUHJHZ ZFPCWFKCUQRONF ZJTPQOGCOGLKHH ZKKFYFATUSOSNW ZLHOGXUZUMUBHO ZPLPYPYNOWAFCS ZRCUJIXDMLLPHV ZUVQIKUHJVZJMY ZVELYJSIWZOJKB ZVPOWOARTCHULS ZZNBFBUDAUNIET""".split())
+# ---- the same network in JAX, on the torch state-dict names (norm-first encoder, 8 heads)
+N_HEADS = 8
+
+
+def _lin(p, k, x):
+    return x @ p[k + ".weight"].T + p[k + ".bias"]
+
+
+def _ln(p, k, x):
+    mu = x.mean(-1, keepdims=True)
+    var = ((x - mu) ** 2).mean(-1, keepdims=True)
+    return (x - mu) / jnp.sqrt(var + 1e-5) * p[k + ".weight"] + p[k + ".bias"]
+
+
+def _gelu(x):
+    return jax.nn.gelu(x, approximate=False)
+
+
+def _sin(p, x):
+    a = x[..., None] * p["sin.w"]
+    return jnp.concatenate([jnp.sin(a), jnp.cos(a)], -1)
+
+
+def _drop(x, key, rate=0.1):
+    if key is None:
+        return x
+    return jnp.where(jax.random.bernoulli(key, 1 - rate, x.shape), x / (1 - rate), 0.0)
+
+
+def jforward(p, mz, it, prec, add, key=None):
+    n_layers = sum(1 for k in p if k.endswith("norm1.weight"))
+    keys = list(jax.random.split(key, 4 * n_layers)) if key is not None else [None] * (4 * n_layers)
+    pad = mz <= 0
+    tok = _lin(p, "peak.2", _gelu(_lin(p, "peak.0", jnp.concatenate(
+        [_sin(p, mz), _sin(p, jnp.clip(prec[:, None] - mz, 0)), it[..., None]], -1))))
+    pp = _lin(p, "prec.2", _gelu(_lin(p, "prec.0", _sin(p, prec)))) + p["add.weight"][add]
+    x = jnp.concatenate([pp[:, None], tok], 1)
+    mask = jnp.concatenate([jnp.zeros_like(pad[:, :1]), pad], 1)
+    B, T, Dm = x.shape
+    dh = Dm // N_HEADS
+    for l in range(n_layers):
+        q = f"enc.layers.{l}."
+        h = _ln(p, q + "norm1", x)
+        qkv = h @ p[q + "self_attn.in_proj_weight"].T + p[q + "self_attn.in_proj_bias"]
+        qq, kk, vv = [t.reshape(B, T, N_HEADS, dh) for t in jnp.split(qkv, 3, -1)]
+        a = jnp.einsum("bthd,bshd->bhts", qq, kk) / jnp.sqrt(dh)
+        a = jax.nn.softmax(jnp.where(mask[:, None, None, :], -1e9, a), -1)
+        a = _drop(a, keys[4 * l])
+        o = jnp.einsum("bhts,bshd->bthd", a, vv).reshape(B, T, Dm)
+        x = x + _drop(_lin(p, q + "self_attn.out_proj", o), keys[4 * l + 1])
+        h = _drop(_gelu(_lin(p, q + "linear1", _ln(p, q + "norm2", x))), keys[4 * l + 2])
+        x = x + _drop(_lin(p, q + "linear2", h), keys[4 * l + 3])
+    y = _gelu(_lin(p, "out.1", _ln(p, "out.0", x[:, 0])))
+    return _lin(p, "out.3", y)
 
 
 def main():
@@ -181,11 +236,14 @@ def main():
     pub = set(meta.loc[~meta.ingest_lib.str.startswith("enveda"), "inchikey14"])
     ev = meta.loc[(meta.ingest_lib == "enveda-180") & meta.adduct.isin(TEST_ADDUCTS), "inchikey14"].unique()
     rnd = set(rng.choice([m for m in ev if m not in pub and m not in npx], 400, replace=False))
-    held = npx | rnd | LOCAL
+    held = npx | rnd
+    if SEED:   # same held-out set, different spectra per structure, init and batch order
+        rng = np.random.default_rng(2026 + SEED)
+        torch.manual_seed(SEED)
 
     tr = meta[meta.adduct.isin(TEST_ADDUCTS) & ~meta.inchikey14.isin(held)].copy()
     tr["pri"] = (tr.instrument_type == "timsTOF").astype(int)
-    tr = tr.sample(frac=1, random_state=0).sort_values("pri", ascending=False, kind="stable")
+    tr = tr.sample(frac=1, random_state=SEED).sort_values("pri", ascending=False, kind="stable")
     tr = tr.groupby("inchikey14").head(PER_STRUCT)
     S = tr.drop_duplicates("inchikey14")
     bits, ok = fp_bits(S.normalized_smiles.values)
@@ -196,8 +254,7 @@ def main():
     log("train spectra", len(tr), "structures", tr.inchikey14.nunique())
 
     ev_rows = meta[meta.inchikey14.isin(held) & meta.adduct.isin(TEST_ADDUCTS)]
-    ev_rows = ev_rows[(ev_rows.ingest_lib == "enveda-np-examples") | ev_rows.inchikey14.isin(rnd)
-                      | (ev_rows.inchikey14.isin(LOCAL - npx) & (ev_rows.ingest_lib == "enveda-180"))]
+    ev_rows = ev_rows[(ev_rows.ingest_lib == "enveda-np-examples") | ev_rows.inchikey14.isin(rnd)]
     ev_rows = ev_rows.sample(frac=1, random_state=0).groupby("inchikey14").head(16).reset_index(drop=True)
     if os.environ.get("FP2_LIMIT"):
         keep = set(list(ev_rows.inchikey14.unique())[:60])
@@ -211,43 +268,56 @@ def main():
     AD = tr.adduct.map(aidx).fillna(len(TEST_ADDUCTS)).values.astype(np.int64)
     Y = np.stack([fpb[k] for k in tr.inchikey14.values])
 
-    model = Net().to(DEV)
-    if WEIGHTS:
-        model.load_state_dict(torch.load(WEIGHTS[0], map_location=DEV))
-        log("loaded", WEIGHTS[0])
+    model = Net().to(DEV)   # initial weights and names (torch default init, seeded above)
+    devs = jax.devices()
+    log("jax devices", len(devs), devs[0].platform)
+    mesh = Mesh(np.array(devs), ("b",))
+    rep, shard = NamedSharding(mesh, PartitionSpec()), NamedSharding(mesh, PartitionSpec("b"))
+    params = jax.device_put({k: jnp.asarray(v.numpy()) for k, v in model.state_dict().items()}, rep)
+    buffers = {"sin.w"}   # not trained
     bs = 512
     steps = EPOCHS * (len(tr) // bs)
-    opt = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=5e-4, total_steps=steps, pct_start=0.05)
-    scaler = torch.cuda.amp.GradScaler(enabled=DEV == "cuda")
-    lossf = nn.BCEWithLogitsLoss()
+    sched = optax.cosine_onecycle_schedule(steps, 5e-4, pct_start=0.05, div_factor=25.0, final_div_factor=1e4)
+    opt = optax.chain(optax.clip_by_global_norm(1.0), optax.adamw(sched, weight_decay=1e-4))
+    train_p = {k: v for k, v in params.items() if k not in buffers}
+    fixed = {k: v for k, v in params.items() if k in buffers}
+    opt_state = opt.init(train_p)
+
+    @jax.jit
+    def step(tp, ost, mz, it, pr, ad, yb, key):
+        def lossf(t):
+            logits = jforward({**t, **fixed}, mz, it, pr, ad, key)
+            y = jnp.unpackbits(yb, axis=1).astype(jnp.float32)
+            return optax.sigmoid_binary_cross_entropy(logits, y).mean()
+        loss, g = jax.value_and_grad(lossf)(tp)
+        upd, ost = opt.update(g, ost, tp)
+        return optax.apply_updates(tp, upd), ost, loss
+
+    base = jax.random.PRNGKey(SEED)
     k = 0
-    for ep in range(0 if WEIGHTS else EPOCHS):
-        model.train()
+    for ep in range(EPOCHS):
         perm = rng.permutation(len(tr))
         tot = 0.0
         for i in range(0, len(perm) - bs + 1, bs):
-            b = perm[i:i + bs]
-            mz = torch.from_numpy(MZ[b]).to(DEV)
-            it = torch.from_numpy(IT[b]).to(DEV)
-            pr = torch.from_numpy(PR[b]).to(DEV)
-            ad = torch.from_numpy(AD[b]).to(DEV)
-            y = torch.from_numpy(np.unpackbits(Y[b], axis=1).astype(np.float32)).to(DEV)
-            with torch.autocast(DEV, enabled=DEV == "cuda"):
-                loss = lossf(model(mz, it, pr, ad).float(), y)
-            opt.zero_grad(set_to_none=True)
-            scaler.scale(loss).backward()
-            scaler.unscale_(opt)
-            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            scaler.step(opt)
-            scaler.update()
-            sched.step()
-            tot += loss.item()
+            b = np.sort(perm[i:i + bs])
+            put = lambda a: jax.device_put(a, shard)  # noqa: E731
+            train_p, opt_state, loss = step(train_p, opt_state, put(MZ[b]), put(IT[b]), put(PR[b]), put(AD[b]),
+                                            put(Y[b]), jax.random.fold_in(base, k))
             k += 1
             if k % 1000 == 0:
-                log(f"ep {ep} step {k}/{steps} loss {tot / (i // bs + 1):.4f}")
-        torch.save(model.state_dict(), "fp2.pt")
+                tot = float(loss)
+                log(f"ep {ep} step {k}/{steps} loss {tot:.4f}")
         log(f"epoch {ep} done")
+    params = {**jax.device_get(train_p), **jax.device_get(fixed)}
+    model.load_state_dict({k_: torch.from_numpy(np.array(v)) for k_, v in params.items()})
+    torch.save(model.state_dict(), "fp2.pt")
+    model.eval()
+    with torch.no_grad():
+        n = min(64, len(tr))
+        t_out = model(torch.from_numpy(MZ[:n]), torch.from_numpy(IT[:n]), torch.from_numpy(PR[:n]),
+                      torch.from_numpy(AD[:n])).numpy()
+    j_out = np.asarray(jax.jit(jforward)(params, MZ[:n], IT[:n], PR[:n], AD[:n]))
+    log("parity torch vs jax: max |logit diff|", float(np.abs(t_out - j_out).max()), "logit scale", float(np.abs(t_out).max()))
 
     # ---- evaluation: FP alone over the train+COCONUT pool, as the ranking channel sees it
     model.eval()
@@ -264,12 +334,13 @@ def main():
     ev_rows["M"] = [neutral_mass(m, a) for m, a in zip(ev_rows.precursor_mz, ev_rows.adduct)]
     EPR = ev_rows.precursor_mz.values.astype(np.float32)
     EAD = ev_rows.adduct.map(aidx).fillna(len(TEST_ADDUCTS)).values.astype(np.int64)
-    with torch.no_grad():
-        P = []
-        for i in range(0, len(ev_rows), 1024):
-            s = slice(i, i + 1024)
-            P.append(torch.sigmoid(model(torch.from_numpy(EMZ[s]).to(DEV), torch.from_numpy(EIT[s]).to(DEV),
-                                         torch.from_numpy(EPR[s]).to(DEV), torch.from_numpy(EAD[s]).to(DEV)).float()).cpu().numpy())
+    jfwd = jax.jit(jforward)
+    P = []
+    for i in range(0, len(ev_rows), 1024):
+        s = slice(i, i + 1024)
+        n = len(EMZ[s])
+        padn = lambda a: np.concatenate([a, np.zeros((1024 - n,) + a.shape[1:], a.dtype)])  # noqa: E731
+        P.append(np.asarray(jax.nn.sigmoid(jfwd(params, padn(EMZ[s]), padn(EIT[s]), padn(EPR[s]), padn(EAD[s]))))[:n])
     P = np.concatenate(P)
     res = []
     for ik, g in ev_rows.groupby("inchikey14"):
@@ -277,17 +348,17 @@ def main():
         M = float(np.median(g.M))
         lo, hi = np.searchsorted(pm, [M * (1 - PPM * 1e-6), M * (1 + PPM * 1e-6)])
         cands = list(pk[lo:hi])
-        cls = "np" if ik in npx else ("loc" if ik in LOCAL else "rnd")
-        if ik not in cands and cls != "loc":
+        cls = "np" if ik in npx else "rnd"
+        if ik not in cands:
             res.append((cls, 0.0, len(cands), 0))
             continue
         b, okc = fp_bits([smi.get(c) for c in cands])
         b = np.unpackbits(b, axis=1).astype(np.float32)
         ll = b @ np.log(p) + (1 - b) @ np.log(1 - p)
         ll[~okc] = -1e9
-        rank = 1 + int((ll > ll[cands.index(ik)]).sum()) if ik in cands else 99
-        if cls in ("np", "loc"):   # candidate log-likelihoods for the local blend
-            print(("FPLL " if cls == "np" else "FPLLC ") + ik + " " + " ".join(f"{c}:{v:.1f}" for c, v in zip(cands, ll) if v > -1e8), flush=True)
+        rank = 1 + int((ll > ll[cands.index(ik)]).sum())
+        if WEIGHTS and cls == "np":   # candidate log-likelihoods for the local blend (class 4)
+            print("FPLL " + ik + " " + " ".join(f"{c}:{v:.1f}" for c, v in zip(cands, ll) if v > -1e8), flush=True)
         res.append((cls, 1.0 / rank if rank <= 25 else 0.0, len(cands), 1))
     r = pd.DataFrame(res, columns=["cls", "rr", "ncand", "in_window"])
     out = r.groupby("cls").agg(mols=("rr", "size"), mrr=("rr", "mean"), in_window=("in_window", "mean"),
