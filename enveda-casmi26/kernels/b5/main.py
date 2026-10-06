@@ -48,7 +48,7 @@ from torch import nn  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 
-PPM, PPM_WIDE = 10.0, 30.0
+PPM, PPM_WIDE = 5.0, 30.0
 TOL_DA = 0.02
 N_ANALOG = 100        # hybrid-search hits kept per query spectrum
 POW = 2.0             # weight = similarity ** POW
@@ -126,9 +126,9 @@ def fp(smi):
 FUSE = "exp50_0.2"
 TP_F, TP_L = 0.7, 0.5  # demotion of train structures whose spectra do not match
 LA_A, LA_L = 0.0, 9.0  # boost of library matches in [LA_L, gate)
-EN_SLOTS = [2, 4, 6]  # 1-based ranks for Enamine-tier candidates (empty = off)
+EN_SLOTS = []  # 1-based ranks for Enamine-tier candidates (empty = off)
 EN_MERGE = 0.0  # > 0: the top 10 Enamine candidates compete with the pool on EN_MERGE * score
-EN_T, EN_W = 50.0, 5.0  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
+EN_T, EN_W = 50.0, 0.2  # Enamine ranking: analog + EN_W * exp((ll - max ll) / EN_T)
 _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = 0.0  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
