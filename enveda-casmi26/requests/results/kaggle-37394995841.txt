@@ -1,0 +1,9 @@
+request: fp2s2-2
+run: 37394995841  status: success  action: kernel  dir: enveda-casmi26/kernels/fp2s2  submit: no
+kernel: yasunorim/casmi26-fp2s2  version: 2
+memo: fp2 ensemble member 2 (seed 2, 24 ep), rerun with cp313 wheels: plan (b)
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-fp2s2
+
+output files:
