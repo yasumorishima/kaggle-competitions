@@ -31,8 +31,7 @@ import numpy as np  # noqa: E402
 # Budgets: 110 games in under 9 hours (leave margin for the gateway and start-up).
 TOTAL_BUDGET_S = 7.5 * 3600 if RERUN else float(os.getenv("ARC3_BUDGET_S", 2.0 * 3600))  # the offline check (25 games) stays short
 MAX_ACTIONS = int(os.getenv("ARC3_MAX_ACTIONS", "10000"))  # local 25 games: 2500 -> 12 levels 0.1131, 10000 -> 16 levels 0.1138
-SPRITES = os.getenv("ARC3_SPRITES", "0") == "1"  # also one click per 8-connected multi-colour sprite, tried first
-MAX_CLICKS = int(os.getenv("ARC3_MAX_CLICKS", "64"))  # click targets per node (local 25 games: 8 -> 0.1165, 24 -> 0.1138, 64 -> 0.1536)
+MAX_CLICKS = int(os.getenv("ARC3_MAX_CLICKS", "256"))  # click targets per node (local 25 games: 8 -> 0.1165, 24 -> 0.1138, 64 -> 0.1536, 256 -> 0.1536)
 VOLATILE_FRAC = 0.6      # a cell changing on this share of moves is masked
 NOOP_MIN = int(os.getenv("ARC3_NOOP_MIN", "0"))  # tries of a move kind before its no-op rate counts (0 = off; LB: off 0.15, 2 0.09)
 EDGE = 3                 # rows/columns this close to the border may hold a counter bar
@@ -83,38 +82,7 @@ def click_targets(g):
             cy, cx = cells[len(cells) // 2]
             objs.append((len(cells), int(cx), int(cy)))
     objs.sort()
-    out = [(x, y) for _, x, y in objs]
-    if SPRITES:
-        out = [t for t in sprite_targets(g, bg) if t not in set(out)] + out
-    return out[:MAX_CLICKS]
-
-
-def sprite_targets(g, bg):
-    """One cell per 8-connected non-background region (any colours), small first."""
-    h, w = g.shape
-    seen = g == bg
-    objs = []
-    for y in range(h):
-        for x in range(w):
-            if seen[y, x]:
-                continue
-            q = [(y, x)]
-            seen[y, x] = True
-            cells = []
-            while q:
-                cy, cx = q.pop()
-                cells.append((cy, cx))
-                for dy in (-1, 0, 1):
-                    for dx in (-1, 0, 1):
-                        ny, nx = cy + dy, cx + dx
-                        if 0 <= ny < h and 0 <= nx < w and not seen[ny, nx]:
-                            seen[ny, nx] = True
-                            q.append((ny, nx))
-            ys, xs = zip(*cells)
-            cy, cx = sorted(cells, key=lambda c: (c[0] - np.mean(ys)) ** 2 + (c[1] - np.mean(xs)) ** 2)[0]
-            objs.append((len(cells), int(cx), int(cy)))
-    objs.sort()
-    return [(x, y) for _, x, y in objs]
+    return [(x, y) for _, x, y in objs[:MAX_CLICKS]]
 
 
 class Explorer:
