@@ -20,7 +20,8 @@
   "kernel_sources": [
     "yasunorim/casmi26-fp2-peak-transformer",
     "yasunorim/casmi26-fp2all-heldout",
-    "yasunorim/casmi26-fp2s1"
+    "yasunorim/casmi26-fp2s1",
+    "yasunorim/casmi26-fp2s2"
   ],
   "model_sources": []
 }

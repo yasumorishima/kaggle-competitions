@@ -137,6 +137,9 @@ FP2_ENS = ''  # "": fp2 v2 only, "seeds": v2 + fp2s*, "all": also fp2all
 # fp2 v2 first (the LB-checked model), then the seed members, fp2all last
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True),
                      key=lambda p: (0 if "fp2-peak-transformer" in p else 2 if "fp2all" in p else 1, p))
+FP2_ONLY = ''
+if FP2_ONLY:
+    FP2_WEIGHTS = [p for p in FP2_WEIGHTS if FP2_ONLY in p]
 if FP2_ENS == "seeds":
     FP2_WEIGHTS = [p for p in FP2_WEIGHTS if "fp2all" not in p]
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048

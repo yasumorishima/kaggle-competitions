@@ -31,6 +31,7 @@ Options appended with "+":
           slots 2.4.6 -> .935 .835 .273 .563)
   ewT_W   Enamine ranking: analog + W * exp((ll - max ll) / T) (default T 50, W 0.2)
   sens    average fp2 v2 with the seed members (fp2s1, fp2s2; fp2all stays out: it cost 0.009 on the LB)
+  onlyX   use only the fp2 weights whose path contains X (e.g. onlyfp2s2 = the 24-epoch seed alone)
   ppmX    candidate window +-X ppm instead of 10 (enveda-180 errors: 99% < 4.4 ppm, max 7.1;
           eval/ppm_window.py: 5 ppm -> c2 +0.004, c1 unchanged)
 e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7, exp50_0.2+tp0.7_0.5+en5.10.15.20.25
@@ -42,6 +43,7 @@ MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2+tp0.7_0.5"   # LB best 0
 FUSE, *OPTS = MODE.split("+")
 ENS = "all" if "ens" in OPTS else "seeds" if "sens" in OPTS else ""
 PPM = next((float(o[3:]) for o in OPTS if o.startswith("ppm")), None)
+ONLY = next((o[4:] for o in OPTS if o.startswith("only")), "")
 GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
 TP = next((o[2:].split("_") for o in OPTS if o.startswith("tp")), None)
 TP_F, TP_L = (float(TP[0]), float(TP[1]) if len(TP) > 1 else 9.0) if TP else (1.0, 9.0)
@@ -87,6 +89,9 @@ FP2_ENS = ''' + repr(ENS) + '''  # "": fp2 v2 only, "seeds": v2 + fp2s*, "all": 
 # fp2 v2 first (the LB-checked model), then the seed members, fp2all last
 FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True),
                      key=lambda p: (0 if "fp2-peak-transformer" in p else 2 if "fp2all" in p else 1, p))
+FP2_ONLY = ''' + repr(ONLY) + '''
+if FP2_ONLY:
+    FP2_WEIGHTS = [p for p in FP2_WEIGHTS if FP2_ONLY in p]
 if FP2_ENS == "seeds":
     FP2_WEIGHTS = [p for p in FP2_WEIGHTS if "fp2all" not in p]
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
