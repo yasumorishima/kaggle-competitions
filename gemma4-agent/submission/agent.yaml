@@ -16,3 +16,6 @@ tools:
   - agent_tool:
       config_path: sub_agents/locator.yaml
       skip_summarization: false
+  - agent_tool:
+      config_path: sub_agents/checker.yaml
+      skip_summarization: false
