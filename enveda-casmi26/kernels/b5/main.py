@@ -48,7 +48,7 @@ from torch import nn  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 
-PPM, PPM_WIDE = 5.0, 30.0
+PPM, PPM_WIDE = 10.0, 30.0
 TOL_DA = 0.02
 N_ANALOG = 100        # hybrid-search hits kept per query spectrum
 POW = 2.0             # weight = similarity ** POW
