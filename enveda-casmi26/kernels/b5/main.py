@@ -133,9 +133,12 @@ _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = 0.0  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
 POP = dict(zip(*pd.read_parquet(_pop_path[0], columns=["inchikey14", "n_pmid"]).values.T)) if POP_MU and _pop_path else {}
-FP2_ENS = False
-# fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
-FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
+FP2_ENS = ''  # "": fp2 v2 only, "seeds": v2 + fp2s*, "all": also fp2all
+# fp2 v2 first (the LB-checked model), then the seed members, fp2all last
+FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True),
+                     key=lambda p: (0 if "fp2-peak-transformer" in p else 2 if "fp2all" in p else 1, p))
+if FP2_ENS == "seeds":
+    FP2_WEIGHTS = [p for p in FP2_WEIGHTS if "fp2all" not in p]
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]

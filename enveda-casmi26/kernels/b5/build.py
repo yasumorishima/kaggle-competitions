@@ -30,6 +30,9 @@ Options appended with "+":
           (eval/enamine_mix.py: F 1 -> c1 .931 c2 .819 answer-outside-pool .522 c4 .575;
           slots 2.4.6 -> .935 .835 .273 .563)
   ewT_W   Enamine ranking: analog + W * exp((ll - max ll) / T) (default T 50, W 0.2)
+  sens    average fp2 v2 with the seed members (fp2s1, fp2s2; fp2all stays out: it cost 0.009 on the LB)
+  ppmX    candidate window +-X ppm instead of 10 (enveda-180 errors: 99% < 4.4 ppm, max 7.1;
+          eval/ppm_window.py: 5 ppm -> c2 +0.004, c1 unchanged)
 e.g. exp50_0.2+ens+g0.75, exp50_0.2+tp0.7, exp50_0.2+tp0.7_0.5+en5.10.15.20.25
 """
 import os
@@ -37,7 +40,8 @@ import sys
 
 MODE = sys.argv[1] if len(sys.argv) > 1 else "exp50_0.2+tp0.7_0.5"   # LB best 0.299 (10-03; tp0.5_0.5 0.297, exp50_0.2 alone 0.294)
 FUSE, *OPTS = MODE.split("+")
-ENS = "ens" in OPTS
+ENS = "all" if "ens" in OPTS else "seeds" if "sens" in OPTS else ""
+PPM = next((float(o[3:]) for o in OPTS if o.startswith("ppm")), None)
 GATE = next((o[1:] for o in OPTS if o.startswith("g")), None)
 TP = next((o[2:].split("_") for o in OPTS if o.startswith("tp")), None)
 TP_F, TP_L = (float(TP[0]), float(TP[1]) if len(TP) > 1 else 9.0) if TP else (1.0, 9.0)
@@ -54,6 +58,10 @@ src = open(os.path.join(HERE, "..", "b1", "main.py"), encoding="utf-8").read()
 model = open(os.path.join(HERE, "lgb_model.txt"), encoding="utf-8").read()
 
 src = src.replace('"""CASMI26 B1: mass-window candidates', '"""CASMI26 B5 (b3 + fp2 + LightGBM re-ranker). Built from b1 by b5/build.py.\n\nB1: mass-window candidates', 1)
+
+if PPM is not None:
+    assert "PPM, PPM_WIDE = 10.0, 30.0" in src
+    src = src.replace("PPM, PPM_WIDE = 10.0, 30.0", f"PPM, PPM_WIDE = {PPM}, 30.0", 1)
 
 src = src.replace("from rdkit.Chem import rdFingerprintGenerator  # noqa: E402\n", '''from rdkit.Chem import rdFingerprintGenerator  # noqa: E402
 import lightgbm as lgb  # noqa: E402
@@ -75,9 +83,12 @@ _en_path = glob.glob("/kaggle/input/**/enamine_tier.parquet", recursive=True)
 POP_MU = ''' + repr(POP) + '''  # popularity prior weight (log1p PubMed links per InChIKey14)
 _pop_path = glob.glob("/kaggle/input/**/pubchem_pop.parquet", recursive=True)
 POP = dict(zip(*pd.read_parquet(_pop_path[0], columns=["inchikey14", "n_pmid"]).values.T)) if POP_MU and _pop_path else {}
-FP2_ENS = ''' + str(ENS) + '''
-# fp2 v2 first (the LB-checked model); fp2all (class 1-3 held out) joins only with FP2_ENS
-FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True), key=lambda p: "fp2all" in p)
+FP2_ENS = ''' + repr(ENS) + '''  # "": fp2 v2 only, "seeds": v2 + fp2s*, "all": also fp2all
+# fp2 v2 first (the LB-checked model), then the seed members, fp2all last
+FP2_WEIGHTS = sorted(glob.glob("/kaggle/input/**/fp2.pt", recursive=True),
+                     key=lambda p: (0 if "fp2-peak-transformer" in p else 2 if "fp2all" in p else 1, p))
+if FP2_ENS == "seeds":
+    FP2_WEIGHTS = [p for p in FP2_WEIGHTS if "fp2all" not in p]
 FP2_D, FP2_PEAKS, FP2_BITS = 384, 64, 2048
 FP2_ADDUCTS = ["[M+H]+", "[M+NH4]+", "[M-H2O+H]+", "[M-2H2O+H]+", "[M+Na]+", "[M+K]+",
                "[M-H]-", "[M-H2O-H]-", "[M+CH2O2-H]-", "[M+Cl]-"]
