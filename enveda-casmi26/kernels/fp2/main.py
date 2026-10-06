@@ -39,7 +39,7 @@ WHEELS = first("/kaggle/input/**/rdkit-*.whl")
 WEIGHTS = glob.glob("/kaggle/input/**/fp2.pt", recursive=True)   # present => evaluate only (fp2dump)
 if WHEELS:
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--no-index",
-                    *glob.glob(WHEELS + "/*.whl")], check=True)
+                    *glob.glob(WHEELS + f"/*-cp{sys.version_info[0]}{sys.version_info[1]}-*.whl")], check=True)
 log("comp", COMP, "coco", COCO, "wheels", WHEELS)
 
 import numpy as np  # noqa: E402
