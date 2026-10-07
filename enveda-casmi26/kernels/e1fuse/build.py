@@ -301,6 +301,8 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = {"id": f"yasunorim/casmi26-{name}", "title": f"casmi26 {name}", "code_file": "main.ipynb", "language": "python",
         "kernel_type": "notebook", "is_private": "true", "enable_gpu": "true", "enable_tpu": "false",
         "machine_shape": "NvidiaTeslaT4", "enable_internet": "false",
+        # the base notebook's image (Python 3.12): ICEBERG / GLACIER ship cp312 wheels and fail on the 3.13 image
+        "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
         "dataset_sources": ["prvsiyan/casmi26-fp-models-v2", "dmitriigluzdov/casmi26-fold-safe-fpnet",
                             "dmitriigluzdov/casmi26-pubchem-popularity-prior", "prvsiyan/casmi26-ranker-features",
                             "megayak/casmi26-simulated-ranker-rows", "ahmedberatozer/casmi26-fpnet-full1",

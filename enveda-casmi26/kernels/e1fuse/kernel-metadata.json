@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e1val",
-  "title": "casmi26 e1val",
+  "id": "yasunorim/casmi26-e1a",
+  "title": "casmi26 e1a",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -9,6 +9,7 @@
   "enable_tpu": "false",
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
   "dataset_sources": [
     "prvsiyan/casmi26-fp-models-v2",
     "dmitriigluzdov/casmi26-fold-safe-fpnet",
