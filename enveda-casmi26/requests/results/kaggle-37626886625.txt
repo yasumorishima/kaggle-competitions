@@ -1,0 +1,41 @@
+request: e2b-2
+run: 37626886625  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2bcpu  version: 1
+memo: E2 wider on CPU: e2a-2 with every mined rule (>=1 context) and up to 100 products/molecule (offline truth generation 66% -> 80%). Hypothesis: LB > e2a-2
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2bcpu
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-07 13:52:31.123000,e2b-2: E2 wider on CPU: e2a-2 with every mined rule (>=1 context) and up to 100 products/molecule (offline truth generation 66% -> 80%). Hypothesis: LB > e2a [run 37626886625],SubmissionStatus.PENDING,,
+submission.csv,2026-10-07 13:13:10.183000,"e2a-2: E2 own change on CPU (weekly GPU quota used up): public 0.420 base + our MMP class-3 generator (rules mined from the train structures, >=2 contexts, u [run 37621407259]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-07 09:11:46.013000,"e1b-1: E1 own changes 1+2: e1a + fp2 also orders the PubChem-only proposals (z(f.z)+0.5 z(fp2 ll)), which decides which 50 enter the PubChem join. Hypothesis [run 37596551778]",SubmissionStatus.COMPLETE,0.406,
+
+output files:
+total 168
+drwxr-xr-x  9 runner runner  4096 Oct  7 13:52 .
+drwxrwxrwt 14 root   root    4096 Oct  7 13:51 ..
+-rw-r--r--  1 runner runner 16856 Oct  7 13:52 casmi26-e2bcpu.log
+-rw-r--r--  1 runner runner  1665 Oct  7 13:51 cfg.json
+-rw-r--r--  1 runner runner 29204 Oct  7 13:51 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:51 gl_work
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:51 ice_work
+drwxr-xr-x  6 runner runner  4096 Oct  7 13:51 numba_cache
+drwxr-xr-x  5 runner runner  4096 Oct  7 13:51 ours
+-rw-r--r--  1 runner runner 51709 Oct  7 13:51 pc_lists.json
+-rw-r--r--  1 runner runner  2291 Oct  7 13:51 run_manifest.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:51 smoke_comp
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:52 stage_cache
+-rw-r--r--  1 runner runner 17289 Oct  7 13:52 submission.csv
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:52 work
+[{"stream_name":"stderr","time":8.611565833,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":8.611633014,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":9.846881867,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.846913938,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.846917826,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.846920649,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.691527467,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.691566147,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.691571906,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.69157487,"data":"0.00s - Note: Debugging will pr
