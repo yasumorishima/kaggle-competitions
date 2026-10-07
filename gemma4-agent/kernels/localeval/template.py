@@ -17,6 +17,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import logging
+logging.getLogger("asyncio").setLevel(logging.CRITICAL)   # aiohttp "Unclosed client session" noise
 T0 = time.time()
 CONFIGS = __CONFIGS__          # name -> {relative path: text}; "@sample" = the official sample_submission
 LIMIT = int(os.environ.get("G4_LIMIT", "__LIMIT__"))
@@ -149,5 +151,9 @@ for name, d in dirs.items():
     json.dump(rows, open(WORK / f"rows_{name}.json", "w"))
 
 print("SUMMARY " + json.dumps(summary), flush=True)
+# compact per-task table at the very end (the Kaggle log API keeps only the tail): id resolved secs per config
+for name in dirs:
+    rows = json.load(open(WORK / f"rows_{name}.json"))
+    print(f"ROWS {name} " + " ".join(f"{r['id']}:{int(r['resolved'])}:{int(r['secs'])}" for r in rows), flush=True)
 server.stop() if hasattr(server, "stop") else None
 log("done")
