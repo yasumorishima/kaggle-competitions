@@ -60,6 +60,16 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - **localeval-2（L4・6 並列）：v6＝129 課題中 15 解決（11.6%）・平均 265 秒／課題**（fastapi 8・rich 7・requests 0・httpx 0）。公式 sample は LoRA の別名が 404（`main_lora` が vLLM に無い）で全滅＝比較から外す。
   - Kaggle のログ API は末尾の約 1,000 行しか返さない（課題ごとの行が消えた）⇒ 最後に設定ごとの 1 行表（`ROWS 名前 id:解決:秒 …`）を出す形に直した。
   - localeval-3：v6 と公開 0.13 構成（`bases/pub013`・planner→coder・出典 `bases/pub013_SOURCE.txt`）を対にして比べる。
+    **結果（4×L4＝本番と同じ機械・6 並列）：v6 11/129（平均 282 秒）・pub013 0/129（全課題が 5 分の上限で切れた）。**
+    - v6 は localeval-2 の 15 と比べて ±4 課題ぶれた＝同じ設定でも雑音がある。
+    - pub013 は LB 0.13 なのに 0：6 並列では 1 課題あたりの速度が本番（直列）の数分の 1 になり、planner が時間を食い尽くす。⇒ 並列の評価は時間制限のある構成に不公平。
+    - **次は直列（workers 1）で、課題の部分集合（shard 0/3＝43 課題、1 構成 約 3.6 時間）を測る。**
+    - 失敗の内訳（v6）：
+      - read_file の範囲誤り（開始行が終了行より大きい等）と、存在しないパス。
+      - 道具の呼び出し回数の上限（80 回）切れ。
+      - edit_file の old_string 不一致。
+      - /tmp への書き込みの拒否。
+      - ⇒ 道具の使い方の誤りで回数と時間を浪費している。直す候補。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
