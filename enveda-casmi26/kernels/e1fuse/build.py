@@ -26,6 +26,7 @@ mmp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp="
 mmpc = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpc=")), 2)   # min rule count
 mmpfp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpfp=")), 0)  # FP-retrieved parents
 c3val = "c3val" in sys.argv[3:]
+c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
@@ -242,7 +243,7 @@ if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
-               USE_ENG=False, USE_PC=False, PC_JOIN_N=0)
+               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep)
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
 
 # ---- 2a. engine: MMP generator (ours_mmp) and, for c3val, the held-out truths removed from the pool
@@ -258,7 +259,7 @@ c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:              
         if not IS_RERUN:
             raise
         print('MMP FAILED -> base generator only', repr(e))
-if CFG.get('C3VAL') and CFG['VALIDATION'] and not IS_RERUN:   # ours: class-3 simulation
+if CFG.get('C3VAL') and not CFG.get('C3KEEP') and CFG['VALIDATION'] and not IS_RERUN:   # ours: class-3 simulation
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     C3_HOLD = set(k for k in (chem.score_key(s) for s in _lab3.smiles) if k)
     _drop3 = np.fromiter((k in C3_HOLD for k in P.key), bool, len(P.key))
