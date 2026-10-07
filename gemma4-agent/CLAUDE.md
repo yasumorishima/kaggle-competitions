@@ -57,6 +57,9 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - 構成：v6 と公式 sample を同じ 129 課題で対にして比べる。`build.py NAME=DIR` で設定を埋め込む。
   - **公式 wheel は cp312**：Kaggle の新しい画像（3.13）では入らない。metadata の `docker_image` に、スターターと同じ競技用の画像（`gcr.io/kaggle-private-byod/python@sha256:37c6…`）を指定し、3.12 で動いた。
   - localeval-1：その画像だと RTX Pro 6000 の指定が効かず T4 に載り、bf16 が非対応で落ちた。localeval-2 は `NvidiaL4`（スターターと同じ）で再実行。
+  - **localeval-2（L4・6 並列）：v6＝129 課題中 15 解決（11.6%）・平均 265 秒／課題**（fastapi 8・rich 7・requests 0・httpx 0）。公式 sample は LoRA の別名が 404（`main_lora` が vLLM に無い）で全滅＝比較から外す。
+  - Kaggle のログ API は末尾の約 1,000 行しか返さない（課題ごとの行が消えた）⇒ 最後に設定ごとの 1 行表（`ROWS 名前 id:解決:秒 …`）を出す形に直した。
+  - localeval-3：v6 と公開 0.13 構成（`bases/pub013`・planner→coder・出典 `bases/pub013_SOURCE.txt`）を対にして比べる。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
