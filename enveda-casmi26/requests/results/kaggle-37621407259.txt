@@ -1,0 +1,41 @@
+request: e2a-2
+run: 37621407259  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2acpu  version: 1
+memo: E2 own change on CPU (weekly GPU quota used up): public 0.420 base + our MMP class-3 generator (rules mined from the train structures, >=2 contexts, up to 60 products/molecule); fp2 term off; ICEBERG/GLACIER on the CPU within the same time budgets (they cover fewer molecules than on the GPU). Class-3 validation: base-list MRR@25 0.103 -> 0.212. Hypothesis: LB >= 0.420 even with the weaker CPU forward models
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2acpu
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-07 13:13:10.183000,"e2a-2: E2 own change on CPU (weekly GPU quota used up): public 0.420 base + our MMP class-3 generator (rules mined from the train structures, >=2 contexts, u [run 37621407259]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-07 09:11:46.013000,"e1b-1: E1 own changes 1+2: e1a + fp2 also orders the PubChem-only proposals (z(f.z)+0.5 z(fp2 ll)), which decides which 50 enter the PubChem join. Hypothesis [run 37596551778]",SubmissionStatus.COMPLETE,0.406,
+submission.csv,2026-10-07 08:50:14.670000,"e1a-1: E1 own change 1 on the public 0.420 base (huseyinemreaksoy v1): our fp2 as a re-scoring term in same-formula groups, FP2_LAM 0.5 (validation np 250 wi [run 37594243457]",SubmissionStatus.COMPLETE,0.410,
+
+output files:
+total 168
+drwxr-xr-x  9 runner runner  4096 Oct  7 13:13 .
+drwxrwxrwt 14 root   root    4096 Oct  7 13:11 ..
+-rw-r--r--  1 runner runner 16885 Oct  7 13:13 casmi26-e2acpu.log
+-rw-r--r--  1 runner runner  1664 Oct  7 13:11 cfg.json
+-rw-r--r--  1 runner runner 29204 Oct  7 13:11 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:11 gl_work
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:11 ice_work
+drwxr-xr-x  6 runner runner  4096 Oct  7 13:12 numba_cache
+drwxr-xr-x  5 runner runner  4096 Oct  7 13:12 ours
+-rw-r--r--  1 runner runner 51709 Oct  7 13:12 pc_lists.json
+-rw-r--r--  1 runner runner  2290 Oct  7 13:12 run_manifest.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:12 smoke_comp
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:12 stage_cache
+-rw-r--r--  1 runner runner 17323 Oct  7 13:12 submission.csv
+drwxr-xr-x  2 runner runner  4096 Oct  7 13:13 work
+[{"stream_name":"stderr","time":9.886460318,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":9.886516057,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":11.309746559,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":11.309787039,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":11.309793807,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":11.309798783,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":12.193957741,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":12.194001366,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":12.194007745,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":12.194012168,"data":"0.00s - Note: Debugging wi
