@@ -327,6 +327,11 @@ dump('fp2', FP2)
 log('ICE molecules', len(ICE_SCORES)''')
 setsrc(i18, c18)
 
+if "cpu" in sys.argv[3:]:   # CPU kernel: ICEBERG / GLACIER fall back to the CPU (time budgets unchanged)
+    c18 = src(i18)
+    assert c18.count("device='cuda'") == 3
+    setsrc(i18, c18.replace("device='cuda'", "device=('cuda' if torch.cuda.is_available() else 'cpu')"))
+
 # ---- 4. fusion: pass fp2; in validation mode replay the fusion for every FP2_LAMS value
 i20 = next(i for i, c in enumerate(cells) if "".join(c["source"]).startswith("# fusion_core:"))
 c20 = src(i20)
@@ -381,7 +386,7 @@ meta = {"id": f"yasunorim/casmi26-{name}", "title": f"casmi26 {name}", "code_fil
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"],
         "model_sources": []}
-if c3val:              # CPU only: no GPU session is used
+if c3val or "cpu" in sys.argv[3:]:   # CPU only: no GPU session / quota is used
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
