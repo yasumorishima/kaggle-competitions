@@ -93,6 +93,14 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 - セッションの終わりに「どの段が済み、手元の LB 推定と LB がいくつか」を 1 行足す。
 
 ### 進捗
+- 10-07：**方針転換（user 指示：銅だけ・現状維持は出さない・公開手法は土台にしてよい、禁止は丸パクリだけ）**。
+  土台＝`huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421`（v1、LB 0.420、Apache-2.0）。中身は ahmedberatozer の v4 エンジン、prvsiyan のエンジン 2、ICEBERG/GLACIER、PubChem 層、人気度。
+  base は `kernels/e1fuse/base_0420.ipynb` に原本のまま置く。
+  **自分の改良 1（`kernels/e1fuse/build.py`）**：自前の fp2 を、同じ分子式の群の中の再採点の項にする。
+  - 式は z(ranker)+ICE+GL＋FP2_LAM·z(fp2)。ICE/GLACIER が採点できない付加イオンと負イオンも fp2 で覆う。ライブラリ一致の分子は触らない。
+  - 検証モード（enveda-np-examples 250 分子：当方の fp2 も FPNet A も見ていない）で FP2_LAM 0〜1.5 の MRR をログに出す（e1val-1）。
+  - fusion の単体試験は手元で通過。
+  - 学習済み fp2 の追加：fp2L3（d 512・24 ep）np .524・rnd .864／fp2tpu4（JAX・TPU で 16 ep が 15 分＝GPU の 7 倍速い）np .471・rnd .859。
 - 09-27：b3＝0.283（類縁体の上位 3 和）。LB 確認（09-27 の 5 本を使用）：b4a（上位 5 和）0.283・b4b（r2 ビット・上位 5）0.279・b4c（POW 3）0.279・b4d（r2・上位 10）0.267。
   ⇒ **集約・重みの刻みは b3 で頭打ち**（手元 c4 の差 0.01 は LB に出ない）。r3 カウント指紋・POW 2・上位 3 を固定し、段取り 1（FP 予測の強化）へ進む。
 - 09-27：**段取り 1 の第 1 歩＝fp2（ピークのトランスフォーマー・正確な m/z の埋め込み）**：Kaggle GPU で 8 エポック（約 33 分）、
