@@ -23,6 +23,7 @@ pclam = next((float(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("p
 val = "val" in sys.argv[3:]
 only = next((a.split("=", 1)[1].split(",") for a in sys.argv[3:] if a.startswith("only=")), None)
 mmp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp=")), 0)
+mmpc = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpc=")), 2)   # min rule count
 c3val = "c3val" in sys.argv[3:]
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -234,6 +235,7 @@ c4 = src(4)
 upd = {"VERSION": f"ours-{name}", "FP2_LAM": lam, "PC_FP2_LAM": pclam, "FP2_LIB_OFF": True, "FP2_ONLY": only,
        "FP2_LAMS": [0.0, 0.25, 0.5, 1.0, 1.5]}
 upd["MMP_N"] = mmp
+upd["MMP_MINC"] = mmpc
 if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
@@ -247,7 +249,7 @@ c14 = src(i14)
 c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:                  # ours: MMP class-3 generator (before pc_join wraps E.generate)
     try:
         import ours_mmp
-        ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, log=log)
+        ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log)
         ours_mmp.install(E, max_new=CFG['MMP_N'])
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
