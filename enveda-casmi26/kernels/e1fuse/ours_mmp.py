@@ -121,10 +121,81 @@ def products(parent_smiles, delta, tol):
     return out
 
 
-def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True):
-    """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again)."""
+CUR = {}           # spectra of the molecule being run (set by the E.run wrapper)
+_TFP = {}
+
+
+def _pred_logits(E, spectra):
+    """FP logits of the molecule exactly as Engine.run computes z_avg (single + merged spectra)."""
+    from casmi import chem, fpnet
+    from casmi.spectra import merge_spectra
+    spectra = spectra[:E.cfg.max_query_spectra]
+    items_s = []
+    for s in spectra:
+        pm, pi = fpnet.prep_peaks(s['mz'], s['it'], s['prec'])
+        ce_ok = s['ce'] is not None and not np.isnan(s['ce'])
+        items_s.append(dict(mz=pm, it=pi, prec=float(s['prec']), adduct_ix=chem.adduct_index(s['adduct']),
+                            ce=float(s['ce']) if ce_ok else 0.0, ce_known=1.0 if ce_ok else 0.0,
+                            n_merged=min(int(s.get('ce_n', 1)), 8), mode=float(s['mode'])))
+    items_m = []
+    for md in (1, -1):
+        grp = [s for s in spectra if s['mode'] == md]
+        if not grp:
+            continue
+        mm, ii = merge_spectra([(s['mz'], s['it']) for s in grp])
+        prec = float(np.median([s['prec'] for s in grp]))
+        pm, pi = fpnet.prep_peaks(mm, ii, prec)
+        ces = [s['ce'] for s in grp if s['ce'] is not None and not np.isnan(s['ce'])]
+        adducts = [s['adduct'] for s in grp]
+        ad = max(set(adducts), key=adducts.count)
+        items_m.append(dict(mz=pm, it=pi, prec=prec, adduct_ix=chem.adduct_index(ad),
+                            ce=float(np.mean(ces)) if ces else 0.0, ce_known=1.0 if ces else 0.0,
+                            n_merged=min(sum(max(1, int(s.get('ce_n', 1))) for s in grp), 8), mode=float(md)))
+    zs, _ = E.bank.logits_el(items_s)
+    zm, _ = E.bank.logits_el(items_m)
+    return 0.5 * (np.asarray(zs).mean(0) + np.asarray(zm).mean(0))
+
+
+def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
+    """ours: k train structures whose fingerprint best fits the molecule's predicted FP (score f.z / sqrt(bits)),
+    within max_shift Da of the target. They become extra MMP parents (the spectral analog channel misses many)."""
+    L, P = E.L, E.pool
+    if 'fp' not in _TFP:
+        _TFP['fp'] = np.unpackbits(E.train_fp, axis=1)[:, :P.nbits]
+        _TFP['nb'] = np.sqrt(_TFP['fp'].sum(1).astype(np.float32) + 1.0)
+    T, nb = _TFP['fp'], _TFP['nb']
+    z = _pred_logits(E, spectra).astype(np.float32)
+    m = np.asarray(L.struct_mass, np.float64)
+    idx = np.where(np.abs(m - target) <= max_shift)[0]
+    if len(idx) == 0:
+        return []
+    sc = np.empty(len(idx), np.float32)
+    for a in range(0, len(idx), 20000):
+        j = idx[a:a + 20000]
+        sc[a:a + 20000] = (T[j].astype(np.float32) @ z) / nb[j]
+    ex = set(exclude)
+    out = []
+    for t in np.argsort(-sc):
+        sid = int(idx[t])
+        if sid in ex:
+            continue
+        out.append(sid)
+        if len(out) >= k:
+            break
+    return out
+
+
+def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3):
+    """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
+    many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
+    run0 = E.run
+
+    def run(spectra, target, *a, **kw):
+        CUR['spectra'] = spectra
+        return run0(spectra, target, *a, **kw)
+    E.run = run
 
     def generate(analogs, target, exclude_keys):
         t0 = time.time()
@@ -133,6 +204,14 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True):
         cfg, L, P = E.cfg, E.L, E.pool
         tol = max(cfg.gen_tol_da, target * cfg.ppm_win * 1e-6)
         parents = [a for a in analogs if a[1] >= min_sim][:n_parent]
+        if n_fp_parent > 0 and E.bank is not None and CUR.get('spectra'):
+            try:
+                fps = fp_parents(E, CUR['spectra'], target, n_fp_parent, exclude=[a[0] for a in parents])
+                parents = parents + [(sid, fp_parent_sim, 0.0, False) for sid in fps]
+                STATS['fp_parents'] = STATS.get('fp_parents', 0) + len(fps)
+            except Exception as e:
+                STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
+                STATS['fp_parent_error'] = repr(e)[:200]
         cand = {}
         for sid, sim, _shift, _np in parents:
             psmi = L.struct_smiles[sid]
