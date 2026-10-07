@@ -108,6 +108,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
     - e1a-1＝土台＋fp2 の項（重み 0.5）。
     - e1b-1＝e1a＋PubChem 候補の並べにも fp2（`pc=0.5`。PubChem の join に入る 50 個が変わる）。
     - 仮説：どちらも 0.420 を上回る。
+    - **結果：e1a-1＝0.410（土台 0.420 より −0.010、約 1 分子分）＝仮説は外れ。** 検証の +0.023 は ICE が止まった状態の数字で、ICE/GLACIER が動く本番では fp2 の項は上積みにならない。
+      ⇒ fp2 の再採点の項は、本番の版には入れない。改良の主軸は E2（class 3 の生成）へ移す。
   - 次：
     - ICE ありで検証をやり直し、fp2 の上積みが残るかを見る。
     - 改良 3 の候補：class 3 の生成の強化、PubChem の delta（新規登録 3.6 万構造）、fp2 の学習を候補窓の softmax に。
