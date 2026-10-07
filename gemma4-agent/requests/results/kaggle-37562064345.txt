@@ -1,0 +1,9 @@
+request: localeval-3
+run: 37562064345  status: success  action: kernel  dir: gemma4-agent/kernels/localeval  submit: no
+kernel: yasunorim/gemma4-localeval  version: 3
+memo: G1 paired run: v6 (ours) vs pub013 (public LB 0.13 config, planner->coder) on the 129 tasks, NvidiaL4. localeval-2: v6 15/129 (mean 265 s); official sample failed (LoRA alias 404). Compact per-task rows at the end of the log.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-localeval
+
+output files:
