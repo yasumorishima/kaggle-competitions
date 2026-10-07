@@ -1,0 +1,9 @@
+request: e1val-1
+run: 37553097026  status: failure  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e1val  version: 
+memo: E1 base + our first change, validation mode: public 0.420 notebook (huseyinemreaksoy, Apache-2.0) as the base + our fp2 as a re-scoring term in same-formula groups. VALIDATION on enveda-np-examples (250, unseen by our fp2 and by FPNet A), MRR logged for FP2_LAM 0 / 0.25 / 0.5 / 1 / 1.5. No submit.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch GPU session count of 2 reached.
+
+output files:
