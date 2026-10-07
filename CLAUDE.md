@@ -52,6 +52,7 @@ GitHub の無料枠（個人アカウント）：Actions は**非公開リポジ
 - **待つだけのジョブを長く走らせない**（例：Kaggle kernel の完了待ちで 100 分ランナーを占有）。公開なら無料だが、非公開に同じ形を持ち込まない。
 - **重い計算の置き場所の優先順**：cloud コンテナ（無料）→ Kaggle Notebook（GPU 週 30 時間まで無料）→ 公開リポジトリの GHA → self-hosted（RPi5）。**有料になるもの（非公開の GitHub ランナー・Codespaces・larger runner・有料 API）は使わない。**
   - **Kaggle の TPU も無料枠。必要なときは遠慮なく使う**（2026-10-05 user 指示）。GPU 枠が足りないとき（seed や epoch を変えた複数学習・大きいモデルの学習など）は TPU に回す。PyTorch なら torch_xla、または JAX に移植する。
+  - **GPU 週 30 時間は全コンペ共通の枠**（10-07 に Gemma の手元評価・ARC・enveda で使い切り、enveda の提出が push で拒否された）。重い GPU の評価を入れる前に、その週の提出用の時間（enveda の本番は 1 本ごとに T4 の commit 実行）を残す。切れた週は CPU の kernel（9 時間以内なら提出可）と TPU で進める。
 - Codespaces は作らない。
 - 無料枠の警告メールが来たら、どのリポジトリが使っているかを確かめ、上のどれかへ移す。
   最後の安全策として、Billing の Budgets で Actions・Codespaces に $0 の予算を置いておく（超えても止まるだけで請求されない）。

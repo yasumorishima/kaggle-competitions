@@ -70,6 +70,10 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
       - edit_file の old_string 不一致。
       - /tmp への書き込みの拒否。
       - ⇒ 道具の使い方の誤りで回数と時間を浪費している。直す候補。
+  - **v7**（`submission/`）：prompt に道具の呼び出しの決まり（read_file はパスだけ・行番号は別の数、not found なら素のパスで再試行、edit_file は old_string 必須・新規は write_file、失敗した呼び出しを同じ引数で繰り返さない）を足した。v6 は `bases/v6`。
+  - **localeval-5（4×L4・6 並列・同じ 129 課題で対）：v7 22/129・v6 14/129。v7 だけ解けた 10・v6 だけ 2・両方 12（符号検定 p=0.019）**。rich 10 対 5・fastapi 12 対 8。
+    ⇒ 道具の使い方の誤りが主な損だった、という見立てが手元で確かめられた。**g4v7-1 を提出**（仮説：LB が v6 の 0.08 を上回る）。
+  - **Kaggle の GPU 週 30 時間を使い切った（10-07 12:27 UTC。enveda の push が "Maximum weekly GPU quota" で拒否）**。手元評価（4×L4）は枠が戻るまで回せない。その間は失敗の内訳（g5.log）から次の部品を作る。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
