@@ -9,7 +9,9 @@ unchanged as base_0420.ipynb. Our changes:
      spectra the forward models cannot score. FP2_LIB_OFF keeps library hits untouched.
   3. validation mode: the fusion is replayed for every FP2_LAMS value and the MRR of each is logged.
 
-    python build.py NAME FP2_LAM [val] [only=fp2L3,fp2-peak]
+    python build.py NAME FP2_LAM [val] [only=fp2L3,fp2-peak] [pc=PC_FP2_LAM]
+  4. (pc=) fp2 also orders the PubChem-only proposals: z(f.z) + PC_FP2_LAM z(fp2 ll) inside the pass-1 set; the
+     gate keeps the raw best f.z.
 """
 import json
 import os
@@ -17,6 +19,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 name, lam = sys.argv[1], float(sys.argv[2])
+pclam = next((float(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("pc=")), 0.0)
 val = "val" in sys.argv[3:]
 only = next((a.split("=", 1)[1].split(",") for a in sys.argv[3:] if a.startswith("only=")), None)
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
@@ -110,16 +113,135 @@ fc = swap(fc, '''            stats['fuse']['top1_changed'] += int(bool(vs) and f
                     log('fused fp2 rerank failed', mid, repr(ex))
             stats['fuse']['top1_changed'] += int(bool(vs) and fsm[:1] != vs[:1])''')
 E["fusion_core.py"] = fc
+
+# ours (b): fp2 joins the ordering of the PubChem-only proposals (z(f.z) + PC_FP2_LAM z(fp2 ll)) inside the pass-1 set
+pc = E["pc/probe_core2.py"]
+pc += '''
+
+# ==== ours (yasunorim): fp2 term in the PubChem-only channel; active when CASMI_FP2_LAM > 0. The task carries the
+# molecule's fp2 bit probabilities (2048, Morgan r2) as a 4th element. ====
+_FP2_LAM = float(os.environ.get('CASMI_FP2_LAM', '0'))
+_init_worker_base = init_worker
+
+
+def init_worker_fp2(pc_dir, bits_path, pool_meta_path, code_dir=None):
+    _init_worker_base(pc_dir, bits_path, pool_meta_path, code_dir)
+    from rdkit.Chem import rdFingerprintGenerator
+    _W['g2'] = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
+
+def probe_one_fp2(task):
+    mid, target, z = task[:3]
+    p2 = task[3] if len(task) > 3 else None
+    t0 = time.time()
+    chem = _W['chem']; Chem = _W['Chem']; gen = _W['ecfp4']
+    smis = _window(float(target))
+    n = len(smis)
+    diag = dict(molecule_id=mid, n_window=n, n_pass1=0, n_pass2=0, n_keyed=0, n_in_pool=0, n_listed=0, fz_top=None)
+    if n == 0:
+        diag['secs'] = time.time() - t0
+        return mid, [], [], [], diag
+    raw_e = _W['raw_e']; z_e = z[_W['sel_e']].astype(np.float32)
+    E = np.zeros((n, len(raw_e)), np.float32); ok = np.zeros(n, bool); mols = [None] * n
+    for i, s in enumerate(smis):
+        m = Chem.MolFromSmiles(s)
+        if m is None:
+            continue
+        mols[i] = m
+        E[i] = gen.GetFingerprintAsNumPy(m)[raw_e]; ok[i] = True
+    sc1 = E @ z_e
+    sc1[~ok] = -np.inf
+    n1 = min(PC_N1, int(ok.sum()))
+    diag['n_pass1'] = n1
+    if n1 == 0:
+        diag['secs'] = time.time() - t0
+        return mid, [], [], [], diag
+    top1 = np.argpartition(-sc1, n1 - 1)[:n1] if n1 < n else np.where(ok)[0]
+    bits = _W['bits']
+    fz, idx, ll = [], [], []
+    lp, lq = (np.log(p2), np.log(1 - p2)) if p2 is not None else (None, None)
+    for i in top1:
+        fp = chem.raw_fingerprint(smis[i])
+        if fp is None:
+            continue
+        fz.append(float(fp[bits].astype(np.float32) @ z)); idx.append(int(i))
+        if lp is not None:
+            b = _W['g2'].GetFingerprintAsNumPy(mols[i]).astype(np.float64)
+            ll.append(float(b @ lp + (1 - b) @ lq))
+    diag['n_pass2'] = len(idx)
+    if not idx:
+        diag['secs'] = time.time() - t0
+        return mid, [], [], [], diag
+    fz = np.asarray(fz, np.float64); idx = np.asarray(idx)
+    keyc = {}
+
+    def key(j):
+        if j not in keyc:
+            keyc[j] = chem.score_key(smis[idx[j]]); diag['n_keyed'] += 1
+        return keyc[j]
+    for j in np.argsort(-fz, kind='stable'):        # gate quantity stays the best non-pool structure by raw f.z
+        k = key(j)
+        if k is not None and k not in _W['pool_keys']:
+            diag['fz_top'] = float(fz[j]); break
+    sc = (fz - fz.mean()) / (fz.std() + 1e-9)
+    if ll:
+        ll = np.asarray(ll); sc = sc + _FP2_LAM * (ll - ll.mean()) / (ll.std() + 1e-9)
+    order = np.argsort(-sc, kind='stable')
+    out, out_s, out_k, seen = [], [], [], set()
+    for j in order:
+        k = key(j)
+        if k is None or k in seen:
+            continue
+        seen.add(k)
+        if k in _W['pool_keys']:
+            diag['n_in_pool'] += 1
+            continue
+        out.append(smis[idx[j]]); out_s.append(float(fz[j])); out_k.append(k)
+        if len(out) >= K:
+            break
+    diag['n_listed'] = len(out)
+    diag['secs'] = time.time() - t0
+    return mid, out, out_s, out_k, diag
+
+
+if _FP2_LAM > 0:
+    init_worker, probe_one = init_worker_fp2, probe_one_fp2
+'''
+E["pc/probe_core2.py"] = pc
+pr = E["pc/pc_runner.py"]
+pr = swap(pr, "    del bank; torch.cuda.empty_cache()\n", '''    if float(os.environ.get('CASMI_FP2_LAM', '0')) > 0:     # ours: fp2 probabilities per molecule (4th task element)
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            import ours_fp2
+            _paths, _nets = ours_fp2.load(only=[x for x in os.environ.get('CASMI_FP2_ONLY', '').split(',') if x] or None, device=dev)
+            _g = dict(list(te.groupby('molecule_id', sort=False)))
+            tasks = [(t[0], t[1], t[2], ours_fp2.mol_probs(_nets, _g[t[0]], dev)) for t in tasks]
+            print('fp2 probabilities for the PubChem channel', len(tasks), _paths, flush=True)
+            del _nets
+        except Exception as e:
+            print('FP2 IN PUBCHEM CHANNEL FAILED -> f.z only:', repr(e), flush=True)
+    del bank; torch.cuda.empty_cache()
+''')
+E["pc/pc_runner.py"] = pr
 setsrc(2, "# embedded sources (base notebook's EMBED + ours_fp2.py; fusion_core.py patched by kernels/e1fuse/build.py)\n"
        "EMBED = " + repr(E) + "\n")
 
 # ---- 2. config: our knobs on top of the base notebook's final CFG.update
 c4 = src(4)
-upd = {"VERSION": f"ours-{name}", "FP2_LAM": lam, "FP2_LIB_OFF": True, "FP2_ONLY": only,
+upd = {"VERSION": f"ours-{name}", "FP2_LAM": lam, "PC_FP2_LAM": pclam, "FP2_LIB_OFF": True, "FP2_ONLY": only,
        "FP2_LAMS": [0.0, 0.25, 0.5, 1.0, 1.5]}
 if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
+
+# ---- 2b. PubChem channel: pass CASMI_FP2_LAM to the runner
+i12 = next(i for i, c in enumerate(cells) if "".join(c["source"]).startswith("# PubChem-only channel in its own process"))
+c12 = src(i12)
+c12 = swap(c12, "if CFG['USE_PC']:\n", """if CFG.get('PC_FP2_LAM', 0) > 0:             # ours: fp2 term in the PubChem-only channel
+    _pc_env.update(CASMI_FP2_LAM=str(CFG['PC_FP2_LAM']), CASMI_FP2_ONLY=','.join(CFG['FP2_ONLY'] or []))
+if CFG['USE_PC']:
+""")
+setsrc(i12, c12)
 
 # ---- 3. fp2 scores next to the ICE / GLACIER / frag scores
 i18 = next(i for i, c in enumerate(cells) if "".join(c["source"]).startswith("# ICEBERG + GLACIER scoring"))

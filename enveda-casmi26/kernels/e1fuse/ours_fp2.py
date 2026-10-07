@@ -91,6 +91,20 @@ def bits(smiles, cache):
     return out, ok
 
 
+def mol_probs(nets, g, dev, max_spec=16):
+    """Bit probabilities (2048,) of one molecule: sigmoid outputs averaged over its spectra and the nets."""
+    aidx = {a: i for i, a in enumerate(ADDUCTS)}
+    g = g.iloc[:max_spec]
+    tk = [tokens(r.ms2_mzs, r.ms2_normalized_intensities, float(r.precursor_mz)) for r in g.itertuples()]
+    with torch.no_grad():
+        args = (torch.from_numpy(np.stack([t[0] for t in tk])).to(dev),
+                torch.from_numpy(np.stack([t[1] for t in tk])).to(dev),
+                torch.from_numpy(g.precursor_mz.values.astype(np.float32)).to(dev),
+                torch.from_numpy(g.adduct.map(aidx).fillna(len(ADDUCTS)).values.astype(np.int64)).to(dev))
+        p = torch.stack([torch.sigmoid(n(*args)) for n in nets]).mean(0).mean(0)
+    return p.clamp(1e-4, 1 - 1e-4).cpu().numpy().astype(np.float64)
+
+
 def score(te, cand_lists, only=None, log=print, max_spec=16):
     """te: test DataFrame (molecule_id, ms2_mzs, ms2_normalized_intensities, precursor_mz, adduct);
     cand_lists: {molecule_id: [smiles]}. Probabilities are averaged over the molecule's spectra and the nets."""
@@ -99,21 +113,12 @@ def score(te, cand_lists, only=None, log=print, max_spec=16):
     log("fp2 nets", paths)
     if not nets:
         return {}
-    aidx = {a: i for i, a in enumerate(ADDUCTS)}
     out, cache = {}, {}
     for mid, g in te.groupby("molecule_id", sort=False):
         cl = cand_lists.get(mid) or cand_lists.get(str(mid))
         if not cl:
             continue
-        g = g.iloc[:max_spec]
-        tk = [tokens(r.ms2_mzs, r.ms2_normalized_intensities, float(r.precursor_mz)) for r in g.itertuples()]
-        with torch.no_grad():
-            args = (torch.from_numpy(np.stack([t[0] for t in tk])).to(dev),
-                    torch.from_numpy(np.stack([t[1] for t in tk])).to(dev),
-                    torch.from_numpy(g.precursor_mz.values.astype(np.float32)).to(dev),
-                    torch.from_numpy(g.adduct.map(aidx).fillna(len(ADDUCTS)).values.astype(np.int64)).to(dev))
-            p = torch.stack([torch.sigmoid(n(*args)) for n in nets]).mean(0).mean(0)
-        p = p.clamp(1e-4, 1 - 1e-4).cpu().numpy().astype(np.float64)
+        p = mol_probs(nets, g, dev, max_spec)
         b, ok = bits(cl, cache)
         ll = b @ np.log(p) + (1 - b) @ np.log(1 - p)
         out[str(mid)] = {s: (float(v) if k else None) for s, v, k in zip(cl, ll, ok)}
