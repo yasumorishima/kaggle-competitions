@@ -1,0 +1,9 @@
+request: localeval-2
+run: 37553082466  status: success  action: kernel  dir: gemma4-agent/kernels/localeval  submit: no
+kernel: yasunorim/gemma4-localeval  version: 2
+memo: G1 retry: localeval-1 landed on 2xT4 (bf16 unsupported) with the competition image; machine NvidiaL4 as in the official starter. v6 vs official sample on the 129 tasks.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-localeval
+
+output files:
