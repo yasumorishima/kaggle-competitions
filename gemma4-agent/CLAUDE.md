@@ -79,6 +79,7 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - **GPU 週枠が切れている間の評価台＝TPU（`kernels/tpueval`）**：vLLM の TPU 版（PyPI の `vllm-tpu` 0.31）で Gemma 4 31B を TPU v5e-8 に載せる（TP 8・w4a16 が載らなければ同じモデルの bf16 QAT 版）。
     評価側は公式 wheel（adk・swegemma）を uv の Python 3.12 の venv に入れる（インターネット可）。v7 を shard 0/3（43 課題）で直列に回し、4×L4 の結果と比べて評価台として使えるかを見る。
     tpueval-1 は「batch TPU session は同時 1 本」で拒否（enveda の e2tpu-1 が TPU 待ち）＝e2tpu-1 の後に出し直す。
+  - **g4v7-1 は 39 時間後に Kaggle の "A system error. Please try resubmitting" で終わった（点なし）**＝v7 の仮説は未検証のまま。**g4v7-2 として同じ v7 を出し直した**（10-08 の 1 枠・仮説は同じ：LB > v6 0.08）。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
