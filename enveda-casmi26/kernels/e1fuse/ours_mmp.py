@@ -62,13 +62,18 @@ def _vmass(s):
     return Descriptors.ExactMolWt(m) if m is not None else None
 
 
-def mine(train_parquet, workers=4, min_count=2, max_ctx=60, log=print):
-    """Rules from the unique structures of train_parquet (normalized_smiles, one per inchikey14)."""
+def mine(train_parquet, workers=4, min_count=2, max_ctx=60, log=print, exclude_ik14=()):
+    """Rules from the unique structures of train_parquet (normalized_smiles, one per inchikey14), without the
+    structures whose inchikey14 is in exclude_ik14 (class-3 validation: the held-out truths give no rules)."""
     import pyarrow.parquet as pq
     from multiprocessing import Pool
     t0 = time.time()
     t = pq.read_table(train_parquet, columns=['normalized_smiles', 'inchikey14']).to_pandas()
-    smis = t.drop_duplicates('inchikey14').normalized_smiles.dropna().tolist()
+    t = t.drop_duplicates('inchikey14')
+    if exclude_ik14:
+        n0 = len(t); t = t[~t.inchikey14.isin(set(exclude_ik14))]
+        log(f'MMP mining: {n0 - len(t)} held-out structures excluded')
+    smis = t.normalized_smiles.dropna().tolist()
     del t
     with Pool(workers, initializer=_init) as p:
         R = p.map(_frag, smis, chunksize=500)
@@ -212,6 +217,11 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             except Exception as e:
                 STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
                 STATS['fp_parent_error'] = repr(e)[:200]
+        if DIAG and CUR.get('spectra') and E.bank is not None:
+            try:
+                study(E, analogs, target, tol, _pred_logits(E, CUR['spectra']), DIAG_HOLD)
+            except Exception as e:
+                STATS['study_error'] = repr(e)[:300]
         cand = {}
         for sid, sim, _shift, _np in parents:
             psmi = L.struct_smiles[sid]
@@ -251,3 +261,168 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
         return base + new
 
     E.generate = generate
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ours: parent-retrieval study (class-3 validation only). MMP can only reach the truth from a parent one replacement
+# away; with the 10 train structures nearest the truth as parents 65.7 % of truths are generated offline, with the
+# engine's spectral analogs + 10 FP parents only 20.9 %. For each molecule (truth known) every method below picks
+# parents; we log the best parent-truth Tanimoto and whether MMP from those parents generates the truth.
+DIAG = {}          # molecule id -> truth SMILES (set by the notebook); CUR['mid'] = the molecule being generated
+DIAG_ROWS = []
+DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
+_POOL = {}
+
+
+def _bits(E, smi):
+    from casmi import chem
+    std = chem.standardize_smiles(smi)
+    fp = chem.raw_fingerprint(std) if std else None
+    return None if fp is None else fp[E.pool.bits].astype(bool)
+
+
+def _pool_data(E):
+    """pool structures (train + COCONUT + ...) as unpacked FP bits, SMILES, mass and key (built once)."""
+    if not _POOL:
+        P = E.pool
+        names = [a for a in dir(P) if not a.startswith('__')]
+        _POOL['attrs'] = names
+        fp = getattr(P, 'fp', None)
+        if fp is None:
+            fp = np.load('work/pool_fp.npy', mmap_mode='r')
+        fp = np.asarray(fp)
+        if fp.dtype == np.uint8 and fp.shape[1] * 8 >= P.nbits and fp.shape[1] < P.nbits:
+            fp = np.unpackbits(fp, axis=1)[:, :P.nbits]
+        _POOL['fp'] = fp.astype(np.uint8)
+        _POOL['n1'] = _POOL['fp'].sum(1).astype(np.float32)
+        smi = next((getattr(P, a) for a in ('smiles', 'smi', 'struct_smiles') if hasattr(P, a)), None)
+        if smi is None:
+            import pandas as pd
+            meta = pd.read_parquet('work/pool_meta.parquet')
+            _POOL['meta_cols'] = list(meta.columns)
+            smi = meta[next(c for c in meta.columns if 'smi' in c.lower())].values
+        _POOL['smiles'] = smi
+        _POOL['mass'] = np.asarray(next(getattr(P, a) for a in ('mass', 'masses', 'mono_mass') if hasattr(P, a)), np.float64)
+        _POOL['key'] = np.asarray(P.key)
+    return _POOL
+
+
+def _train_data(E):
+    if 'fp' not in _TFP:
+        _TFP['fp'] = np.unpackbits(E.train_fp, axis=1)[:, :E.pool.nbits]
+        _TFP['nb'] = np.sqrt(_TFP['fp'].sum(1).astype(np.float32) + 1.0)
+    if 'n1' not in _TFP:
+        _TFP['n1'] = _TFP['fp'].sum(1).astype(np.float32)
+    return _TFP
+
+
+def _etan(T, n1, idx, p):
+    """expected Tanimoto of each structure's bits with independent Bernoulli(p) bits (ratio of expectations)"""
+    sp = float(p.sum())
+    out = np.empty(len(idx), np.float32)
+    for a in range(0, len(idx), 20000):
+        j = idx[a:a + 20000]
+        inter = T[j].astype(np.float32) @ p
+        out[a:a + 20000] = inter / (n1[j] + sp - inter + 1e-6)
+    return out
+
+
+def _top(idx, sc, k, bad):
+    out = []
+    for t in np.argsort(-sc):
+        i = int(idx[t])
+        if i in bad:
+            continue
+        out.append(i)
+        if len(out) >= k:
+            break
+    return out
+
+
+def study(E, analogs, target, tol, z, hold_keys, n_parent=10, min_sim=0.3, max_shift=250.0):
+    """one molecule: parents per method -> (best Tanimoto to truth, truth generated by MMP), appended to DIAG_ROWS"""
+    from casmi import chem
+    mid = CUR.get('mid')
+    if mid not in DIAG:
+        return
+    t0 = time.time()
+    L = E.L
+    tsmi = DIAG[mid]
+    tkey = chem.score_key(chem.standardize_smiles(tsmi) or tsmi)
+    tb = _bits(E, tsmi)
+    p = 1.0 / (1.0 + np.exp(-z.astype(np.float32)))
+    TD = _train_data(E)
+    tmass = np.asarray(L.struct_mass, np.float64)
+    tbad = set()
+    K = n_parent + 3     # over-fetch: a parent that is the truth itself is skipped below
+    tidx = np.where(np.abs(tmass - target) <= max_shift)[0]
+    meth = {}
+    meth['spec'] = [('t', a[0]) for a in analogs if a[1] >= min_sim][:K]
+    if len(tidx):
+        dot = (TD['fp'][tidx].astype(np.float32) @ z.astype(np.float32)) / TD['nb'][tidx]
+        meth['fpdot'] = [('t', i) for i in _top(tidx, dot, K, tbad)]
+        et = _etan(TD['fp'], TD['n1'], tidx, p)
+        meth['etan'] = [('t', i) for i in _top(tidx, et, K, tbad)]
+        meth['etan30'] = [('t', i) for i in _top(tidx, et, 3 * n_parent + 3, tbad)]
+        if tb is not None:     # oracle: the train structures nearest the truth (upper bound of parent retrieval)
+            tt = TD['fp'][tidx].astype(np.float32) @ tb.astype(np.float32)
+            tt = tt / (TD['n1'][tidx] + tb.sum() - tt + 1e-6)
+            meth['oracle'] = [('t', i) for i in _top(tidx, tt, K, tbad)]
+    try:
+        PD = _pool_data(E)
+        pidx = np.where(np.abs(PD['mass'] - target) <= max_shift)[0]
+        pidx = pidx[~np.isin(PD['key'][pidx], list(hold_keys))] if hold_keys else pidx
+        if len(pidx):
+            et = _etan(PD['fp'], PD['n1'], pidx, p)
+            meth['pool_etan'] = [('p', i) for i in _top(pidx, et, K, set())]
+    except Exception as e:
+        STATS['study_pool_error'] = repr(e)[:300]
+    meth['spec+etan'] = meth['spec'][:n_parent] + [x for x in meth.get('etan', []) if x not in meth['spec'][:n_parent]]
+    meth['spec+etan+pool'] = meth['spec+etan'] + meth.get('pool_etan', [])
+    cache = {}
+    row = dict(mid=mid)
+    for name, par in meth.items():
+        best, gen, used = 0.0, False, 0
+        lim = 3 * n_parent if name == 'etan30' else (2 * n_parent if name == 'spec+etan' else (3 * n_parent if name == 'spec+etan+pool' else n_parent))
+        for src_, i in par:
+            if used >= lim:
+                break
+            if (src_, i) not in cache:
+                smi = L.struct_smiles[i] if src_ == 't' else PD['smiles'][i]
+                mass = float(tmass[i]) if src_ == 't' else float(PD['mass'][i])
+                pb = _bits(E, smi)
+                std0 = chem.standardize_smiles(smi)
+                if std0 and chem.score_key(std0) == tkey:      # the truth itself (still in the library): not a parent
+                    cache[(src_, i)] = None
+                    continue
+                tan = 0.0
+                if pb is not None and tb is not None:
+                    inter = float((pb & tb).sum()); tan = inter / (pb.sum() + tb.sum() - inter + 1e-9)
+                g = False
+                try:
+                    for prod in products(smi, target - mass, tol):
+                        std = chem.standardize_smiles(prod)
+                        if std and chem.score_key(std) == tkey:
+                            g = True; break
+                except Exception:
+                    pass
+                cache[(src_, i)] = (tan, g)
+            if cache[(src_, i)] is None:
+                continue
+            tan, g = cache[(src_, i)]
+            best = max(best, tan); gen = gen or g; used += 1
+        row[name] = (round(best, 3), int(gen), used)
+    row['secs'] = round(time.time() - t0, 1)
+    DIAG_ROWS.append(row)
+
+
+def study_summary(log=print):
+    if not DIAG_ROWS:
+        log('PARENT STUDY: no rows', STATS.get('study_error'), STATS.get('study_pool_error')); return
+    names = [k for k in DIAG_ROWS[0] if k not in ('mid', 'secs')]
+    log(f'PARENT STUDY n={len(DIAG_ROWS)} secs/mol {np.mean([r["secs"] for r in DIAG_ROWS]):.1f} pool attrs '
+        f'{_POOL.get("attrs")} meta {_POOL.get("meta_cols")} pool_err {STATS.get("study_pool_error")} err {STATS.get("study_error")}')
+    for nm in names:
+        v = [r[nm] for r in DIAG_ROWS if nm in r]
+        log(f'  {nm:16s} n={len(v)} mean best Tanimoto {np.mean([x[0] for x in v]):.3f} | best>=0.7 {np.mean([x[0] >= 0.7 for x in v]):.3f} '
+            f'| truth generated {np.mean([x[1] for x in v]):.3f} | parents {np.mean([x[2] for x in v]):.1f}')

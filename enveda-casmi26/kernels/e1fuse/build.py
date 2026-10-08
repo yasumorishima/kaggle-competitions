@@ -27,6 +27,7 @@ mmpc = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpc
 mmpfp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpfp=")), 0)  # FP-retrieved parents
 c3val = "c3val" in sys.argv[3:]
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
+c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
@@ -243,7 +244,7 @@ if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
-               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep)
+               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par)
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
 
 # ---- 2a. engine: MMP generator (ours_mmp) and, for c3val, the held-out truths removed from the pool
@@ -252,7 +253,12 @@ c14 = src(i14)
 c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:                  # ours: MMP class-3 generator (before pc_join wraps E.generate)
     try:
         import ours_mmp
-        ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log)
+        _xik = ()
+        if CFG.get('C3VAL') and not IS_RERUN and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
+            from rdkit import Chem as _Ch   # class-3 validation: the held-out truths give no MMP rules
+            _xik = set(_Ch.MolToInchiKey(_Ch.MolFromSmiles(s_))[:14] for s_ in pd.read_csv(os.path.join(STAGE, 'val_labels.csv')).smiles
+                       if _Ch.MolFromSmiles(s_) is not None)
+        ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log, exclude_ik14=_xik)
         ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0))
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
@@ -266,6 +272,11 @@ if CFG.get('C3VAL') and not CFG.get('C3KEEP') and CFG['VALIDATION'] and not IS_R
     _w03 = P.window
     P.window = lambda t, ppm: (lambda w: w[~_drop3[w]])(_w03(t, ppm))
     log('C3VAL: held-out structures removed from the pool:', int(_drop3.sum()), 'of', len(C3_HOLD))
+if CFG.get('C3PAR') and CFG.get('MMP_N', 0) > 0:   # ours: parent-retrieval study
+    _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
+    ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
+    ours_mmp.DIAG_HOLD.update(k for k in (chem.score_key(s) for s in _lab3.smiles) if k)
+    log('PARENT STUDY on', len(ours_mmp.DIAG), 'molecules')
 import pc_join
 """)
 setsrc(i14, c14)
@@ -274,7 +285,7 @@ c16 = src(i16)
 c16 = swap(c16, "for gi, (mid, sub) in enumerate(mols):\n", """MMPK = {}
 for gi, (mid, sub) in enumerate(mols):
     if CFG.get('MMP_N', 0) > 0:
-        ours_mmp.GEN_KEYS.clear()
+        ours_mmp.GEN_KEYS.clear(); ours_mmp.CUR['mid'] = mid
 """)
 c16 = swap(c16, "    BASE[mid] = [smis, keys, lib_max, scs, forms, pids]\n", """    BASE[mid] = [smis, keys, lib_max, scs, forms, pids]
     MMPK[mid] = list(ours_mmp.GEN_KEYS.get('last', ())) if CFG.get('MMP_N', 0) > 0 else []
@@ -282,6 +293,8 @@ c16 = swap(c16, "    BASE[mid] = [smis, keys, lib_max, scs, forms, pids]\n", """
 c16 += """
 if CFG.get('MMP_N', 0) > 0:
     log('MMP stats', ours_mmp.STATS)
+    if CFG.get('C3PAR'):
+        ours_mmp.study_summary(log)
 if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):   # ours: class-3 base-list scores
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     _tk = {m: chem.score_key(s) for m, s in zip(_lab3.molecule_id, _lab3.smiles)}
