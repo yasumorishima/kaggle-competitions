@@ -71,8 +71,8 @@ def mine(train_parquet, workers=4, min_count=2, max_ctx=60, log=print, exclude_i
     t = pq.read_table(train_parquet, columns=['normalized_smiles', 'inchikey14']).to_pandas()
     t = t.drop_duplicates('inchikey14')
     if exclude_ik14:
-        n0 = len(t); t = t[~t.inchikey14.isin(set(exclude_ik14))]
-        log(f'MMP mining: {n0 - len(t)} held-out structures excluded')
+        n0 = len(t); ex = set(exclude_ik14); t = t[~t.inchikey14.isin(ex)]
+        log(f'MMP mining: {n0 - len(t)} of {len(ex)} held-out structures excluded; e.g. {sorted(ex)[:3]} vs train {t.inchikey14.head(3).tolist()}')
     smis = t.normalized_smiles.dropna().tolist()
     del t
     with Pool(workers, initializer=_init) as p:
@@ -123,6 +123,29 @@ def products(parent_smiles, delta, tol):
                 continue
             if cnt > out.get(s, 0):
                 out[s] = cnt
+    return out
+
+
+def products_any(parent_smiles, top=20):
+    """the `top` most frequent one-step products of parent_smiles (any mass change): {SMILES: (rule count, delta mass)}"""
+    from rdkit import Chem
+    rows = []
+    for c, x in _frag(parent_smiles):
+        for y, cnt, dm in RULES.get(x, ()):
+            rows.append((cnt, c, y, dm))
+    rows.sort(key=lambda r: -r[0])
+    out = {}
+    for cnt, c, y, dm in rows:
+        if len(out) >= top:
+            break
+        try:
+            m = Chem.molzip(Chem.MolFromSmiles(c), Chem.MolFromSmiles(y))
+            Chem.SanitizeMol(m)
+            s = Chem.MolToSmiles(m)
+        except Exception:
+            continue
+        if s != parent_smiles and s not in out:
+            out[s] = (cnt, dm)
     return out
 
 
@@ -190,9 +213,14 @@ def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
     return out
 
 
-def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3):
+def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count',
+            two_step=0, two_parent=3):
     """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
-    many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim."""
+    many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim. order picks which
+    max_new of the valid products are kept: 'count' (parent similarity x log(1 + rule count)), 'fp' (log-likelihood of
+    the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks). two_step > 0: for the two_parent
+    best spectral analogs, the two_step most frequent one-step products (any mass) are expanded once more with the rules
+    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products)."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
     run0 = E.run
@@ -217,7 +245,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             except Exception as e:
                 STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
                 STATS['fp_parent_error'] = repr(e)[:200]
-        if DIAG and CUR.get('spectra') and E.bank is not None:
+        if DIAG and STUDY and CUR.get('spectra') and E.bank is not None:
             try:
                 study(E, analogs, target, tol, _pred_logits(E, CUR['spectra']), DIAG_HOLD)
             except Exception as e:
@@ -233,7 +261,29 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                 sc = float(sim) * np.log1p(cnt)
                 if sc > cand.get(s, (0.0,))[0]:
                     cand[s] = (sc, sid, sim)
-        new = []
+        if two_step > 0:                               # ours: two replacements (parent -> any -> target mass)
+            t2 = time.time()
+            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim][:two_parent]:
+                try:
+                    mids = products_any(L.struct_smiles[sid], top=two_step)
+                except Exception:
+                    mids = {}
+                pm = float(L.struct_mass[sid])
+                for ms, (c1, dm1) in mids.items():
+                    try:
+                        pr = products(ms, target - (pm + dm1), tol)
+                    except Exception:
+                        pr = {}
+                    for s2, c2 in pr.items():
+                        if s2 == L.struct_smiles[sid]:
+                            continue
+                        sc = 0.5 * float(sim) * np.log1p(min(c1, c2))
+                        if sc > cand.get(s2, (0.0,))[0]:
+                            cand[s2] = (sc, sid, sim)
+                            STATS['two_step_cands'] = STATS.get('two_step_cands', 0) + 1
+            STATS['two_step_secs'] = STATS.get('two_step_secs', 0.0) + time.time() - t2
+        # ours: every valid product first (best rule first, up to MAX_POOL), then keep max_new of them by `order`
+        allp = []
         for s, (sc, sid, sim) in sorted(cand.items(), key=lambda kv: -kv[1][0]):
             std = chem.standardize_smiles(s)
             if std is None:
@@ -247,14 +297,37 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             fp = chem.raw_fingerprint(std)
             if fp is None:
                 continue
-            fp = fp[P.bits].astype(np.float32)
+            seen.add(k)
+            allp.append((std, k, p, fp[P.bits].astype(np.float32), sid, sim))
+            if len(allp) >= MAX_POOL:
+                break
+        keep = list(range(len(allp)))                  # 'count': parent similarity x log(1 + rule count)
+        if allp and order != 'count' and E.bank is not None and CUR.get('spectra'):
+            try:
+                z = _pred_logits(E, CUR['spectra']).astype(np.float32)
+                ll = np.array([float(a[3] @ z) for a in allp])          # Bernoulli log-likelihood of the bits (+ const)
+                r_fp = np.argsort(np.argsort(-ll)); r_ct = np.arange(len(allp))
+                if order == 'fp':
+                    keep = list(np.argsort(-ll))
+                else:                                                      # 'mix': sum of the two ranks
+                    keep = list(np.lexsort((r_ct, r_fp + r_ct)))
+                if CUR.get('mid') in DIAG:                                  # validation: where is the truth?
+                    from casmi import chem as _c
+                    tk = _c.score_key(_c.standardize_smiles(DIAG[CUR['mid']]) or DIAG[CUR['mid']])
+                    ti = next((i for i, a in enumerate(allp) if a[1] == tk), None)
+                    ORDER_ROWS.append(dict(n=len(allp), count=None if ti is None else int(ti),
+                                           fp=None if ti is None else int(r_fp[ti]),
+                                           mix=None if ti is None else int(np.argsort(np.lexsort((r_ct, r_fp + r_ct)))[ti])))
+            except Exception as e:
+                STATS['order_error'] = repr(e)[:200]
+        new = []
+        for i in keep[:max_new]:
+            std, k, p, fp, sid, sim = allp[i]
             pfp = np.unpackbits(E.train_fp[sid])[:P.nbits].astype(np.float32)
             inter = float((fp * pfp).sum()); tan = inter / (fp.sum() + pfp.sum() - inter + 1e-9)
-            seen.add(k)
             new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
                             frags=fragmod.fragments_for_smiles(std), sim=sim, steps=1, tan=tan, parent=sid))
-            if len(new) >= max_new:
-                break
+        STATS['valid_products'] = STATS.get('valid_products', 0) + len(allp)
         GEN_KEYS.clear(); GEN_KEYS['last'] = set(g['key'] for g in new)
         STATS['molecules'] += 1; STATS['parents'] += len(parents); STATS['products'] += len(new)
         STATS['secs'] += time.time() - t0
@@ -270,6 +343,10 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
 # parents; we log the best parent-truth Tanimoto and whether MMP from those parents generates the truth.
 DIAG = {}          # molecule id -> truth SMILES (set by the notebook); CUR['mid'] = the molecule being generated
 DIAG_ROWS = []
+STUDY_MAX = 120
+STUDY = True        # parent study on (c3par); off when only the product order is examined
+ORDER_ROWS = []     # validation: rank of the truth among the valid products under each order
+MAX_POOL = 3000
 DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
 _POOL = {}
 
@@ -291,10 +368,11 @@ def _pool_data(E):
         if fp is None:
             fp = np.load('work/pool_fp.npy', mmap_mode='r')
         fp = np.asarray(fp)
-        if fp.dtype == np.uint8 and fp.shape[1] * 8 >= P.nbits and fp.shape[1] < P.nbits:
-            fp = np.unpackbits(fp, axis=1)[:, :P.nbits]
-        _POOL['fp'] = fp.astype(np.uint8)
-        _POOL['n1'] = _POOL['fp'].sum(1).astype(np.float32)
+        if not (fp.dtype == np.uint8 and fp.shape[1] < P.nbits):     # keep the bits packed (710k x 10k bits = 7 GB unpacked)
+            fp = np.packbits(fp.astype(bool), axis=1)
+        _POOL['fp'] = fp
+        _POOL['n1'] = np.unpackbits(fp, axis=1).sum(1).astype(np.float32) if len(fp) < 50000 else \
+            np.concatenate([np.unpackbits(fp[a:a + 50000], axis=1)[:, :P.nbits].sum(1) for a in range(0, len(fp), 50000)]).astype(np.float32)
         smi = next((getattr(P, a) for a in ('smiles', 'smi', 'struct_smiles') if hasattr(P, a)), None)
         if smi is None:
             import pandas as pd
@@ -316,13 +394,14 @@ def _train_data(E):
     return _TFP
 
 
-def _etan(T, n1, idx, p):
+def _etan(T, n1, idx, p, packed=False):
     """expected Tanimoto of each structure's bits with independent Bernoulli(p) bits (ratio of expectations)"""
     sp = float(p.sum())
     out = np.empty(len(idx), np.float32)
     for a in range(0, len(idx), 20000):
         j = idx[a:a + 20000]
-        inter = T[j].astype(np.float32) @ p
+        X = np.unpackbits(T[j], axis=1)[:, :len(p)] if packed else T[j]
+        inter = X.astype(np.float32) @ p
         out[a:a + 20000] = inter / (n1[j] + sp - inter + 1e-6)
     return out
 
@@ -343,7 +422,7 @@ def study(E, analogs, target, tol, z, hold_keys, n_parent=10, min_sim=0.3, max_s
     """one molecule: parents per method -> (best Tanimoto to truth, truth generated by MMP), appended to DIAG_ROWS"""
     from casmi import chem
     mid = CUR.get('mid')
-    if mid not in DIAG:
+    if mid not in DIAG or (len(DIAG_ROWS) >= STUDY_MAX):
         return
     t0 = time.time()
     L = E.L
@@ -373,7 +452,7 @@ def study(E, analogs, target, tol, z, hold_keys, n_parent=10, min_sim=0.3, max_s
         pidx = np.where(np.abs(PD['mass'] - target) <= max_shift)[0]
         pidx = pidx[~np.isin(PD['key'][pidx], list(hold_keys))] if hold_keys else pidx
         if len(pidx):
-            et = _etan(PD['fp'], PD['n1'], pidx, p)
+            et = _etan(PD['fp'], PD['n1'], pidx, p, packed=True)
             meth['pool_etan'] = [('p', i) for i in _top(pidx, et, K, set())]
     except Exception as e:
         STATS['study_pool_error'] = repr(e)[:300]
@@ -426,3 +505,14 @@ def study_summary(log=print):
         v = [r[nm] for r in DIAG_ROWS if nm in r]
         log(f'  {nm:16s} n={len(v)} mean best Tanimoto {np.mean([x[0] for x in v]):.3f} | best>=0.7 {np.mean([x[0] >= 0.7 for x in v]):.3f} '
             f'| truth generated {np.mean([x[1] for x in v]):.3f} | parents {np.mean([x[2] for x in v]):.1f}')
+
+
+def order_summary(max_new, log=print):
+    if not ORDER_ROWS:
+        log('ORDER STUDY: no rows', STATS.get('order_error')); return
+    n = len(ORDER_ROWS); g = [r for r in ORDER_ROWS if r['count'] is not None]
+    log(f'ORDER STUDY molecules {n} | truth among valid products {len(g) / n:.3f} | median valid products '
+        f'{np.median([r["n"] for r in ORDER_ROWS]):.0f} | err {STATS.get("order_error")}')
+    for k in ('count', 'fp', 'mix'):
+        for m in (25, 60, 100, 200):
+            log(f'  order {k:5s} truth kept within top {m:3d}: {sum(r[k] < m for r in g) / n:.3f}')

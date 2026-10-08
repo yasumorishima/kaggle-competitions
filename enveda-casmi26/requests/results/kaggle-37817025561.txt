@@ -1,0 +1,9 @@
+request: e2c3ice-1
+run: 37817025561  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2c3ice  version: 1
+memo: Validation only, no submit (TPU kernels cannot be submitted: e2tpu-2s got 400 on CreateCodeSubmission). Class-3 simulation (fold0 NP, held-out truths removed from the pool) taken through ICEBERG / GLACIER / fusion on the TPU VM's 224 CPU cores, with the MMP generator (mmp=100, two-step mmp2=20, 10 FP parents). The fusion is replayed with and without the MMP rows on the same scores. Earlier class-3 numbers stopped at the base lists (MRR@25 0.2325, top1 0.168). Hypothesis: ICE / GLACIER reorder the same-formula isomers so the class-3 MRR@25 rises well above 0.23, and the MMP rows still add over the run without them. This decides the first GPU submission once the weekly quota returns.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2c3ice
+
+output files:

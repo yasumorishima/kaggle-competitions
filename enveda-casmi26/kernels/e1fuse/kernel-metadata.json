@@ -1,12 +1,12 @@
 {
-  "id": "yasunorim/casmi26-e2par",
-  "title": "casmi26 e2par",
+  "id": "yasunorim/casmi26-e2c3ice",
+  "title": "casmi26 e2c3ice",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",
   "enable_gpu": "false",
-  "enable_tpu": "false",
+  "enable_tpu": "true",
   "enable_internet": "false",
   "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
   "dataset_sources": [
@@ -33,5 +33,6 @@
     "yasunorim/casmi26-fp2-peak-transformer",
     "yasunorim/casmi26-fp2L3"
   ],
-  "model_sources": []
+  "model_sources": [],
+  "machine_shape": "TpuV5E8"
 }

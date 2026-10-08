@@ -1,0 +1,9 @@
+request: e2ord-1
+run: 37732656757  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2ord  version: 1
+memo: E2 product-order study (CPU, no submit, 244 fold0 NPs, class-3 simulation). e2par-2 found: from the spectral-analog parents MMP generates the truth for 35.8% of molecules, but only 20.9% reach the candidate list -> the 60-product cut (parent sim x log rule count) drops ~15 points; FP-retrieved parents add nothing (dropped: mmpfp=0). Here all valid products (<=3000) are scored and the truth's rank is logged under 3 orders: count (old), fp (log-likelihood of the product's bits under the predicted FP), mix (rank sum); the kept 60 use mix. Pass: truth kept within 60 well above 0.209 and C3VAL MRR@25 above 0.230.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2ord
+
+output files:

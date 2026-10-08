@@ -25,9 +25,14 @@ only = next((a.split("=", 1)[1].split(",") for a in sys.argv[3:] if a.startswith
 mmp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp=")), 0)
 mmpc = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpc=")), 2)   # min rule count
 mmpfp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpfp=")), 0)  # FP-retrieved parents
-c3val = "c3val" in sys.argv[3:]
+c3full = "c3full" in sys.argv[3:]   # class-3 simulation through ICE / GLACIER / fusion (not only the base lists)
+c3val = "c3val" in sys.argv[3:] or c3full
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
+c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
+iceb = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("ice=")), 0)   # ICEBERG time budget (s) override
+mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
+mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
@@ -240,11 +245,17 @@ upd = {"VERSION": f"ours-{name}", "FP2_LAM": lam, "PC_FP2_LAM": pclam, "FP2_LIB_
 upd["MMP_N"] = mmp
 upd["MMP_MINC"] = mmpc
 upd["MMP_FPPAR"] = mmpfp
+upd["MMP_ORDER"] = mmpord
+upd["MMP_TWO"] = mmp2
+if iceb:
+    upd["ICE_BUDGET"] = iceb
 if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
-               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par)
+               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord)
+    if c3full:
+        upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
 
 # ---- 2a. engine: MMP generator (ours_mmp) and, for c3val, the held-out truths removed from the pool
@@ -259,7 +270,8 @@ c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:              
             _xik = set(_Ch.MolToInchiKey(_Ch.MolFromSmiles(s_))[:14] for s_ in pd.read_csv(os.path.join(STAGE, 'val_labels.csv')).smiles
                        if _Ch.MolFromSmiles(s_) is not None)
         ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log, exclude_ik14=_xik)
-        ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0))
+        ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0), order=CFG.get('MMP_ORDER', 'count'),
+                         two_step=CFG.get('MMP_TWO', 0))
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
         if not IS_RERUN:
@@ -272,7 +284,8 @@ if CFG.get('C3VAL') and not CFG.get('C3KEEP') and CFG['VALIDATION'] and not IS_R
     _w03 = P.window
     P.window = lambda t, ppm: (lambda w: w[~_drop3[w]])(_w03(t, ppm))
     log('C3VAL: held-out structures removed from the pool:', int(_drop3.sum()), 'of', len(C3_HOLD))
-if CFG.get('C3PAR') and CFG.get('MMP_N', 0) > 0:   # ours: parent-retrieval study
+if (CFG.get('C3PAR') or CFG.get('C3ORD')) and CFG.get('MMP_N', 0) > 0:   # ours: parent / product-order studies
+    ours_mmp.STUDY = bool(CFG.get('C3PAR'))
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
     ours_mmp.DIAG_HOLD.update(k for k in (chem.score_key(s) for s in _lab3.smiles) if k)
@@ -295,6 +308,8 @@ if CFG.get('MMP_N', 0) > 0:
     log('MMP stats', ours_mmp.STATS)
     if CFG.get('C3PAR'):
         ours_mmp.study_summary(log)
+    if CFG.get('C3ORD'):
+        ours_mmp.order_summary(CFG['MMP_N'], log)
 if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):   # ours: class-3 base-list scores
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     _tk = {m: chem.score_key(s) for m, s in zip(_lab3.molecule_id, _lab3.smiles)}
@@ -371,10 +386,35 @@ if os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
             _rr.append(_r)
         log(f'OURS FP2_LAM={_lam}: MRR@25 = {np.mean(_rr):.4f} | top1 {np.mean(np.array(_rr) == 1):.3f} | '
             f'hit@25 {np.mean(np.array(_rr) > 0):.3f} | fp2 stats {_st.get("fp2")}')
+if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
+    # ours: class-3 after ICE / GLACIER / fusion, with and without the MMP rows (same scores, rows dropped)
+    def _drop_mmp(b):
+        out = {}
+        for _m, _v in b.items():
+            _mm = set(MMPK.get(_m, []))
+            _keep = [i for i, k in enumerate(_v[1]) if k not in _mm]
+            _n = len(_v[1])
+            out[_m] = [[x[i] for i in _keep] if hasattr(x, '__len__') and not isinstance(x, str) and len(x) == _n else x
+                       for x in _v]
+        return out
+    for _tag, _b in (('with MMP', BASE), ('without MMP rows', _drop_mmp(BASE))):
+        _sub, _st = fusion_core.build_submission(
+            _b, PC, ENG, ICE_SCORES, GL_SCORES, dict(CFG, FP2_LAM=0.0), MOL_ORDER, list(samp.molecule_id),
+            ice_fuse=ice_fuse, gl_fuse=gl_fuse, score_key=chem.score_key, formula=formula_of, log=print,
+            pool_pop=POOL_POP, frag_scores=FRAG, fp2_scores=FP2)
+        _rr = []
+        for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+            _t = _ik14(_lab.smiles[_m]); _r = 0.0
+            for _i, _g in enumerate(_s.split(';'), 1):
+                if _ik14(_g) == _t:
+                    _r = 1.0 / _i; break
+            _rr.append(_r)
+        log(f'C3FULL {_tag}: n={len(_rr)} MRR@25 = {np.mean(_rr):.4f} | top1 {np.mean(np.array(_rr) == 1):.3f} | '
+            f'hit@25 {np.mean(np.array(_rr) > 0):.3f} | ice {_st.get("ice")}')
 '''
 setsrc(i20, c20)
 
-if c3val:              # base lists only: the later stages are skipped
+if c3val and not c3full:   # base lists only: the later stages are skipped
     for i in range(i16 + 1, len(cells)):
         if cells[i]["cell_type"] == "code":
             setsrc(i, "if not CFG.get('BASE_ONLY'):\n    exec(compile(" + repr(src(i)) + ", 'cell', 'exec'))\n")

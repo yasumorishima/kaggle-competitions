@@ -1,0 +1,9 @@
+request: e2tpu-2
+run: 37744119515  status: failure  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2tpu  version: 2
+memo: E2 on a TPU v5e-8 VM while the weekly GPU quota is used up: public 0.420 base (huseyinemreaksoy casmi26-v4n-fusion, Apache-2.0) + our MMP class-3 generator (train-mined rules, up to 60 products) + 10 FP-retrieved parents. ICEBERG / GLACIER run on the VM's 224 CPU cores (e2tpu-1: ICEBERG 5.9 predictions/s on CPU, GLACIER scores all); ICEBERG budget raised 5400 -> 16000 s so it covers the test molecules as the GPU run does. Class-3 val: MRR@25 0.103 -> 0.231; in-pool harm none (e2keep-1). Hypothesis: LB > 0.420 (and a TPU kernel is accepted for submission).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2tpu
+
+output files:
