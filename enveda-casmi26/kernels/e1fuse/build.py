@@ -25,7 +25,8 @@ only = next((a.split("=", 1)[1].split(",") for a in sys.argv[3:] if a.startswith
 mmp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp=")), 0)
 mmpc = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpc=")), 2)   # min rule count
 mmpfp = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmpfp=")), 0)  # FP-retrieved parents
-c3val = "c3val" in sys.argv[3:]
+c3full = "c3full" in sys.argv[3:]   # class-3 simulation through ICE / GLACIER / fusion (not only the base lists)
+c3val = "c3val" in sys.argv[3:] or c3full
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
@@ -253,6 +254,8 @@ if val:
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
                USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord)
+    if c3full:
+        upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
 
 # ---- 2a. engine: MMP generator (ours_mmp) and, for c3val, the held-out truths removed from the pool
@@ -383,10 +386,35 @@ if os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
             _rr.append(_r)
         log(f'OURS FP2_LAM={_lam}: MRR@25 = {np.mean(_rr):.4f} | top1 {np.mean(np.array(_rr) == 1):.3f} | '
             f'hit@25 {np.mean(np.array(_rr) > 0):.3f} | fp2 stats {_st.get("fp2")}')
+if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
+    # ours: class-3 after ICE / GLACIER / fusion, with and without the MMP rows (same scores, rows dropped)
+    def _drop_mmp(b):
+        out = {}
+        for _m, _v in b.items():
+            _mm = set(MMPK.get(_m, []))
+            _keep = [i for i, k in enumerate(_v[1]) if k not in _mm]
+            _n = len(_v[1])
+            out[_m] = [[x[i] for i in _keep] if hasattr(x, '__len__') and not isinstance(x, str) and len(x) == _n else x
+                       for x in _v]
+        return out
+    for _tag, _b in (('with MMP', BASE), ('without MMP rows', _drop_mmp(BASE))):
+        _sub, _st = fusion_core.build_submission(
+            _b, PC, ENG, ICE_SCORES, GL_SCORES, dict(CFG, FP2_LAM=0.0), MOL_ORDER, list(samp.molecule_id),
+            ice_fuse=ice_fuse, gl_fuse=gl_fuse, score_key=chem.score_key, formula=formula_of, log=print,
+            pool_pop=POOL_POP, frag_scores=FRAG, fp2_scores=FP2)
+        _rr = []
+        for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+            _t = _ik14(_lab.smiles[_m]); _r = 0.0
+            for _i, _g in enumerate(_s.split(';'), 1):
+                if _ik14(_g) == _t:
+                    _r = 1.0 / _i; break
+            _rr.append(_r)
+        log(f'C3FULL {_tag}: n={len(_rr)} MRR@25 = {np.mean(_rr):.4f} | top1 {np.mean(np.array(_rr) == 1):.3f} | '
+            f'hit@25 {np.mean(np.array(_rr) > 0):.3f} | ice {_st.get("ice")}')
 '''
 setsrc(i20, c20)
 
-if c3val:              # base lists only: the later stages are skipped
+if c3val and not c3full:   # base lists only: the later stages are skipped
     for i in range(i16 + 1, len(cells)):
         if cells[i]["cell_type"] == "code":
             setsrc(i, "if not CFG.get('BASE_ONLY'):\n    exec(compile(" + repr(src(i)) + ", 'cell', 'exec'))\n")
