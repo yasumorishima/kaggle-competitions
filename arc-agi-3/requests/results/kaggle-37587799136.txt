@@ -1,0 +1,9 @@
+request: m2base-2
+run: 37587799136  status: success  action: kernel  dir: arc-agi-3/kernels/m2base  submit: no
+kernel: yasunorim/arc3-m2base  version: 2
+memo: A1 retry: m2base-1 failed on the Python 3.13 image (the base's 3.12 wheelhouse); pinned to the base notebook's docker image. 1 pass on the 25 demo games, local baseline. No submit.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-m2base
+
+output files:

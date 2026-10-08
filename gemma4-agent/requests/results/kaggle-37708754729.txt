@@ -1,0 +1,9 @@
+request: tpueval-1
+run: 37708754729  status: failure  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 
+memo: G1 on TPU (no submit): the paired local evaluation of kernels/localeval moved to a TPU v5e-8 (vllm-tpu from PyPI serves Gemma 4 31B, TP 8; official swegemma Evaluator unchanged) so evaluation goes on while the weekly GPU quota is used up. v7 on shard 0/3 (43 tasks), 1 worker (serial, like the real run). Check: the server starts, mean seconds per task, resolved vs v7 on the same tasks on 4xL4.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch TPU session count of 1 reached.
+
+output files:

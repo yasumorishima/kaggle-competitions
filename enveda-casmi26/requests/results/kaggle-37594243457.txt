@@ -1,0 +1,41 @@
+request: e1a-1
+run: 37594243457  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e1a  version: 1
+memo: E1 own change 1 on the public 0.420 base (huseyinemreaksoy v1): our fp2 as a re-scoring term in same-formula groups, FP2_LAM 0.5 (validation np 250 without ICE: 0.536 -> 0.559). Image pinned to 3.12 so ICEBERG/GLACIER run. Hypothesis: LB > 0.420
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e1a
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-07 08:50:14.670000,"e1a-1: E1 own change 1 on the public 0.420 base (huseyinemreaksoy v1): our fp2 as a re-scoring term in same-formula groups, FP2_LAM 0.5 (validation np 250 wi [run 37594243457]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-06 05:28:18.547000,sens3-1: b5 with fusion exp50_0.2+tp0.7_0.5+sens [run 37417990116],SubmissionStatus.COMPLETE,0.294,
+submission.csv,2026-10-06 05:19:01.653000,s2only-1: b5 with fusion exp50_0.2+tp0.7_0.5+onlyfp2s2 [run 37417488061],SubmissionStatus.COMPLETE,0.288,
+
+output files:
+total 168
+drwxr-xr-x  9 runner runner  4096 Oct  7 08:50 .
+drwxrwxrwt 14 root   root    4096 Oct  7 08:49 ..
+-rw-r--r--  1 runner runner 17252 Oct  7 08:50 casmi26-e1a.log
+-rw-r--r--  1 runner runner  1631 Oct  7 08:49 cfg.json
+-rw-r--r--  1 runner runner 29205 Oct  7 08:49 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 08:49 gl_work
+drwxr-xr-x  2 runner runner  4096 Oct  7 08:49 ice_work
+drwxr-xr-x  6 runner runner  4096 Oct  7 08:49 numba_cache
+drwxr-xr-x  5 runner runner  4096 Oct  7 08:49 ours
+-rw-r--r--  1 runner runner 51700 Oct  7 08:49 pc_lists.json
+-rw-r--r--  1 runner runner  2318 Oct  7 08:49 run_manifest.json
+drwxr-xr-x  2 runner runner  4096 Oct  7 08:49 smoke_comp
+drwxr-xr-x  2 runner runner  4096 Oct  7 08:49 stage_cache
+-rw-r--r--  1 runner runner 17630 Oct  7 08:49 submission.csv
+drwxr-xr-x  2 runner runner  4096 Oct  7 08:50 work
+[{"stream_name":"stderr","time":6.531811665,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":6.531853967,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":7.449494687,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.449537137,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.449544032,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.449548424,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.077809082,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.077835728,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.077840673,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.077844275,"data":"0.00s - Note: Debugging will proce

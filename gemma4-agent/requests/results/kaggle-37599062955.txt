@@ -1,0 +1,9 @@
+request: localeval-5
+run: 37599062955  status: success  action: kernel  dir: gemma4-agent/kernels/localeval  submit: no
+kernel: yasunorim/gemma4-localeval  version: 4
+memo: G2 paired: v7 (tool-call rules: bare read_file paths, write_file for new files, no repeated failing calls; read_file(...) call notation removed from prompts) vs v6 on the 129 tasks, 4xL4, 6 workers. In localeval-3, 1,378 read_file calls failed with path+line numbers merged into the path.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-localeval
+
+output files:

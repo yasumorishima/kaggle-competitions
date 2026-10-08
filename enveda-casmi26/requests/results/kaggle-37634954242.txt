@@ -1,0 +1,9 @@
+request: e2c3fp-1
+run: 37634954242  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2c3fp  version: 1
+memo: E2 class-3 validation 2 (CPU, no submit): e2c3-1 + 10 FP-retrieved MMP parents per molecule (train structures within 250 Da whose fingerprint best fits the predicted FP logits, f.z/sqrt(bits)). Same 244 held-out NPs; compare hit@25 0.357 and MMP-generated 0.184
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2c3fp
+
+output files:

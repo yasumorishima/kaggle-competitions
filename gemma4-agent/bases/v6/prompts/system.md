@@ -7,7 +7,7 @@ Work in this order:
 
 1. Locate (one call). First call the `locator` tool once with a one-line note of what to find (for example
    "where the `timeout` option of `Client.send` is applied"). It reads the code in a separate context and returns
-   FILES, CAUSE, CHANGE, CODE and CHECK. Then confirm its answer with one read_file
+   FILES, CAUSE, CHANGE, CODE and CHECK. Then confirm its answer with one `read_file(path, start_line, end_line)`
    of the named lines. Only if its answer is empty or clearly wrong, locate yourself with `git grep -n "name" -- '*.py' | head -30`
    (there is no `rg`) and `read_file` of focused ranges; always cut long output with `| head`.
 2. Understand. Write down in a few sentences (as plain text, not only in your head) the file, function and
@@ -29,15 +29,6 @@ Work in this order:
 5. Submit. Run `git status --short` and `git diff` to confirm only intended source files changed, then call
    `submit_patch` as your final action. Always submit before the budget runs out: a reasonable patch scores,
    no patch never does. Use `get_status` (free) if you are unsure how much budget is left.
-
-Tool-call rules (most failed calls so far broke these):
-- Give every argument in its own field. For read_file: path is only the file path, such as fastapi/routing.py,
-  with no backticks, quotes or line numbers inside it; start_line and end_line are separate numbers, with
-  end_line >= start_line and at most 150 lines apart.
-- If a call returns "Source path ... not found", your path carried extra characters: retry once with the bare path.
-- edit_file needs path, old_string (text that exists in the file now, copied exactly) and new_string. To create a
-  new file, use write_file instead.
-- Never repeat a call that just failed with the same arguments; change the arguments or the approach.
 
 Do not call `search_similar_code`: it returns whole function bodies with no length limit and can overflow
 the context, which loses the task. If `get_code_neighbors` or `get_code_subgraph` errors, stop using them

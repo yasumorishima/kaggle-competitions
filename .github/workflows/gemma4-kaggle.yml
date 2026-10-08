@@ -14,6 +14,7 @@ name: Gemma 4 Agent Kaggle
 #            holds the one batch TPU session; needs "kernel": "yasunorim/<slug>", no dir)
 #   dir      a directory under gemma4-agent/ holding kernel-metadata.json or dataset-metadata.json
 #   submit   kernel only: "submit" to send the finished kernel's submission.zip to the competition
+#   wait     kernel only: "no" to return right after the push (long runs; read the log with the Kaggle API)
 #   message  submission / dataset version message
 # Only the user's standing instruction allows a submit (see gemma4-agent/CLAUDE.md).
 
@@ -82,9 +83,11 @@ jobs:
           d = os.path.join("gemma4-agent", d)
           assert os.path.isdir(d), f"not found: {d}"
           submit = r.get("submit", "") == "submit"
+          nowait = r.get("wait", "") == "no"
+          assert not (submit and nowait), "submit needs the wait"
           msg = str(r.get("message", memo)).replace("\n", " ")
           with open(os.environ["GITHUB_ENV"], "a") as f:
-              f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nMSG={msg}\n")
+              f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nNOWAIT={'yes' if nowait else 'no'}\nMSG={msg}\n")
               f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
           print(action, d, "submit" if submit else "no submit", "|", memo)
           PY
@@ -129,6 +132,7 @@ jobs:
           VER=$(echo "$OUT" | grep -oE 'version [0-9]+' | head -1 | grep -oE '[0-9]+')
           echo "VERSION=$VER" >> "$GITHUB_ENV"
           echo "pushed $ID version $VER"
+          if [ "$NOWAIT" = "yes" ]; then echo "wait: no -> not waiting for the kernel"; exit 0; fi
           sleep 60
           for i in $(seq 1 330); do
             S=$(kaggle kernels status "$ID" 2>&1 || true)

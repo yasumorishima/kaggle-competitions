@@ -1,0 +1,9 @@
+request: e1val-2
+run: 37580052361  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e1val  version: 1
+memo: E1 base + our first change, validation mode: public 0.420 notebook (huseyinemreaksoy, Apache-2.0) as the base + our fp2 as a re-scoring term in same-formula groups. VALIDATION on enveda-np-examples (250, unseen by our fp2 and by FPNet A), MRR logged for FP2_LAM 0 / 0.25 / 0.5 / 1 / 1.5. Retry (e1val-1 hit the 2 GPU-session limit). No submit.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e1val
+
+output files:

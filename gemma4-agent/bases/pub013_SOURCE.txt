@@ -1,0 +1,2 @@
+Source: https://www.kaggle.com/code/hsiaosuan/gemma-developer-agent-0-13-submission (LB 0.13, 2026-10-03), unchanged.
+Used as a base for paired local comparison (gemma4-agent/kernels/localeval).

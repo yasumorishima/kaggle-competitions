@@ -1,0 +1,9 @@
+request: e2b-1
+run: 37621217201  status: failure  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2b  version: 
+memo: E2 own change, wider: e2a with every mined rule (>=1 context) and up to 100 products/molecule (offline truth-generation 66% -> 80%). Hypothesis: LB > e2a
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum weekly GPU quota of 30.00 hours reached.
+
+output files:
