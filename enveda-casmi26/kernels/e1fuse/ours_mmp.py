@@ -190,9 +190,11 @@ def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
     return out
 
 
-def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3):
+def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count'):
     """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
-    many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim."""
+    many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim. order picks which
+    max_new of the valid products are kept: 'count' (parent similarity x log(1 + rule count)), 'fp' (log-likelihood of
+    the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks)."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
     run0 = E.run
@@ -217,7 +219,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             except Exception as e:
                 STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
                 STATS['fp_parent_error'] = repr(e)[:200]
-        if DIAG and CUR.get('spectra') and E.bank is not None:
+        if DIAG and STUDY and CUR.get('spectra') and E.bank is not None:
             try:
                 study(E, analogs, target, tol, _pred_logits(E, CUR['spectra']), DIAG_HOLD)
             except Exception as e:
@@ -233,7 +235,8 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                 sc = float(sim) * np.log1p(cnt)
                 if sc > cand.get(s, (0.0,))[0]:
                     cand[s] = (sc, sid, sim)
-        new = []
+        # ours: every valid product first (best rule first, up to MAX_POOL), then keep max_new of them by `order`
+        allp = []
         for s, (sc, sid, sim) in sorted(cand.items(), key=lambda kv: -kv[1][0]):
             std = chem.standardize_smiles(s)
             if std is None:
@@ -247,14 +250,37 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             fp = chem.raw_fingerprint(std)
             if fp is None:
                 continue
-            fp = fp[P.bits].astype(np.float32)
+            seen.add(k)
+            allp.append((std, k, p, fp[P.bits].astype(np.float32), sid, sim))
+            if len(allp) >= MAX_POOL:
+                break
+        keep = list(range(len(allp)))                  # 'count': parent similarity x log(1 + rule count)
+        if allp and order != 'count' and E.bank is not None and CUR.get('spectra'):
+            try:
+                z = _pred_logits(E, CUR['spectra']).astype(np.float32)
+                ll = np.array([float(a[3] @ z) for a in allp])          # Bernoulli log-likelihood of the bits (+ const)
+                r_fp = np.argsort(np.argsort(-ll)); r_ct = np.arange(len(allp))
+                if order == 'fp':
+                    keep = list(np.argsort(-ll))
+                else:                                                      # 'mix': sum of the two ranks
+                    keep = list(np.lexsort((r_ct, r_fp + r_ct)))
+                if CUR.get('mid') in DIAG:                                  # validation: where is the truth?
+                    from casmi import chem as _c
+                    tk = _c.score_key(_c.standardize_smiles(DIAG[CUR['mid']]) or DIAG[CUR['mid']])
+                    ti = next((i for i, a in enumerate(allp) if a[1] == tk), None)
+                    ORDER_ROWS.append(dict(n=len(allp), count=None if ti is None else int(ti),
+                                           fp=None if ti is None else int(r_fp[ti]),
+                                           mix=None if ti is None else int(np.argsort(np.lexsort((r_ct, r_fp + r_ct)))[ti])))
+            except Exception as e:
+                STATS['order_error'] = repr(e)[:200]
+        new = []
+        for i in keep[:max_new]:
+            std, k, p, fp, sid, sim = allp[i]
             pfp = np.unpackbits(E.train_fp[sid])[:P.nbits].astype(np.float32)
             inter = float((fp * pfp).sum()); tan = inter / (fp.sum() + pfp.sum() - inter + 1e-9)
-            seen.add(k)
             new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
                             frags=fragmod.fragments_for_smiles(std), sim=sim, steps=1, tan=tan, parent=sid))
-            if len(new) >= max_new:
-                break
+        STATS['valid_products'] = STATS.get('valid_products', 0) + len(allp)
         GEN_KEYS.clear(); GEN_KEYS['last'] = set(g['key'] for g in new)
         STATS['molecules'] += 1; STATS['parents'] += len(parents); STATS['products'] += len(new)
         STATS['secs'] += time.time() - t0
@@ -271,6 +297,9 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
 DIAG = {}          # molecule id -> truth SMILES (set by the notebook); CUR['mid'] = the molecule being generated
 DIAG_ROWS = []
 STUDY_MAX = 120
+STUDY = True        # parent study on (c3par); off when only the product order is examined
+ORDER_ROWS = []     # validation: rank of the truth among the valid products under each order
+MAX_POOL = 3000
 DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
 _POOL = {}
 
@@ -429,3 +458,14 @@ def study_summary(log=print):
         v = [r[nm] for r in DIAG_ROWS if nm in r]
         log(f'  {nm:16s} n={len(v)} mean best Tanimoto {np.mean([x[0] for x in v]):.3f} | best>=0.7 {np.mean([x[0] >= 0.7 for x in v]):.3f} '
             f'| truth generated {np.mean([x[1] for x in v]):.3f} | parents {np.mean([x[2] for x in v]):.1f}')
+
+
+def order_summary(max_new, log=print):
+    if not ORDER_ROWS:
+        log('ORDER STUDY: no rows', STATS.get('order_error')); return
+    n = len(ORDER_ROWS); g = [r for r in ORDER_ROWS if r['count'] is not None]
+    log(f'ORDER STUDY molecules {n} | truth among valid products {len(g) / n:.3f} | median valid products '
+        f'{np.median([r["n"] for r in ORDER_ROWS]):.0f} | err {STATS.get("order_error")}')
+    for k in ('count', 'fp', 'mix'):
+        for m in (25, 60, 100, 200):
+            log(f'  order {k:5s} truth kept within top {m:3d}: {sum(r[k] < m for r in g) / n:.3f}')

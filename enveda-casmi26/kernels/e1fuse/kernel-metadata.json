@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e2par",
-  "title": "casmi26 e2par",
+  "id": "yasunorim/casmi26-e2ord",
+  "title": "casmi26 e2ord",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
