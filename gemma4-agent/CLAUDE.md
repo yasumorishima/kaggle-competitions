@@ -74,6 +74,11 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - **localeval-5（4×L4・6 並列・同じ 129 課題で対）：v7 22/129・v6 14/129。v7 だけ解けた 10・v6 だけ 2・両方 12（符号検定 p=0.019）**。rich 10 対 5・fastapi 12 対 8。
     ⇒ 道具の使い方の誤りが主な損だった、という見立てが手元で確かめられた。**g4v7-1 を提出**（仮説：LB が v6 の 0.08 を上回る）。
   - **Kaggle の GPU 週 30 時間を使い切った（10-07 12:27 UTC。enveda の push が "Maximum weekly GPU quota" で拒否）**。手元評価（4×L4）は枠が戻るまで回せない。その間は失敗の内訳（g5.log）から次の部品を作る。
+- 10-08：g4v7-1 は 24 時間たっても採点中。v7 の失敗の内訳（g5.log・v7 の 258 行）：解決 44、5 分の上限で切れた 134（うちパッチなし 92）、パッチを出したが未解決 46、道具の回数上限 18、その他 16。
+  **6 並列の評価は 1 課題あたりの速度が本番（直列）より遅く、時間切れが水増しされている**。次の部品の比較は直列で行う必要がある。
+  - **GPU 週枠が切れている間の評価台＝TPU（`kernels/tpueval`）**：vLLM の TPU 版（PyPI の `vllm-tpu` 0.31）で Gemma 4 31B を TPU v5e-8 に載せる（TP 8・w4a16 が載らなければ同じモデルの bf16 QAT 版）。
+    評価側は公式 wheel（adk・swegemma）を uv の Python 3.12 の venv に入れる（インターネット可）。v7 を shard 0/3（43 課題）で直列に回し、4×L4 の結果と比べて評価台として使えるかを見る。
+    tpueval-1 は「batch TPU session は同時 1 本」で拒否（enveda の e2tpu-1 が TPU 待ち）＝e2tpu-1 の後に出し直す。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
