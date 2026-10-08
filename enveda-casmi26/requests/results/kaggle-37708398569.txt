@@ -1,0 +1,9 @@
+request: e2tpu-1
+run: 37708398569  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2tpu  version: 1
+memo: TPU route check (no submit): e2fp-1 (public 0.420 base + our MMP 60 + 10 FP parents) on a TPU v5e-8 VM while the weekly GPU quota is used up. ICEBERG / GLACIER fall back to the VM's CPU cores. Read the log: CPU core count, ICE molecules in the 300 s commit budget (4-core CPU kernel: 0). If ICE covers molecules, submit this route.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2tpu
+
+output files:
