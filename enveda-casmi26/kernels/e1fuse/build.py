@@ -29,6 +29,7 @@ c3val = "c3val" in sys.argv[3:]
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
+mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
 mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -243,6 +244,7 @@ upd["MMP_N"] = mmp
 upd["MMP_MINC"] = mmpc
 upd["MMP_FPPAR"] = mmpfp
 upd["MMP_ORDER"] = mmpord
+upd["MMP_TWO"] = mmp2
 if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
@@ -262,7 +264,8 @@ c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:              
             _xik = set(_Ch.MolToInchiKey(_Ch.MolFromSmiles(s_))[:14] for s_ in pd.read_csv(os.path.join(STAGE, 'val_labels.csv')).smiles
                        if _Ch.MolFromSmiles(s_) is not None)
         ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log, exclude_ik14=_xik)
-        ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0), order=CFG.get('MMP_ORDER', 'count'))
+        ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0), order=CFG.get('MMP_ORDER', 'count'),
+                         two_step=CFG.get('MMP_TWO', 0))
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
         if not IS_RERUN:

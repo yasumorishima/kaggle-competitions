@@ -126,6 +126,29 @@ def products(parent_smiles, delta, tol):
     return out
 
 
+def products_any(parent_smiles, top=20):
+    """the `top` most frequent one-step products of parent_smiles (any mass change): {SMILES: (rule count, delta mass)}"""
+    from rdkit import Chem
+    rows = []
+    for c, x in _frag(parent_smiles):
+        for y, cnt, dm in RULES.get(x, ()):
+            rows.append((cnt, c, y, dm))
+    rows.sort(key=lambda r: -r[0])
+    out = {}
+    for cnt, c, y, dm in rows:
+        if len(out) >= top:
+            break
+        try:
+            m = Chem.molzip(Chem.MolFromSmiles(c), Chem.MolFromSmiles(y))
+            Chem.SanitizeMol(m)
+            s = Chem.MolToSmiles(m)
+        except Exception:
+            continue
+        if s != parent_smiles and s not in out:
+            out[s] = (cnt, dm)
+    return out
+
+
 CUR = {}           # spectra of the molecule being run (set by the E.run wrapper)
 _TFP = {}
 
@@ -190,11 +213,14 @@ def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
     return out
 
 
-def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count'):
+def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count',
+            two_step=0, two_parent=3):
     """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
     many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim. order picks which
     max_new of the valid products are kept: 'count' (parent similarity x log(1 + rule count)), 'fp' (log-likelihood of
-    the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks)."""
+    the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks). two_step > 0: for the two_parent
+    best spectral analogs, the two_step most frequent one-step products (any mass) are expanded once more with the rules
+    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products)."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
     run0 = E.run
@@ -235,6 +261,27 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                 sc = float(sim) * np.log1p(cnt)
                 if sc > cand.get(s, (0.0,))[0]:
                     cand[s] = (sc, sid, sim)
+        if two_step > 0:                               # ours: two replacements (parent -> any -> target mass)
+            t2 = time.time()
+            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim][:two_parent]:
+                try:
+                    mids = products_any(L.struct_smiles[sid], top=two_step)
+                except Exception:
+                    mids = {}
+                pm = float(L.struct_mass[sid])
+                for ms, (c1, dm1) in mids.items():
+                    try:
+                        pr = products(ms, target - (pm + dm1), tol)
+                    except Exception:
+                        pr = {}
+                    for s2, c2 in pr.items():
+                        if s2 == L.struct_smiles[sid]:
+                            continue
+                        sc = 0.5 * float(sim) * np.log1p(min(c1, c2))
+                        if sc > cand.get(s2, (0.0,))[0]:
+                            cand[s2] = (sc, sid, sim)
+                            STATS['two_step_cands'] = STATS.get('two_step_cands', 0) + 1
+            STATS['two_step_secs'] = STATS.get('two_step_secs', 0.0) + time.time() - t2
         # ours: every valid product first (best rule first, up to MAX_POOL), then keep max_new of them by `order`
         allp = []
         for s, (sc, sid, sim) in sorted(cand.items(), key=lambda kv: -kv[1][0]):
