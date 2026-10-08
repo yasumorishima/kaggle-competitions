@@ -136,6 +136,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       害があれば、MMP の行は「候補表の最良の類縁体が弱い分子（class 3 らしい分子）」だけに入れる門を付ける。害がなければ (a) が原因なので、GPU 枠が戻った週に GPU で出す。
     - **10-08**：e2fp-1（GPU）は push がまだ "Maximum weekly GPU quota" で拒否（提出枠は未使用）。週枠の戻りは土曜か日曜の 00:00 UTC（資料で割れている）。
       - **TPU の道（e2tpu-1・提出なし）**：同じ版を TPU v5e-8 の VM に載せ、ICEBERG/GLACIER を VM の多数の CPU コアで回す（`build.py ... tpu`）。commit 実行のログで、コア数と 300 秒で ICE が覆う分子数を見る（4 コアの CPU kernel は 0）。覆えば、この道で提出する（TPU で提出が通るかも確かめる）。
+        **結果：TPU 機は CPU 224 コア（torch 96 スレッド）。ICEBERG は CPU で 5.9 予測／秒（300 秒で 1,519 予測・分子の全候補が揃わず採点 0）、GLACIER は 1,045/1,110 候補を採点。** 本番 5,400 秒では約 3.2 万予測＝400 分子の 6 割前後。
+        ⇒ **e2tpu-2 を提出**（TPU 版だけ ICE の予算を 16,000 秒に・`build.py e2tpu 0 tpu mmp=60 mmpfp=10 ice=16000`）。仮説：LB > 0.420（TPU の kernel で提出が通るかも確かめる）。
       - **親の選び方の検証（e2par-1・CPU・提出なし・`build.py e2par 0 c3val c3par mmp=60 mmpfp=10`）**：正解に最も近い train 構造を親にすると MMP で正解を作れる率は 65.7%、今の親（スペクトルの類縁体＋FP 親）では 20.9%。class 3 の詰まりは親の選び方。
         分子ごとに、スペクトル類縁体・FP 内積（今）・予測 FP（sigmoid(z)）との期待 Tanimoto（train）・同じく pool 71 万（train＋COCONUT）・30 個・和集合・oracle を比べ、「親と正解の最良 Tanimoto」と「MMP が正解を作るか」をログに出す。
         あわせて c3val の規則の採取から正解の構造を除いた（これまでは正解自身の規則が混ざり得た＝楽観）。最良の方法を次の class 3 の部品にする。
