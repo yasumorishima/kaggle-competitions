@@ -31,6 +31,7 @@ c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (h
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
 iceb = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("ice=")), 0)   # ICEBERG time budget (s) override
+valn = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("valn=")), 0)   # validation molecules override
 mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
 mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
@@ -256,6 +257,8 @@ if c3val:       # class-3 simulation: held-out truths leave the pool; only the b
                USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord)
     if c3full:
         upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
+if valn:
+    upd["VAL_N"] = valn
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
 
 # ---- 2a. engine: MMP generator (ours_mmp) and, for c3val, the held-out truths removed from the pool

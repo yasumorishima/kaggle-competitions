@@ -106,6 +106,7 @@ class TpuVllmServer(VllmServer):
         return cmd
 
 
+sh("/tmp/vt/bin/python -m vllm.entrypoints.openai.api_server --help 2>&1 | grep -iA3 -- '--tool-call-parser\\|--reasoning-parser' | head -30 || true")
 server = None
 for MODEL in MODELS:
     try:
@@ -118,6 +119,15 @@ for MODEL in MODELS:
         break
     except Exception as e:
         log("server failed for", MODEL, repr(e)[-3000:])
+        try:                                           # the reason lives in the server's own log, not in the exception
+            import glob as _g
+            logs = [str(getattr(server, a)) for a in ("log_path", "log_file", "_log_path", "_log_file")
+                    if server is not None and getattr(server, a, None)]
+            logs += sorted(_g.glob("/tmp/**/*vllm*.log", recursive=True) + _g.glob("/kaggle/working/**/*vllm*.log", recursive=True))
+            for lp in dict.fromkeys(logs):
+                log("server log", lp, "\n" + open(lp, errors="replace").read()[-6000:])
+        except Exception as e2:
+            log("server log unreadable", repr(e2))
         try:
             server.stop()
         except Exception:

@@ -79,7 +79,15 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - **GPU 週枠が切れている間の評価台＝TPU（`kernels/tpueval`）**：vLLM の TPU 版（PyPI の `vllm-tpu` 0.31）で Gemma 4 31B を TPU v5e-8 に載せる（TP 8・w4a16 が載らなければ同じモデルの bf16 QAT 版）。
     評価側は公式 wheel（adk・swegemma）を uv の Python 3.12 の venv に入れる（インターネット可）。v7 を shard 0/3（43 課題）で直列に回し、4×L4 の結果と比べて評価台として使えるかを見る。
     tpueval-1 は「batch TPU session は同時 1 本」で拒否（enveda の e2tpu-1 が TPU 待ち）＝e2tpu-1 の後に出し直す。
+    **10-09：tpueval-2 を push**（enveda の e2c3ice-2 が 14:15 に終わり TPU が空いた）。TPU の batch は約 2 時間で切られた例があるので、v7 を shard 0/3 の先頭 12 課題・直列に縮めた。見るのは、モデルが載るか、1 課題あたりの秒数が 4×L4 の直列に近いか。
+    監査（10-09）：`tool_call_parser="gemma4"` が vllm-tpu 0.31 に無いとサーバーが即死し、原因がログに残らない。⇒ 失敗時に vLLM のログ末尾と parser の選択肢を出す版を **tpueval-3** として出し直した（中身は同じ 12 課題・直列）。速度の基準には、同じ 12 課題を GPU で直列に回す対照が別に要る。
+    tpueval-3 は「batch TPU session は同時 1 本」で拒否（tpueval-2 が待ち行列にいる）。**tpueval-2（ログ追加の前の版）をそのまま走らせる**。サーバーの例外には元からログ末尾 2,000 字が入るので、起動失敗の原因は読める。
   - **g4v7-1 は 39 時間後に Kaggle の "A system error. Please try resubmitting" で終わった（点なし）**＝v7 の仮説は未検証のまま。**g4v7-2 として同じ v7 を出し直した**（10-08 の 1 枠・仮説は同じ：LB > v6 0.08）。
+- 10-09：**g4v7-2＝LB 0.08**（v6 と同じ）。手元の v7 22 対 v6 14 は、隠しでは差として出なかった（公開 LB は約 58 課題・±3〜4 課題の雑音）。銅 0.13 まで約 3 課題分。
+  - 監査（fable）で挙がった最大の損：v7 の未解決のうち「5 分で切れ、パッチなし」が 92/258。時間切れでも編集した差分は採点されるので（HARNESS_README 577 行：未提出なら終了時に git diff を取る）、**編集に入るまでの時間**が損の中心。
+  - ⇒ **v8（`submission/`・編集先行）**：locator の sub-agent を外し、自分で git grep と read_file を 4 回までして、7 回目までに必ず編集する。
+    編集の後に `get_status`（無料）で残り時間を見て、120 秒より多ければ checker を 1 回だけ呼ぶ。60 秒を切ったら提出する。v7 は `bases/v7` に保存。公式パッケージの compile は通った（道具は stub）。
+  - 次：TPU（tpueval-2 で評価台として使えると分かれば）か、GPU の週枠が戻った後の 4×L4 で、**v7 と v8 を同じ課題・直列で対にして比べる**。勝ったら提出する（仮説：時間切れでパッチなしの課題が減り、LB 0.10 以上）。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。

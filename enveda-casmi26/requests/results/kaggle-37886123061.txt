@@ -1,0 +1,9 @@
+request: e2c3ice-2
+run: 37886123061  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2c3ice  version: 2
+memo: Validation only, no submit. e2c3ice-1 (244 molecules) was cancelled by Kaggle about 2 h after it started on the TPU (cancelAcknowledged), during ICEBERG on 11,962 candidates, so the run is cut to fit: 120 molecules (VAL_N), ICEBERG budget 3000 s. Base lists of e2c3ice-1 (244): with MMP MRR@25 0.2309 / hit@TOPN 0.406, without MMP rows 0.0986 / 0.180. Class-3 simulation through ICEBERG / GLACIER / fusion, with and without MMP rows. Hypothesis: ICE / GLACIER lift the class-3 MRR@25 well above the base-list 0.23, and the MMP rows still add.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2c3ice
+
+output files:

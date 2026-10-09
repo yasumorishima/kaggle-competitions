@@ -1,0 +1,9 @@
+request: tpueval-3
+run: 37952818701  status: failure  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 
+memo: TPU eval bench check (tpueval-2 + on a server failure, log the vLLM server log tail and the vllm-tpu parser choices) (no submit): Gemma 4 31B on vllm-tpu (TpuV5E8), v7 serial (workers 1) on the first 12 tasks of shard 0/3. Sized for the ~2 h TPU batch cut seen on 10-09. Question: does the TPU bench load the model and solve tasks at a per-task speed close to the 4xL4 serial run, so it can stand in for paired comparisons while the GPU quota is out?
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch TPU session count of 1 reached.
+
+output files:
