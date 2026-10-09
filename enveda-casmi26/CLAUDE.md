@@ -160,6 +160,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       - **e2c3ice-1（TPU・提出なし・`build.py e2c3ice 0 c3full tpu mmp=100 mmp2=20 mmpfp=10 ice=14000`）**：class 3 の模擬（fold0 NP）を ICE/GLACIER と融合まで通し、MMP の行あり／なしの融合を同じ点数で再生して MRR@25 を比べる。
         仮説：ICE/GLACIER の同じ分子式の並べ直しで class 3 の MRR@25 が 0.23 を大きく上回り、MMP の行の上積みも残る。結果で GPU の週の最初の提出（2 段 MMP 入り）を決める。
     - **10-09**：e2gpu-1（GPU・`build.py e2gpu 0 mmp=100 mmp2=20 mmpfp=10`・提出）を push → まだ "Maximum weekly GPU quota" で拒否（提出枠は未使用）。週枠が戻ったら同じ版を新しい id（e2gpu-2）で出す。e2c3ice-1 は TPU の割り当て待ち。
+      **e2c3ice-1**：TPU を約 7.5 時間待って 02:51 に開始し、04:54 に Kaggle 側で取り消し（cancelAcknowledged・開始から約 2 時間・ICEBERG が 11,962 候補を予測中）。融合まで届かず。
+      候補リストまでの数字（244 分子）は前と同じ：MMP あり MRR@25 0.2309・hit@TOPN 0.406、MMP の行なし 0.0986・0.180（MMP 生成 2,036 秒・2 段 74 秒）。
+      ⇒ TPU の batch は 2 時間ほどで切られる前提で、**e2c3ice-2（120 分子・ICE 3,000 秒・`valn=120`）**に縮めて出し直した。
     - 手元：規則を pool（71 万構造）＋train から採る → 生成率 65.7% → 68.5%、候補 29 → 47 個、上位 10 の率は 48% → 44.5%。**差が小さいので train だけのまま**。次に効かせるのは生成物の並べ（ICE/GLACIER が同じ分子式群で並べ直す・親との類似度）。
 - 09-27：b3＝0.283（類縁体の上位 3 和）。LB 確認（09-27 の 5 本を使用）：b4a（上位 5 和）0.283・b4b（r2 ビット・上位 5）0.279・b4c（POW 3）0.279・b4d（r2・上位 10）0.267。
   ⇒ **集約・重みの刻みは b3 で頭打ち**（手元 c4 の差 0.01 は LB に出ない）。r3 カウント指紋・POW 2・上位 3 を固定し、段取り 1（FP 予測の強化）へ進む。
