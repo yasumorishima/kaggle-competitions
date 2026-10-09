@@ -233,6 +233,19 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
     def generate(analogs, target, exclude_keys):
         t0 = time.time()
         base = gen0(analogs, target, exclude_keys) if keep_base else []
+        if STATS['secs'] > MAX_SECS:                   # wall-clock gate: past the MMP budget, the base list only
+            STATS['time_skipped'] = STATS.get('time_skipped', 0) + 1
+            return base
+        try:
+            return base + mmp_new(analogs, target, exclude_keys, base, t0)
+        except Exception as e:                         # an odd hidden molecule must not empty its candidate list
+            STATS['mmp_errors'] = STATS.get('mmp_errors', 0) + 1
+            STATS['mmp_error'] = repr(e)[:200]
+            GEN_KEYS.clear(); GEN_KEYS['last'] = set()
+            STATS['secs'] += time.time() - t0
+            return base
+
+    def mmp_new(analogs, target, exclude_keys, base, t0):
         seen = set(exclude_keys) | set(g['key'] for g in base)
         cfg, L, P = E.cfg, E.L, E.pool
         tol = max(cfg.gen_tol_da, target * cfg.ppm_win * 1e-6)
@@ -331,7 +344,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
         GEN_KEYS.clear(); GEN_KEYS['last'] = set(g['key'] for g in new)
         STATS['molecules'] += 1; STATS['parents'] += len(parents); STATS['products'] += len(new)
         STATS['secs'] += time.time() - t0
-        return base + new
+        return new
 
     E.generate = generate
 
@@ -347,6 +360,7 @@ STUDY_MAX = 120
 STUDY = True        # parent study on (c3par); off when only the product order is examined
 ORDER_ROWS = []     # validation: rank of the truth among the valid products under each order
 MAX_POOL = 3000
+MAX_SECS = 100 * 60                                    # MMP time budget per run (the hidden rerun has 9 h)
 DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
 _POOL = {}
 
