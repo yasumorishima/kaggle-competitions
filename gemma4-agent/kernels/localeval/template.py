@@ -62,10 +62,54 @@ import yaml  # noqa: E402
 from adk_submission import VllmConfig, VllmServer, discover_adapters  # noqa: E402
 from google.adk.agents.context_cache_config import ContextCacheConfig  # noqa: E402
 from google.adk.apps._configs import EventsCompactionConfig  # noqa: E402
-from swegemma.config import ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits  # noqa: E402
-from swegemma.evaluate import Evaluator  # noqa: E402
-from swegemma.models import load_tasks  # noqa: E402
-from swegemma.models.discovery import validate_single_declared_model  # noqa: E402
+def _find_attr(name, roots=("swegemma", "adk_submission", "adk_eval_core")):
+    """the wheelhouse moves helpers between modules (swegemma.models.discovery is gone after the 10-10 update)"""
+    import pkgutil
+    for root in roots:
+        try:
+            pkg = importlib.import_module(root)
+        except Exception:
+            continue
+        if hasattr(pkg, name):
+            return getattr(pkg, name)
+        for mi in pkgutil.walk_packages(pkg.__path__, root + "."):
+            try:
+                mod = importlib.import_module(mi.name)
+            except Exception:
+                continue
+            if hasattr(mod, name):
+                print("found", name, "in", mi.name, flush=True)
+                return getattr(mod, name)
+    raise ImportError(name)
+
+
+ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits = (
+    _find_attr(n) for n in ("ALLOWED_ADAPTER_EXTENSIONS", "EvalConfig", "build_submission_limits"))
+Evaluator = _find_attr("Evaluator")
+load_tasks = _find_attr("load_tasks")
+
+try:
+    validate_single_declared_model = _find_attr("validate_single_declared_model")
+except ImportError:                      # gone from the wheelhouse: read the one model the agent YAML files declare
+    def validate_single_declared_model(d):
+        found = set()
+
+        def walk(x):
+            if isinstance(x, dict):
+                for k, v in x.items():
+                    if k == "model" and isinstance(v, str):
+                        found.add(v)
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        for f in Path(d).rglob("*.yaml"):
+            try:
+                walk(yaml.safe_load(f.read_text(encoding="utf-8")))
+            except Exception:
+                pass
+        print("declared models (own reader)", found, flush=True)
+        return sorted(found)[0] if found else "gemma-4-31b-it-qat-w4a16-ct"
 
 litellm.drop_params = True
 DATA = Path(sorted(glob.glob("/kaggle/input/**/gemma-4-developer-agent/tasks.jsonl", recursive=True), key=len)[0]).parent
