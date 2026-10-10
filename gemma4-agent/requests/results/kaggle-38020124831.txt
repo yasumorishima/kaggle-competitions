@@ -1,0 +1,9 @@
+request: localeval-6
+run: 38020124831  status: failure  action: kernel  dir: gemma4-agent/kernels/localeval  submit: no
+kernel: yasunorim/gemma4-localeval  version: 
+memo: Plan audit 10-10 item (b), no submit. Paired v7 (bases/v7) vs v8 (submission/, edit-first: no locator, edit by call 7, checker only with >120 s left) on half (shard 0/2 = 36) of the 72 healthy tasks from kernels/control (results/healthy.txt), 1 worker = serial like the real rerun, 4xL4. Pass: v8 >= v7 + 4 tasks and fewer no-patch timeouts; then submit g4v8-1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch GPU session count of 2 reached.
+
+output files:
