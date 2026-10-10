@@ -1,0 +1,9 @@
+request: tpueval-4
+run: 38007382554  status: success  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 2
+memo: TPU eval bench (no submit). tpueval-2 installed vllm-tpu 0.31 and saw the TPU, then failed at the eval wheels: the wheelhouse moved adk_submission 0.2.12 -> 0.2.13, so wheels are now picked by package name. Paired serial run: v7 (bases/v7) vs v8 (submission/, edit-first: no locator, edit by call 7, checker only with >120 s left) on the first 6 tasks of shard 0/3, sized for the ~2 h TPU batch cut. Questions: does Gemma 4 31B serve on vllm-tpu with the gemma4 parsers; per-task seconds; does v8 leave fewer no-patch timeouts than v7.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-tpueval
+
+output files:
