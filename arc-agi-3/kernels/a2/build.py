@@ -9,7 +9,7 @@ Ours (yasunorim):
      re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
      system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS]
 """
 import json
 import os
@@ -93,6 +93,66 @@ if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") == "2":
 
     ToolAgent._append_context_message = _ours_append
     ToolAgent._trim_messages_for_context = _ours_trim
+
+# ==== ours (yasunorim, kernels/a2): second attempt (part 3) ===========================================
+# The gate's chance term halves every 62k tokens spent on the current level, so a game stuck on a level is never
+# scheduled again (a2d2: 7 of 25 games waited 50+ min at level 0-1; dc22 then took 3 levels in 20 min once resumed).
+# Once per level, after ARC_OURS_RETRY_TOK tokens on it, the turn starts from a clean history (the memory sections and
+# the dossier stay), the per-level counters restart so the gate prices the game as a fresh level, and the model is
+# told its previous plan failed.
+_OURS_RETRY_TOK = int(_ours_os.environ.get("ARC_OURS_RETRY_TOK", "0") or 0)
+_OURS_RETRY_STATS = {"retries": 0, "levels_after": 0}
+if _OURS_RETRY_TOK > 0:
+    _ours_prev_trim = ToolAgent._trim_messages_for_context
+    _ours_prev_upd = ToolAgent._update_summarized_knowledge_from_step_summary
+
+    def _ours_retry_upd(self):
+        s = self._last_step_summary or {}
+        try:
+            done = int(s.get("level") or 2) - 1
+        except (TypeError, ValueError):
+            done = -1
+        if s.get("level_transition") and self.__dict__.get("_ours_retry_level") == done:
+            _OURS_RETRY_STATS["levels_after"] += 1   # the retried level was completed
+        return _ours_prev_upd(self)
+
+    def _ours_retry_trim(self, messages, **kw):
+        out = _ours_prev_trim(self, messages, **kw)
+        try:
+            if kw.get("preserve_recent") != 1 or not out or len(out) < 3:
+                return out
+            last = out[-1]
+            if not (isinstance(last, dict) and last.get("role") == "user"):
+                return out
+            s = self._last_step_summary or {}
+            level = int(s.get("level") or 1)
+            spent = self._session_generated_tokens - getattr(self, "_tokens_at_level_start", 0)
+            if spent < _OURS_RETRY_TOK or self.__dict__.get("_ours_retry_level") == level:
+                return out
+            self._ours_retry_level = level
+            acts = max(0, _priority_action_count(s) - self._actions_at_level_start)
+            note = (f"FRESH ATTEMPT: your previous attempt at this level used {spent} tokens and {acts} actions without "
+                    "completing it, so its message history was cleared. Your memory sections and any solved-level "
+                    "record are kept. Treat the current plan as failed: list what that attempt established, then test "
+                    "a different hypothesis about the goal or the mechanics before repeating old moves.")
+            c = last.get("content")
+            if isinstance(c, str):
+                last = {**last, "content": note + "\n\n" + c}
+            elif isinstance(c, list):
+                last = {**last, "content": [{"type": "text", "text": note}, *c]}
+            self._tokens_at_level_start = self._session_generated_tokens
+            self._actions_at_level_start = _priority_action_count(s)
+            self._history_messages = []
+            self._note_history_evicted()
+            _OURS_RETRY_STATS["retries"] += 1
+            print(f"ours retry: level {level} after {spent} tokens, {acts} actions", flush=True)
+            return [out[0], last]
+        except Exception as e:  # never break a game over the retry
+            print("ours retry: skipped", repr(e), flush=True)
+            return out
+
+    ToolAgent._trim_messages_for_context = _ours_retry_trim
+    ToolAgent._update_summarized_knowledge_from_step_summary = _ours_retry_upd
 '''
 
 # ---- the patch is appended to the harness after the winner's own patch is applied (cell 5)
@@ -103,6 +163,7 @@ assert c5.count(anchor) == 1
 c5 = c5.replace(anchor, anchor + (
     "# ours (yasunorim): A2 parts appended to the patched harness\n"
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
+    f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
     f"_OURS_PATCH = {PATCH!r}\n"
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"
@@ -179,6 +240,7 @@ for _k in sorted(_b):
 try:
     from inference.agent import tool_agent as _ta
     print('ours diag: gate', getattr(_ta, '_GATE_STATS', None))
+    print('ours diag: retry', getattr(_ta, '_OURS_RETRY_STATS', None))
 except Exception as _e:
     print('ours diag: gate unavailable', repr(_e))
 """
