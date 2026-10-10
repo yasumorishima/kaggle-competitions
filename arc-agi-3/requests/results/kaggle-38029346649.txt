@@ -1,0 +1,158 @@
+request: a2d2-sub1
+run: 38029346649  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: yes
+kernel: yasunorim/arc3-a2d2  version: 2
+memo: First LB point for the A2 line. Base: ARC-AGI-3 Milestone-2 solution by dfranzen (built on Tufa Labs' Duck harness), kernels/m2base. Ours: (1) run deadline min(532 min, 540 min - elapsed - 6 min) so the 9-hour limit is never hit, (2) level dossier v2 (winning action sequence of each cleared level rides on the next user message and moves into the system prompt only when the trimmer drops messages), (3) serve.log summary. Local 25 games, 1 pass: base 50.80 and 40.08 on two identical runs (noise ~11 points), a2d1 43.07, a2d2 42.77 at 594 tok/s = within noise of the base. Hypothesis: LB near the bronze line 29.49 (we are at 0.15). Commit run is fast (1 demo game, 5 min); the rerun is unchanged.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2d2
+==> /tmp/kout/arc3-a2d2.log <==
+1998234,"data":"benchmark.solver: HarnessSolver(label='duck-harness', runtime_environment=None, job_dir=None, soft_end_time=None, minimal_diagnostics=False, model='local', analyzer_timeout=900.0, max_actions_per_game=None, max_runtime_s_per_game=290, max_generated_tokens_per_game=None, concurrency=1, save_request_logs=True, start_local_server=False, local_server_config='', local_server_api_key_file='', local_server_repo_dir='/Users/jeroencottaar/code/ARC3-Inference', local_server_port=None, local_server_tensor_parallel_size=None, local_server_count=1, cancel_drain_timeout_s=120.0)\n"}
+,{"stream_name":"stdout","time":728.632037484,"data":"ours: fast commit run HarnessSolver(label='duck-harness', runtime_environment=None, job_dir=None, soft_end_time=None, minimal_diagnostics=False, model='local', analyzer_timeout=900.0, max_actions_per_game=None, max_runtime_s_per_game=300, max_generated_tokens_per_game=None, concurrency=1, save_request_logs=True, start_local_server=False, local_server_config='', local_server_api_key_file='', local_server_repo_dir='/Users/jeroencottaar/code/ARC3-Inference', local_server_port=None, local_server_tensor_parallel_size=None, local_server_count=1, cancel_drain_timeout_s=120.0)\n"}
+,{"stream_name":"stdout","time":728.688088847,"data":"[sys] RAM 104.8/176.9 | swap none | proc 0.3 GB, 60 threads, 64 fds | GPU0 89.8/95.6 | disk / 7102.4/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":728.688479057,"data":"[sys] RAM 104.8/176.9 | swap none | proc 0.3 GB, 60 threads, 63 fds | GPU0 89.8/95.6 | disk / 7102.4/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":728.832114219,"data":"Starting benchmark...\n"}
+,{"stream_name":"stderr","time":730.390333204,"data":"priority gate active: 10 concurrent streams\n"}
+,{"stream_name":"stderr","time":730.390357734,"data":"\n"}
+,{"stream_name":"stderr","time":730.390359144,"data":"priority gate active: 10 concurrent streams\n"}
+,{"stream_name":"stderr","time":730.393348444,"data":"ft09-0d8bbf25: warmup RESET issued before the analyzer is reachable\n"}
+,{"stream_name":"stderr","time":730.393358504,"data":"\n"}
+,{"stream_name":"stderr","time":730.393360334,"data":"ft09-0d8bbf25: warmup RESET issued before the analyzer is reachable\n"}
+,{"stream_name":"stderr","time":730.434137123,"data":"first analyzer request failed (ConnectionError); retrying for up to 900s while the endpoint comes up, then falling back to 3 retries per request\n"}
+,{"stream_name":"stderr","time":730.434141793,"data":"\n"}
+,{"stream_name":"stderr","time":730.434142763,"data":"first analyzer request failed (ConnectionError); retrying for up to 900s while the endpoint comes up, then falling back to 3 retries per request\n"}
+,{"stream_name":"stdout","time":848.71009636,"data":"[sys] RAM 105.9/176.9 | swap none | proc 0.3 GB, 61 threads, 65 fds | GPU0 89.8/95.6 | disk / 7102.4/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":968.724915042,"data":"[sys] RAM 106.3/176.9 | swap none | proc 0.3 GB, 61 threads, 66 fds | GPU0 92.2/95.6 | disk / 7102.4/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stderr","time":1032.448070184,"data":"analyzer request timed out at action 17; yielding with 1 tool call(s) preserved: HTTPConnectionPool(host='127.0.0.1', port=8001): Read timed out. (read timeout=9.672357463000026)\n"}
+,{"stream_name":"stderr","time":1032.448089984,"data":"\n"}
+,{"stream_name":"stderr","time":1032.448091914,"data":"analyzer request timed out at action 17; yielding with 1 tool call(s) preserved: HTTPConnectionPool(host='127.0.0.1', port=8001): Read timed out. (read timeout=9.672357463000026)\n"}
+,{"stream_name":"stdout","time":1032.642626307,"data":"[finished] ft09-0d8bbf25 state=gave_up level=2/6 score=14.29 actions=16 tokens=16835 per-level=9/43,7/12,0/23,0/28,0/65,0/37 note=\"tokens=19608\"\n"}
+,{"stream_name":"stdout","time":1033.534660145,"data":"benchmark: regenerated diagnostics in /kaggle/working in 0.87s\n"}
+,{"stream_name":"stdout","time":1033.534672615,"data":"benchmark: duck-harness-kaggle\n"}
+,{"stream_name":"stdout","time":1033.534674515,"data":"solver:    duck-harness\n"}
+,{"stream_name":"stdout","time":1033.534676145,"data":"games:     1\n"}
+,{"stream_name":"stdout","time":1033.534677405,"data":"passes:    1\n"}
+,{"stream_name":"stdout","time":1033.534678405,"data":"runs:      1 (won: 0)\n"}
+,{"stream_name":"stdout","time":1033.534686615,"data":"started:   2026-10-10 06:11:24\n"}
+,{"stream_name":"stdout","time":1033.534687505,"data":"ended:     2026-10-10 06:16:26\n"}
+,{"stream_name":"stdout","time":1033.534688325,"data":"duration:  5m 2s\n"}
+,{"stream_name":"stdout","time":1033.534689045,"data":"mean score:    14.29\n"}
+,{"stream_name":"stdout","time":1033.534689955,"data":"median score:  14.29\n"}
+,{"stream_name":"stdout","time":1033.534690725,"data":"total actions: 16\n"}
+,{"stream_name":"stdout","time":1033.534691515,"data":"total tokens:  16835\n"}
+,{"stream_name":"stdout","time":1033.534692345,"data":"generated tokens/sec: 55.64 (job wallclock)\n"}
+,{"stream_name":"stdout","time":1033.534693175,"data":"total wallclock: 302.1s\n"}
+,{"stream_name":"stdout","time":1033.534693905,"data":"\n"}
+,{"stream_name":"stdout","time":1033.534694595,"data":"per-game (mean across passes):\n"}
+,{"stream_name":"stdout","time":1033.534695345,"data":"  ft09-0d8bbf25: score=14.29, levels=2.0/6, actions=16, tokens=16835\n"}
+,{"stream_name":"stdout","time":1033.534696125,"data":"\n"}
+,{"stream_name":"stdout","time":1033.534696815,"data":"diagnostics: /kaggle/working/diagnostics.html\n"}
+,{"stream_name":"stderr","time":1034.257259265,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":1034.257271785,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stderr","time":1034.257273315,"data":"\n"}
+,{"stream_name":"stderr","time":1034.257274205,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":1034.257275255,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stdout","time":1034.288149262,"data":"ours diag: server logs ['/kaggle/working/serve.log']\n"}
+,{"stream_name":"stdout","time":1034.288158732,"data":"ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached\n"}
+,{"stream_name":"stdout","time":1034.288160082,"data":"ours diag:    0       0   0.0    0.0    0.00       0.0            0              0\n"}
+,{"stream_name":"stdout","time":1034.288161182,"data":"ours diag:   10     201   1.0    0.0    0.03     162.8        39616         452288\n"}
+,{"stream_name":"stdout","time":1034.288162142,"data":"ours diag: gate {'enqueued': 1, 'blocked': 0, 'blocked_ms': 0, 'handover_ms': 0}\n"}
+,{"stream_name":"stderr","time":1036.064573256,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":1036.064590006,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":1036.222670392,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":1036.222683812,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":1036.737789536,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":1036.89073057,"data":"[NbConvertApp] Writing 1233755 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":1038.10806519,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":1039.14633605,"data":"[NbConvertApp] Writing 2840753 bytes to __results__.html\n"}
+]
+==> /tmp/kout/serve.log <==
+, gen throughput (token/s): 237.57, #queue-req: 0
+[2026-10-10 06:16:08] INFO:     127.0.0.1:34268 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[2026-10-10 06:16:09] Prefill batch, #new-seq: 1, #new-token: 384, #cached-token: 41088, full token usage: 0.04, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 120.54
+[2026-10-10 06:16:10] Decode batch, #running-req: 1, #full token: 41536, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.27, accept rate: 0.42, cuda graph: True, gen throughput (token/s): 67.88, #queue-req: 0
+[2026-10-10 06:16:10] Decode batch, #running-req: 1, #full token: 41664, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.52, accept rate: 0.51, cuda graph: True, gen throughput (token/s): 161.95, #queue-req: 0
+[2026-10-10 06:16:11] Decode batch, #running-req: 1, #full token: 41728, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.55, accept rate: 0.52, cuda graph: True, gen throughput (token/s): 163.18, #queue-req: 0
+[2026-10-10 06:16:11] Decode batch, #running-req: 1, #full token: 41856, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.12, accept rate: 0.38, cuda graph: True, gen throughput (token/s): 136.74, #queue-req: 0
+[2026-10-10 06:16:12] Decode batch, #running-req: 1, #full token: 41920, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.35, accept rate: 0.45, cuda graph: True, gen throughput (token/s): 151.09, #queue-req: 0
+[2026-10-10 06:16:13] Decode batch, #running-req: 1, #full token: 42048, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.25, accept rate: 0.42, cuda graph: True, gen throughput (token/s): 144.32, #queue-req: 0
+[2026-10-10 06:16:13] Decode batch, #running-req: 1, #full token: 42112, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.88, accept rate: 0.62, cuda graph: True, gen throughput (token/s): 185.05, #queue-req: 0
+[2026-10-10 06:16:14] Decode batch, #running-req: 1, #full token: 42240, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.12, accept rate: 0.38, cuda graph: True, gen throughput (token/s): 137.26, #queue-req: 0
+[2026-10-10 06:16:14] ReqTimeStats(rid=9a7c96988cee48c3926fd9c175e1b100, input_len=41422, cached_input_len=41088, output_len=901, attempts=0, type=unified): queue_duration=1.29ms, initial_prefill_elapsed=103.94ms, post_prefill_elapsed=5556.86ms, forward_duration=5660.81ms, entry_time=1791612969.323
+[2026-10-10 06:16:14] INFO:     127.0.0.1:49106 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[2026-10-10 06:16:15] Prefill batch, #new-seq: 1, #new-token: 1920, #cached-token: 41408, full token usage: 0.04, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 298.93
+[2026-10-10 06:16:15] Decode batch, #running-req: 1, #full token: 43328, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.55, accept rate: 0.85, cuda graph: True, gen throughput (token/s): 96.39, #queue-req: 0
+[2026-10-10 06:16:16] Decode batch, #running-req: 1, #full token: 43520, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.77, accept rate: 0.93, cuda graph: True, gen throughput (token/s): 242.16, #queue-req: 0
+[2026-10-10 06:16:17] ReqTimeStats(rid=0140b495a5b440c5a1acdc5c374370a7, input_len=43308, cached_input_len=41408, output_len=276, attempts=0, type=unified): queue_duration=1.41ms, initial_prefill_elapsed=198.44ms, post_prefill_elapsed=1186.70ms, forward_duration=1385.14ms, entry_time=1791612975.651
+[2026-10-10 06:16:17] INFO:     127.0.0.1:49116 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[2026-10-10 06:16:17] Prefill batch, #new-seq: 1, #new-token: 640, #cached-token: 43520, full token usage: 0.04, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 331.27
+[2026-10-10 06:16:17] Decode batch, #running-req: 1, #full token: 44160, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.38, accept rate: 0.79, cuda graph: True, gen throughput (token/s): 99.67, #queue-req: 0
+[2026-10-10 06:16:18] Decode batch, #running-req: 1, #full token: 44288, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.30, accept rate: 0.77, cuda graph: True, gen throughput (token/s): 209.86, #queue-req: 0
+[2026-10-10 06:16:19] Decode batch, #running-req: 1, #full token: 44416, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.35, accept rate: 0.78, cuda graph: True, gen throughput (token/s): 212.59, #queue-req: 0
+[2026-10-10 06:16:19] Decode batch, #running-req: 1, #full token: 44544, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.90, accept rate: 0.63, cuda graph: True, gen throughput (token/s): 185.04, #queue-req: 0
+[2026-10-10 06:16:20] Decode batch, #running-req: 1, #full token: 44672, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.42, accept rate: 0.81, cuda graph: True, gen throughput (token/s): 218.31, #queue-req: 0
+[2026-10-10 06:16:21] Decode batch, #running-req: 1, #full token: 44800, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.40, accept rate: 0.80, cuda graph: True, gen throughput (token/s): 215.55, #queue-req: 0
+[2026-10-10 06:16:21] Decode batch, #running-req: 1, #full token: 44928, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.45, accept rate: 0.48, cuda graph: True, gen throughput (token/s): 157.47, #queue-req: 0
+[2026-10-10 06:16:22] Decode batch, #running-req: 1, #full token: 45056, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.73, accept rate: 0.57, cuda graph: True, gen throughput (token/s): 174.22, #queue-req: 0
+[2026-10-10 06:16:22] Decode batch, #running-req: 1, #full token: 45184, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.67, accept rate: 0.89, cuda graph: True, gen throughput (token/s): 232.43, #queue-req: 0
+[2026-10-10 06:16:23] Decode batch, #running-req: 1, #full token: 45312, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 3.20, accept rate: 0.73, cuda graph: True, gen throughput (token/s): 204.80, #queue-req: 0
+[2026-10-10 06:16:24] Decode batch, #running-req: 1, #full token: 45376, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.17, accept rate: 0.39, cuda graph: True, gen throughput (token/s): 140.08, #queue-req: 0
+[2026-10-10 06:16:24] Decode batch, #running-req: 1, #full token: 45504, full token usage: 0.04, mamba num: 4, mamba usage: 0.07, accept len: 2.27, accept rate: 0.42, cuda graph: True, gen throughput (token/s): 146.56, #queue-req: 0
+[2026-10-10 06:16:25] Decode batch, #running-req: 1, #full token: 45568, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.55, accept rate: 0.52, cuda graph: True, gen throughput (token/s): 163.44, #queue-req: 0
+[2026-10-10 06:16:25] Decode batch, #running-req: 1, #full token: 45696, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.62, accept rate: 0.54, cuda graph: True, gen throughput (token/s): 169.63, #queue-req: 0
+[2026-10-10 06:16:26] Decode batch, #running-req: 1, #full token: 45824, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.50, accept rate: 0.83, cuda graph: True, gen throughput (token/s): 222.74, #queue-req: 0
+[2026-10-10 06:16:27] Decode batch, #running-req: 1, #full token: 45952, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.80, accept rate: 0.60, cuda graph: True, gen throughput (token/s): 179.93, #queue-req: 0
+[2026-10-10 06:16:27] ReqTimeStats(rid=19a9ec90f4014ee78fd8b8b240110c76, input_len=44118, cached_input_len=43520, output_len=1838, attempts=0, type=unified): queue_duration=1.33ms, initial_prefill_elapsed=108.22ms, post_prefill_elapsed=9699.93ms, forward_duration=9808.15ms, entry_time=1791612977.673
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-10-10 06:17:31.220000,a2d2-sub1: base + deadline + level dossier v2 [run 38029346649],SubmissionStatus.PENDING,,
+submission.parquet,2026-10-06 01:13:52.107000,explore-6: 256 click targets per node [run 37397477023],SubmissionStatus.COMPLETE,0.15,
+submission.parquet,2026-10-05 01:01:50.873000,explore-5: 64 click targets per node [run 37249186966],SubmissionStatus.COMPLETE,0.15,
+
+output files:
+total 4728
+drwxr-xr-x  7 runner runner    4096 Oct 10 06:17 .
+drwxrwxrwt 14 root   root      4096 Oct 10 06:17 ..
+-rw-r--r--  1 runner runner   58272 Oct 10 06:17 .per_game_cards.pkl
+-rw-r--r--  1 runner runner   29726 Oct 10 06:17 arc3-a2d2.log
+drwxr-xr-x  2 runner runner    4096 Oct 10 06:17 artifacts
+-rw-r--r--  1 runner runner    5567 Oct 10 06:17 benchmark.json
+-rw-r--r--  1 runner runner  547676 Oct 10 06:17 diagnostics.html
+-rw-r--r--  1 runner runner     434 Oct 10 06:17 games.pkl
+-rw-r--r--  1 runner runner     356 Oct 10 06:17 git_status.txt
+-rw-r--r--  1 runner runner   98794 Oct 10 06:17 intermediate_states.pkl
+drwxr-xr-x  2 runner runner    4096 Oct 10 06:17 movies
+drwxr-xr-x  2 runner runner    4096 Oct 10 06:17 prompts
+-rw-r--r--  1 runner runner 3938559 Oct 10 06:17 requests.jsonl
+-rw-r--r--  1 runner runner   96616 Oct 10 06:17 serve.log
+-rw-r--r--  1 runner runner    1902 Oct 10 06:17 solver.pkl
+drwxr-xr-x  2 runner runner    4096 Oct 10 06:17 solver_analysis
+-rw-r--r--  1 runner runner    2648 Oct 10 06:17 submission.parquet
+-rw-r--r--  1 runner runner     432 Oct 10 06:17 summary.txt
+drwxr-xr-x  2 runner runner    4096 Oct 10 06:17 transcripts
+==> /tmp/kout/arc3-a2d2.log <==
+[{"stream_name":"stderr","time":4.311069833,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.311092023,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.311093943,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.311095063,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":4.6175111300000005,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.61752962,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.61753141,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.61753261,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":5.410633019,"data":"Writing /kaggle/harness-changes.patch\n"}
+,{"stream_name":"stderr","time":6.590341615,"data":"Checking patch ARC3-Inference/inference/agent/action_names.py...\n"}
+,{"stream_name":"stderr","time":6.590406955,"data":"Checking patch ARC3-Inference/inference/agent/noop_repeat_guard.py...\n"}
+,{"stream_name":"stderr","time":6.590412895,"data":"Checking patch ARC3-Inference/inference/age
+==> /tmp/kout/serve.log <==
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-10 06:00:22] Breakable CUDA graph is incompatible with multimodal model; disabling prefill CUDA graph.
+[2026-10-10 06:00:22] Setting page size to 64 for compressed QSA (full//ratio compressed addressing).
+[2026-10-10 06:00:23] Attention backend not specified. Use flashinfer backend by default.
+[2026-10-10 06:00:23] Successfully imported FlashInfer mamba module
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-10 06:00:23] DeepSeek MTP does not require setting speculative_draft_model_path.
+[2026-10-10 06:00:25] server_args={'model_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_mode': 'auto', 'tokenizer_backend': 'huggingface', 'tokenizer_worker_num': 1, 'detokenizer_worker_num': 1, 'skip_tokenizer_init': False, 'load_format': 'safetensors', 'model_loader_ext
