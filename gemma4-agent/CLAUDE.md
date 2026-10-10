@@ -117,6 +117,16 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
     `inline_snapshot` が無い 34 課題・`dirty_equals` が無い 6 課題（fastapi）、requests は 197 件の fixture エラー（httpbin 系）。sandbox の venv に pip が無い（ensurepip 不可）ため、`DATA/wheels` のテスト依存が入らない。
     - 課題そのものは壊れていない（公開の 114 と整合）。本番の採点環境で依存が入るかは未確認＝**本番でも入らないなら、この 54 課題は誰にも解けず LB の分母に効くだけ**。
     - 当面の比較は健全 72 課題で数える。依存を入れて 126 課題前後まで母集団を広げるのは、v7 と v8 の比較の後（比較の順位は母集団を広げても変わりにくい）。
+  - **localeval-6c の結果（健全 36 課題・直列）：v7 10・v8 10、非空パッチ v7 26/36・v8 20/36（56%）＝v8 は不合格（基準 85%）。g4v8-1 は出さない。**
+    片方だけ解けた課題が 5 対 5＝この規模の差は雑音。5 分切れは両方 14。
+    - **損の中心を特定**：edit_file 775 回のうち 625 回が「mandatory input parameters are not present: old_string」で失敗している。
+      new_string は届くのに old_string だけが落ちる。どちらの版でも 14 課題で起き、その課題はほぼ全部落ちた（v7 は 1 本だけ解けた）。
+      同じ呼び出しを 1 課題で最大 113 回繰り返し、時間を使い切る。
+      落ちるファイルは偏っている：rich/prompt.py 146 回、rich/style.py 113 回、rich/_export_format.py 74 回、fastapi/openapi/utils.py 69 回など。
+      内容によってツールの経路で引数が欠ける（送るときの解析の問題と見る）。v7 の prompt は引数名を path と書いていた（正しくは filepath）。
+    - **v9（`submission/`）＝v7＋edit_file が old_string を落としたら、すぐ run_command の Python 置換に切り替える規則**（引数名も filepath に直した）。v8 は `bases/v8` に保存。
+      - 隠しの約 120 課題でも 4 割前後でこの失敗が出るなら、ここが銅（+4 課題）との差の最大の部品になる。
+    - **localeval-7**：影響のあった 14 課題で v7 と v9 を直列で比べる。合格：v9 が +3 課題以上、かつ old_string の欠落が 5 回以上続く課題が 0 ⇒ g4v9-1 を提出（仮説 LB ≥ 0.10）。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
   公開 walkthrough の読解（流用なし）から疑わしい点：`max_time_minutes: 4.5`（小数）、`include_thoughts: true`（採点で動いた公開版は全部 thinking 切り）、
