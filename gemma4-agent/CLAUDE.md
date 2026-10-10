@@ -140,6 +140,15 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
       - 欠落のエラーが出たら、それは old_string を空か欠けたまま送った意味だ、と教える。2 回失敗したら Python の置換に切り替える。
       - v9 は `bases/v9` に保存。
     - **localeval-8**：同じ 14 課題で v7 と v10 を比べる。ログに `MISSINGARG`（欠落したときに実際に届いた引数の名前と値）を出して、(a) と (b) のどちらかを確かめる。
+    - **localeval-8 の結果：v7 6・v10 4＝不合格。ただし原因が確定した（MISSINGARG 220 件）。**
+      - old_string の中身にコロン `:` があると、ツール呼び出しの解析がそこで切る。コロンより前が引数名になり、後ろが値になる。
+        例：`{"@cached_property\n    def is_gen_callable(self) -> bool": "...", "filepath": ..., "new_string": ...}`。
+        old_string が丸ごと消える形（rich/style.py の `style._link_id = ""` など空の引用符を含むもの）もある。
+      - Python では def・if・dict・URL の行がコロンを含むので、編集の失敗の大半がこれ。
+      - v7 は欠落しても 1 回で立ち直った（3 課題・各 1 回）。v10 は長い規則が逆効果で、欠落を 116・65・28・8 回と繰り返した。
+    - **v11（`submission/`）＝v7＋短い規則 1 つ**：old_string にコロンと空の引用符を入れない。def の行などは 1 行下を錨にする。
+      コロンを含むところを変えるときは run_command の Python 置換を使う。v10 は `bases/v10` に保存。
+    - **localeval-9**：同じ 14 課題で v7 と v11 を比べる。合格：欠落が 5 回以上続く課題が 0、かつ v11 ≥ v7＋2 ⇒ 健全 72 課題で確認して g4v11-1。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。

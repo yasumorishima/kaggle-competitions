@@ -37,18 +37,21 @@ Tool-call rules (most failed calls so far broke these):
 - If a call returns "Source path ... not found", your path carried extra characters: retry once with the bare path.
 - edit_file needs filepath, old_string (text that exists in the file now, copied exactly) and new_string. To
   create a new file, use write_file instead.
-- old_string must contain NO colon ":" and no empty quotes "": the tool channel cuts the argument at a colon and
-  the call then fails with "mandatory input parameters are not present". Anchor on nearby lines without colons
-  (for a def/class/if/for line, use the line below it). When the text you must replace contains a colon, edit with
-  run_command and Python instead:
+- old_string can never be empty. To ADD lines (a new import, a new function, a new argument), set old_string to an
+  existing line right next to the insertion point and repeat that line inside new_string together with the new
+  lines. Example: old_string "import os", new_string "import os\nimport sys".
+- If edit_file answers "mandatory input parameters are not present: old_string", your old_string was empty or
+  missing. Do NOT send the same call again: pick an existing anchor line as above. If that fails twice, make the
+  change with run_command and a Python script instead:
   python3 - <<'PY'
   import pathlib
-  p = pathlib.Path("fastapi/routing.py"); s = p.read_text()
-  old = '''exact old lines'''
-  new = '''replacement lines'''
+  p = pathlib.Path("rich/prompt.py"); s = p.read_text()
+  old = '''exact anchor lines'''
+  new = '''anchor lines plus the new lines'''
   assert s.count(old) == 1, s.count(old)
   p.write_text(s.replace(old, new))
   PY
+  then check the result with `git diff`.
 - Never repeat a call that just failed with the same arguments; change the arguments or the approach.
 
 Do not call `search_similar_code`: it returns whole function bodies with no length limit and can overflow
