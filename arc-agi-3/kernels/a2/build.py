@@ -3,11 +3,13 @@
 Ours (yasunorim):
   1. deadline: in a real rerun the per-game limit is 540 min - elapsed - 6 min at the moment the benchmark starts
      (the winner's 532 min + ~10 min server start-up leaves no slack against the 9-hour limit).
-  2. level dossier (ARC_OURS_DOSSIER=1): when a level is completed, the exact action sequence of the final attempt
-     is appended to the system prompt, which context trimming never removes. The winner's harness keeps only the
-     (trimmed) chat history and the model's own functions across levels.
+  2. level dossier: when a level is completed, the exact action sequence of the final attempt is kept for the rest of
+     the game. The winner's harness keeps only the (trimmed) chat history and the model's own functions across levels.
+     dossier=1 appends it to the system prompt at once (a2d1-1: the head changes, the whole cached prefix is
+     re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
+     system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1] [passes=N]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N]
 """
 import json
 import os
@@ -25,7 +27,7 @@ src = lambda i: "".join(cells[i]["source"])  # noqa: E731
 PATCH = r'''
 # ==== ours (yasunorim, kernels/a2): level dossier =====================================================
 import os as _ours_os
-if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") == "1":
+if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") in ("1", "2"):
     _ours_orig_update = ToolAgent._update_summarized_knowledge_from_step_summary
 
     def _ours_update(self):
@@ -46,14 +48,51 @@ if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") == "1":
             del d[:-6]
             acts.clear()
             base = self.__dict__.setdefault("_ours_base_prompt", self._system_prompt)
-            self._system_prompt = (
-                base + "\n\n## Solved levels of this game (exact action sequences of the winning attempts; kept "
-                "even when old messages are trimmed)\n" + "\n".join(d) + "\nLater levels usually reuse the same "
-                "mechanics with a bigger or changed layout: reuse what these sequences reveal instead of "
-                "rediscovering the rules, and aim for fewer actions.")
+            block = ("## Solved levels of this game (exact action sequences of the winning attempts; kept "
+                     "even when old messages are trimmed)\n" + "\n".join(d) + "\nLater levels usually reuse the same "
+                     "mechanics with a bigger or changed layout: reuse what these sequences reveal instead of "
+                     "rediscovering the rules, and aim for fewer actions.")
+            self.__dict__["_ours_block"] = block
+            if _ours_os.environ.get("ARC_OURS_DOSSIER") == "1":
+                self._system_prompt = base + "\n\n" + block   # v1: rewrites the head = whole prefix re-prefilled
+            else:
+                self.__dict__["_ours_inline"] = block           # v2: ride on the next opening message (tail)
         return _ours_orig_update(self)
 
     ToolAgent._update_summarized_knowledge_from_step_summary = _ours_update
+
+if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") == "2":
+    # v2 keeps the cached prefix: the record goes into the next user message (the tail, stored in history as sent),
+    # and moves into the system prompt only when the trimmer has dropped messages, when the prefix is invalid anyway.
+    _ours_orig_append = ToolAgent._append_context_message
+    _ours_orig_trim = ToolAgent._trim_messages_for_context
+
+    def _ours_append(self, messages, message):
+        block = self.__dict__.pop("_ours_inline", None)
+        if block and isinstance(message, dict) and message.get("role") == "user":
+            c = message.get("content")
+            if isinstance(c, str):
+                message["content"] = block + "\n\n" + c
+            elif isinstance(c, list):
+                message["content"] = [{"type": "text", "text": block}, *c]
+            else:
+                self.__dict__["_ours_inline"] = block
+        elif block:
+            self.__dict__["_ours_inline"] = block
+        return _ours_orig_append(self, messages, message)
+
+    def _ours_trim(self, messages, **kw):
+        out = _ours_orig_trim(self, messages, **kw)
+        block = self.__dict__.get("_ours_block")
+        if block and out and len(out) < len(messages):
+            base = self.__dict__.setdefault("_ours_base_prompt", self._system_prompt)
+            if self._system_prompt != base + "\n\n" + block:
+                self._system_prompt = base + "\n\n" + block
+                out[0] = {**out[0], "content": self._system_prompt}
+        return out
+
+    ToolAgent._append_context_message = _ours_append
+    ToolAgent._trim_messages_for_context = _ours_trim
 '''
 
 # ---- the patch is appended to the harness after the winner's own patch is applied (cell 5)
