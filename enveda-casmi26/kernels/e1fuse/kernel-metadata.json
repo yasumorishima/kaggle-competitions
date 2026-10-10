@@ -1,12 +1,13 @@
 {
-  "id": "yasunorim/casmi26-e2hard",
-  "title": "casmi26 e2hard",
+  "id": "yasunorim/casmi26-e2hice",
+  "title": "casmi26 e2hice",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",
-  "enable_gpu": "false",
+  "enable_gpu": "true",
   "enable_tpu": "false",
+  "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
   "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
   "dataset_sources": [

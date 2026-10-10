@@ -456,7 +456,7 @@ meta = {"id": f"yasunorim/casmi26-{name}", "title": f"casmi26 {name}", "code_fil
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"],
         "model_sources": []}
-if c3val or "cpu" in sys.argv[3:] or tpu:   # CPU only: no GPU session / quota is used
+if (c3val or "cpu" in sys.argv[3:] or tpu) and "gpu" not in sys.argv[3:]:   # CPU only (gpu: keep the T4 for a full validation)
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 if tpu:
