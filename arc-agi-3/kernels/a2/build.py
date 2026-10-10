@@ -9,7 +9,7 @@ Ours (yasunorim):
      re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
      system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1]
 """
 import json
 import os
@@ -120,6 +120,16 @@ c17 = c17.replace(old, "        bm.solver.max_runtime_s_per_game = 532*60\n"
                   "                                               540*60 - (time.time() - NOTEBOOK_START_TIME) - 6*60)\n"
                   "        print('ours: per-game limit', round(bm.solver.max_runtime_s_per_game / 60, 1), 'min')\n")
 c17 = c17.replace("bm.n_passes = int(os.environ.get('ARC_PASSES', '1'))", f"bm.n_passes = {int(passes)}")
+# fast=1 (for submissions): the commit run only has to produce submission.parquet, so it plays one demo game for
+# 5 minutes instead of the 2-hour local benchmark; the competition rerun (TRUE_SUBMISSION) is unchanged
+if opts.get("fast", "0") == "1":
+    old_ex = "demo_excluded_games = [] if TRUE_SUBMISSION else []\n"
+    assert c17.count(old_ex) == 1
+    others = ["ar25", "bp35", "cd82", "cn04", "dc22", "g50t", "ka59", "lf52", "lp85", "ls20", "m0r0", "r11l", "re86",
+              "s5i5", "sb26", "sc25", "sk48", "sp80", "su15", "tn36", "tr87", "tu93", "vc33", "wa30"]   # all but ft09
+    c17 = c17.replace(old_ex, f"demo_excluded_games = [] if TRUE_SUBMISSION else {others!r}  # ours: fast commit run\n")
+    c17 += ("\nif not TRUE_SUBMISSION:  # ours: fast commit run, one game\n"
+            "    bm.solver.max_runtime_s_per_game = 300\n    print('ours: fast commit run', bm.solver)\n")
 cells[i17]["source"] = c17
 
 # ---- diagnostics (ours, no behaviour change): summarise the SGLang serve.log in the notebook log, because kernel
@@ -171,4 +181,4 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")))
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote", name, "dossier", dossier, "passes", passes)
+print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"))
