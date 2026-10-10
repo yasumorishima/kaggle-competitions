@@ -103,6 +103,9 @@ models = server.create_model_registry(aliases=[declared, "gemma-4-31b-it-qat-w4a
 
 tasks = load_tasks(DATA / "tasks.jsonl")
 k, m = (int(x) for x in SHARD.split("/"))
+ONLY = [x for x in "__ONLY__".split(",") if x and x != "__ONLY__"]   # e.g. the healthy tasks from kernels/control
+if ONLY:
+    tasks = [t for t in tasks if t.instance_id in set(ONLY)]
 tasks = [t for i, t in enumerate(tasks) if i % m == k][:LIMIT]
 log("tasks", len(tasks), "configs", list(dirs), "workers", WORKERS)
 limits, gen = build_submission_limits()
