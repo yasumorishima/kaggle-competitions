@@ -88,6 +88,11 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - ⇒ **v8（`submission/`・編集先行）**：locator の sub-agent を外し、自分で git grep と read_file を 4 回までして、7 回目までに必ず編集する。
     編集の後に `get_status`（無料）で残り時間を見て、120 秒より多ければ checker を 1 回だけ呼ぶ。60 秒を切ったら提出する。v7 は `bases/v7` に保存。公式パッケージの compile は通った（道具は stub）。
   - 次：TPU（tpueval-2 で評価台として使えると分かれば）か、GPU の週枠が戻った後の 4×L4 で、**v7 と v8 を同じ課題・直列で対にして比べる**。勝ったら提出する（仮説：時間切れでパッチなしの課題が減り、LB 0.10 以上）。
+- 10-10：**tpueval-2 は 10-09 23:53 に開始（約 9 時間待ち）→ 00:02 にエラー**。
+  - 分かったこと：TPU 機は 96 コア・RAM 377GB・Python 3.12。vllm-tpu 0.31.0 と jax 0.11.0 は入り、TPU も見えた（入れるのに約 6 分）。
+  - 落ちた所：評価用の公式 wheel を入れる段。wheelhouse の adk_submission が 0.2.12 から **0.2.13** に上がっていて、版を決め打ちにしたファイル名が無かった。
+  - ⇒ wheel を版ではなくパッケージ名で選ぶように直した。
+  - **tpueval-4** として、v7 と v8 を shard 0/3 の先頭 6 課題・直列で対にして出した。モデルが載るか、1 課題の秒数、v8 で「パッチなしの時間切れ」が減るかを見る。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。

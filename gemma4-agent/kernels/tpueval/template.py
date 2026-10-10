@@ -49,9 +49,10 @@ if not os.environ.get("G4_INNER"):
     sh(f"{UV} python install 3.12")
     sh(f"{UV} venv -q -p 3.12 /tmp/vt && {UV} pip install -q -p /tmp/vt/bin/python vllm-tpu")
     sh("/tmp/vt/bin/python -c 'import vllm, jax; print(\"vllm\", vllm.__version__, \"jax\", jax.__version__, jax.devices()[:1])'")
-    wheels = " ".join(f"{WH}/{w}" for w in ("adk_eval_core-0.1.0-py3-none-any.whl", "adk_submission-0.2.12-py3-none-any.whl",
-                                            "google_adk-1.36.1-py3-none-any.whl", "google_genai-2.11.0-py3-none-any.whl",
-                                            "swegemma-0.2.7-py3-none-any.whl", "anthropic-1.4.0-py3-none-any.whl"))
+    # by package name, not version: the wheelhouse is re-versioned (adk_submission 0.2.12 -> 0.2.13 on 10-09)
+    wheels = " ".join(sorted(glob.glob(f"{WH}/{p}-*.whl"))[-1] for p in (
+        "adk_eval_core", "adk_submission", "google_adk", "google_genai", "swegemma", "anthropic"))
+    log("eval wheels", wheels)
     sh(f"{UV} venv -q -p 3.12 /tmp/ev && {UV} pip install -q -p /tmp/ev/bin/python {wheels} litellm pyyaml")
     env = dict(os.environ, G4_INNER="1", G4_T0=str(T0))
     sys.exit(subprocess.run(["/tmp/ev/bin/python", os.path.abspath(__file__)], env=env).returncode)
