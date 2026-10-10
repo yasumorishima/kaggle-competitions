@@ -9,7 +9,7 @@ Ours (yasunorim):
      re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
      system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N]
 """
 import json
 import os
@@ -132,6 +132,21 @@ if opts.get("fast", "0") == "1":
             "    bm.solver.max_runtime_s_per_game = 300\n    print('ours: fast commit run', bm.solver)\n")
 cells[i17]["source"] = c17
 
+# ---- streams=N (ours, part 5): more games decode at once. a2d2's serve.log: ~9 of 10 streams always busy, server
+# queue 0, KV usage 0.4-0.77, and the harness gate kept games waiting ~25 game-hours in total. The gate, SGLang's
+# running-request cap, the decode CUDA graphs and the mamba state cache (6 per stream, as the base) move together.
+streams = int(opts.get("streams", "10"))
+if streams != 10:
+    i5s = next(i for i, c in enumerate(cells) if "'ARC3_MAX_ACTIVE_STREAMS': 10," in "".join(c["source"]))
+    cells[i5s]["source"] = src(i5s).replace("'ARC3_MAX_ACTIVE_STREAMS': 10,", f"'ARC3_MAX_ACTIVE_STREAMS': {streams},  # ours")
+    i13 = next(i for i, c in enumerate(cells) if "MAXREQ=10," in "".join(c["source"]))
+    c13 = src(i13)
+    for old, new in (("MAXREQ=10,", f"MAXREQ={streams},  # ours"), ("CUDAGRAPH_MAXBS=10,", f"CUDAGRAPH_MAXBS={streams},  # ours"),
+                     ("MAMBA_CACHE=60,", f"MAMBA_CACHE={6 * streams},  # ours")):
+        assert c13.count(old) == 1, old
+        c13 = c13.replace(old, new)
+    cells[i13]["source"] = c13
+
 # ---- diagnostics (ours, no behaviour change): summarise the SGLang serve.log in the notebook log, because kernel
 # output files cannot be fetched from the cloud container. Per 10-minute bucket: decode batch size, queue,
 # KV usage, generation throughput, and prefill new vs cached tokens (cache reuse).
@@ -181,4 +196,4 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")))
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"))
+print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"))
