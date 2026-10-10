@@ -1,0 +1,9 @@
+request: e2hard-1
+run: 38029479862  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2hard  version: 1
+memo: Validation only, CPU, no submit. e2gpu-2 (base 0.420 + MMP 100 / 2-step 20 / FP parents 10) scored LB 0.413, while the class-3 simulation (truth removed from the pool) promised +0.178 MRR on class 3 (~+0.1 LB). The simulation is too easy: the truth's near copies stay in train as MMP parents. Here every MMP parent (spectral or FP) with Tanimoto >= 0.7 to the truth is dropped (a 'novel truth'), same MMP settings as e2gpu-2, fold0 NP molecules, base lists only. Logs the distribution of the best parent-truth Tanimoto and MRR@25 with / without MMP rows. If the MMP gain collapses, the class-3 generator needs farther jumps (the next component); if it survives, the hidden class 3 differs in another way.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2hard
+
+output files:
