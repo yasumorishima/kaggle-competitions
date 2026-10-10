@@ -34,6 +34,7 @@ c3hard = next((float(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("
 iceb = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("ice=")), 0)   # ICEBERG time budget (s) override
 valn = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("valn=")), 0)   # validation molecules override
 mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
+beam = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("beam=")), 0)   # FP-guided multi-step MMP walk: beam width
 mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -249,6 +250,7 @@ upd["MMP_MINC"] = mmpc
 upd["MMP_FPPAR"] = mmpfp
 upd["MMP_ORDER"] = mmpord
 upd["MMP_TWO"] = mmp2
+upd["MMP_BEAM"] = beam
 if iceb:
     upd["ICE_BUDGET"] = iceb
 if val:
@@ -275,7 +277,7 @@ c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:              
                        if _Ch.MolFromSmiles(s_) is not None)
         ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log, exclude_ik14=_xik)
         ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0), order=CFG.get('MMP_ORDER', 'count'),
-                         two_step=CFG.get('MMP_TWO', 0))
+                         two_step=CFG.get('MMP_TWO', 0), beam=CFG.get('MMP_BEAM', 0))
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
         if not IS_RERUN:

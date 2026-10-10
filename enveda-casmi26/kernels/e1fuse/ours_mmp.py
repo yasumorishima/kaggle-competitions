@@ -213,14 +213,72 @@ def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
     return out
 
 
+def _beam(E, chem, P, L, parents, target, tol, seen, width, depth, k, secs):
+    """ours: FP-guided multi-step MMP walk (see install). Returns [(smiles, key, props, fp bits, parent id, fit)]
+    of target-mass products, best FP fit first, none of them in `seen`."""
+    t0 = time.time()
+    z = _pred_logits(E, CUR['spectra']).astype(np.float32)
+
+    def fit(smi):
+        fp = chem.raw_fingerprint(smi)
+        return None if fp is None else (fp[P.bits].astype(np.float32), float(fp[P.bits].astype(np.float32) @ z))
+
+    front = [(L.struct_smiles[sid], float(L.struct_mass[sid]), sid) for sid, *_ in parents]
+    visited = set(f[0] for f in front)
+    out = {}
+    for d in range(depth):
+        nxt = []
+        for smi, mass, sid in front:
+            if time.time() - t0 > secs:
+                break
+            try:                                    # close onto the target mass
+                pr = products(smi, target - mass, tol)
+            except Exception:
+                pr = {}
+            for s2 in pr:
+                std = chem.standardize_smiles(s2)
+                k2 = None if std is None else chem.score_key(std)
+                if k2 is None or k2 in seen or k2 in out:
+                    continue
+                pp = chem.mol_props(std)
+                if pp is None or abs(pp[1] - target) > tol:
+                    continue
+                f = fit(std)
+                if f is not None:
+                    out[k2] = (std, k2, pp, f[0], sid, f[1])
+            if d == depth - 1:
+                continue
+            try:                                    # any rule: candidates for the next depth
+                mids = products_any(smi, top=k)
+            except Exception:
+                mids = {}
+            for ms, (_c, dm) in mids.items():
+                if ms in visited:
+                    continue
+                visited.add(ms)
+                f = fit(ms)
+                if f is not None:
+                    nxt.append((f[1], ms, mass + dm, sid))
+        if not nxt or time.time() - t0 > secs:
+            break
+        nxt.sort(key=lambda r: -r[0])
+        front = [(ms, m, sid) for _f, ms, m, sid in nxt[:width]]
+    STATS['beam_secs'] = STATS.get('beam_secs', 0.0) + time.time() - t0
+    return sorted(out.values(), key=lambda r: -r[5])
+
+
 def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count',
-            two_step=0, two_parent=3):
+            two_step=0, two_parent=3, beam=0, beam_depth=3, beam_k=30, beam_new=30, beam_secs=8.0):
     """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
     many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim. order picks which
     max_new of the valid products are kept: 'count' (parent similarity x log(1 + rule count)), 'fp' (log-likelihood of
     the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks). two_step > 0: for the two_parent
     best spectral analogs, the two_step most frequent one-step products (any mass) are expanded once more with the rules
-    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products)."""
+    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products).
+    beam > 0 (ours, far parents): from the parents, apply any rule (beam_k most frequent per member) up to beam_depth
+    times, keeping the `beam` intermediates whose bits fit the predicted FP best; at every depth the members are also
+    closed onto the target mass with the matching rules. The beam_new best closed products by FP fit are added on top
+    of the max_new ones (beam_secs per molecule)."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
     run0 = E.run
@@ -298,6 +356,18 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                             cand[s2] = (sc, sid, sim)
                             STATS['two_step_cands'] = STATS.get('two_step_cands', 0) + 1
             STATS['two_step_secs'] = STATS.get('two_step_secs', 0.0) + time.time() - t2
+        beam_keys = []
+        if beam > 0 and E.bank is not None and CUR.get('spectra'):
+            try:
+                beam_keys = _beam(E, chem, P, L, parents, target, tol, seen, beam, beam_depth, beam_k, beam_secs)
+            except Exception as e:
+                STATS['beam_errors'] = STATS.get('beam_errors', 0) + 1
+                STATS['beam_error'] = repr(e)[:200]
+            if CUR.get('mid') in DIAG:                 # validation: does the walk reach the truth?
+                tk = chem.score_key(chem.standardize_smiles(DIAG[CUR['mid']]) or DIAG[CUR['mid']])
+                ranks = [i for i, r in enumerate(beam_keys) if r[1] == tk]
+                STATS['beam_truth'] = STATS.get('beam_truth', 0) + (1 if ranks else 0)
+                STATS['beam_truth_in_new'] = STATS.get('beam_truth_in_new', 0) + (1 if ranks and ranks[0] < beam_new else 0)
         # ours: every valid product first (best rule first, up to MAX_POOL), then keep max_new of them by `order`
         allp = []
         for s, (sc, sid, sim) in sorted(cand.items(), key=lambda kv: -kv[1][0]):
@@ -343,6 +413,13 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             inter = float((fp * pfp).sum()); tan = inter / (fp.sum() + pfp.sum() - inter + 1e-9)
             new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
                             frags=fragmod.fragments_for_smiles(std), sim=sim, steps=1, tan=tan, parent=sid))
+        for std, k, p, fp, sid, ll in beam_keys[:beam_new]:
+            if k in seen:
+                continue
+            seen.add(k)
+            new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
+                            frags=fragmod.fragments_for_smiles(std), sim=0.3, steps=2, tan=0.0, parent=sid))
+            STATS['beam_products'] = STATS.get('beam_products', 0) + 1
         STATS['valid_products'] = STATS.get('valid_products', 0) + len(allp)
         GEN_KEYS.clear(); GEN_KEYS['last'] = set(g['key'] for g in new)
         STATS['molecules'] += 1; STATS['parents'] += len(parents); STATS['products'] += len(new)
