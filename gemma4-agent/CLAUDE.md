@@ -109,6 +109,10 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - 当面、v7 と v8 の比較は健全 71 課題で数える。**localeval-5 を数え直すと v7 20/71（28%）・v6 12/71**。
     両者が「解いた」健全でない課題は、空パッチで通る 3 課題だけ（v7：fastapi_14851・14077、v6：14851・requests_6644）。正解パッチで落ちる 55 課題を解いた版は無い＝この 55 は当方の環境では誰も解けない。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
+  - **control-4（直列・58 課題）：健全は rich 1 増えて計 72**。正解パッチの失敗 54 の中身は**テスト依存が sandbox に入っていない**こと：
+    `inline_snapshot` が無い 34 課題・`dirty_equals` が無い 6 課題（fastapi）、requests は 197 件の fixture エラー（httpbin 系）。sandbox の venv に pip が無い（ensurepip 不可）ため、`DATA/wheels` のテスト依存が入らない。
+    - 課題そのものは壊れていない（公開の 114 と整合）。本番の採点環境で依存が入るかは未確認＝**本番でも入らないなら、この 54 課題は誰にも解けず LB の分母に効くだけ**。
+    - 当面の比較は健全 72 課題で数える。依存を入れて 126 課題前後まで母集団を広げるのは、v7 と v8 の比較の後（比較の順位は母集団を広げても変わりにくい）。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
   公開 walkthrough の読解（流用なし）から疑わしい点：`max_time_minutes: 4.5`（小数）、`include_thoughts: true`（採点で動いた公開版は全部 thinking 切り）、
