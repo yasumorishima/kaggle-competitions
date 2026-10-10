@@ -1,0 +1,9 @@
+request: localeval-8
+run: 38051470314  status: success  action: kernel  dir: gemma4-agent/kernels/localeval  submit: no
+kernel: yasunorim/gemma4-localeval  version: 8
+memo: Local paired eval, no submit. localeval-7 (14 tasks hit by lost old_string): v7 3, v9 4 - fail (needed +3); v9 still looped on the error (108 times on fastapi_14463) and never used its Python fallback. Pattern: a successful edit_file, then the next one arrives without old_string and repeats every 1.4 s (temperature 0.2). ADK drops argument names the function does not have before the mandatory check, so the cause is either an empty old_string for an insertion or a wrong key (old_str). v10 (submission/) = v7 + explicit insertion rule (old_string is never empty; anchor on an existing neighbour line and repeat it in new_string), the error explained as an empty/missing old_string, Python fallback after two failures. Paired serial run v7 vs v10 on the same 14 tasks; the log prints MISSINGARG with the argument names and values that did arrive. Pass: no v10 task with 5+ lost old_string errors and v10 >= v7 + 2 -> confirm on the 72 healthy tasks, then submit g4v10-1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 8 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-localeval
+
+output files:
