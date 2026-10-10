@@ -30,6 +30,7 @@ c3val = "c3val" in sys.argv[3:] or c3full
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
+c3hard = next((float(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("c3hard=")), 0.0)   # with c3val: MMP parents farther than this Tanimoto from the truth
 iceb = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("ice=")), 0)   # ICEBERG time budget (s) override
 valn = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("valn=")), 0)   # validation molecules override
 mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
@@ -254,7 +255,7 @@ if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
-               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord)
+               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord, C3HARD=c3hard)
     if c3full:
         upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
 if valn:
@@ -293,6 +294,12 @@ if (CFG.get('C3PAR') or CFG.get('C3ORD')) and CFG.get('MMP_N', 0) > 0:   # ours:
     ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
     ours_mmp.DIAG_HOLD.update(k for k in (chem.score_key(s) for s in _lab3.smiles) if k)
     log('PARENT STUDY on', len(ours_mmp.DIAG), 'molecules')
+if CFG.get('C3HARD') and CFG.get('MMP_N', 0) > 0 and not IS_RERUN:   # ours: "novel truth" simulation
+    _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
+    ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
+    ours_mmp.STUDY = bool(CFG.get('C3PAR'))
+    ours_mmp.HARD_T = float(CFG['C3HARD'])
+    log('C3HARD: MMP parents within Tanimoto', ours_mmp.HARD_T, 'of the truth are dropped')
 import pc_join
 """)
 setsrc(i14, c14)
@@ -313,6 +320,8 @@ if CFG.get('MMP_N', 0) > 0:
         ours_mmp.study_summary(log)
     if CFG.get('C3ORD'):
         ours_mmp.order_summary(CFG['MMP_N'], log)
+    if CFG.get('C3HARD'):
+        ours_mmp.hard_summary(log)
 if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):   # ours: class-3 base-list scores
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     _tk = {m: chem.score_key(s) for m, s in zip(_lab3.molecule_id, _lab3.smiles)}

@@ -250,6 +250,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
         cfg, L, P = E.cfg, E.L, E.pool
         tol = max(cfg.gen_tol_da, target * cfg.ppm_win * 1e-6)
         parents = [a for a in analogs if a[1] >= min_sim][:n_parent]
+        hard = _hard_filter(E, chem) if HARD_T > 0 else None
         if n_fp_parent > 0 and E.bank is not None and CUR.get('spectra'):
             try:
                 fps = fp_parents(E, CUR['spectra'], target, n_fp_parent, exclude=[a[0] for a in parents])
@@ -258,6 +259,8 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             except Exception as e:
                 STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
                 STATS['fp_parent_error'] = repr(e)[:200]
+        if hard is not None:                           # validation: no parent (spectral or FP) within HARD_T of the truth
+            parents = [a for a in parents if hard(a[0])]
         if DIAG and STUDY and CUR.get('spectra') and E.bank is not None:
             try:
                 study(E, analogs, target, tol, _pred_logits(E, CUR['spectra']), DIAG_HOLD)
@@ -276,7 +279,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                     cand[s] = (sc, sid, sim)
         if two_step > 0:                               # ours: two replacements (parent -> any -> target mass)
             t2 = time.time()
-            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim][:two_parent]:
+            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim and (hard is None or hard(a[0]))][:two_parent]:
                 try:
                     mids = products_any(L.struct_smiles[sid], top=two_step)
                 except Exception:
@@ -362,6 +365,46 @@ ORDER_ROWS = []     # validation: rank of the truth among the valid products und
 MAX_POOL = 3000
 MAX_SECS = 100 * 60                                    # MMP time budget per run (the hidden rerun has 9 h)
 DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
+HARD_T = 0.0        # validation (c3hard): drop MMP parents with Tanimoto >= HARD_T to the truth = a "novel" truth
+HARD_ROWS = []      # per molecule: best parent-truth Tanimoto before the filter, parents dropped
+
+
+def _hard_filter(E, chem):
+    """For the molecule being generated (CUR['mid'] in DIAG), a predicate on train structure ids: True when the
+    structure is farther than HARD_T (Tanimoto, the engine's bits) from the truth. None when the truth is unknown."""
+    t = DIAG.get(CUR.get('mid'))
+    if t is None:
+        return None
+    if CUR.get('hard_mid') != CUR.get('mid'):
+        std = chem.standardize_smiles(t) or t
+        fp = chem.raw_fingerprint(std)
+        CUR['hard_fp'] = None if fp is None else fp[E.pool.bits].astype(np.float32)
+        CUR['hard_mid'] = CUR.get('mid'); CUR['hard_row'] = dict(best=0.0, dropped=0, seen=0)
+        HARD_ROWS.append(CUR['hard_row'])
+    tf = CUR['hard_fp']
+    if tf is None:
+        return None
+    nb = E.pool.nbits
+    row = CUR['hard_row']
+
+    def keep(sid):
+        pf = np.unpackbits(E.train_fp[sid])[:nb].astype(np.float32)
+        inter = float((pf * tf).sum()); tan = inter / (pf.sum() + tf.sum() - inter + 1e-9)
+        row['seen'] += 1; row['best'] = max(row['best'], tan)
+        if tan >= HARD_T:
+            row['dropped'] += 1
+            return False
+        return True
+    return keep
+
+
+def hard_summary(log=print):
+    if not HARD_ROWS:
+        log('HARD: no rows'); return
+    b = np.array([r['best'] for r in HARD_ROWS]); d = np.array([r['dropped'] for r in HARD_ROWS])
+    log(f'HARD T={HARD_T} molecules {len(b)} | best parent-truth Tanimoto: median {np.median(b):.3f} '
+        f'q25 {np.quantile(b, .25):.3f} q75 {np.quantile(b, .75):.3f} >=0.7 {np.mean(b >= .7):.3f} >=0.85 {np.mean(b >= .85):.3f}'
+        f' | molecules with a parent dropped {np.mean(d > 0):.3f}, parents dropped per molecule {d.mean():.2f}')
 _POOL = {}
 
 
