@@ -1,0 +1,9 @@
+request: control-1
+run: 38016013673  status: success  action: kernel  dir: gemma4-agent/kernels/control  submit: no
+kernel: yasunorim/gemma4-control  version: 1
+memo: Healthy-task control on CPU (no submit, no GPU). Official Phase 2 verification on all 129 tasks with a no-op patch and with the gold patch; healthy = no-op fails and gold passes. Fixes the population for the v7 vs v8 comparison (plan audit 10-10, item a, due 10-11). Public measurement says 114 healthy. Also saves the verification source to the output.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-control
+
+output files:
