@@ -1,0 +1,9 @@
+request: control-4
+run: 38018019472  status: success  action: kernel  dir: gemma4-agent/kernels/control  submit: no
+kernel: yasunorim/gemma4-control  version: 4
+memo: control-3 (3 workers): healthy 71/129 (fastapi 29/67, rich 42/48, requests 0/13, httpx 0/1); gold fails 55 with no error and in ~7 s, no-op passes 3. The public count is 114, so most gold failures look like our environment, not the tasks. This run repeats the 58 unhealthy tasks with 1 worker (rules out sandbox collisions) and logs the gold exit code and the end of the test output.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-control
+
+output files:
