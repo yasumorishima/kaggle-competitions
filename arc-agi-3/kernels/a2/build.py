@@ -83,10 +83,47 @@ c17 = c17.replace(old, "        bm.solver.max_runtime_s_per_game = 532*60\n"
 c17 = c17.replace("bm.n_passes = int(os.environ.get('ARC_PASSES', '1'))", f"bm.n_passes = {int(passes)}")
 cells[i17]["source"] = c17
 
+# ---- diagnostics (ours, no behaviour change): summarise the SGLang serve.log in the notebook log, because kernel
+# output files cannot be fetched from the cloud container. Per 10-minute bucket: decode batch size, queue,
+# KV usage, generation throughput, and prefill new vs cached tokens (cache reuse).
+DIAG = r"""
+import re as _re, glob as _glob, collections as _co
+_logs = sorted(_glob.glob('/kaggle/working/**/serve.log', recursive=True)) or sorted(_glob.glob('/kaggle/working/*.log'))
+print('ours diag: server logs', _logs)
+_b = _co.defaultdict(lambda: dict(dec=0, run=0, q=0, use=0.0, thr=0.0, pnew=0, pcached=0, pre=0))
+_t0 = None
+_num = lambda k, l: float(_re.search(k + r':\s*([\d.]+)', l).group(1)) if _re.search(k + r':\s*([\d.]+)', l) else 0.0
+for _p in _logs:
+    for _l in open(_p, errors='replace'):
+        _m = _re.search(r'\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)', _l)
+        if not _m:
+            continue
+        import datetime as _dt
+        _t = _dt.datetime.strptime(_m.group(1), '%Y-%m-%d %H:%M:%S').timestamp()
+        _t0 = _t0 or _t
+        _k = int((_t - _t0) // 600)
+        _x = _b[_k]
+        if 'Decode batch' in _l:
+            _x['dec'] += 1; _x['run'] += _num('#running-req', _l); _x['q'] += _num('#queue-req', _l)
+            _x['use'] += _num('token usage', _l); _x['thr'] += _num(r'gen throughput \(token/s\)', _l)
+        elif 'Prefill batch' in _l:
+            _x['pre'] += 1; _x['pnew'] += _num('#new-token', _l); _x['pcached'] += _num('#cached-token', _l)
+print('ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached')
+for _k in sorted(_b):
+    _x = _b[_k]; _d = max(1, _x['dec'])
+    print(f"ours diag: {_k*10:4d} {_x['dec']:7d} {_x['run']/_d:5.1f} {_x['q']/_d:6.1f} {_x['use']/_d:7.2f} {_x['thr']/_d:9.1f} {int(_x['pnew']):12d} {int(_x['pcached']):14d}")
+try:
+    from inference.agent import tool_agent as _ta
+    print('ours diag: gate', getattr(_ta, '_GATE_STATS', None))
+except Exception as _e:
+    print('ours diag: gate unavailable', repr(_e))
+"""
+cells.append({"cell_type": "code", "metadata": {}, "source": DIAG, "outputs": [], "execution_count": None})
+
 cells[0]["source"] = ("# arc3 a2 (yasunorim)\n\nBase: the ARC-AGI-3 Milestone 2 solution by dfranzen "
                       "(https://www.kaggle.com/code/dfranzen/arc-agi-3-milestone-2-solution, built on Tufa Labs' Duck "
                       "harness), unchanged. Ours: a run deadline that respects the 9-hour limit, and a level dossier "
-                      "(exact winning action sequences of solved levels kept in the system prompt). Built by "
+                      "(exact winning action sequences of solved levels kept in the system prompt), and a serve.log summary. Built by "
                       "arc-agi-3/kernels/a2/build.py in github.com/yasumorishima/kaggle-competitions.\n")
 for c in cells:
     if c["cell_type"] == "code":
