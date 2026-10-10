@@ -9,7 +9,7 @@ Ours (yasunorim):
      re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
      system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS] [retrywait=MINUTES]
 """
 import json
 import os
@@ -100,9 +100,59 @@ if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") == "2":
 # Once per level, after ARC_OURS_RETRY_TOK tokens on it, the turn starts from a clean history (the memory sections and
 # the dossier stay), the per-level counters restart so the gate prices the game as a fresh level, and the model is
 # told its previous plan failed.
+# a2r1-1: the token trigger fired only twice - stuck games are starved at the gate before they reach 100k tokens.
+# ARC_OURS_RETRY_WAIT_MIN > 0 (a2r2): a game that has waited that long at the gate is priced as a fresh level (tokens
+# and actions on the level = 0), once per level; when it wins a slot that way, its next turn is the second attempt.
 _OURS_RETRY_TOK = int(_ours_os.environ.get("ARC_OURS_RETRY_TOK", "0") or 0)
-_OURS_RETRY_STATS = {"retries": 0, "levels_after": 0}
-if _OURS_RETRY_TOK > 0:
+_OURS_RETRY_WAIT = 60.0 * float(_ours_os.environ.get("ARC_OURS_RETRY_WAIT_MIN", "0") or 0)
+_OURS_RETRY_STATS = {"retries": 0, "levels_after": 0, "fresh_admits": 0}
+if _OURS_RETRY_WAIT > 0:
+    import threading as _ours_th
+    _ours_tls = _ours_th.local()
+    _OURS_SNAP = {}                                  # id(snapshot) -> [agent, enqueue time, priced fresh]
+    _ours_prev_mh = ToolAgent._maybe_handover
+
+    def _ours_mh(self):
+        _ours_tls.agent = self
+        try:
+            return _ours_prev_mh(self)
+        finally:
+            _ours_tls.agent = None
+
+    _ours_prev_ho = _PriorityGate.handover
+
+    def _ours_ho(gate, priority, snapshot=None):
+        agent = getattr(_ours_tls, "agent", None)
+        if snapshot is None or agent is None:
+            return _ours_prev_ho(gate, priority, snapshot)
+        key = id(snapshot)
+        _OURS_SNAP[key] = [agent, time.monotonic(), False]
+        try:
+            return _ours_prev_ho(gate, priority, snapshot)
+        finally:
+            rec = _OURS_SNAP.pop(key, None)
+            if rec is not None and rec[2]:
+                agent._ours_retry_level = snapshot.level
+                agent._ours_retry_pending = True
+                _OURS_RETRY_STATS["fresh_admits"] += 1
+
+    _ours_prev_sp = _PriorityGate._snapshot_priority
+
+    def _ours_sp(gate, snapshot, now):
+        rec = _OURS_SNAP.get(id(snapshot))
+        if rec is not None:
+            agent, t_enq, _ = rec
+            fresh = (now - t_enq >= _OURS_RETRY_WAIT and snapshot.tokens > 0
+                     and agent.__dict__.get("_ours_retry_level") != snapshot.level)
+            rec[2] = fresh
+            if fresh:
+                snapshot = PrioritySnapshot(snapshot.level, 0, 0.0, snapshot.cost_multiplier, snapshot.total_levels)
+        return _ours_prev_sp(gate, snapshot, now)
+
+    ToolAgent._maybe_handover = _ours_mh
+    _PriorityGate.handover = _ours_ho
+    _PriorityGate._snapshot_priority = _ours_sp
+if _OURS_RETRY_TOK > 0 or _OURS_RETRY_WAIT > 0:
     _ours_prev_trim = ToolAgent._trim_messages_for_context
     _ours_prev_upd = ToolAgent._update_summarized_knowledge_from_step_summary
 
@@ -127,7 +177,9 @@ if _OURS_RETRY_TOK > 0:
             s = self._last_step_summary or {}
             level = int(s.get("level") or 1)
             spent = self._session_generated_tokens - getattr(self, "_tokens_at_level_start", 0)
-            if spent < _OURS_RETRY_TOK or self.__dict__.get("_ours_retry_level") == level:
+            if self.__dict__.pop("_ours_retry_pending", False):
+                pass                                  # won a slot as a fresh level after waiting (wait trigger)
+            elif _OURS_RETRY_TOK <= 0 or spent < _OURS_RETRY_TOK or self.__dict__.get("_ours_retry_level") == level:
                 return out
             self._ours_retry_level = level
             acts = max(0, _priority_action_count(s) - self._actions_at_level_start)
@@ -164,6 +216,7 @@ c5 = c5.replace(anchor, anchor + (
     "# ours (yasunorim): A2 parts appended to the patched harness\n"
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
     f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
+    f"os.environ['ARC_OURS_RETRY_WAIT_MIN'] = '{opts.get('retrywait', '0')}'\n"
     f"_OURS_PATCH = {PATCH!r}\n"
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"
