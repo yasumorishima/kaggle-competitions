@@ -102,6 +102,11 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - 落ちた所：評価用の公式 wheel を入れる段。wheelhouse の adk_submission が 0.2.12 から **0.2.13** に上がっていて、版を決め打ちにしたファイル名が無かった。
   - ⇒ wheel を版ではなくパッケージ名で選ぶように直した。
   - **tpueval-4** として、v7 と v8 を shard 0/3 の先頭 6 課題・直列で対にして出した。モデルが載るか、1 課題の秒数、v8 で「パッチなしの時間切れ」が減るかを見る。
+- 10-10：**健全性の対照（`kernels/control`・CPU・GPU なし）**。公式の第 2 段階（`swegemma.harness.verification.verify_task`）を、空パッチと正解パッチで 129 課題に回す。
+  - control-1：引数を推測して全課題が即エラー。control-2：harness の source をログに出し、`Evaluator.evaluate_task` と同じ呼び方（subprocess の sandbox・snapshot の解決）に直した。
+  - **control-3（3 並列）：健全 71/129**（fastapi 29/67・rich 42/48・requests 0/13・httpx 0/1）。正解パッチで落ちる 55 課題はエラー文なし・約 7 秒、空パッチで通る 3 課題（fastapi_14851・fastapi_14077・requests_6644）。一覧は `results/control-3_health.txt`。
+  - 公開の計測は 114。差の多くは当方の環境側と見る（sandbox の venv に pip が無いという警告が全課題に出ている＝テスト依存の入れ方の差か）。**control-4** で健全でない 58 課題を直列で回し直し、正解パッチの exit code とテスト出力の末尾を出す。
+  - 当面、v7 と v8 の比較は健全 71 課題で数える（v7 22 解決・v6 14 解決の localeval-5 も、健全な母集団で数え直す）。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
