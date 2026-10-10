@@ -1,0 +1,9 @@
+request: control-3
+run: 38016312004  status: success  action: kernel  dir: gemma4-agent/kernels/control  submit: no
+kernel: yasunorim/gemma4-control  version: 3
+memo: Healthy-task control on CPU (no submit, no GPU), retry of control-1 with the call read from the harness source (control-2): build an Evaluator with the subprocess sandbox and call verify_task(sandbox, config, task, snapshot_path, base_snapshot_path, patch_path, agent_patch) the way evaluate_task does after Phase 1. Empty agent patch vs gold patch on all 129 tasks; healthy = empty fails and gold passes. Fixes the population for v7 vs v8 (plan audit 10-10 item a, due 10-11). Public measurement says 114.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-control
+
+output files:
