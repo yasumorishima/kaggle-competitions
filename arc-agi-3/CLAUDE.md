@@ -100,6 +100,7 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
   - **`kernels/a2`（作成済み・未実行）**：`build.py NAME dossier=0|1` が m2base の notebook に部品 1（締切）と 2（レベルの記録）を足す。
     記録は、パッチ適用後の `tool_agent.py` の末尾に追記し、`ToolAgent._update_summarized_knowledge_from_step_summary` を包む。クリアしたレベルの最後の試行の行動列を system prompt に足す（文脈を削っても残る）。構文は手元で確認済み。
     GPU 枠が戻ったら、手元 25 ゲームで `dossier=1` を回し、m2base-2 の 50.80 と比べる。上回れば LB に出す。
+    **10-10：GPU 枠が戻った（enveda の e2gpu-2 が 00:07 に GPU で開始）。a2d1-1（`build.py a2d1 dossier=1`・RTX Pro 6000・手元 25 ゲーム・提出なし）を push**。仮説：平均 > 50.80。
   - **GPU 週 30 時間を使い切った（10-07）**。A2 の手元比較（1 回 87 分の RTX Pro 6000）は枠が戻るまで回せない。その間に改良のコード（patch の読解・scheduler・待ち切れの扱い）を CPU で作る。
 - 10-06：**explore-5（クリック候補 64）＝LB 0.15**（4 本連続で同点＝隠しゲームでも 64 個の外に効くボタンは無い）。
   手元 25 ゲーム：256 個＝0.1536（64 と同じ）。8 連結・多色の「スプライト」を 1 個ずつ押す変種は 7 倍遅く、1 レベル落とした＝不採用（コードも外した）。
