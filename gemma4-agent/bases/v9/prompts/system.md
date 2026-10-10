@@ -37,21 +37,18 @@ Tool-call rules (most failed calls so far broke these):
 - If a call returns "Source path ... not found", your path carried extra characters: retry once with the bare path.
 - edit_file needs filepath, old_string (text that exists in the file now, copied exactly) and new_string. To
   create a new file, use write_file instead.
-- old_string can never be empty. To ADD lines (a new import, a new function, a new argument), set old_string to an
-  existing line right next to the insertion point and repeat that line inside new_string together with the new
-  lines. Example: old_string "import os", new_string "import os\nimport sys".
-- If edit_file answers "mandatory input parameters are not present: old_string", your old_string was empty or
-  missing. Do NOT send the same call again: pick an existing anchor line as above. If that fails twice, make the
-  change with run_command and a Python script instead:
+- If edit_file answers "mandatory input parameters are not present: old_string", the old_string was lost on the
+  way (this happens with some file contents and repeats every time). Do NOT call edit_file again for that change.
+  Make the same change at once with run_command and a Python script, for example:
   python3 - <<'PY'
   import pathlib
   p = pathlib.Path("rich/prompt.py"); s = p.read_text()
-  old = '''exact anchor lines'''
-  new = '''anchor lines plus the new lines'''
+  old = '''exact old lines'''
+  new = '''replacement lines'''
   assert s.count(old) == 1, s.count(old)
   p.write_text(s.replace(old, new))
   PY
-  then check the result with `git diff`.
+  then check the result with `git diff`. If the assert fails, re-read the lines and copy them exactly.
 - Never repeat a call that just failed with the same arguments; change the arguments or the approach.
 
 Do not call `search_similar_code`: it returns whole function bodies with no length limit and can overflow

@@ -127,6 +127,20 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
     - **v9（`submission/`）＝v7＋edit_file が old_string を落としたら、すぐ run_command の Python 置換に切り替える規則**（引数名も filepath に直した）。v8 は `bases/v8` に保存。
       - 隠しの約 120 課題でも 4 割前後でこの失敗が出るなら、ここが銅（+4 課題）との差の最大の部品になる。
     - **localeval-7**：影響のあった 14 課題で v7 と v9 を直列で比べる。合格：v9 が +3 課題以上、かつ old_string の欠落が 5 回以上続く課題が 0 ⇒ g4v9-1 を提出（仮説 LB ≥ 0.10）。
+    - **localeval-7 の結果（14 課題・直列）：v7 3・v9 4（+1）、非空パッチ 8 と 9、5 分切れ 5 と 2 ＝不合格（基準 +3）。**
+      - 欠落は確率的に起きていた。今回の v7 で欠落が出たのは 2 課題だけ（6c では 14 課題）。
+      - v9 も 2 課題で欠落を繰り返し、fastapi_14463 では 108 回続いた。v9 の規則（Python の置換に切り替える）は一度も使われなかった。
+      - 失敗の形：edit_file が成功した 2 秒後に次の edit_file で old_string が欠け、そこから 1.4 秒おきに同じ呼び出しを繰り返す。
+        温度 0.2 では、同じ文脈から同じ出力が出続ける。
+      - ADK（function_tool.py）は、関数の引数名に無いキーを捨ててから必須の引数を調べる。
+        原因の候補は 2 つ：(a) 行を足すつもりで old_string を空にし、空の値が経路で落ちる。(b) old_str など別の名前で送っている。
+      - 提出の Python コールバックは使えない（CallbackRegistry は運営側の登録だけ）。直せるのは prompt・sampling・skill・LoRA。
+    - **v10（`submission/`）＝v7＋挿入のやり方を明記**：
+      - old_string は空にできない。行を足すときは、隣の既存の行を old_string にして、new_string にもその行を入れる。
+      - 欠落のエラーが出たら、それは old_string を空か欠けたまま送った意味だ、と教える。2 回失敗したら Python の置換に切り替える。
+      - v9 は `bases/v9` に保存。
+    - **localeval-8**：同じ 14 課題で v7 と v10 を比べる。ログに `MISSINGARG`（欠落したときに実際に届いた引数の名前と値）を出して、(a) と (b) のどちらかを確かめる。
+      合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
   公開 walkthrough の読解（流用なし）から疑わしい点：`max_time_minutes: 4.5`（小数）、`include_thoughts: true`（採点で動いた公開版は全部 thinking 切り）、
