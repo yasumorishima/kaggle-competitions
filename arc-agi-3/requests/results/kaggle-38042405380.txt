@@ -1,0 +1,9 @@
+request: a2r1-1
+run: 38042405380  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: no
+kernel: yasunorim/arc3-a2r1  version: 1
+memo: A2 part 3 (second attempt), local, no submit. Base: dfranzen's Milestone-2 notebook; ours: deadline + level dossier v2 + serve.log summary, 10 streams (a2s13: 13 overflowed the KV cache). New: once per level, after 100k tokens on it without completing it, the turn restarts from a clean history (memory sections + dossier kept), the per-level token/action counters restart so the gate prices the game as a fresh level, and the model is told its plan failed. Evidence (a2d2 snapshots): 7 of 25 games waited 50+ min at level 0-1 because the gate's chance term decays with tokens on the level; dc22 took 3 levels in 20 min once resumed. Pass: games stuck 50+ min at level 0-1 from 7 to <= 3, and full clears >= 7; logs retries and levels completed after a retry.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2r1
+
+output files:
