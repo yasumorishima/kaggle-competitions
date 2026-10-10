@@ -106,7 +106,8 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - control-1：引数を推測して全課題が即エラー。control-2：harness の source をログに出し、`Evaluator.evaluate_task` と同じ呼び方（subprocess の sandbox・snapshot の解決）に直した。
   - **control-3（3 並列）：健全 71/129**（fastapi 29/67・rich 42/48・requests 0/13・httpx 0/1）。正解パッチで落ちる 55 課題はエラー文なし・約 7 秒、空パッチで通る 3 課題（fastapi_14851・fastapi_14077・requests_6644）。一覧は `results/control-3_health.txt`。
   - 公開の計測は 114。差の多くは当方の環境側と見る（sandbox の venv に pip が無いという警告が全課題に出ている＝テスト依存の入れ方の差か）。**control-4** で健全でない 58 課題を直列で回し直し、正解パッチの exit code とテスト出力の末尾を出す。
-  - 当面、v7 と v8 の比較は健全 71 課題で数える（v7 22 解決・v6 14 解決の localeval-5 も、健全な母集団で数え直す）。
+  - 当面、v7 と v8 の比較は健全 71 課題で数える。**localeval-5 を数え直すと v7 20/71（28%）・v6 12/71**。
+    両者が「解いた」健全でない課題は、空パッチで通る 3 課題だけ（v7：fastapi_14851・14077、v6：14851・requests_6644）。正解パッチで落ちる 55 課題を解いた版は無い＝この 55 は当方の環境では誰も解けない。
 - 10-01：着手。ルール・harness を読解。自作の v1（`submission/`）を作成し、公式パッケージで検証・コンパイル済み。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
