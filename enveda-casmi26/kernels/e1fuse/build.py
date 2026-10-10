@@ -30,9 +30,11 @@ c3val = "c3val" in sys.argv[3:] or c3full
 c3keep = "c3keep" in sys.argv[3:]   # with c3val: the truths stay in the pool (harm check on in-pool molecules)
 c3par = "c3par" in sys.argv[3:]     # with c3val: parent-retrieval study (ours_mmp.study) per molecule
 c3ord = "c3ord" in sys.argv[3:]     # with c3val: where the truth falls among the valid MMP products under each order
+c3hard = next((float(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("c3hard=")), 0.0)   # with c3val: MMP parents farther than this Tanimoto from the truth
 iceb = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("ice=")), 0)   # ICEBERG time budget (s) override
 valn = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("valn=")), 0)   # validation molecules override
 mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
+beam = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("beam=")), 0)   # FP-guided multi-step MMP walk: beam width
 mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -248,13 +250,14 @@ upd["MMP_MINC"] = mmpc
 upd["MMP_FPPAR"] = mmpfp
 upd["MMP_ORDER"] = mmpord
 upd["MMP_TWO"] = mmp2
+upd["MMP_BEAM"] = beam
 if iceb:
     upd["ICE_BUDGET"] = iceb
 if val:
     upd.update(VALIDATION=True, FP_BANK="A")
 if c3val:       # class-3 simulation: held-out truths leave the pool; only the base lists are built and scored
     upd.update(VALIDATION=True, C3VAL=True, BASE_ONLY=True, VAL_SET="fold0_np", FP_BANK="fold0", VAL_MAX_SPEC=6,
-               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord)
+               USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord, C3HARD=c3hard)
     if c3full:
         upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
 if valn:
@@ -274,7 +277,7 @@ c14 = swap(c14, "import pc_join\n", """if CFG.get('MMP_N', 0) > 0:              
                        if _Ch.MolFromSmiles(s_) is not None)
         ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=CFG.get('MMP_MINC', 2), log=log, exclude_ik14=_xik)
         ours_mmp.install(E, max_new=CFG['MMP_N'], n_fp_parent=CFG.get('MMP_FPPAR', 0), order=CFG.get('MMP_ORDER', 'count'),
-                         two_step=CFG.get('MMP_TWO', 0))
+                         two_step=CFG.get('MMP_TWO', 0), beam=CFG.get('MMP_BEAM', 0))
         log('MMP generator installed, max new per molecule', CFG['MMP_N'])
     except Exception as e:
         if not IS_RERUN:
@@ -293,6 +296,12 @@ if (CFG.get('C3PAR') or CFG.get('C3ORD')) and CFG.get('MMP_N', 0) > 0:   # ours:
     ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
     ours_mmp.DIAG_HOLD.update(k for k in (chem.score_key(s) for s in _lab3.smiles) if k)
     log('PARENT STUDY on', len(ours_mmp.DIAG), 'molecules')
+if CFG.get('C3HARD') and CFG.get('MMP_N', 0) > 0 and not IS_RERUN:   # ours: "novel truth" simulation
+    _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
+    ours_mmp.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
+    ours_mmp.STUDY = bool(CFG.get('C3PAR'))
+    ours_mmp.HARD_T = float(CFG['C3HARD'])
+    log('C3HARD: MMP parents within Tanimoto', ours_mmp.HARD_T, 'of the truth are dropped')
 import pc_join
 """)
 setsrc(i14, c14)
@@ -313,6 +322,8 @@ if CFG.get('MMP_N', 0) > 0:
         ours_mmp.study_summary(log)
     if CFG.get('C3ORD'):
         ours_mmp.order_summary(CFG['MMP_N'], log)
+    if CFG.get('C3HARD'):
+        ours_mmp.hard_summary(log)
 if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):   # ours: class-3 base-list scores
     _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
     _tk = {m: chem.score_key(s) for m, s in zip(_lab3.molecule_id, _lab3.smiles)}
@@ -447,7 +458,7 @@ meta = {"id": f"yasunorim/casmi26-{name}", "title": f"casmi26 {name}", "code_fil
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"],
         "model_sources": []}
-if c3val or "cpu" in sys.argv[3:] or tpu:   # CPU only: no GPU session / quota is used
+if (c3val or "cpu" in sys.argv[3:] or tpu) and "gpu" not in sys.argv[3:]:   # CPU only (gpu: keep the T4 for a full validation)
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 if tpu:

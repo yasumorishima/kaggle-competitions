@@ -1,0 +1,9 @@
+request: control-2
+run: 38016140417  status: success  action: kernel  dir: gemma4-agent/kernels/control  submit: no
+kernel: yasunorim/gemma4-control  version: 2
+memo: control-1 failed fast: verify_task needs a sandbox manager (docker), an EvalConfig and a snapshot_path. This run only prints the swegemma evaluate source and verify_task to the log (output downloads are blocked from the cloud container), so control-3 can call verify_task the way Evaluator does. CPU, no submit.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-control
+
+output files:

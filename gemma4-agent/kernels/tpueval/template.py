@@ -49,9 +49,10 @@ if not os.environ.get("G4_INNER"):
     sh(f"{UV} python install 3.12")
     sh(f"{UV} venv -q -p 3.12 /tmp/vt && {UV} pip install -q -p /tmp/vt/bin/python vllm-tpu")
     sh("/tmp/vt/bin/python -c 'import vllm, jax; print(\"vllm\", vllm.__version__, \"jax\", jax.__version__, jax.devices()[:1])'")
-    wheels = " ".join(f"{WH}/{w}" for w in ("adk_eval_core-0.1.0-py3-none-any.whl", "adk_submission-0.2.12-py3-none-any.whl",
-                                            "google_adk-1.36.1-py3-none-any.whl", "google_genai-2.11.0-py3-none-any.whl",
-                                            "swegemma-0.2.7-py3-none-any.whl", "anthropic-1.4.0-py3-none-any.whl"))
+    # by package name, not version: the wheelhouse is re-versioned (adk_submission 0.2.12 -> 0.2.13 on 10-09)
+    wheels = " ".join(sorted(glob.glob(f"{WH}/{p}-*.whl"))[-1] for p in (
+        "adk_eval_core", "adk_submission", "google_adk", "google_genai", "swegemma", "anthropic"))
+    log("eval wheels", wheels)
     sh(f"{UV} venv -q -p 3.12 /tmp/ev && {UV} pip install -q -p /tmp/ev/bin/python {wheels} litellm pyyaml")
     env = dict(os.environ, G4_INNER="1", G4_T0=str(T0))
     sys.exit(subprocess.run(["/tmp/ev/bin/python", os.path.abspath(__file__)], env=env).returncode)
@@ -63,10 +64,54 @@ import yaml  # noqa: E402
 from adk_submission import VllmConfig, VllmServer, discover_adapters  # noqa: E402
 from google.adk.agents.context_cache_config import ContextCacheConfig  # noqa: E402
 from google.adk.apps._configs import EventsCompactionConfig  # noqa: E402
-from swegemma.config import ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits  # noqa: E402
-from swegemma.evaluate import Evaluator  # noqa: E402
-from swegemma.models import load_tasks  # noqa: E402
-from swegemma.models.discovery import validate_single_declared_model  # noqa: E402
+def _find_attr(name, roots=("swegemma", "adk_submission", "adk_eval_core")):
+    """the wheelhouse moves helpers between modules (swegemma.models.discovery is gone after the 10-10 update)"""
+    import pkgutil
+    for root in roots:
+        try:
+            pkg = importlib.import_module(root)
+        except Exception:
+            continue
+        if hasattr(pkg, name):
+            return getattr(pkg, name)
+        for mi in pkgutil.walk_packages(pkg.__path__, root + "."):
+            try:
+                mod = importlib.import_module(mi.name)
+            except Exception:
+                continue
+            if hasattr(mod, name):
+                print("found", name, "in", mi.name, flush=True)
+                return getattr(mod, name)
+    raise ImportError(name)
+
+
+ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits = (
+    _find_attr(n) for n in ("ALLOWED_ADAPTER_EXTENSIONS", "EvalConfig", "build_submission_limits"))
+Evaluator = _find_attr("Evaluator")
+load_tasks = _find_attr("load_tasks")
+
+try:
+    validate_single_declared_model = _find_attr("validate_single_declared_model")
+except ImportError:                      # gone from the wheelhouse: read the one model the agent YAML files declare
+    def validate_single_declared_model(d):
+        found = set()
+
+        def walk(x):
+            if isinstance(x, dict):
+                for k, v in x.items():
+                    if k == "model" and isinstance(v, str):
+                        found.add(v)
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        for f in Path(d).rglob("*.yaml"):
+            try:
+                walk(yaml.safe_load(f.read_text(encoding="utf-8")))
+            except Exception:
+                pass
+        print("declared models (own reader)", found, flush=True)
+        return sorted(found)[0] if found else "gemma-4-31b-it-qat-w4a16-ct"
 
 litellm.drop_params = True
 DATA = Path(sorted(glob.glob("/kaggle/input/**/gemma-4-developer-agent/tasks.jsonl", recursive=True), key=len)[0]).parent
@@ -140,6 +185,9 @@ models = server.create_model_registry(aliases=[declared, "gemma-4-31b-it-qat-w4a
 
 tasks = load_tasks(DATA / "tasks.jsonl")
 k, m = (int(x) for x in SHARD.split("/"))
+ONLY = [x for x in "__ONLY__".split(",") if x and x != "__ONLY__"]   # e.g. the healthy tasks from kernels/control
+if ONLY:
+    tasks = [t for t in tasks if t.instance_id in set(ONLY)]
 tasks = [t for i, t in enumerate(tasks) if i % m == k][:LIMIT]
 log("tasks", len(tasks), "configs", list(dirs), "workers", WORKERS)
 limits, gen = build_submission_limits()

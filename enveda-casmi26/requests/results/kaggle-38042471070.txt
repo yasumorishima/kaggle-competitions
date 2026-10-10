@@ -1,0 +1,9 @@
+request: e2hard5-1
+run: 38042471070  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2hard5  version: 1
+memo: Validation only, CPU, no submit. e2hice-1 (hard class-3 sim, parents with Tanimoto >= 0.7 to the truth dropped, through ICE/GLACIER fusion on T4, 119 molecules): fused MRR@25 0.2005 with MMP vs 0.1034 without, yet e2gpu-2 (MMP) did not move the LB (0.413 vs 0.420). Suspicion: the hidden class 3 sits farther from any known structure. Same as e2hard-1 (fold0 NP molecules, base lists, MMP 100 / 2-step 20 / FP parents 10) with the cut at Tanimoto 0.5. Gain >= +0.05 left -> class-3 rescoring next; gain gone -> far-parent generation (multi-step, FP-guided) next.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2hard5
+
+output files:

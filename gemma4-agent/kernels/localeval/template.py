@@ -62,10 +62,70 @@ import yaml  # noqa: E402
 from adk_submission import VllmConfig, VllmServer, discover_adapters  # noqa: E402
 from google.adk.agents.context_cache_config import ContextCacheConfig  # noqa: E402
 from google.adk.apps._configs import EventsCompactionConfig  # noqa: E402
-from swegemma.config import ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits  # noqa: E402
-from swegemma.evaluate import Evaluator  # noqa: E402
-from swegemma.models import load_tasks  # noqa: E402
-from swegemma.models.discovery import validate_single_declared_model  # noqa: E402
+def _find_attr(name, roots=("swegemma", "adk_submission", "adk_eval_core")):
+    """the wheelhouse moves helpers between modules (swegemma.models.discovery is gone after the 10-10 update)"""
+    import pkgutil
+    for root in roots:
+        try:
+            pkg = importlib.import_module(root)
+        except Exception:
+            continue
+        if hasattr(pkg, name):
+            return getattr(pkg, name)
+        for mi in pkgutil.walk_packages(pkg.__path__, root + "."):
+            try:
+                mod = importlib.import_module(mi.name)
+            except Exception:
+                continue
+            if hasattr(mod, name):
+                print("found", name, "in", mi.name, flush=True)
+                return getattr(mod, name)
+    raise ImportError(name)
+
+
+ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits = (
+    _find_attr(n) for n in ("ALLOWED_ADAPTER_EXTENSIONS", "EvalConfig", "build_submission_limits"))
+Evaluator = _find_attr("Evaluator")
+
+# diagnostics (ours, no behaviour change): when ADK rejects a tool call for a missing mandatory argument, print the
+# argument names and short values that did arrive (localeval-6c: 625 of 775 edit_file calls lost old_string)
+try:
+    from google.adk.tools.function_tool import FunctionTool as _FT
+    _ft_run0 = _FT.run_async
+
+    async def _ft_run(self, *, args, tool_context):
+        out = await _ft_run0(self, args=args, tool_context=tool_context)
+        if isinstance(out, dict) and "mandatory input parameters are not present" in str(out.get("error", "")):
+            shown = {k: (repr(v)[:80] if not isinstance(v, str) else f"str[{len(v)}] {v[:60]!r}") for k, v in (args or {}).items()}
+            print("MISSINGARG", self.name, json.dumps(shown)[:600], flush=True)
+        return out
+    _FT.run_async = _ft_run
+except Exception as _e:
+    print("MISSINGARG hook failed", repr(_e))
+load_tasks = _find_attr("load_tasks")
+
+try:
+    validate_single_declared_model = _find_attr("validate_single_declared_model")
+except ImportError:                      # gone from the wheelhouse: read the one model the agent YAML files declare
+    def validate_single_declared_model(d):
+        found = set()
+
+        def walk(x):
+            if isinstance(x, dict):
+                for k, v in x.items():
+                    if k == "model" and isinstance(v, str):
+                        found.add(v)
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        for f in Path(d).rglob("*.yaml"):
+            try:
+                walk(yaml.safe_load(f.read_text(encoding="utf-8")))
+            except Exception:
+                pass
+        print("declared models (own reader)", found, flush=True)
+        return sorted(found)[0] if found else "gemma-4-31b-it-qat-w4a16-ct"
 
 litellm.drop_params = True
 DATA = Path(sorted(glob.glob("/kaggle/input/**/gemma-4-developer-agent/tasks.jsonl", recursive=True), key=len)[0]).parent
@@ -103,6 +163,9 @@ models = server.create_model_registry(aliases=[declared, "gemma-4-31b-it-qat-w4a
 
 tasks = load_tasks(DATA / "tasks.jsonl")
 k, m = (int(x) for x in SHARD.split("/"))
+ONLY = [x for x in "__ONLY__".split(",") if x and x != "__ONLY__"]   # e.g. the healthy tasks from kernels/control
+if ONLY:
+    tasks = [t for t in tasks if t.instance_id in set(ONLY)]
 tasks = [t for i, t in enumerate(tasks) if i % m == k][:LIMIT]
 log("tasks", len(tasks), "configs", list(dirs), "workers", WORKERS)
 limits, gen = build_submission_limits()

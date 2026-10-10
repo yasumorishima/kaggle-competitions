@@ -1,0 +1,9 @@
+request: tpueval-5
+run: 38038362006  status: success  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 3
+memo: TPU eval bench (no submit, no GPU quota). tpueval-4 died at import (swegemma.models.discovery moved in the wheelhouse update); the template now finds helpers by search, and takes --only like localeval. Paired serial run v7 (bases/v7) vs v8 (submission/, edit-first) on 6 of the 72 healthy tasks (healthy.txt, shard 1/2 = the half localeval-6c does not cover). Questions: does Gemma 4 31B serve on vllm-tpu with the gemma4 parsers; per-task seconds vs the GPU run; v8 vs v7 no-patch rate. If it serves, the TPU takes the other healthy half and keeps GPU hours for ARC/enveda.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-tpueval
+
+output files:

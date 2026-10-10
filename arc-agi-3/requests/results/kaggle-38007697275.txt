@@ -1,0 +1,9 @@
+request: a2d1-1
+run: 38007697275  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: no
+kernel: yasunorim/arc3-a2d1  version: 1
+memo: A2 local comparison, no submit. Base: Milestone-2 winner notebook by dfranzen (kernels/m2base, unchanged). Ours: (1) a run deadline of 540 min - elapsed - 6 min for the real rerun, (2) level dossier: the exact action sequence of the final attempt of each cleared level is appended to the system prompt, which context trimming never removes. 1 pass on the 25 demo games with the comp_score harness. Hypothesis: mean score above m2base-2's 50.80.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2d1
+
+output files:

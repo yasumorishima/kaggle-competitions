@@ -1,6 +1,6 @@
 """Build kernels/tpueval/main.py: embed agent configs for a paired local evaluation.
 
-    python gemma4-agent/kernels/tpueval/build.py NAME=DIR [NAME=@sample ...] [--limit N] [--workers W] [--shard k/M]
+    python gemma4-agent/kernels/tpueval/build.py NAME=DIR [NAME=@sample ...] [--limit N] [--workers W] [--shard k/M] [--only id,id,...|@file]
 
 DIR is a submission directory (relative to the repo root); @sample is the official sample_submission.
 """
@@ -11,7 +11,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 args = sys.argv[1:]
-opt = {"--limit": "1000", "--workers": "1", "--shard": "0/1"}
+opt = {"--limit": "1000", "--workers": "1", "--shard": "0/1", "--only": ""}
 cfgs = {}
 i = 0
 while i < len(args):
@@ -31,8 +31,11 @@ while i < len(args):
                 files[os.path.relpath(p, base)] = open(p, encoding="utf-8").read()
         cfgs[name] = files
     i += 1
+if opt["--only"].startswith("@"):   # @file: a HEALTH line from kernels/control, keep tasks marked 01
+    toks = open(os.path.join(ROOT, opt["--only"][1:])).read().split()[1:]
+    opt["--only"] = ",".join(t.split(":")[0] for t in toks if t.split(":")[1] == "01")
 src = open(os.path.join(HERE, "template.py"), encoding="utf-8").read()
 src = (src.replace("__CONFIGS__", repr(cfgs)).replace("__LIMIT__", opt["--limit"])
-       .replace("__WORKERS__", opt["--workers"]).replace("__SHARD__", opt["--shard"]))
+       .replace("__WORKERS__", opt["--workers"]).replace("__SHARD__", opt["--shard"]).replace("__ONLY__", opt["--only"]))
 open(os.path.join(HERE, "main.py"), "w", encoding="utf-8").write(src)
 print("configs", list(cfgs), opt)

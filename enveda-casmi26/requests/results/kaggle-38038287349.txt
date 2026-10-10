@@ -1,0 +1,9 @@
+request: e2hice-1
+run: 38038287349  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: no
+kernel: yasunorim/casmi26-e2hice  version: 1
+memo: Validation only, T4, no submit. Same hard class-3 simulation as e2hard-1 (MMP parents with Tanimoto >= 0.7 to the truth dropped), now through the full ICE/GLACIER fusion on GPU, 120 fold0 NP molecules, MMP 100 / 2-step 20 / FP parents 10. e2hard-1 on base lists only: MRR@25 0.172 with MMP vs 0.100 without (audit bar 0.20). Logs fused MRR with / without MMP rows and how many MMP-origin truths reach top 1 / top 25. Pass (>= 0.20 fused with MMP and > without) means the MMP component goes to an LB check; fail means the generator needs farther jumps.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2hice
+
+output files:

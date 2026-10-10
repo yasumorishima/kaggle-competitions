@@ -1,0 +1,9 @@
+request: a2s13-1
+run: 38030418670  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: no
+kernel: yasunorim/arc3-a2s13  version: 1
+memo: A2 part 5, local, no submit. Same as a2d2 (base: dfranzen's Milestone-2 notebook; ours: deadline + level dossier v2 + serve.log summary) with 13 concurrent streams instead of 10 (harness gate, SGLang max running requests, decode CUDA graphs, mamba cache 78). Evidence from a2d2-1: ~9 of 10 streams always decoding, server queue 0, KV usage 0.4-0.77, gate waits ~25 game-hours. Pass (plan audit 2, judged on logs, not on the noisy 1-pass score): gate wait total <= 10 game-hours, games stalled >= 1 h halved, generation tok/s within 10% of a2d2's 594.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2s13
+
+output files:

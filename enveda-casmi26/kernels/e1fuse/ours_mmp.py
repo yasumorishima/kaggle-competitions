@@ -213,14 +213,72 @@ def fp_parents(E, spectra, target, k, max_shift=250.0, exclude=()):
     return out
 
 
+def _beam(E, chem, P, L, parents, target, tol, seen, width, depth, k, secs):
+    """ours: FP-guided multi-step MMP walk (see install). Returns [(smiles, key, props, fp bits, parent id, fit)]
+    of target-mass products, best FP fit first, none of them in `seen`."""
+    t0 = time.time()
+    z = _pred_logits(E, CUR['spectra']).astype(np.float32)
+
+    def fit(smi):
+        fp = chem.raw_fingerprint(smi)
+        return None if fp is None else (fp[P.bits].astype(np.float32), float(fp[P.bits].astype(np.float32) @ z))
+
+    front = [(L.struct_smiles[sid], float(L.struct_mass[sid]), sid) for sid, *_ in parents]
+    visited = set(f[0] for f in front)
+    out = {}
+    for d in range(depth):
+        nxt = []
+        for smi, mass, sid in front:
+            if time.time() - t0 > secs:
+                break
+            try:                                    # close onto the target mass
+                pr = products(smi, target - mass, tol)
+            except Exception:
+                pr = {}
+            for s2 in pr:
+                std = chem.standardize_smiles(s2)
+                k2 = None if std is None else chem.score_key(std)
+                if k2 is None or k2 in seen or k2 in out:
+                    continue
+                pp = chem.mol_props(std)
+                if pp is None or abs(pp[1] - target) > tol:
+                    continue
+                f = fit(std)
+                if f is not None:
+                    out[k2] = (std, k2, pp, f[0], sid, f[1])
+            if d == depth - 1:
+                continue
+            try:                                    # any rule: candidates for the next depth
+                mids = products_any(smi, top=k)
+            except Exception:
+                mids = {}
+            for ms, (_c, dm) in mids.items():
+                if ms in visited:
+                    continue
+                visited.add(ms)
+                f = fit(ms)
+                if f is not None:
+                    nxt.append((f[1], ms, mass + dm, sid))
+        if not nxt or time.time() - t0 > secs:
+            break
+        nxt.sort(key=lambda r: -r[0])
+        front = [(ms, m, sid) for _f, ms, m, sid in nxt[:width]]
+    STATS['beam_secs'] = STATS.get('beam_secs', 0.0) + time.time() - t0
+    return sorted(out.values(), key=lambda r: -r[5])
+
+
 def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent=0, fp_parent_sim=0.3, order='count',
-            two_step=0, two_parent=3):
+            two_step=0, two_parent=3, beam=0, beam_depth=3, beam_k=30, beam_new=30, beam_secs=8.0):
     """Wrap E.generate (call BEFORE pc_join.install, which wraps E.generate again). n_fp_parent > 0 also adds that
     many FP-retrieved parents (fp_parents) behind the spectral analogs, with similarity fp_parent_sim. order picks which
     max_new of the valid products are kept: 'count' (parent similarity x log(1 + rule count)), 'fp' (log-likelihood of
     the product's bits under the molecule's predicted FP), 'mix' (sum of both ranks). two_step > 0: for the two_parent
     best spectral analogs, the two_step most frequent one-step products (any mass) are expanded once more with the rules
-    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products)."""
+    whose mass change reaches the target (two replacements; scored at half weight behind the one-step products).
+    beam > 0 (ours, far parents): from the parents, apply any rule (beam_k most frequent per member) up to beam_depth
+    times, keeping the `beam` intermediates whose bits fit the predicted FP best; at every depth the members are also
+    closed onto the target mass with the matching rules. The beam_new best closed products by FP fit are added on top
+    of the max_new ones (beam_secs per molecule)."""
     from casmi import chem, frag as fragmod
     gen0 = E.generate
     run0 = E.run
@@ -250,6 +308,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
         cfg, L, P = E.cfg, E.L, E.pool
         tol = max(cfg.gen_tol_da, target * cfg.ppm_win * 1e-6)
         parents = [a for a in analogs if a[1] >= min_sim][:n_parent]
+        hard = _hard_filter(E, chem) if HARD_T > 0 else None
         if n_fp_parent > 0 and E.bank is not None and CUR.get('spectra'):
             try:
                 fps = fp_parents(E, CUR['spectra'], target, n_fp_parent, exclude=[a[0] for a in parents])
@@ -258,6 +317,8 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             except Exception as e:
                 STATS['fp_parent_errors'] = STATS.get('fp_parent_errors', 0) + 1
                 STATS['fp_parent_error'] = repr(e)[:200]
+        if hard is not None:                           # validation: no parent (spectral or FP) within HARD_T of the truth
+            parents = [a for a in parents if hard(a[0])]
         if DIAG and STUDY and CUR.get('spectra') and E.bank is not None:
             try:
                 study(E, analogs, target, tol, _pred_logits(E, CUR['spectra']), DIAG_HOLD)
@@ -276,7 +337,7 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                     cand[s] = (sc, sid, sim)
         if two_step > 0:                               # ours: two replacements (parent -> any -> target mass)
             t2 = time.time()
-            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim][:two_parent]:
+            for sid, sim, _shift, _np in [a for a in analogs if a[1] >= min_sim and (hard is None or hard(a[0]))][:two_parent]:
                 try:
                     mids = products_any(L.struct_smiles[sid], top=two_step)
                 except Exception:
@@ -295,6 +356,18 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
                             cand[s2] = (sc, sid, sim)
                             STATS['two_step_cands'] = STATS.get('two_step_cands', 0) + 1
             STATS['two_step_secs'] = STATS.get('two_step_secs', 0.0) + time.time() - t2
+        beam_keys = []
+        if beam > 0 and E.bank is not None and CUR.get('spectra'):
+            try:
+                beam_keys = _beam(E, chem, P, L, parents, target, tol, seen, beam, beam_depth, beam_k, beam_secs)
+            except Exception as e:
+                STATS['beam_errors'] = STATS.get('beam_errors', 0) + 1
+                STATS['beam_error'] = repr(e)[:200]
+            if CUR.get('mid') in DIAG:                 # validation: does the walk reach the truth?
+                tk = chem.score_key(chem.standardize_smiles(DIAG[CUR['mid']]) or DIAG[CUR['mid']])
+                ranks = [i for i, r in enumerate(beam_keys) if r[1] == tk]
+                STATS['beam_truth'] = STATS.get('beam_truth', 0) + (1 if ranks else 0)
+                STATS['beam_truth_in_new'] = STATS.get('beam_truth_in_new', 0) + (1 if ranks and ranks[0] < beam_new else 0)
         # ours: every valid product first (best rule first, up to MAX_POOL), then keep max_new of them by `order`
         allp = []
         for s, (sc, sid, sim) in sorted(cand.items(), key=lambda kv: -kv[1][0]):
@@ -340,6 +413,13 @@ def install(E, max_new=60, n_parent=10, min_sim=0.3, keep_base=True, n_fp_parent
             inter = float((fp * pfp).sum()); tan = inter / (fp.sum() + pfp.sum() - inter + 1e-9)
             new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
                             frags=fragmod.fragments_for_smiles(std), sim=sim, steps=1, tan=tan, parent=sid))
+        for std, k, p, fp, sid, ll in beam_keys[:beam_new]:
+            if k in seen:
+                continue
+            seen.add(k)
+            new.append(dict(smiles=std, key=k, formula=p[0], mass=p[1], n_heavy=p[2], fp=fp,
+                            frags=fragmod.fragments_for_smiles(std), sim=0.3, steps=2, tan=0.0, parent=sid))
+            STATS['beam_products'] = STATS.get('beam_products', 0) + 1
         STATS['valid_products'] = STATS.get('valid_products', 0) + len(allp)
         GEN_KEYS.clear(); GEN_KEYS['last'] = set(g['key'] for g in new)
         STATS['molecules'] += 1; STATS['parents'] += len(parents); STATS['products'] += len(new)
@@ -362,6 +442,46 @@ ORDER_ROWS = []     # validation: rank of the truth among the valid products und
 MAX_POOL = 3000
 MAX_SECS = 100 * 60                                    # MMP time budget per run (the hidden rerun has 9 h)
 DIAG_HOLD = set()   # pool keys of the held-out truths (never parents)
+HARD_T = 0.0        # validation (c3hard): drop MMP parents with Tanimoto >= HARD_T to the truth = a "novel" truth
+HARD_ROWS = []      # per molecule: best parent-truth Tanimoto before the filter, parents dropped
+
+
+def _hard_filter(E, chem):
+    """For the molecule being generated (CUR['mid'] in DIAG), a predicate on train structure ids: True when the
+    structure is farther than HARD_T (Tanimoto, the engine's bits) from the truth. None when the truth is unknown."""
+    t = DIAG.get(CUR.get('mid'))
+    if t is None:
+        return None
+    if CUR.get('hard_mid') != CUR.get('mid'):
+        std = chem.standardize_smiles(t) or t
+        fp = chem.raw_fingerprint(std)
+        CUR['hard_fp'] = None if fp is None else fp[E.pool.bits].astype(np.float32)
+        CUR['hard_mid'] = CUR.get('mid'); CUR['hard_row'] = dict(best=0.0, dropped=0, seen=0)
+        HARD_ROWS.append(CUR['hard_row'])
+    tf = CUR['hard_fp']
+    if tf is None:
+        return None
+    nb = E.pool.nbits
+    row = CUR['hard_row']
+
+    def keep(sid):
+        pf = np.unpackbits(E.train_fp[sid])[:nb].astype(np.float32)
+        inter = float((pf * tf).sum()); tan = inter / (pf.sum() + tf.sum() - inter + 1e-9)
+        row['seen'] += 1; row['best'] = max(row['best'], tan)
+        if tan >= HARD_T:
+            row['dropped'] += 1
+            return False
+        return True
+    return keep
+
+
+def hard_summary(log=print):
+    if not HARD_ROWS:
+        log('HARD: no rows'); return
+    b = np.array([r['best'] for r in HARD_ROWS]); d = np.array([r['dropped'] for r in HARD_ROWS])
+    log(f'HARD T={HARD_T} molecules {len(b)} | best parent-truth Tanimoto: median {np.median(b):.3f} '
+        f'q25 {np.quantile(b, .25):.3f} q75 {np.quantile(b, .75):.3f} >=0.7 {np.mean(b >= .7):.3f} >=0.85 {np.mean(b >= .85):.3f}'
+        f' | molecules with a parent dropped {np.mean(d > 0):.3f}, parents dropped per molecule {d.mean():.2f}')
 _POOL = {}
 
 
