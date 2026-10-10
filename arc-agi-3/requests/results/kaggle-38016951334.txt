@@ -1,0 +1,9 @@
+request: m2base-3
+run: 38016951334  status: success  action: kernel  dir: arc-agi-3/kernels/m2base  submit: no
+kernel: yasunorim/arc3-m2base  version: 3
+memo: Noise measurement, no submit (plan audit 10-10: the weakest assumption is that a 1-pass difference on the 25 demo games beats run-to-run noise). Same kernel and settings as m2base-2 (Milestone-2 winner notebook by dfranzen, unchanged, RTX Pro 6000, 1 pass, comp_score harness). The m2base-2 vs m2base-3 gap is the noise width; a2d1 passes only at mean >= 50.80 + that width with >= 9 games completed.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-m2base
+
+output files:
