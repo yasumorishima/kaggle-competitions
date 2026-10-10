@@ -1,7 +1,7 @@
 """Gemma 4 agent: healthy-task control on CPU (no model, no GPU).
 
 For each of the 129 published tasks, run the official Phase 2 verification (swegemma.harness.verification)
-twice: with a no-op patch (adds one untracked text file, so the baseline code is tested) and with the task's
+twice: with an empty agent patch (the baseline code is tested) and with the task's
 gold patch. A task is healthy when the no-op fails and the gold passes; only healthy tasks count when comparing
 agent configs. One RESULT line per task, then a compact HEALTH table at the end (the log API keeps the tail).
 """
@@ -39,42 +39,47 @@ import swegemma.harness.verification as V  # noqa: E402
 DATA = Path(sorted(glob.glob("/kaggle/input/**/gemma-4-developer-agent/tasks.jsonl", recursive=True), key=len)[0]).parent
 WORK = Path("/kaggle/working")
 # print the harness source to the log (output file downloads are blocked from the cloud container)
-if os.environ.get("G4_DUMP", "1") == "1":
+if os.environ.get("G4_DUMP", "0") == "1":
     import swegemma
     log("swegemma files", sorted(str(p.relative_to(Path(swegemma.__file__).parent)) for p in Path(swegemma.__file__).parent.rglob("*.py")))
     for mod in ("swegemma.evaluate",):
         print(f"=== SOURCE {mod}\n" + inspect.getsource(importlib.import_module(mod)), flush=True)
     print("=== SOURCE verify_task\n" + inspect.getsource(V.verify_task), flush=True)
-fn = getattr(V, "verify_task")
-sig = inspect.signature(fn)
-log("verify_task", sig)
-raise SystemExit(0)
-NOOP = ("diff --git a/_control_noop.txt b/_control_noop.txt\nnew file mode 100644\nindex 0000000..e69de29\n"
-        "--- /dev/null\n+++ b/_control_noop.txt\n@@ -0,0 +1 @@\n+control\n")
+from swegemma.config import EvalConfig, build_submission_limits  # noqa: E402
+from swegemma.deduplication import resolve_task_snapshot_paths  # noqa: E402
+from swegemma.evaluate import Evaluator  # noqa: E402
+
+limits, gen = build_submission_limits()
+
+
+def make_ev(models):
+    return Evaluator(EvalConfig(
+        tasks_path=DATA / "tasks.jsonl", snapshots_dir=DATA / "snapshots", results_dir=WORK / "results",
+        submission_dir=DATA / "sample_submission", models=models, sandbox="subprocess", limits=limits,
+        generation_constraints=gen, graph_dir=str(DATA / "graphs"), embeddings_dir=str(DATA / "embeddings"),
+        wheels_dir=DATA / "wheels", verbose=False))
+
+
+EV = None
+for models in ({}, None, []):
+    try:
+        EV = make_ev(models)
+        break
+    except Exception as e:
+        log("EvalConfig models=", repr(models), "failed:", repr(e)[:300])
+if EV is None:
+    raise SystemExit("could not build an Evaluator")
+NOOP = ""          # verify_task still runs the tests on the baseline when the agent patch is empty
 
 
 def call(task, patch):
-    kw = {}
-    for n, p in sig.parameters.items():
-        ln = n.lower()
-        if ln == "task":
-            kw[n] = task
-        elif "patch" in ln or ln == "prediction":
-            kw[n] = patch
-        elif "snapshot" in ln:
-            kw[n] = DATA / "snapshots"
-        elif "wheel" in ln:
-            kw[n] = DATA / "wheels"
-        elif "sandbox" in ln:
-            kw[n] = "subprocess"
-        elif "timeout" in ln and p.default is inspect.Parameter.empty:
-            kw[n] = 900
-        elif p.default is inspect.Parameter.empty and p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
-            raise TypeError(f"no value for required parameter {n}")
-    r = fn(**kw)
-    if inspect.isawaitable(r):
-        r = asyncio.run(r)
-    return r
+    """the verify_task call Evaluator.evaluate_task makes after Phase 1, with our patch as the agent patch"""
+    task = EV._hydrate_task_from_secret(task)
+    snap, base, pp = resolve_task_snapshot_paths(EV.config.snapshots_dir, task.instance_id, task.repo)
+    if not snap.exists():
+        raise FileNotFoundError(str(snap))
+    return asyncio.run(V.verify_task(EV.docker, EV.config, task, snap, base_snapshot_path=base, patch_path=pp,
+                                     agent_patch=patch, start_time=time.perf_counter()))
 
 
 tasks = load_tasks(DATA / "tasks.jsonl")
