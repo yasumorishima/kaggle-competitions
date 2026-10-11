@@ -30,6 +30,7 @@ import sys
 import time
 
 T0 = time.time()
+os.environ.setdefault("DN_EVAL_N", "125")
 
 
 def log(*a):
