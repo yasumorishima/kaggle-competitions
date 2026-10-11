@@ -13,8 +13,10 @@ Ours (yasunorim):
      ('ours diag: turns ...'); turnlog=2 also prints one 'ours turn' line per analyzer turn.
   4. reuse=1 (P2): the code of the python call that completed a level is dry-run on the next level's first board (action()
      wired to a recorder, zero real actions) and the actions it would play are shown in that turn's opener.
+  5. autopilot=K (P1): a retained autopilot() written by the model plays the next short batch without an LLM request,
+     for at most K turns in a row after a turn of the model's that changed the board; the next opener lists its moves.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS] [retrywait=MINUTES] [reuse=0|1] [turnlog=0|1|2]
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS] [retrywait=MINUTES] [reuse=0|1] [turnlog=0|1|2] [autopilot=K]
 """
 import json
 import os
@@ -265,6 +267,259 @@ def _ours_act_key(a):
         return str(a)
 
 
+# ==== ours (yasunorim, kernels/a2): zero-token autopilot (P1, autopilot=K) =============================
+# The model may keep a retained function autopilot() that returns the next short batch while its plan holds. After a
+# turn of the model's that changed the board (no stop, no level change, no game over), the next turn runs
+#     autopilot() -> action(batch)
+# through the model's own python path (_dispatch_tool: sandbox, guards, batch no-op stop, summaries, dossier, death
+# ledger) with no LLM request, for at most K turns in a row. The first stop (None, error, refusal, no-op, game over,
+# level change, the K cap) disarms it until the model itself makes progress again; a call that executed nothing falls
+# through to the model in the same call. The next opener lists what autopilot played and why it stopped.
+_OURS_AP_K = int(_ours_os.environ.get("ARC_OURS_AUTOPILOT", "0") or 0)
+_OURS_AP_BATCH = 10            # actions per autopilot call (the rest of a longer list is dropped)
+_OURS_AP_TIMEOUT = 15          # seconds for one autopilot snippet (the model's own snippets get up to 30)
+_OURS_AP_SHOW = 60             # actions listed in the next opener
+_OURS_AP_STATS = {"turns": 0, "actions": 0, "levels": 0, "game_overs": 0, "fallbacks": 0, "armed": 0, "stops": {}}
+_OURS_AP_SNIPPET = (
+    "_ours_ap_act = action\n"
+    "action = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("
+    "'autopilot() must return its actions, not call action()'))\n"
+    "try:\n"
+    "    _ours_ap_out = autopilot()\n"
+    "finally:\n"
+    "    action = _ours_ap_act\n"
+    "if isinstance(_ours_ap_out, (str, dict)):\n"
+    "    _ours_ap_out = [_ours_ap_out]\n"
+    "_ours_ap_list = []\n"
+    "if _ours_ap_out:\n"
+    "    for _ours_ap_x in _ours_ap_out:\n"
+    "        _ours_ap_list.append(_ours_ap_x)\n"
+    f"        if len(_ours_ap_list) >= {_OURS_AP_BATCH}:\n"
+    "            break\n"
+    "if _ours_ap_list:\n"
+    "    action(_ours_ap_list)\n"
+    "else:\n"
+    "    print('OURS_AUTOPILOT_NONE')\n"
+)
+_OURS_AP_PROMPT = (
+    "\n\nAutopilot (optional): you may define a retained function `autopilot()` with no parameters that reads the "
+    "usual globals (`current_frame`, `history`, `valid_actions`, ...) and returns the next short list of actions (at "
+    f"most {_OURS_AP_BATCH}; extra ones are dropped) while your current plan is still clearly valid, or None as soon as "
+    "it is unsure. It must return the actions, never call `action()` itself, and like every retained function it "
+    "keeps no state between calls, so derive the position and the next step from the board each time. When it exists "
+    "and your last step changed the board without a stop, the harness calls autopilot() and plays its list instead of "
+    f"asking you, for up to {max(1, _OURS_AP_K)} turns in a row, stopping at the first None, error, refused or "
+    "no-change action, level change or game over. Your next message then lists what it played. This saves your "
+    "time for thinking, but every wasted action lowers the score: use it only for mechanical continuations (walk to "
+    "a computed cell, repeat a confirmed pattern), and redefine it to return None when the plan changes."
+)
+_OURS_AP_REFUSALS = ("KnownNoOp", "KnownDeath", "StaleState", "RepeatedAction", "was NOT executed", "NOT executed")
+
+
+def _ours_ap_stop(self, reason, acts=None, detail=""):
+    d = self.__dict__
+    d["_ours_ap_armed"] = False
+    d["_ours_ap_run"] = 0
+    d.setdefault("_ours_ap_log", []).append((list(acts or []), reason, detail))
+    with _ours_lock:
+        st = _OURS_AP_STATS["stops"]
+        st[reason] = st.get(reason, 0) + 1
+
+
+def _ours_ap_note(self):
+    log_ = self.__dict__.pop("_ours_ap_log", None)
+    if not log_:
+        return None
+    played = [a for acts, _, _ in log_ for a in acts]
+    turns = sum(1 for acts, _, _ in log_ if acts)
+    reason, detail = log_[-1][1], log_[-1][2]
+    why = {"none": "it returned None", "error": "it raised an error", "refused": "the harness refused its action",
+           "noop": "its last action changed nothing on the board", "no_op_action": "an action in its batch changed "
+           "nothing, so the batch stopped", "known_noop": "the no-op guard refused an action",
+           "known_death": "the death guard refused an action", "stale_state": "it repeated an action that had just "
+           "changed nothing", "repeated_action_in_state": "it returned to a board it had already acted from",
+           "level": "it completed the level", "game_over": "the game ended (game over)",
+           "cap": f"it reached the limit of {_OURS_AP_K} turns in a row", "progress": "it was still progressing",
+           }.get(reason, f"it stopped ({reason})")
+    if detail:
+        why += ": " + " ".join(str(detail).split())[-200:].rstrip(".")
+    if played:
+        shown = " ".join(str(a) for a in played[:_OURS_AP_SHOW]) + (" ..." if len(played) > _OURS_AP_SHOW else "")
+        head = (f"AUTOPILOT: since your last reply the harness called your retained autopilot() and played "
+                f"{len(played)} actions over {turns} turn(s) without asking you: {shown}. The 'previous sequence' "
+                f"below is its last batch. It stopped because {why}.")
+    else:
+        head = f"AUTOPILOT: the harness called your retained autopilot() and it played nothing, because {why}."
+    return head + " Check the board, then continue yourself; fix autopilot() or make it return None if its plan " \
+                  "no longer fits."
+
+
+def _ours_ap_progress(self, s):
+    """None when the step made clean progress, else the reason it did not."""
+    if not s or s.get("stale"):
+        return "none"
+    if s.get("level_transition"):
+        return "level"
+    if s.get("game_over") or s.get("run_complete"):
+        return "game_over"
+    sr = s.get("stop_reason")
+    if sr and sr != "level_completed":
+        return str(sr)
+    if not s.get("gameplay_changed"):
+        return "noop"
+    last = getattr(self, "_last_action_call_result", None) or {}
+    per = last.get("gameplay_changed_per_action")
+    if isinstance(per, list) and per and not per[-1]:
+        return "noop"
+    return None
+
+
+def _ours_ap_try(self, state_path, valid_actions, step_env, transcript_path, should_stop):
+    """Run one autopilot turn. Returns an AnalyzerTurnResult when actions were executed, else None (ask the model)."""
+    d = self.__dict__
+    if not d.get("_ours_ap_armed") or getattr(self, "_resume_after_yield", False):
+        return None
+    if "autopilot" not in (getattr(self, "_kept_functions", None) or {}):
+        d["_ours_ap_armed"] = False
+        return None
+    if d.get("_ours_ap_run", 0) >= _OURS_AP_K:
+        _ours_ap_stop(self, "cap")
+        return None
+    if should_stop is not None and should_stop():
+        return None
+    if step_env is None or not Path(state_path).exists():
+        return None
+    self._ensure_session(state_path)
+    before = self._last_step_summary
+    old_timeout = self._python_timeout
+    self._step_env_callback = step_env
+    solver_obj = getattr(step_env, "__self__", None)
+    if self._noop_repeat_guard is not None and solver_obj is not None:
+        solver_obj.action_guard_hook = self._action_guard_hook
+    self._current_valid_actions = _normalize_valid_actions(valid_actions)
+    try:
+        self._python_timeout = min(old_timeout, _OURS_AP_TIMEOUT)
+        disp = self._dispatch_tool(state_path, "python", {"code": _OURS_AP_SNIPPET})
+    finally:
+        self._python_timeout = old_timeout
+        if solver_obj is not None and hasattr(solver_obj, "action_guard_hook"):
+            solver_obj.action_guard_hook = None
+        self._step_env_callback = None
+        self._current_valid_actions = []
+    content = str(getattr(disp, "content", "") or "")
+    try:
+        payload = json.loads(content)
+    except Exception:
+        payload = {}
+    err = ""
+    if isinstance(payload, dict):
+        r = payload.get("result")
+        r = (r.get("last_action_call_result") or r) if isinstance(r, dict) else {}
+        err = str(payload.get("error") or (r.get("error") if isinstance(r, dict) else "") or "")
+    s = self._last_step_summary
+    executed = bool(getattr(disp, "step_executed", False)) and s is not before and isinstance(s, dict)
+    try:
+        lg = transcript_path or (Path(state_path).parent / f"{Path(state_path).stem}_analyzer.txt")
+        _append_transcript_section(lg, "AUTOPILOT (no LLM request)", content[:2000])
+    except Exception:
+        pass
+    if not executed:
+        if "OURS_AUTOPILOT_NONE" in content and not err:
+            reason = "none"
+        elif any(m in err for m in _OURS_AP_REFUSALS):
+            reason = "refused"
+        else:
+            reason = "error"
+        msg = err.strip().splitlines()[-1] if err.strip() else ""
+        _ours_ap_stop(self, reason, None, msg if reason != "none" else "")
+        if reason == "none" and not any(acts for acts, _, _ in d.get("_ours_ap_log") or []):
+            d.pop("_ours_ap_log", None)    # a plain None is the documented "ask me": no note, no context spent
+        with _ours_lock:
+            _OURS_AP_STATS["fallbacks"] += 1
+        return None
+    acts = [str(a) for a in (s.get("executed_actions") or [])]
+    why = _ours_ap_progress(self, s)
+    with _ours_lock:
+        _OURS_AP_STATS["turns"] += 1
+        _OURS_AP_STATS["actions"] += int(s.get("executed_count") or len(acts))
+        _OURS_AP_STATS["levels"] += 1 if s.get("level_transition") else 0
+        _OURS_AP_STATS["game_overs"] += 1 if (s.get("game_over") and not s.get("level_transition")) else 0
+    d["_ours_ap_flag"] = 1
+    if why is None and not err:
+        d["_ours_ap_run"] = d.get("_ours_ap_run", 0) + 1
+        d.setdefault("_ours_ap_log", []).append((acts, "progress", ""))
+    else:
+        msg = err.strip().splitlines()[-1] if err.strip() and why in (None, "error") else ""
+        _ours_ap_stop(self, why or "error", acts, msg)
+    self._resume_after_yield = False
+    self._resume_reason = ""
+    return AnalyzerTurnResult(step_executed=True, reasoning="", yielded_control=False)
+
+
+if _OURS_AP_K > 0 and _persistent_functions():
+    _ours_prev_bsp = _build_system_prompt
+
+    def _build_system_prompt(*args, **kw):   # noqa: F811  (module global: ToolAgent.__init__ looks it up by name)
+        return _ours_prev_bsp(*args, **kw) + _OURS_AP_PROMPT
+
+    _ours_prev_bup = ToolAgent._build_user_prompt
+    _ours_prev_an_ap = ToolAgent.analyze
+
+    def _ours_ap_bup(self, *args, **kw):
+        out = _ours_prev_bup(self, *args, **kw)
+        note = self.__dict__.pop("_ours_ap_note_pending", None)
+        if note and isinstance(out, str):
+            return note + "\n\n" + out
+        return out
+
+    def _ours_ap_an(self, state_path, action_num, valid_actions=None, step_env=None, transcript_path=None,
+                    analysis_step=None, transcript_updated=None, request_timeout_seconds=None, should_stop=None):
+        res = None
+        try:
+            res = _ours_ap_try(self, state_path, valid_actions, step_env, transcript_path, should_stop)
+        except Exception as e:  # never break a game over the autopilot: disarm and ask the model
+            _ours_err("autopilot", e)
+            try:
+                _ours_ap_stop(self, "error", None, repr(e)[:160])
+                self._step_env_callback = None
+            except Exception:
+                pass
+            res = None
+        if res is not None:
+            return res
+        try:
+            self.__dict__.pop("_ours_ap_note_pending", None)
+            if not getattr(self, "_resume_after_yield", False):
+                note = _ours_ap_note(self)
+                if note:
+                    self._ours_ap_note_pending = note
+        except Exception as e:
+            _ours_err("autopilot-note", e)
+        out = _ours_prev_an_ap(self, state_path, action_num, valid_actions=valid_actions, step_env=step_env,
+                               transcript_path=transcript_path, analysis_step=analysis_step,
+                               transcript_updated=transcript_updated,
+                               request_timeout_seconds=request_timeout_seconds, should_stop=should_stop)
+        try:
+            self.__dict__.pop("_ours_ap_note_pending", None)
+            d = self.__dict__
+            if out is not None and getattr(out, "step_executed", False):
+                ok = _ours_ap_progress(self, self._last_step_summary) is None
+                armed = ok and "autopilot" in (getattr(self, "_kept_functions", None) or {})
+                if armed and not d.get("_ours_ap_armed"):
+                    with _ours_lock:
+                        _OURS_AP_STATS["armed"] += 1
+                d["_ours_ap_armed"] = armed
+                d["_ours_ap_run"] = 0
+            elif out is None or not getattr(out, "yielded_control", False):
+                d["_ours_ap_armed"] = False
+        except Exception as e:
+            _ours_err("autopilot-arm", e)
+        return out
+
+    ToolAgent._build_user_prompt = _ours_ap_bup
+    ToolAgent.analyze = _ours_ap_an
+
+
 if _OURS_TURNLOG > 0 or _OURS_REUSE:
     _ours_prev_rpt = ToolAgent._run_python_tool
     _ours_prev_an = ToolAgent.analyze
@@ -311,6 +566,7 @@ if _OURS_TURNLOG > 0 or _OURS_REUSE:
             s = self._last_step_summary or {}
             level = int(s.get("level") or 1)
             self._ours_turn_level, self._ours_turn_exec, self._ours_turn_solved = level, 0, False
+            self.__dict__.pop("_ours_ap_flag", None)
             self.__dict__.pop("_ours_reuse_note", None)
         except Exception as e:
             _ours_err("an-pre", e)
@@ -339,11 +595,15 @@ if _OURS_TURNLOG > 0 or _OURS_REUSE:
                     tok = max(0, int(self._session_generated_tokens) - t0)
                     n = int(self.__dict__.get("_ours_turn_exec", 0))
                     solved = bool(self.__dict__.get("_ours_turn_solved"))
+                    ap = int(self.__dict__.pop("_ours_ap_flag", 0) or 0)
                     g = _ours_game_key(state_path)
                     with _ours_lock:
                         r = _OURS_TURNS.setdefault(g, {"turns": 0, "exec_turns": 0, "acts": 0, "tok": 0, "levels": 0,
                                                        "lv": {}})
                         r["turns"] += 1
+                        if ap:
+                            r["ap_turns"] = r.get("ap_turns", 0) + 1
+                            r["ap_acts"] = r.get("ap_acts", 0) + n
                         r["exec_turns"] += 1 if n else 0
                         r["acts"] += n
                         r["tok"] += tok
@@ -351,7 +611,8 @@ if _OURS_TURNLOG > 0 or _OURS_REUSE:
                         lv = r["lv"].setdefault(level, [0, 0, 0, 0])
                         lv[0] += 1; lv[1] += n; lv[2] += tok; lv[3] = max(lv[3], 1 if solved else 0)
                     if _OURS_TURNLOG >= 2:
-                        print(f"ours turn {g} L{level} exec={n} tok={tok} reuse={reused}", flush=True)
+                        print(f"ours turn {g} L{level} exec={n} tok={tok} reuse={reused}"
+                              + (f" ap={ap}" if _OURS_AP_K > 0 else ""), flush=True)
             except Exception as e:
                 _ours_err("an-post", e)
 
@@ -473,8 +734,9 @@ def _ours_report():
                 r = _OURS_TURNS[g]
                 per = " ".join(f"L{k}{'' if v[3] else '~'}:{v[0]}t/{v[1]}a/{v[2] / 1000:.1f}k"
                                for k, v in sorted(r["lv"].items()))
+                apx = f" ap={r['ap_turns']}t/{r['ap_acts']}a" if r.get("ap_turns") else ""
                 print(f"ours diag: turns {g} turns={r['turns']} exec={r['exec_turns']} acts={r['acts']} "
-                      f"tok={r['tok']} levels={r['levels']} | {per}", flush=True)
+                      f"tok={r['tok']} levels={r['levels']}{apx} | {per}", flush=True)
                 tot["games"] += 1
                 for k in ("turns", "acts", "tok", "levels"):
                     tot[k] += r[k]
@@ -491,8 +753,10 @@ def _ours_report():
                   f"acts/level={tot['acts'] // lv}  ('~' = level not completed)", flush=True)
         if _OURS_REUSE:
             print("ours diag: reuse", dict(_OURS_REUSE_STATS), flush=True)
+        if _OURS_AP_K > 0:
+            print("ours diag: autopilot", {**_OURS_AP_STATS, "stops": dict(_OURS_AP_STATS["stops"])}, flush=True)
         if _OURS_ERRS["n"]:
-            print("ours diag: turnlog/reuse errors", _OURS_ERRS["n"], flush=True)
+            print("ours diag: turnlog/reuse/autopilot errors", _OURS_ERRS["n"], flush=True)
     except Exception as e:
         print("ours diag: report failed", repr(e), flush=True)
 '''
@@ -509,6 +773,7 @@ c5 = c5.replace(anchor, anchor + (
     f"os.environ['ARC_OURS_RETRY_WAIT_MIN'] = '{opts.get('retrywait', '0')}'\n"
     f"os.environ['ARC_OURS_REUSE'] = '{opts.get('reuse', '0')}'\n"
     f"os.environ['ARC_OURS_TURNLOG'] = '{opts.get('turnlog', '0')}'\n"
+    f"os.environ['ARC_OURS_AUTOPILOT'] = '{int(opts.get('autopilot', '0'))}'\n"
     f"_OURS_PATCH = {PATCH!r}\n"
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"
@@ -605,4 +870,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"))
