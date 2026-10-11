@@ -1,0 +1,9 @@
+request: dn1tpu-1
+run: 38159005763  status: success  action: kernel  dir: enveda-casmi26/kernels/dn1tpu  submit: no
+kernel: yasunorim/casmi26-dn1tpu  version: 1
+memo: TPU training, no submit. dn1r-2 showed ranking is solved by fp2 (fp order put 7 of 11 generated truths at rank 1, MRR@25 0.065 vs 0.041 by count) and the loss is generation: the truth is in the de novo list for only 0.088-0.124 of held-out NP molecules. dn1tpu = our JAX port of dn1 training (data-parallel on 8 TPU cores, torch/JAX parity ~1e-6), continuing from dn1-1b's dn1.pt for 30 more epochs (1.7 h cap, checkpoint every epoch / 30 min); output dn1.pt has dn1's format. Next: decode with dn1r (kernel source swapped to casmi26-dn1tpu). Pass: truth generated >= 0.15 and valid >= 0.35 on the same molecules -> the e1fuse denovo=20 validation on GPU (10-17).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-dn1tpu
+
+output files:

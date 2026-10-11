@@ -1,0 +1,9 @@
+request: dn1-1
+run: 38052983237  status: failure  action: kernel  dir: enveda-casmi26/kernels/dn1  submit: no
+kernel: yasunorim/casmi26-dn1-denovo  version: 
+memo: Training + validation only, T4, no submit. The MMP line stopped: on the class-3 simulation with parents >= 0.5 Tanimoto removed, MMP generates the truth for 0.053 of molecules and the FP-guided multi-step walk 0.057. New component: formula-constrained de novo generation. Base (cited): the host's CASMI denovo tutorial notebook (inversion/casmi-denovo-tutorial-notebook; peak encoder + SMILES decoder, BPE, unconstrained sampling). Ours: atom-level tokens with decoding constrained by the molecular formula (no token past an element's count, EOS only when every heavy atom is placed, full formula with H must match), the formula as an encoder token, our fp2 peak transformer as the encoder, timsTOF spectra first. Novel condition: train structures with Tanimoto >= 0.5 to the 250 held-out NP structures are removed. Up to 8 epochs / 3 h, then 4 spectra x 48 samples per held-out molecule. Pass: truth generated >= 0.15 (MMP 0.057); also logs MRR@25 of the generated list alone, valid and formula-correct rates, best Tanimoto in the top 25.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel push error: Maximum batch GPU session count of 2 reached.
+
+output files:

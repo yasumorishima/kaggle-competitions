@@ -54,6 +54,15 @@ if not os.environ.get("G4_INNER"):
         "adk_eval_core", "adk_submission", "google_adk", "google_genai", "swegemma", "anthropic"))
     log("eval wheels", wheels)
     sh(f"{UV} venv -q -p 3.12 /tmp/ev && {UV} pip install -q -p /tmp/ev/bin/python {wheels} litellm pyyaml")
+    # Phase 2 runs pytest in a venv that only sees this process's site-packages (swegemma SubprocessSandbox writes
+    # sys.path into _host_env.pth; install_test_dependencies is a no-op for subprocess). The GPU image has pytest in
+    # its system python; /tmp/ev does not (tpueval-6: every gold patch failed with "No module named pytest").
+    try:
+        sh(f"{UV} pip install -q -p /tmp/ev/bin/python pytest==8.3.4 inline-snapshot dirty-equals anyio trio "
+           "sqlalchemy sqlmodel python-multipart email-validator orjson ujson pyjwt passlib flask attrs")
+    except SystemExit as e:
+        log("test deps (full) failed", e)
+        sh(f"{UV} pip install -q -p /tmp/ev/bin/python pytest==8.3.4 inline-snapshot dirty-equals")
     env = dict(os.environ, G4_INNER="1", G4_T0=str(T0))
     sys.exit(subprocess.run(["/tmp/ev/bin/python", os.path.abspath(__file__)], env=env).returncode)
 
@@ -88,6 +97,22 @@ def _find_attr(name, roots=("swegemma", "adk_submission", "adk_eval_core")):
 ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits = (
     _find_attr(n) for n in ("ALLOWED_ADAPTER_EXTENSIONS", "EvalConfig", "build_submission_limits"))
 Evaluator = _find_attr("Evaluator")
+
+# diagnostics (ours, no behaviour change): print the argument names that arrived when ADK rejects a tool call for a
+# missing mandatory argument (localeval-8: old_string is cut at its first colon by the tool-call parse)
+try:
+    from google.adk.tools.function_tool import FunctionTool as _FT
+    _ft_run0 = _FT.run_async
+
+    async def _ft_run(self, *, args, tool_context):
+        out = await _ft_run0(self, args=args, tool_context=tool_context)
+        if isinstance(out, dict) and "mandatory input parameters are not present" in str(out.get("error", "")):
+            shown = {k: (repr(v)[:80] if not isinstance(v, str) else f"str[{len(v)}] {v[:60]!r}") for k, v in (args or {}).items()}
+            print("MISSINGARG", self.name, json.dumps(shown)[:600], flush=True)
+        return out
+    _FT.run_async = _ft_run
+except Exception as _e:
+    print("MISSINGARG hook failed", repr(_e))
 load_tasks = _find_attr("load_tasks")
 
 try:
@@ -120,7 +145,9 @@ def model_dir(tag):
     return Path(c[0]).parent if c else None
 
 
-MODELS = [m for m in (model_dir("gemma-4-31b-it-qat-w4a16-ct"), model_dir("gemma-4-31b-it-qat-q4_0-unquantized")) if m]
+# bf16 only by default: the w4a16 checkpoint ran out of HBM on v5e-8 (tpueval-5: 16.30G of 15.75G, 18 min lost)
+MODELS = [m for m in ((model_dir("gemma-4-31b-it-qat-w4a16-ct"),) if os.environ.get("G4_TRY_W4") == "1" else ())
+          + (model_dir("gemma-4-31b-it-qat-q4_0-unquantized"),) if m]
 WORK = Path("/kaggle/working")
 log("data", DATA, "models", MODELS)
 
@@ -208,6 +235,39 @@ def evaluator_for(name, d):
                                                         event_retention_size=5),
         graph_dir=str(DATA / "graphs"), embeddings_dir=str(DATA / "embeddings"), wheels_dir=DATA / "wheels", verbose=False))
 
+
+# does Phase 2 work on the TPU machine? the reference patch must pass and the empty patch must fail (tpueval-5: v7 and
+# v8 both 0/6 on tasks that are healthy on the GPU/CPU machines, so the grader here is checked first)
+try:
+    import swegemma.harness.verification as V
+    resolve_task_snapshot_paths = _find_attr("resolve_task_snapshot_paths")
+    gev = evaluator_for(next(iter(dirs)), first)
+    health = []
+    n_gold = 0
+    for t in tasks:
+        row = []
+        for tag, patch in (("noop", ""), ("gold", t.patch)):
+            try:
+                tt = gev._hydrate_task_from_secret(t)
+                snap, base, pp = resolve_task_snapshot_paths(gev.config.snapshots_dir, tt.instance_id, tt.repo)
+                r = asyncio.run(V.verify_task(gev.docker, gev.config, tt, snap, base_snapshot_path=base, patch_path=pp,
+                                              agent_patch=patch, start_time=time.perf_counter()))
+                row.append(int(bool(r.resolved)))
+                if tag == "gold" and not r.resolved:
+                    log("gold fails", t.instance_id, getattr(r, "test_exit_code", None),
+                        (getattr(r, "test_output", "") or "")[-800:])
+            except Exception as e:
+                row.append(-1)
+                log("verify error", t.instance_id, tag, repr(e)[:400])
+        health.append(f"{t.instance_id}:{row[0]}{row[1]}")
+        n_gold += row[1] == 1
+    log("HEALTH", " ".join(health), "gold_ok", n_gold)
+except Exception as e:
+    log("gold check failed", repr(e)[:600])
+    n_gold = -1
+if n_gold == 0:
+    # the grader cannot resolve anything here: stop before spending hours of TPU on agent runs that cannot score
+    raise SystemExit("no gold patch resolves on this machine; agent runs skipped")
 
 summary = {}
 for name, d in dirs.items():

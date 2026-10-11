@@ -140,6 +140,38 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
       - 欠落のエラーが出たら、それは old_string を空か欠けたまま送った意味だ、と教える。2 回失敗したら Python の置換に切り替える。
       - v9 は `bases/v9` に保存。
     - **localeval-8**：同じ 14 課題で v7 と v10 を比べる。ログに `MISSINGARG`（欠落したときに実際に届いた引数の名前と値）を出して、(a) と (b) のどちらかを確かめる。
+    - **localeval-8 の結果：v7 6・v10 4＝不合格。ただし原因が確定した（MISSINGARG 220 件）。**
+      - old_string の中身にコロン `:` があると、ツール呼び出しの解析がそこで切る。コロンより前が引数名になり、後ろが値になる。
+        例：`{"@cached_property\n    def is_gen_callable(self) -> bool": "...", "filepath": ..., "new_string": ...}`。
+        old_string が丸ごと消える形（rich/style.py の `style._link_id = ""` など空の引用符を含むもの）もある。
+      - Python では def・if・dict・URL の行がコロンを含むので、編集の失敗の大半がこれ。
+      - v7 は欠落しても 1 回で立ち直った（3 課題・各 1 回）。v10 は長い規則が逆効果で、欠落を 116・65・28・8 回と繰り返した。
+    - **v11（`submission/`）＝v7＋短い規則 1 つ**：old_string にコロンと空の引用符を入れない。def の行などは 1 行下を錨にする。
+      コロンを含むところを変えるときは run_command の Python 置換を使う。v10 は `bases/v10` に保存。
+    - **localeval-9**：同じ 14 課題で v7 と v11 を比べる。合格：欠落が 5 回以上続く課題が 0、かつ v11 ≥ v7＋2 ⇒ 健全 72 課題で確認して g4v11-1。
+      - localeval-9 は GPU の 2 本の枠が埋まっていて拒否された。localeval-9b は **GPU の週枠（30 時間）切れ**で拒否された（10-10 17:00 UTC）。
+        GPU が戻るのは 10-17 0 時 UTC ごろ。それまでは TPU の tpueval（10-10 から順番待ち）で v7 と v11 を比べる道を探る。
+        v11 の提出（g4v11-1）は、手元で判定できるまで出さない。
+        - **10-11：tpueval-5 の結果（TPU v5e-8・6 課題・直列）＝v7 0/6・v8 0/6**。
+          - w4a16 のモデルは HBM 切れ（16.30G／15.75G）で載らず、起動で 18 分失った。bf16 QAT 版（文脈 32k）は載り、v7 は 1 課題平均 202 秒、v8 は 153 秒で回った。
+          - 両方 0 では版の差を判定できない。原因が TPU 機の採点側か、モデル（bf16）の違いかが分からない。この 6 課題は GPU では回していない。
+          - ⇒ **tpueval-6**：w4a16 を飛ばす。先に空パッチと正解パッチで採点を確かめる（HEALTH 行）。そのうえで、GPU で v7 が 3〜6 を解いた同じ 14 課題で v7 と v11 を比べる（MISSINGARG もログに出す）。
+            較正：TPU の v7 が 3〜6 に入れば評価台として使う。v11 の合格は localeval-9 と同じ（欠落 5 回以上の課題が 0、かつ v11 ≥ v7＋2）。
+        - **10-11：tpueval-6 の結果（約 14 時間の順番待ちの後、14:58〜17:00 UTC）＝採点が TPU 機では動かない**。
+          - 正解パッチが 14 課題すべてで落ちた（HEALTH は全部 00）。原因は "No module named pytest"。v7・v11 とも 0/14 は採点の故障で、版の比較には使えない。
+          - swegemma の SubprocessSandbox は、課題の venv に評価側プロセスの sys.path（site-packages）を `_host_env.pth` で見せるだけ。subprocess のときはテスト依存を入れない（`install_test_dependencies` が即 return）。
+            GPU の画像は system の Python に pytest がある。TPU 機の評価用 venv（/tmp/ev）には無い。
+          - **使える所見：MISSINGARG は v7 で 4 課題、v11 で 6 課題が 5 回以上続いた（計 v7 404 件・v11 457 件）**。v11 の規則（old_string にコロンを入れない）は守られず、コロンで切れる形はむしろ増えた（v7 53 → v11 198）。
+            ⇒ **v11 は不合格**（欠落 5 回以上の課題が 0 ではない）。prompt の規則では欠落を止められない。
+          - 欠落は edit_file だけで起き、run_command（引数 1 つ）では、コロン・引用符入りの複数行 heredoc でも 0 件。
+        - **v12（`submission/`）＝v7 系の prompt から edit_file を道具ごと外す**。編集は run_command の Python heredoc（`old`／`new` を r''' ''' で書き、`assert s.count(old) == 1`）だけで行う。
+          新規ファイルは write_file。locator の古い edit_file の行も消した。v11 は `bases/v11` に保存。公式パッケージの validate と compile は通った。
+          - 狙い：localeval-6c の edit_file 失敗 625/775 と、tpueval-6 の 861 件を道具の側から消す。隠しでも 4 割前後の課題に効くなら、銅との差（+4 課題）の最大の部品になる。
+        - **tpueval-7（作成済み・dn1tpu の後に投入）**：
+          - 評価用 venv に pytest 8.3.4 と、テスト依存の inline-snapshot・dirty-equals などを入れる。GPU で健全でなかった 40 課題も救えるかもしれない。
+          - 正解パッチが 1 つも通らなければ、agent の実行に入らず止める（TPU の時間を守る）。
+          - そのうえで、同じ 14 課題で v7 と v12 を比べる。合格：MISSINGARG が 0、かつ v12 ≥ v7＋2 ⇒ 健全 72 課題で確かめて g4v12-1 を出す。
+          - TPU は同時 1 本なので、enveda の dn1tpu-1 を先に入れ、その後に出す（GPU が戻る 10-17 より前に結果が出る見込み）。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。

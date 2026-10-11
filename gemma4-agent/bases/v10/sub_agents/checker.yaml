@@ -1,0 +1,8 @@
+name: checker
+model: gemma-4-31b-it-qat-w4a16-ct
+description: Read-only change checker. Call it once after editing, with a one-line note of what the change should now do; it runs a scratch check and the nearby existing tests in its own context and returns VERDICT, EVIDENCE and FIX.
+instruction: !include ../prompts/checker.md
+tools:
+  - run_command
+  - read_file
+generate_content_config: !include ../configs/sampling.yaml

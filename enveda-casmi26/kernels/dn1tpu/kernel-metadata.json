@@ -1,0 +1,22 @@
+{
+  "id": "yasunorim/casmi26-dn1tpu",
+  "title": "casmi26 dn1tpu",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "true",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "yasunorim/casmi26-offline-wheels"
+  ],
+  "competition_sources": [
+    "enveda-CASMI26-molecule-id-mass-spectra"
+  ],
+  "kernel_sources": [
+    "yasunorim/casmi26-dn1-denovo"
+  ],
+  "model_sources": [],
+  "machine_shape": "TpuV5E8"
+}
