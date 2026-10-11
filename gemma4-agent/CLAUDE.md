@@ -152,6 +152,11 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
       - localeval-9 は GPU の 2 本の枠が埋まっていて拒否された。localeval-9b は **GPU の週枠（30 時間）切れ**で拒否された（10-10 17:00 UTC）。
         GPU が戻るのは 10-17 0 時 UTC ごろ。それまでは TPU の tpueval（10-10 から順番待ち）で v7 と v11 を比べる道を探る。
         v11 の提出（g4v11-1）は、手元で判定できるまで出さない。
+        - **10-11：tpueval-5 の結果（TPU v5e-8・6 課題・直列）＝v7 0/6・v8 0/6**。
+          - w4a16 のモデルは HBM 切れ（16.30G／15.75G）で載らず、起動で 18 分失った。bf16 QAT 版（文脈 32k）は載り、v7 は 1 課題平均 202 秒、v8 は 153 秒で回った。
+          - 両方 0 では版の差を判定できない。原因が TPU 機の採点側か、モデル（bf16）の違いかが分からない。この 6 課題は GPU では回していない。
+          - ⇒ **tpueval-6**：w4a16 を飛ばす。先に空パッチと正解パッチで採点を確かめる（HEALTH 行）。そのうえで、GPU で v7 が 3〜6 を解いた同じ 14 課題で v7 と v11 を比べる（MISSINGARG もログに出す）。
+            較正：TPU の v7 が 3〜6 に入れば評価台として使う。v11 の合格は localeval-9 と同じ（欠落 5 回以上の課題が 0、かつ v11 ≥ v7＋2）。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
