@@ -1,0 +1,9 @@
+request: tpueval-6
+run: 38098789564  status: success  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 4
+memo: TPU paired eval, no submit (GPU week used up until ~10-17). tpueval-5 served the bf16 QAT checkpoint on v5e-8 (w4a16 ran out of HBM) and ran v7 vs v8 on 6 tasks: both 0/6, so the TPU bench cannot rank configs yet. This run checks the grader on this machine first (empty patch must fail, reference patch must pass, HEALTH line), then runs v7 vs v11 (v7 + no colon / no empty quotes in old_string) serially on the 14 tasks where GPU localeval-7/8 gave v7 3 and 6. MISSINGARG logged. Calibration: TPU v7 within 3-6 of the GPU result -> the TPU bench is usable. Pass for v11: no task with 5+ missing-old_string events and v11 >= v7 + 2 -> confirm on the 72 healthy tasks, then submit g4v11-1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-tpueval
+
+output files:
