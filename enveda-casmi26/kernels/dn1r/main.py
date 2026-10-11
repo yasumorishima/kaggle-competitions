@@ -31,6 +31,7 @@ import time
 
 T0 = time.time()
 os.environ.setdefault("DN_EVAL_N", "125")
+os.environ.setdefault("DN_GRAMMAR", "0")   # dn1g-1: the grammar mask lowered valid 0.241->0.204 and truth 0.124->0.076
 
 
 def log(*a):
