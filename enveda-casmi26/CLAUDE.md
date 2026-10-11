@@ -132,6 +132,12 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           | cntfp | 0.0458 | 0.024 |
           - 基準（2 倍・top1 0.08）には届かず不合格。ただし、正解が作れた分子の 64%（11 分子中 7）で、fp の並べが正解を 1 位にした。
           - ⇒ **並べは fp で決まり**。残りの損は、正解を作れる率（0.088〜0.124）に集中している。次の的は生成：長い学習（dn1tpu）とサンプル数。
+        - **提出版への組み込み（`e1fuse/ours_denovo.py`・`build.py denovo=N`・10-11・未実行）**：
+          - 流れ：エンジンの 1 回目（土台＋MMP）を回す → 上位候補の分子式（1 位、および上位 5 の別の式を最大 2）で dn1 を縛って生成する → 既存候補と重複を除き、fp2 の対数尤度で並べた上位 N を PubChem の合流の口から注入する → 2 回目で ranker・ICE/GLACIER・融合が通常どおり採点する。
+          - 安全策：時間の上限 90 分。例外が出たら 1 回目の結果をそのまま返す。
+          - T4 の見込みは 1 分子約 4 秒（400 分子で 25〜30 分）。CPU では 1 分子 90 秒かかるので、検証は GPU で回す。
+          - **漏れの注意**：fold0_np は dn1・fp2 の学習に入っている。de novo の検証は `c3np`（enveda-np-examples・FP_BANK A）と `c3hard=0.5` で行う。
+          - 10-17 の GPU で、まず `c3full c3np gpu c3hard=0.5 valn=120 denovo=20` で、MMP だけ／MMP＋de novo の融合後 MRR を測る。害の測定は `c3keep`。上積みが出たら denovo=20 で提出する（仮説：LB > 0.420）。
         - **dn1tpu（`kernels/dn1tpu`・TPU v5e-8・提出なし）**：dn1 の学習を JAX に移した版。dn1-1b の重みから続けて学習する。
           - データの準備と近い構造の除外は dn1 と同じ。8 コアでデータ並列にした。torch との出力の差は 1e-6 程度。
           - 出力の dn1.pt は dn1 と同じ形式で、dn1r がそのまま読める。dn1r で読むときは、kernel_sources を casmi26-dn1tpu に差し替える。

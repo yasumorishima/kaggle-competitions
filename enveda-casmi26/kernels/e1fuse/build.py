@@ -36,6 +36,14 @@ valn = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("valn
 mmp2 = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("mmp2=")), 0)   # two-step intermediates per parent
 beam = next((int(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith("beam=")), 0)   # FP-guided multi-step MMP walk: beam width
 mmpord = next((a.split("=", 1)[1] for a in sys.argv[3:] if a.startswith("mmpord=")), "count")   # count | fp | mix
+_arg = lambda k, d, f=float: next((f(a.split("=", 1)[1]) for a in sys.argv[3:] if a.startswith(k + "=")), d)  # noqa: E731
+denovo = _arg("denovo", 0, int)       # ours_denovo: max de novo rows per molecule (0 = off)
+dns = _arg("dns", 48, int)            # de novo samples per spectrum (4 spectra; S // 2 for the 2nd formula)
+dnmin = _arg("dnmin", 90.0)           # de novo cumulative time cap (minutes): decode + engine pass 2
+dnforms = _arg("dnforms", 2, int)     # formulas decoded per molecule (top-1 + the next distinct one within the top 5)
+dnlib = _arg("dnlib", 0.0)            # > 0: no de novo when lib_max >= dnlib
+dnsrc = _arg("dnsrc", "yasunorim/casmi26-dn1-denovo", str)   # kernel whose output holds dn1.pt
+c3np = "c3np" in sys.argv[3:]         # with c3val: the enveda-np-examples set (held out by dn1, fp2 and FPNet A)
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
@@ -57,6 +65,7 @@ exec(c2, ns)
 E = ns["EMBED"]
 E["ours_fp2.py"] = open(os.path.join(HERE, "ours_fp2.py"), encoding="utf-8").read()
 E["ours_mmp.py"] = open(os.path.join(HERE, "ours_mmp.py"), encoding="utf-8").read()
+E["ours_denovo.py"] = open(os.path.join(HERE, "ours_denovo.py"), encoding="utf-8").read()
 fc = E["fusion_core.py"]
 fc = swap(fc, "                PC_FWD_T1=None, PC_FWD_N=25)",
           "                PC_FWD_T1=None, PC_FWD_N=25,\n"
@@ -251,6 +260,7 @@ upd["MMP_FPPAR"] = mmpfp
 upd["MMP_ORDER"] = mmpord
 upd["MMP_TWO"] = mmp2
 upd["MMP_BEAM"] = beam
+upd.update(DENOVO_N=denovo, DENOVO_S=dns, DENOVO_MIN=dnmin, DENOVO_FORMS=dnforms, DENOVO_MAX_LIB=dnlib or None)
 if iceb:
     upd["ICE_BUDGET"] = iceb
 if val:
@@ -260,6 +270,8 @@ if c3val:       # class-3 simulation: held-out truths leave the pool; only the b
                USE_ENG=False, USE_PC=False, PC_JOIN_N=0, C3KEEP=c3keep, C3PAR=c3par, C3ORD=c3ord, C3HARD=c3hard)
     if c3full:
         upd.update(BASE_ONLY=False, FP2_LAMS=[0.0])
+    if c3np:    # dn1 / fp2 / FPNet A never saw these structures (fold0_np structures are in dn1's and fp2's training)
+        upd.update(VAL_SET="np_examples", FP_BANK="A")
 if valn:
     upd["VAL_N"] = valn
 setsrc(4, c4 + "\nCFG.update(" + repr(upd) + ")   # ours (kernels/e1fuse/build.py)\n")
@@ -302,6 +314,22 @@ if CFG.get('C3HARD') and CFG.get('MMP_N', 0) > 0 and not IS_RERUN:   # ours: "no
     ours_mmp.STUDY = bool(CFG.get('C3PAR'))
     ours_mmp.HARD_T = float(CFG['C3HARD'])
     log('C3HARD: MMP parents within Tanimoto', ours_mmp.HARD_T, 'of the truth are dropped')
+if CFG.get('DENOVO_N', 0) > 0:               # ours: de novo (dn1) rows, injected through pc_join in an engine pass 2
+    try:
+        import ours_denovo
+        ours_denovo.MAX_NEW = CFG['DENOVO_N']; ours_denovo.SAMPLES = CFG.get('DENOVO_S', 48)
+        ours_denovo.MAX_SECS = 60 * CFG.get('DENOVO_MIN', 90); ours_denovo.MAX_FORMS = CFG.get('DENOVO_FORMS', 2)
+        ours_denovo.MAX_LIB = CFG.get('DENOVO_MAX_LIB')
+        ours_denovo.load(fp2_only=CFG.get('FP2_ONLY'), log=log)
+        ours_denovo.install(E, V, lambda C_, X_, F_, n_: rank_score(np.concatenate([X_, F_], 1), list(FEATURES) + list(n_)), log=log)
+        if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
+            _lab3 = pd.read_csv(os.path.join(STAGE, 'val_labels.csv'))
+            ours_denovo.DIAG.update(dict(zip(_lab3.molecule_id, _lab3.smiles)))
+    except Exception as e:
+        if not IS_RERUN:
+            raise
+        CFG['DENOVO_N'] = 0
+        print('DENOVO FAILED -> off', repr(e))
 import pc_join
 """)
 setsrc(i14, c14)
@@ -314,6 +342,12 @@ for gi, (mid, sub) in enumerate(mols):
 """)
 c16 = swap(c16, "    BASE[mid] = [smis, keys, lib_max, scs, forms, pids]\n", """    BASE[mid] = [smis, keys, lib_max, scs, forms, pids]
     MMPK[mid] = list(ours_mmp.GEN_KEYS.get('last', ())) if CFG.get('MMP_N', 0) > 0 else []
+    DNK[mid] = list(ours_denovo.ADDED.get(mid, ())) if CFG.get('DENOVO_N', 0) > 0 else []
+""")
+c16 = swap(c16, "MMPK = {}\nfor gi, (mid, sub) in enumerate(mols):\n", """MMPK, DNK = {}, {}
+for gi, (mid, sub) in enumerate(mols):
+    if CFG.get('DENOVO_N', 0) > 0:
+        ours_denovo.CUR['mid'] = mid
 """)
 c16 += """
 if CFG.get('MMP_N', 0) > 0:
@@ -339,6 +373,23 @@ if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):  
         f'top1 {np.mean(np.array(_w) == 1):.3f} hit@TOPN {np.mean(_h60):.3f} | without MMP rows: MRR@25 {np.mean(_wo):.4f} '
         f'hit@25 {np.mean(np.array(_wo) > 0):.3f} hit@TOPN {np.mean(_h60o):.3f} | truth generated by MMP {np.mean(_gen):.3f}')
     json.dump(dict(MMPK=MMPK, TK=_tk), open(os.path.join(STAGE, 'c3val.json'), 'w'))
+if CFG.get('DENOVO_N', 0) > 0:
+    ours_denovo.summary(log)
+if CFG.get('C3VAL') and CFG.get('DENOVO_N', 0) > 0 and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
+    def _rrk(ks, t, n=25):
+        return next((1.0 / i for i, k in enumerate(ks[:n], 1) if k == t), 0.0)
+    for _tag, _dropk in (('MMP+denovo', lambda m: set()), ('without denovo rows (MMP only)', lambda m: set(DNK.get(m, []))),
+                         ('without MMP and denovo rows', lambda m: set(DNK.get(m, [])) | set(MMPK.get(m, [])))):
+        _v, _h = [], []
+        for _m, _t in _tk.items():
+            _dk = _dropk(_m); _ks = [k for k in BASE.get(_m, [[], []])[1] if k not in _dk]
+            _v.append(_rrk(_ks, _t)); _h.append(_t in _ks)
+        _v = np.array(_v)
+        log(f'C3VAL DENOVO {_tag}: n={len(_v)} MRR@25 {_v.mean():.4f} top1 {np.mean(_v == 1):.3f} hit@25 {np.mean(_v > 0):.3f} '
+            f'hit@TOPN {np.mean(_h):.3f}')
+    log(f'C3VAL DENOVO truth among the injected rows {np.mean([_t in set(DNK.get(_m, [])) for _m, _t in _tk.items()]):.3f} '
+        f'| truth among them in the base top 25 {np.mean([_t in set(DNK.get(_m, [])) and _t in BASE.get(_m, [[], []])[1][:25] for _m, _t in _tk.items()]):.3f}')
+    json.dump(dict(DNK=DNK, MMPK=MMPK, TK=_tk), open(os.path.join(STAGE, 'c3dn.json'), 'w'))
 """
 setsrc(i16, c16)
 
@@ -402,16 +453,21 @@ if os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
             f'hit@25 {np.mean(np.array(_rr) > 0):.3f} | fp2 stats {_st.get("fp2")}')
 if CFG.get('C3VAL') and os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
     # ours: class-3 after ICE / GLACIER / fusion, with and without the MMP rows (same scores, rows dropped)
-    def _drop_mmp(b):
+    def _drop_mmp(b, ks=None):
+        ks = ks or (lambda m: set(MMPK.get(m, [])))
         out = {}
         for _m, _v in b.items():
-            _mm = set(MMPK.get(_m, []))
+            _mm = ks(_m)
             _keep = [i for i, k in enumerate(_v[1]) if k not in _mm]
             _n = len(_v[1])
             out[_m] = [[x[i] for i in _keep] if hasattr(x, '__len__') and not isinstance(x, str) and len(x) == _n else x
                        for x in _v]
         return out
-    for _tag, _b in (('with MMP', BASE), ('without MMP rows', _drop_mmp(BASE))):
+    _c3sets = [('with MMP', BASE), ('without MMP rows', _drop_mmp(BASE))]
+    if CFG.get('DENOVO_N', 0) > 0:          # ours: MMP+denovo (= BASE) against MMP only and neither
+        _c3sets = [('MMP+denovo', BASE), ('without denovo rows (MMP only)', _drop_mmp(BASE, lambda m: set(DNK.get(m, [])))),
+                   ('without MMP and denovo rows', _drop_mmp(BASE, lambda m: set(DNK.get(m, [])) | set(MMPK.get(m, []))))]
+    for _tag, _b in _c3sets:
         _sub, _st = fusion_core.build_submission(
             _b, PC, ENG, ICE_SCORES, GL_SCORES, dict(CFG, FP2_LAM=0.0), MOL_ORDER, list(samp.molecule_id),
             ice_fuse=ice_fuse, gl_fuse=gl_fuse, score_key=chem.score_key, formula=formula_of, log=print,
@@ -456,7 +512,7 @@ meta = {"id": f"yasunorim/casmi26-{name}", "title": f"casmi26 {name}", "code_fil
                             "prvsiyan/chebi-lipidmaps-casmi26", "prvsiyan/coconut-casmi26-candidates",
                             "metric/rdkit-2026-3-3-wheel"],
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
-        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"],
+        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 else []),
         "model_sources": []}
 if (c3val or "cpu" in sys.argv[3:] or tpu) and "gpu" not in sys.argv[3:]:   # CPU only (gpu: keep the T4 for a full validation)
     meta.update(enable_gpu="false")
@@ -464,4 +520,6 @@ if (c3val or "cpu" in sys.argv[3:] or tpu) and "gpu" not in sys.argv[3:]:   # CP
 if tpu:
     meta.update(enable_tpu="true", machine_shape="TpuV5E8")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote main.ipynb", name, "FP2_LAM", lam, "val" if val else "", "only", only)
+print("wrote main.ipynb", name, "FP2_LAM", lam, "val" if val else "", "only", only, "denovo", denovo)
+if denovo > 0 and meta.get("enable_gpu") == "false":
+    print("NOTE: de novo on CPU decodes ~90 s per molecule (S 48): use 'gpu', or valn= / dns= / dnmin= to fit 9 h")
