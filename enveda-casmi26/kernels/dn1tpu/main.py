@@ -1,4 +1,4 @@
-"""CASMI26 dn1 on TPU (JAX training only; built by dn1tpu/build.py: EPOCHS=30 epochs, HOURS=1.7 h). dn1 (ours): formula-constrained de novo generation, spectrum + formula -> SMILES (GPU).
+"""CASMI26 dn1 on TPU (JAX training only; built by dn1tpu/build.py: 30 epochs, 1.7 h). dn1 (ours): formula-constrained de novo generation, spectrum + formula -> SMILES (GPU).
 
 Why: the hidden class 3 is "not in PubChem"; our class-3 simulation showed that MMP generation from train
 structures only reaches truths with a close parent (truth generated 0.286 with all parents, 0.053 when parents with
@@ -66,7 +66,7 @@ from jax.sharding import Mesh, NamedSharding, PartitionSpec  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 DEV = "cpu"   # torch only builds the initial weights, writes dn1.pt and checks parity
-EPOCHS = int(os.environ.get("DN_EPOCHS", "EPOCHS=30"))
+EPOCHS = int(os.environ.get("DN_EPOCHS", "30"))
 PER_STRUCT = 4
 N_PEAKS = 64
 FP_BITS = 2048
@@ -559,7 +559,7 @@ def main():
             tot += np.array([float(v) for v in s])
         return tot[0] / tot[2], tot[1] / tot[2]
 
-    budget = float(os.environ.get("DN_TRAIN_SECS", str(HOURS=1.7 * 3600)))
+    budget = float(os.environ.get("DN_TRAIN_SECS", str(1.7 * 3600)))
     ck_every = float(os.environ.get("DN_CKPT_SECS", "1800"))
     l0, n0 = heldout()
     log(f"held-out before training: loss {l0:.4f} nll {n0:.4f}")
