@@ -157,6 +157,21 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
           - 両方 0 では版の差を判定できない。原因が TPU 機の採点側か、モデル（bf16）の違いかが分からない。この 6 課題は GPU では回していない。
           - ⇒ **tpueval-6**：w4a16 を飛ばす。先に空パッチと正解パッチで採点を確かめる（HEALTH 行）。そのうえで、GPU で v7 が 3〜6 を解いた同じ 14 課題で v7 と v11 を比べる（MISSINGARG もログに出す）。
             較正：TPU の v7 が 3〜6 に入れば評価台として使う。v11 の合格は localeval-9 と同じ（欠落 5 回以上の課題が 0、かつ v11 ≥ v7＋2）。
+        - **10-11：tpueval-6 の結果（約 14 時間の順番待ちの後、14:58〜17:00 UTC）＝採点が TPU 機では動かない**。
+          - 正解パッチが 14 課題すべてで落ちた（HEALTH は全部 00）。原因は "No module named pytest"。v7・v11 とも 0/14 は採点の故障で、版の比較には使えない。
+          - swegemma の SubprocessSandbox は、課題の venv に評価側プロセスの sys.path（site-packages）を `_host_env.pth` で見せるだけ。subprocess のときはテスト依存を入れない（`install_test_dependencies` が即 return）。
+            GPU の画像は system の Python に pytest がある。TPU 機の評価用 venv（/tmp/ev）には無い。
+          - **使える所見：MISSINGARG は v7 で 4 課題、v11 で 6 課題が 5 回以上続いた（計 v7 404 件・v11 457 件）**。v11 の規則（old_string にコロンを入れない）は守られず、コロンで切れる形はむしろ増えた（v7 53 → v11 198）。
+            ⇒ **v11 は不合格**（欠落 5 回以上の課題が 0 ではない）。prompt の規則では欠落を止められない。
+          - 欠落は edit_file だけで起き、run_command（引数 1 つ）では、コロン・引用符入りの複数行 heredoc でも 0 件。
+        - **v12（`submission/`）＝v7 系の prompt から edit_file を道具ごと外す**。編集は run_command の Python heredoc（`old`／`new` を r''' ''' で書き、`assert s.count(old) == 1`）だけで行う。
+          新規ファイルは write_file。locator の古い edit_file の行も消した。v11 は `bases/v11` に保存。公式パッケージの validate と compile は通った。
+          - 狙い：localeval-6c の edit_file 失敗 625/775 と、tpueval-6 の 861 件を道具の側から消す。隠しでも 4 割前後の課題に効くなら、銅との差（+4 課題）の最大の部品になる。
+        - **tpueval-7（作成済み・dn1tpu の後に投入）**：
+          - 評価用 venv に pytest 8.3.4 と、テスト依存の inline-snapshot・dirty-equals などを入れる。GPU で健全でなかった 40 課題も救えるかもしれない。
+          - 正解パッチが 1 つも通らなければ、agent の実行に入らず止める（TPU の時間を守る）。
+          - そのうえで、同じ 14 課題で v7 と v12 を比べる。合格：MISSINGARG が 0、かつ v12 ≥ v7＋2 ⇒ 健全 72 課題で確かめて g4v12-1 を出す。
+          - TPU は同時 1 本なので、enveda の dn1tpu-1 を先に入れ、その後に出す（GPU が戻る 10-17 より前に結果が出る見込み）。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。

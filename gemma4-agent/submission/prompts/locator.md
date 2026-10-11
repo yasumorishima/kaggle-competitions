@@ -19,8 +19,6 @@ Tool-call rules (most failed calls so far broke these):
   with no backticks, quotes or line numbers inside it; start_line and end_line are separate numbers, with
   end_line >= start_line and at most 150 lines apart.
 - If a call returns "Source path ... not found", your path carried extra characters: retry once with the bare path.
-- edit_file needs path, old_string (text that exists in the file now, copied exactly) and new_string. To create a
-  new file, use write_file instead.
 - Never repeat a call that just failed with the same arguments; change the arguments or the approach.
 
 

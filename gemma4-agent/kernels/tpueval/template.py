@@ -54,6 +54,15 @@ if not os.environ.get("G4_INNER"):
         "adk_eval_core", "adk_submission", "google_adk", "google_genai", "swegemma", "anthropic"))
     log("eval wheels", wheels)
     sh(f"{UV} venv -q -p 3.12 /tmp/ev && {UV} pip install -q -p /tmp/ev/bin/python {wheels} litellm pyyaml")
+    # Phase 2 runs pytest in a venv that only sees this process's site-packages (swegemma SubprocessSandbox writes
+    # sys.path into _host_env.pth; install_test_dependencies is a no-op for subprocess). The GPU image has pytest in
+    # its system python; /tmp/ev does not (tpueval-6: every gold patch failed with "No module named pytest").
+    try:
+        sh(f"{UV} pip install -q -p /tmp/ev/bin/python pytest==8.3.4 inline-snapshot dirty-equals anyio trio "
+           "sqlalchemy sqlmodel python-multipart email-validator orjson ujson pyjwt passlib flask attrs")
+    except SystemExit as e:
+        log("test deps (full) failed", e)
+        sh(f"{UV} pip install -q -p /tmp/ev/bin/python pytest==8.3.4 inline-snapshot dirty-equals")
     env = dict(os.environ, G4_INNER="1", G4_T0=str(T0))
     sys.exit(subprocess.run(["/tmp/ev/bin/python", os.path.abspath(__file__)], env=env).returncode)
 
@@ -234,6 +243,7 @@ try:
     resolve_task_snapshot_paths = _find_attr("resolve_task_snapshot_paths")
     gev = evaluator_for(next(iter(dirs)), first)
     health = []
+    n_gold = 0
     for t in tasks:
         row = []
         for tag, patch in (("noop", ""), ("gold", t.patch)):
@@ -250,9 +260,14 @@ try:
                 row.append(-1)
                 log("verify error", t.instance_id, tag, repr(e)[:400])
         health.append(f"{t.instance_id}:{row[0]}{row[1]}")
-    log("HEALTH", " ".join(health))
+        n_gold += row[1] == 1
+    log("HEALTH", " ".join(health), "gold_ok", n_gold)
 except Exception as e:
     log("gold check failed", repr(e)[:600])
+    n_gold = -1
+if n_gold == 0:
+    # the grader cannot resolve anything here: stop before spending hours of TPU on agent runs that cannot score
+    raise SystemExit("no gold patch resolves on this machine; agent runs skipped")
 
 summary = {}
 for name, d in dirs.items():
