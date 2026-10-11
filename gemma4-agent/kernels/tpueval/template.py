@@ -88,6 +88,22 @@ def _find_attr(name, roots=("swegemma", "adk_submission", "adk_eval_core")):
 ALLOWED_ADAPTER_EXTENSIONS, EvalConfig, build_submission_limits = (
     _find_attr(n) for n in ("ALLOWED_ADAPTER_EXTENSIONS", "EvalConfig", "build_submission_limits"))
 Evaluator = _find_attr("Evaluator")
+
+# diagnostics (ours, no behaviour change): print the argument names that arrived when ADK rejects a tool call for a
+# missing mandatory argument (localeval-8: old_string is cut at its first colon by the tool-call parse)
+try:
+    from google.adk.tools.function_tool import FunctionTool as _FT
+    _ft_run0 = _FT.run_async
+
+    async def _ft_run(self, *, args, tool_context):
+        out = await _ft_run0(self, args=args, tool_context=tool_context)
+        if isinstance(out, dict) and "mandatory input parameters are not present" in str(out.get("error", "")):
+            shown = {k: (repr(v)[:80] if not isinstance(v, str) else f"str[{len(v)}] {v[:60]!r}") for k, v in (args or {}).items()}
+            print("MISSINGARG", self.name, json.dumps(shown)[:600], flush=True)
+        return out
+    _FT.run_async = _ft_run
+except Exception as _e:
+    print("MISSINGARG hook failed", repr(_e))
 load_tasks = _find_attr("load_tasks")
 
 try:
@@ -120,7 +136,9 @@ def model_dir(tag):
     return Path(c[0]).parent if c else None
 
 
-MODELS = [m for m in (model_dir("gemma-4-31b-it-qat-w4a16-ct"), model_dir("gemma-4-31b-it-qat-q4_0-unquantized")) if m]
+# bf16 only by default: the w4a16 checkpoint ran out of HBM on v5e-8 (tpueval-5: 16.30G of 15.75G, 18 min lost)
+MODELS = [m for m in ((model_dir("gemma-4-31b-it-qat-w4a16-ct"),) if os.environ.get("G4_TRY_W4") == "1" else ())
+          + (model_dir("gemma-4-31b-it-qat-q4_0-unquantized"),) if m]
 WORK = Path("/kaggle/working")
 log("data", DATA, "models", MODELS)
 
@@ -208,6 +226,33 @@ def evaluator_for(name, d):
                                                         event_retention_size=5),
         graph_dir=str(DATA / "graphs"), embeddings_dir=str(DATA / "embeddings"), wheels_dir=DATA / "wheels", verbose=False))
 
+
+# does Phase 2 work on the TPU machine? the reference patch must pass and the empty patch must fail (tpueval-5: v7 and
+# v8 both 0/6 on tasks that are healthy on the GPU/CPU machines, so the grader here is checked first)
+try:
+    import swegemma.harness.verification as V
+    resolve_task_snapshot_paths = _find_attr("resolve_task_snapshot_paths")
+    gev = evaluator_for(next(iter(dirs)), first)
+    health = []
+    for t in tasks:
+        row = []
+        for tag, patch in (("noop", ""), ("gold", t.patch)):
+            try:
+                tt = gev._hydrate_task_from_secret(t)
+                snap, base, pp = resolve_task_snapshot_paths(gev.config.snapshots_dir, tt.instance_id, tt.repo)
+                r = asyncio.run(V.verify_task(gev.docker, gev.config, tt, snap, base_snapshot_path=base, patch_path=pp,
+                                              agent_patch=patch, start_time=time.perf_counter()))
+                row.append(int(bool(r.resolved)))
+                if tag == "gold" and not r.resolved:
+                    log("gold fails", t.instance_id, getattr(r, "test_exit_code", None),
+                        (getattr(r, "test_output", "") or "")[-800:])
+            except Exception as e:
+                row.append(-1)
+                log("verify error", t.instance_id, tag, repr(e)[:400])
+        health.append(f"{t.instance_id}:{row[0]}{row[1]}")
+    log("HEALTH", " ".join(health))
+except Exception as e:
+    log("gold check failed", repr(e)[:600])
 
 summary = {}
 for name, d in dirs.items():
