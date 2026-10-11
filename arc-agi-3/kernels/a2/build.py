@@ -9,7 +9,12 @@ Ours (yasunorim):
      re-prefilled, 489 tok/s vs 578-640). dossier=2 puts it in the next user message (the tail) and moves it into the
      system prompt only when the trimmer drops messages, when the cached prefix is invalid anyway.
 
-    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS] [retrywait=MINUTES]
+  3. turnlog=1: per game and level, analyzer turns / executed actions / generated tokens, printed at the end of the run
+     ('ours diag: turns ...'); turnlog=2 also prints one 'ours turn' line per analyzer turn.
+  4. reuse=1 (P2): the code of the python call that completed a level is dry-run on the next level's first board (action()
+     wired to a recorder, zero real actions) and the actions it would play are shown in that turn's opener.
+
+    python arc-agi-3/kernels/a2/build.py NAME [dossier=0|1|2] [passes=N] [fast=1] [streams=N] [retry=TOKENS] [retrywait=MINUTES] [reuse=0|1] [turnlog=0|1|2]
 """
 import json
 import os
@@ -205,6 +210,291 @@ if _OURS_RETRY_TOK > 0 or _OURS_RETRY_WAIT > 0:
 
     ToolAgent._trim_messages_for_context = _ours_retry_trim
     ToolAgent._update_summarized_knowledge_from_step_summary = _ours_retry_upd
+
+# ==== ours (yasunorim, kernels/a2): turn log (turnlog) and winning-code reuse (P2, reuse) ==============
+# turnlog=1: per game and level, analyzer turns / executed actions / generated tokens, printed once at the end by the
+# diag cell (_ours_report; the Kaggle log keeps only its tail). turnlog=2 also prints one line per analyzer turn.
+# reuse=1: when a python call completes a level, its code is kept. At the first analyzer turn on the next level the code
+# is re-run in a fresh sandbox process whose action() is wired to a recorder, never to the game (zero real actions),
+# and the opener gets one line with the actions it would play there.
+_OURS_TURNLOG = int(_ours_os.environ.get("ARC_OURS_TURNLOG", "0") or 0)
+_OURS_REUSE = _ours_os.environ.get("ARC_OURS_REUSE", "0") == "1"
+_OURS_REUSE_CAP = 200          # recorded actions before the recorder refuses (stops loops on the frozen board)
+_OURS_REUSE_SHOW = 40          # actions shown in the opener
+_OURS_REUSE_TIMEOUT = 5        # seconds of wall time for the dry run
+_OURS_REUSE_STATS = {"attempts": 0, "nonempty": 0, "empty": 0, "errors": 0, "capped": 0, "literal": 0,
+                     "injected": 0, "checked": 0, "prefix_match": 0, "first_batch_solved": 0, "levels_after": 0,
+                     "dry_ms": 0}
+_OURS_TURNS = {}               # game -> {"turns", "exec_turns", "acts", "tok", "levels", "lv": {level: [turns, acts, tok, solved]}}
+_ours_lock = threading.Lock()
+_OURS_ERRS = {"n": 0}
+
+
+def _ours_err(where, e):
+    with _ours_lock:
+        _OURS_ERRS["n"] += 1
+        n = _OURS_ERRS["n"]
+    if n <= 5:
+        print("ours turnlog/reuse: skipped", where, repr(e)[:200], flush=True)
+
+
+def _ours_game_key(state_path):
+    try:
+        name = Path(state_path).name
+        m = re.match(r"(.+?)_p(\d+)_" + re.escape(RUNTIME_STATE_FILENAME) + "$", name)
+        if not m:
+            return name[:24]
+        g = m.group(1).split("-")[0]
+        return g if m.group(2) == "0" else f"{g}/p{m.group(2)}"
+    except Exception:
+        return "?"
+
+
+def _ours_act_key(a):
+    # one spelling for a requested action and an executed one: UP, MOUSE(3,5), ...
+    try:
+        if isinstance(a, dict):
+            if "row" in a or "col" in a:
+                return f"MOUSE({a.get('row')},{a.get('col')})"
+            a = a.get("action", "")
+        s = str(a).strip().upper().replace("ROW=", "").replace("COL=", "").replace(" ", "")
+        if "(" in s:
+            return s
+        return to_model_action(to_engine_action(s) or s) or s
+    except Exception:
+        return str(a)
+
+
+if _OURS_TURNLOG > 0 or _OURS_REUSE:
+    _ours_prev_rpt = ToolAgent._run_python_tool
+    _ours_prev_an = ToolAgent.analyze
+
+    def _ours_rpt(self, state_path, arguments):
+        before = self._last_step_summary
+        res = _ours_prev_rpt(self, state_path, arguments)
+        try:
+            s = self._last_step_summary or {}
+            if not getattr(res, "step_executed", False) or s is before:
+                return res
+            self._ours_turn_exec = self.__dict__.get("_ours_turn_exec", 0) + int(s.get("executed_count") or 0)
+            playing = self.__dict__.get("_ours_turn_level") or 1
+            if _OURS_REUSE:
+                check = self.__dict__.pop("_ours_reuse_check", None)
+                if check is not None:
+                    done = [_ours_act_key(x) for x in (s.get("executed_actions") or [])]
+                    m = min(len(done), len(check))
+                    with _ours_lock:
+                        _OURS_REUSE_STATS["checked"] += 1
+                        if m and done[:m] == check[:m]:
+                            _OURS_REUSE_STATS["prefix_match"] += 1
+                        if s.get("level_transition"):
+                            _OURS_REUSE_STATS["first_batch_solved"] += 1
+            if s.get("level_transition"):
+                self._ours_turn_solved = True
+                if _OURS_REUSE:
+                    if self.__dict__.get("_ours_reuse_shown_level") == playing:
+                        with _ours_lock:
+                            _OURS_REUSE_STATS["levels_after"] += 1
+                    if not (s.get("run_complete") or s.get("done")):
+                        fns = self.__dict__.get("_ours_fn_snap")
+                        if fns is None:
+                            fns = dict(getattr(self, "_kept_functions", None) or {})
+                        self._ours_reuse_pending = {"level": playing, "code": str(arguments.get("code", "")),
+                                                    "fns": dict(fns)}
+        except Exception as e:  # never break a game over the bookkeeping
+            _ours_err("rpt", e)
+        return res
+
+    def _ours_an(self, state_path, *args, **kw):
+        try:
+            t0 = int(self._session_generated_tokens)
+            s = self._last_step_summary or {}
+            level = int(s.get("level") or 1)
+            self._ours_turn_level, self._ours_turn_exec, self._ours_turn_solved = level, 0, False
+            self.__dict__.pop("_ours_reuse_note", None)
+        except Exception as e:
+            _ours_err("an-pre", e)
+            t0, level = None, 0
+        reused = 0
+        try:
+            if _OURS_REUSE and not getattr(self, "_resume_after_yield", False):
+                pend = self.__dict__.pop("_ours_reuse_pending", None)
+                if pend:
+                    va = kw.get("valid_actions", args[1] if len(args) > 1 else None)
+                    note = _ours_dry_run(self, state_path, va, pend, level)
+                    if note:
+                        self._ours_reuse_note = note
+                        self._ours_reuse_shown_level = level
+                        reused = 1
+        except Exception as e:
+            _ours_err("dry-run", e)
+            with _ours_lock:
+                _OURS_REUSE_STATS["errors"] += 1
+        try:
+            return _ours_prev_an(self, state_path, *args, **kw)
+        finally:
+            try:
+                self.__dict__.pop("_ours_reuse_note", None)   # not consumed by an opener: drop, never leak later
+                if _OURS_TURNLOG > 0 and t0 is not None:
+                    tok = max(0, int(self._session_generated_tokens) - t0)
+                    n = int(self.__dict__.get("_ours_turn_exec", 0))
+                    solved = bool(self.__dict__.get("_ours_turn_solved"))
+                    g = _ours_game_key(state_path)
+                    with _ours_lock:
+                        r = _OURS_TURNS.setdefault(g, {"turns": 0, "exec_turns": 0, "acts": 0, "tok": 0, "levels": 0,
+                                                       "lv": {}})
+                        r["turns"] += 1
+                        r["exec_turns"] += 1 if n else 0
+                        r["acts"] += n
+                        r["tok"] += tok
+                        r["levels"] += 1 if solved else 0
+                        lv = r["lv"].setdefault(level, [0, 0, 0, 0])
+                        lv[0] += 1; lv[1] += n; lv[2] += tok; lv[3] = max(lv[3], 1 if solved else 0)
+                    if _OURS_TURNLOG >= 2:
+                        print(f"ours turn {g} L{level} exec={n} tok={tok} reuse={reused}", flush=True)
+            except Exception as e:
+                _ours_err("an-post", e)
+
+    ToolAgent._run_python_tool = _ours_rpt
+    ToolAgent.analyze = _ours_an
+
+
+def _ours_dry_run(self, state_path, valid_actions, pend, level):
+    # Re-run the code that completed the previous level against the current board. action() in the sandbox reaches
+    # only _rec below: it records and answers with a synthetic result. Nothing here calls self._step_env_callback (it
+    # is None between analyzer turns anyway), the solver, or the guards; the sandbox is a fresh process, so the
+    # snippet's variables vanish with it, and the functions it would retain are discarded.
+    code = pend.get("code") or ""
+    fns = pend.get("fns") or {}
+    if not code.strip():
+        return None
+    with _ours_lock:
+        _OURS_REUSE_STATS["attempts"] += 1
+    frame, hist = load_runtime_state(Path(state_path))
+    va = list(_normalize_valid_actions(valid_actions))
+    state = {"current_frame": _ascii_frame_view_payload(frame), "history": _ascii_history_view_payload(hist),
+             "valid_actions": va, "death_ledger": None, "last_action_call_result": {}}
+    rec, capped = [], []
+
+    def _rec(actions, *, stale_after=None):
+        acts = self._normalize_python_actions(actions)      # pure: validation only
+        if len(rec) + len(acts) > _OURS_REUSE_CAP:
+            capped.append(1)
+            res = {"executed": False, "level": level, "state": "NOT_FINISHED", "valid_actions": va,
+                   "board_changed": False, "done": False, "level_completed": False, "game_over": False,
+                   "run_complete": False, "requested_count": len(acts), "executed_count": 0, "stopped_early": True,
+                   "stop_reason": "known_noop", "stop_detail": "dry run: action cap reached"}
+        else:
+            keys = [_ours_act_key(a) for a in acts]
+            rec.extend(keys)
+            res = {"executed": True, "level": level, "state": "NOT_FINISHED", "valid_actions": va,
+                   "board_changed": True, "gameplay_changed": True, "done": False, "level_completed": False,
+                   "game_over": False, "run_complete": False, "requested_count": len(acts),
+                   "executed_count": len(acts), "stopped_early": False, "executed_actions": keys,
+                   "action_display": keys[-1] if keys else ""}
+        return {"action_result": res, "state": {**state, "last_action_call_result": res}}
+
+    t = time.monotonic()
+    out = run_sandboxed_python(
+        code=code, timeout_seconds=_OURS_REUSE_TIMEOUT, initial_state=state, action_handler=_rec,
+        animation_handler=None, kept_functions=(list(fns.values()) if _persistent_functions() else None),
+        retain_imports=_get_env_bool("ARC3_PERSISTENT_FUNCTIONS_IMPORTS", False),
+        repair_hints=_get_env_bool("ARC3_PERSISTENT_FUNCTIONS_REPAIR_HINTS", False))
+    err = "" if capped else str((out or {}).get("error") or "").strip()
+    lvl_done = pend.get("level") or max(1, level - 1)
+    reads = any(w in code for w in ("current_frame", "latest_frame", "history", "transitions", "previous_frame",
+                                    "last_action_frame", "valid_actions", "frame_diff", "last_action_call_result"))
+    reads = reads or any(re.search(r"\b" + re.escape(n) + r"\s*\(", code) for n in fns)
+    with _ours_lock:
+        _OURS_REUSE_STATS["dry_ms"] += int(1000 * (time.monotonic() - t))
+        _OURS_REUSE_STATS["nonempty" if rec else "empty"] += 1
+        _OURS_REUSE_STATS["errors"] += 1 if err else 0
+        _OURS_REUSE_STATS["capped"] += 1 if capped else 0
+        _OURS_REUSE_STATS["literal"] += 0 if reads else 1
+    head = (f"Your level-{lvl_done} winning code, re-run on this new board (dry run, nothing executed; the board does "
+            "not change between its action calls)")
+    shown = " ".join(rec[:_OURS_REUSE_SHOW]) + (" ..." if len(rec) > _OURS_REUSE_SHOW else "")
+    if err:
+        msg = err.splitlines()[-1] if err.splitlines() else err
+        msg = msg[:160]
+        text = head + (f", requested {len(rec)} actions ({shown}) and then raised: {msg}" if rec
+                       else f", raised before requesting any action: {msg}")
+    elif rec:
+        text = head + f", would play: {shown} ({len(rec)} actions total"
+        text += (f", stopped at the {_OURS_REUSE_CAP}-action cap)" if capped else ")")
+    else:
+        text = head + ", ran without requesting any action."
+    if not reads:
+        text += " That code does not read the board, so this is a literal replay of its fixed moves."
+    text += " Use it only if it fits this level's layout."
+    return (text, rec if rec else None)
+
+
+if _OURS_REUSE:
+    _ours_prev_rrf = ToolAgent._record_retained_functions
+    _ours_prev_app2 = ToolAgent._append_context_message
+
+    def _ours_rrf(self, sandbox_result, payload):
+        out = _ours_prev_rrf(self, sandbox_result, payload)
+        try:   # the functions as they stood after the call (the levelup scope would clear them at the transition)
+            self._ours_fn_snap = dict(getattr(self, "_kept_functions", None) or {})
+        except Exception:
+            pass
+        return out
+
+    def _ours_app2(self, messages, message):
+        note = self.__dict__.pop("_ours_reuse_note", None)
+        try:
+            if note:
+                text, proposed = note
+                c = message.get("content") if isinstance(message, dict) else None
+                if isinstance(message, dict) and message.get("role") == "user" and isinstance(c, (str, list)):
+                    message["content"] = (text + "\n\n" + c) if isinstance(c, str) else [{"type": "text", "text": text}, *c]
+                    if proposed:
+                        self._ours_reuse_check = list(proposed)
+                    with _ours_lock:
+                        _OURS_REUSE_STATS["injected"] += 1
+                else:
+                    self._ours_reuse_note = note
+        except Exception as e:
+            _ours_err("app", e)
+        return _ours_prev_app2(self, messages, message)
+
+    ToolAgent._record_retained_functions = _ours_rrf
+    ToolAgent._append_context_message = _ours_app2
+
+
+def _ours_report():
+    try:
+        if _OURS_TURNLOG > 0:
+            tot = {"games": 0, "turns": 0, "acts": 0, "tok": 0, "levels": 0, "tok_solved": 0, "tok_solved2": 0,
+                   "levels2": 0}
+            for g in sorted(_OURS_TURNS):
+                r = _OURS_TURNS[g]
+                per = " ".join(f"L{k}{'' if v[3] else '~'}:{v[0]}t/{v[1]}a/{v[2] / 1000:.1f}k"
+                               for k, v in sorted(r["lv"].items()))
+                print(f"ours diag: turns {g} turns={r['turns']} exec={r['exec_turns']} acts={r['acts']} "
+                      f"tok={r['tok']} levels={r['levels']} | {per}", flush=True)
+                tot["games"] += 1
+                for k in ("turns", "acts", "tok", "levels"):
+                    tot[k] += r[k]
+                for k, v in r["lv"].items():
+                    if v[3]:
+                        tot["tok_solved"] += v[2]
+                        if k >= 2:
+                            tot["tok_solved2"] += v[2]
+                            tot["levels2"] += 1
+            lv = max(1, tot["levels"])
+            print(f"ours diag: turns total {tot} tok/level={tot['tok'] // lv} "
+                  f"tok/solved-level={tot['tok_solved'] // lv} "
+                  f"tok/solved-level(L>=2)={tot['tok_solved2'] // max(1, tot['levels2'])} "
+                  f"acts/level={tot['acts'] // lv}  ('~' = level not completed)", flush=True)
+        if _OURS_REUSE:
+            print("ours diag: reuse", dict(_OURS_REUSE_STATS), flush=True)
+        if _OURS_ERRS["n"]:
+            print("ours diag: turnlog/reuse errors", _OURS_ERRS["n"], flush=True)
+    except Exception as e:
+        print("ours diag: report failed", repr(e), flush=True)
 '''
 
 # ---- the patch is appended to the harness after the winner's own patch is applied (cell 5)
@@ -217,6 +507,8 @@ c5 = c5.replace(anchor, anchor + (
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
     f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
     f"os.environ['ARC_OURS_RETRY_WAIT_MIN'] = '{opts.get('retrywait', '0')}'\n"
+    f"os.environ['ARC_OURS_REUSE'] = '{opts.get('reuse', '0')}'\n"
+    f"os.environ['ARC_OURS_TURNLOG'] = '{opts.get('turnlog', '0')}'\n"
     f"_OURS_PATCH = {PATCH!r}\n"
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"
@@ -294,6 +586,7 @@ try:
     from inference.agent import tool_agent as _ta
     print('ours diag: gate', getattr(_ta, '_GATE_STATS', None))
     print('ours diag: retry', getattr(_ta, '_OURS_RETRY_STATS', None))
+    getattr(_ta, '_ours_report', lambda: None)()   # turnlog / reuse summaries (no-op when both are off)
 except Exception as _e:
     print('ours diag: gate unavailable', repr(_e))
 """
@@ -311,4 +604,5 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")))
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"))
+print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reuse", opts.get("reuse", "0"),
+      "turnlog", opts.get("turnlog", "0"))
