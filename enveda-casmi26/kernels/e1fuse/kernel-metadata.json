@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e2beam",
-  "title": "casmi26 e2beam",
+  "id": "yasunorim/casmi26-e2dncpu",
+  "title": "casmi26 e2dncpu",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -31,7 +31,8 @@
   ],
   "kernel_sources": [
     "yasunorim/casmi26-fp2-peak-transformer",
-    "yasunorim/casmi26-fp2L3"
+    "yasunorim/casmi26-fp2L3",
+    "yasunorim/casmi26-dn1-denovo"
   ],
   "model_sources": []
 }
