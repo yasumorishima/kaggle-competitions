@@ -1,0 +1,41 @@
+request: e2dn-1
+run: 38320824380  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2dncpu  version: 1
+memo: First LB test of our de novo part (risk taken on purpose: user 10-12). Same CPU build as e2b-2 (0.381: public 0.420 base + our fp2 + MMP 100 / >=1 context, GPU week used up) plus ours_denovo: dn1 (our formula-constrained atom-token SMILES generator, dn1-1b weights; base idea: the organisers' casmi-denovo-tutorial-notebook) decodes under the top formulas of pass 1, products are deduped and ordered by our fp2 log-likelihood, top 20 per molecule enter through the PubChem merge, pass 2 rescores (ranker, ICE/GLACIER, fusion). CPU: 16 samples per spectrum, 150 min cap, fall back to pass 1 on any error. Offline: truth generated 0.088-0.124 of held-out NP molecules, fp order puts 7 of 11 at rank 1. Hypothesis: LB > e2b-2 0.381 (de novo reaches hidden class-3 molecules that no list holds).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2dncpu
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-12 23:58:29.073000,"e2dn-1: e2b-2 CPU build + our dn1 de novo (top 20 by fp2, 16 samples/spectrum). Hypothesis: LB > 0.381 [run 38320824380]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-10 00:39:17.050000,"e2gpu-2: base 0.420 + MMP 100 / 2-step 20 / FP parents 10, GPU, MMP fallback + time gate [run 38007410657]",SubmissionStatus.COMPLETE,0.413,
+submission.csv,2026-10-07 13:52:31.123000,e2b-2: E2 wider on CPU: e2a-2 with every mined rule (>=1 context) and up to 100 products/molecule (offline truth generation 66% -> 80%). Hypothesis: LB > e2a [run 37626886625],SubmissionStatus.COMPLETE,0.381,
+
+output files:
+total 168
+drwxr-xr-x  9 runner runner  4096 Oct 12 23:58 .
+drwxrwxrwt 14 root   root    4096 Oct 12 23:57 ..
+-rw-r--r--  1 runner runner 20076 Oct 12 23:58 casmi26-e2dncpu.log
+-rw-r--r--  1 runner runner  1838 Oct 12 23:57 cfg.json
+-rw-r--r--  1 runner runner 29204 Oct 12 23:57 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct 12 23:57 gl_work
+drwxr-xr-x  2 runner runner  4096 Oct 12 23:57 ice_work
+drwxr-xr-x  6 runner runner  4096 Oct 12 23:57 numba_cache
+drwxr-xr-x  5 runner runner  4096 Oct 12 23:57 ours
+-rw-r--r--  1 runner runner 51709 Oct 12 23:57 pc_lists.json
+-rw-r--r--  1 runner runner  2474 Oct 12 23:57 run_manifest.json
+drwxr-xr-x  2 runner runner  4096 Oct 12 23:57 smoke_comp
+drwxr-xr-x  2 runner runner  4096 Oct 12 23:57 stage_cache
+-rw-r--r--  1 runner runner 17256 Oct 12 23:57 submission.csv
+drwxr-xr-x  2 runner runner  4096 Oct 12 23:58 work
+[{"stream_name":"stderr","time":7.188721667,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":7.188775047,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":8.184705642,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.18474118,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.184763753,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.184769265,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.942242073,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.942277943,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.942284608,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.942294595,"data":"0.00s - Note: Debugging will procee
