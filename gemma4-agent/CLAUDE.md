@@ -172,6 +172,9 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
           - 正解パッチが 1 つも通らなければ、agent の実行に入らず止める（TPU の時間を守る）。
           - そのうえで、同じ 14 課題で v7 と v12 を比べる。合格：MISSINGARG が 0、かつ v12 ≥ v7＋2 ⇒ 健全 72 課題で確かめて g4v12-1 を出す。
           - TPU は同時 1 本なので、enveda の dn1tpu-1 を先に入れ、その後に出す（GPU が戻る 10-17 より前に結果が出る見込み）。
+        - **10-12 23:08 UTC：g4v12-1 を提出**（tpueval-7 を待たずに LB で確かめる。user 指示「リスクはとっていい」）。
+          10-08 の g4v7-2 から 4 日間、提出枠を使っていなかった（GPU 切れで手元評価を待っていた）。採点は主催側の機械なので、こちらの GPU 枠は要らない。**今後は毎日 1 本、新しい部品を LB に出す。**
+          仮説：壊れた編集が一番の損 ⇒ LB が v7 の 0.08 を上回る。tpueval-7 は v12 の効き方の内訳（欠落 0 か・どの課題で勝つか）を見るために続ける。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
