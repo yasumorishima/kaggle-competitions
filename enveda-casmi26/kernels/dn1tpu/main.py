@@ -1,4 +1,4 @@
-"""CASMI26 dn1 on TPU (JAX training only; built by dn1tpu/build.py: 30 epochs, 1.7 h). dn1 (ours): formula-constrained de novo generation, spectrum + formula -> SMILES (GPU).
+"""CASMI26 dn1 on TPU (JAX training only; built by dn1tpu/build.py: 30 epochs, 8 h). dn1 (ours): formula-constrained de novo generation, spectrum + formula -> SMILES (GPU).
 
 Why: the hidden class 3 is "not in PubChem"; our class-3 simulation showed that MMP generation from train
 structures only reaches truths with a close parent (truth generated 0.286 with all parents, 0.053 when parents with
@@ -473,12 +473,12 @@ def main():
     train_p = jax.device_put({k_: v for k_, v in sd.items() if k_ not in buffers}, rep)
     fixed = jax.device_put({k_: v for k_, v in sd.items() if k_ in buffers}, rep)
 
-    def save_ckpt(tag):
+    def save_ckpt(tag, path="dn1.pt"):
         state = {**jax.device_get(train_p), **jax.device_get(fixed)}
         model.load_state_dict({k_: torch.from_numpy(np.array(v)) for k_, v in state.items()})
-        torch.save({"state": model.state_dict(), "vocab": vocab, "D": D}, "dn1.pt.tmp")
-        os.replace("dn1.pt.tmp", "dn1.pt")
-        log("saved dn1.pt", tag)
+        torch.save({"state": model.state_dict(), "vocab": vocab, "D": D}, path + ".tmp")
+        os.replace(path + ".tmp", path)
+        log("saved", path, tag)
         return state
 
     bs = int(os.environ.get("DN_BS", "256"))
@@ -518,6 +518,33 @@ def main():
         Y[r, :len(j)] = j
         YL[r] = len(j)
     BUCKETS = [b_ for b_ in (40, 56, 72, 88) if b_ < LMAX] + [LMAX]
+
+    # dn1tpu-2 (ours): randomized-SMILES augmentation (idea: Arus-Pous et al. 2019, J Cheminform 11:71).
+    # dn1tpu-1 overfit the canonical strings (held-out loss best at epoch 7, then up every epoch to above the
+    # start). Each structure gets AUG_K strings: [0] = its normalized SMILES, [1..] = RDKit random atom orders
+    # (same molecule, isomeric). Each epoch every row uses a random one with probability AUG_P, else [0].
+    # dn1r samples and dedups by InChIKey, so any spelling of the truth counts.
+    AUG_K = int(os.environ.get("DN_AUG_K", "8"))
+    AUG_P = float(os.environ.get("DN_AUG_P", "0.5"))
+    uik, sidx = np.unique(tr.inchikey14.values, return_inverse=True)
+    smi = dict(zip(S.inchikey14, S.normalized_smiles))
+    VAR = np.zeros((len(uik), AUG_K, LMAX), np.uint8)
+    VL = np.zeros((len(uik), AUG_K), np.int32)
+    n_aug = 0
+    for u, ik in enumerate(uik):
+        j0 = ids[ik]
+        m = Chem.MolFromSmiles(smi[ik]) if AUG_K > 1 else None
+        for v in range(AUG_K):
+            j = j0
+            if v and m is not None:
+                t = tokenize(Chem.MolToSmiles(m, canonical=False, doRandom=True))
+                if t is not None and len(t) <= MAX_TOK and all(x in vid for x in t):
+                    j = np.array([BOS] + [vid[x] for x in t] + [EOS], np.int64)
+                    n_aug += 1
+            VAR[u, v, :len(j)] = j
+            VL[u, v] = len(j)
+    log("augmentation", AUG_K, "strings per structure, p", AUG_P, "| random strings kept", n_aug,
+        "of", len(uik) * (AUG_K - 1))
 
     def bucket(n):
         return next(b_ for b_ in BUCKETS if b_ >= n)
@@ -559,13 +586,14 @@ def main():
             tot += np.array([float(v) for v in s])
         return tot[0] / tot[2], tot[1] / tot[2]
 
-    budget = float(os.environ.get("DN_TRAIN_SECS", str(1.7 * 3600)))
+    budget = float(os.environ.get("DN_TRAIN_SECS", str(8 * 3600)))
     ck_every = float(os.environ.get("DN_CKPT_SECS", "1800"))
     l0, n0 = heldout()
     log(f"held-out before training: loss {l0:.4f} nll {n0:.4f}")
     log("train spectra", len(tr), "batch", bs, "steps", steps, "buckets", BUCKETS)
     base = jax.random.PRNGKey(SEED + (1000 if CK is not None else 0))
     k = 0
+    best = (float("inf"), -1)
     t_ck = time.time()
     stop = False
     for ep in range(EPOCHS):
@@ -574,7 +602,8 @@ def main():
         losses = []
         for i in range(0, len(perm) - bs + 1, bs):
             b = perm[i:i + bs]
-            y = Y[b, :bucket(int(YL[b].max()))]
+            var = np.where(rng.random(len(b)) < AUG_P, rng.integers(1, max(AUG_K, 2), len(b)), 0) if AUG_K > 1                 else np.zeros(len(b), np.int64)
+            y = VAR[sidx[b], var, :bucket(int(VL[sidx[b], var].max()))].astype(np.int32)
             train_p, opt_state, loss = step(train_p, opt_state, put(MZ[b]), put(IT[b]), put(PR[b]), put(AD[b]),
                                             put(FC[b]), put(y), jax.random.fold_in(base, k))
             losses.append(loss)
@@ -586,21 +615,27 @@ def main():
                 stop = True
                 break
             if time.time() - t_ck > ck_every:
-                save_ckpt(f"ep {ep} step {k}")
+                save_ckpt(f"ep {ep} step {k}", "dn1_last.pt")   # dn1.pt holds only the best epoch
                 t_ck = time.time()
         tl = float(jnp.stack(losses).mean()) if losses else float("nan")
         hl, hn = heldout()
         log(f"epoch {ep} done, loss {tl:.4f} | held-out loss {hl:.4f} nll {hn:.4f} | "
             f"{time.time() - t_ep:.0f} s, {len(losses)} steps")
-        state = save_ckpt(f"epoch {ep}")
+        if hl < best[0]:                                  # dn1tpu-2: keep the best held-out epoch as dn1.pt
+            best = (hl, ep)
+            state = save_ckpt(f"epoch {ep} (best held-out {hl:.4f})")
+        else:
+            log(f"kept dn1.pt = epoch {best[1]} (held-out {best[0]:.4f})")
         t_ck = time.time()
         if stop:
             log("training time budget reached")
             break
     if k == 0:
         state = save_ckpt("no steps")
+    log(f"final: dn1.pt = epoch {best[1]}, held-out loss {best[0]:.4f} (before training {l0:.4f})")
 
     # parity: the saved torch weights vs the JAX forward, on a few train rows (dropout off)
+    model.load_state_dict({k_: torch.from_numpy(np.array(v)) for k_, v in state.items()})   # the best epoch
     model.eval()
     n = min(16, len(tr))
     y = Y[:n, :int(YL[:n].max()) - 1]
