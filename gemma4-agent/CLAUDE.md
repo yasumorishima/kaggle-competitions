@@ -167,7 +167,7 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
         - **v12（`submission/`）＝v7 系の prompt から edit_file を道具ごと外す**。編集は run_command の Python heredoc（`old`／`new` を r''' ''' で書き、`assert s.count(old) == 1`）だけで行う。
           新規ファイルは write_file。locator の古い edit_file の行も消した。v11 は `bases/v11` に保存。公式パッケージの validate と compile は通った。
           - 狙い：localeval-6c の edit_file 失敗 625/775 と、tpueval-6 の 861 件を道具の側から消す。隠しでも 4 割前後の課題に効くなら、銅との差（+4 課題）の最大の部品になる。
-        - **tpueval-7（作成済み・dn1tpu の後に投入）**：
+        - **tpueval-7（10-12 21:25 UTC 投入・dn1tpu-1 の終了後）**：
           - 評価用 venv に pytest 8.3.4 と、テスト依存の inline-snapshot・dirty-equals などを入れる。GPU で健全でなかった 40 課題も救えるかもしれない。
           - 正解パッチが 1 つも通らなければ、agent の実行に入らず止める（TPU の時間を守る）。
           - そのうえで、同じ 14 課題で v7 と v12 を比べる。合格：MISSINGARG が 0、かつ v12 ≥ v7＋2 ⇒ 健全 72 課題で確かめて g4v12-1 を出す。
