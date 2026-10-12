@@ -138,7 +138,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           - T4 の見込みは 1 分子約 4 秒（400 分子で 25〜30 分）。CPU では 1 分子 90 秒かかるので、検証は GPU で回す。
           - **漏れの注意**：fold0_np は dn1・fp2 の学習に入っている。de novo の検証は `c3np`（enveda-np-examples・FP_BANK A）と `c3hard=0.5` で行う。
           - 10-17 の GPU で、まず `c3full c3np gpu c3hard=0.5 valn=120 denovo=20` で、MMP だけ／MMP＋de novo の融合後 MRR を測る。害の測定は `c3keep`。上積みが出たら denovo=20 で提出する（仮説：LB > 0.420）。
-        - **e2dn-1（10-12 23:2x UTC 投入・CPU・提出あり）**：de novo を初めて LB で確かめる（user 10-12「リスクはとっていい」）。
+        - **e2dn-1（10-12 23:11 UTC 投入・CPU・提出あり）**：de novo を初めて LB で確かめる（user 10-12「リスクはとっていい」）。
           e2b-2（CPU・0.381）と同じ構成に `denovo=20 dns=16 dnmin=150` を足した版。重みは dn1-1b。
           `python build.py e2dncpu 0 mmp=100 mmpc=1 cpu denovo=20 dns=16 dnmin=150`。仮説：LB > 0.381（隠しの class 3 に de novo が届く）。
         - **dn1tpu（`kernels/dn1tpu`・TPU v5e-8・提出なし）**：dn1 の学習を JAX に移した版。dn1-1b の重みから続けて学習する。
