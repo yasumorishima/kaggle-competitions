@@ -48,6 +48,7 @@ STATS = dict(molecules=0, skipped_lib=0, no_formula=0, no_new=0, samples=0, vali
              added=0, time_skipped=0, errors=0, secs=0.0, decode_secs=0.0, rerun_secs=0.0,
              diag_molecules=0, truth_formula_chosen=0, truth_generated=0, truth_in_added=0, truth_rank1=0)
 ADDED = {}            # molecule id -> metric keys of the injected de novo rows
+ADDED_SMI = {}        # molecule id -> (lib_max, SMILES of the injected rows in fp2 order) for the slot merge
 DIAG = {}             # validation: molecule id -> truth SMILES
 CUR = {}              # mid (set by the notebook), pass, generator cache
 _M = {}
@@ -395,6 +396,7 @@ def install(E, V, score_fn, log=print):
         out2 = run0(spectra, target, *a, **kw)
         STATS["rerun_secs"] += time.time() - t2
         ADDED[mid] = [r["key"] for r in recs]
+        ADDED_SMI[mid] = (lib_max, [r["smiles"] for r in recs])
         STATS["added"] += len(recs)
         return out2
 
