@@ -178,6 +178,7 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
         - **10-13 00:32 UTC：g4v13-1 を提出**。v13（`submission/`、出典は `bases/v13_SOURCE.txt`）は、公開の LB 0.13 の構成（`bases/pub013`：explore→coder・5 分・60 回）を土台にし、自前の部品を 3 つ載せた版。
           (1) coder から edit_file を外し、編集は run_command の heredoc だけにする（v12 の部品）。(2) read_file の引数の規則と、失敗した呼び出しを繰り返さない規則（v7 の部品）。(3) rg を git grep に替える（採点機に rg は無い）。
           v12 は `bases/v12` に保存。公式パッケージの validate と compile は通った。仮説：土台も edit_file の失敗で課題を落としている ⇒ LB > 0.13（銅 0.15）。
+          - **00:34 に Kaggle が CreateCodeSubmission を 400 で拒否**（g4v12-1 が採点中のため。10-08 の g4v7-2 も前の 1 本がエラーで終わってから出せた）。g4v12-1 の採点が終わり次第、g4v13-1 を出し直す（wait15.py で見張る）。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
