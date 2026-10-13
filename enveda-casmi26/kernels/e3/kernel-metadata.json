@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3dn20sl",
-  "title": "casmi26 e3dn20sl",
+  "id": "yasunorim/casmi26-e3mmp100",
+  "title": "casmi26 e3mmp100",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -33,8 +33,7 @@
   ],
   "kernel_sources": [
     "yasunorim/casmi26-fp2-peak-transformer",
-    "yasunorim/casmi26-fp2L3",
-    "yasunorim/casmi26-dn1-denovo"
+    "yasunorim/casmi26-fp2L3"
   ],
   "model_sources": []
 }

@@ -33,6 +33,9 @@ dnlib = _arg("dnlib", 0.0)            # > 0: no de novo when lib_max >= dnlib
 dnsrc = _arg("dnsrc", "yasunorim/casmi26-dn1-denovo", str)   # kernel whose output holds dn1.pt
 dnslot = [int(x) for x in _arg("dnslot", "", str).split(",") if x]   # fixed final slots (1-based) for the top de novo rows
 dnslotlib = _arg("dnslotlib", 0.7)    # slot merge only when the engine's lib_max < this (library-weak = class-3-like)
+mmp = _arg("mmp", 0, int)             # ours_mmp: max MMP class-3 products per molecule (0 = off)
+mmpc = _arg("mmpc", 2, int)           # MMP rules seen at least this often in train
+mmp2 = _arg("mmp2", 0, int)           # two-step MMP products (0 = off)
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -146,6 +149,36 @@ if DENOVO_ON and OURS_CFG.get('DENOVO_SLOTS'):
     cells.insert(i_base + 1, code_cell(hook_b))     # later index first
     cells.insert(i_eng + 1, code_cell(hook_a))
 
+if mmp > 0:      # M. after the engine cell, BEFORE hook A (ours_mmp must wrap E.generate before pc_join does)
+    MCFG = dict(MMP_N=mmp, MMP_MINC=mmpc, MMP_TWO=mmp2)
+    hook_m = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
+# MMP class-3 generator (ours_mmp): replacement rules mined from all train structures (one acyclic single bond, same
+# larger side) applied to the spectral analogs; products that land on the target mass join the v1 engine's candidates
+# and are scored by its ranker like the base generator's products. Any error: the base generator only.
+OURS_MCFG = {MCFG!r}
+_ours_dir = '/kaggle/working/ours_mods'
+os.makedirs(_ours_dir, exist_ok=True)
+with open(os.path.join(_ours_dir, 'ours_mmp.py'), 'w') as _fh:
+    _fh.write({open(os.path.join(E1, "ours_mmp.py"), encoding="utf-8").read()!r})
+if _ours_dir not in sys.path:
+    sys.path.insert(0, _ours_dir)
+MMP_ON = False
+try:
+    import ours_mmp
+    ours_mmp.mine(os.path.join(COMP, 'train.parquet'), workers=4, min_count=OURS_MCFG['MMP_MINC'], log=print)
+    ours_mmp.install(E, max_new=OURS_MCFG['MMP_N'], two_step=OURS_MCFG['MMP_TWO'])
+    MMP_ON = True
+except Exception as _e:
+    if not IS_RERUN:                 # commit run: a bug must fail the commit
+        raise
+    print('MMP FAILED -> base generator only', repr(_e), flush=True)
+print('ours MMP', 'ON' if MMP_ON else 'OFF', OURS_MCFG, f'{{time.time()-T0:.0f}}s', flush=True)
+'''
+    _ie = find_cell("'''v1 engine exactly as in v3.6")
+    cells.insert(_ie + 1, code_cell(hook_m))
+    _ib = find_cell("'''all molecules -> base lists")
+    cells.insert(_ib + 1, code_cell("# ==== ours (yasunorim): MMP summary ====\nif MMP_ON:\n    print('MMP stats', ours_mmp.STATS, flush=True)\n"))
+
 cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  f"# casmi26 {name} (yasunorim)\n\nBase: [CASMI26 E006 Window 40 ICE Fallback True (public LB 0.440)]"
                  "(https://www.kaggle.com/code/canqiang/casmi26-e006-window-40-ice-fallback-true) by canqiang, version 1, "
@@ -153,7 +186,10 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
                     f"main engine through pc_join (huseyinemreaksoy, v4n fusion 0.420) in a second engine pass; max "
                     f"{denovo} rows per molecule, {dnmin:.0f} min cap. Two inserted cells are marked 'ours'. "
-                    if denovo > 0 else "This build adds nothing (reference run). ")
+                    if denovo > 0 else "")
+                 + (f"Ours: MMP class-3 generator (replacement rules mined from train, applied to the spectral analogs; max "
+                    f"{mmp} products per molecule) inside the main engine's generator. " if mmp > 0 else "")
+                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
     if c["cell_type"] == "code":
