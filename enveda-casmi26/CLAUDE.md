@@ -162,7 +162,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           ⇒ (b)「ranker が沈める」ではなく (a)「生成が届かない」。10-17 の e3 は de novo を載せても 0.440 から動かない見込みが高い。銅（≥ 0.441）には、E006 の上に効く別の部品が要る（次の節で選ぶ）。
           **10-17（GPU が戻る日）の段取りを改める（10-13）**：E006（0.440）の上で、自前の部品を 1 本ずつ別々に確かめる。公開 LB は約 130 分子で、1 分子 1 位上がれば +0.004〜0.008。銅には 0.441 以上、つまり E006 から 1 分子分でも上がればよい。
           - `kernels/e3/build.py` に `mmp=N mmpc= mmp2=`（セル M：エンジンの直後・pc_join より前に ours_mmp を入れる）を足した。今の main.ipynb は `mmp100`（mmp=100 mmpc=1）。
-          - 出す順：① e3mmp100（MMP。0.420 の上では −0.007＝雑音。E006 は ICE を GLACIER の死角に回すので、MMP の異性体が並べ直される余地が大きい）、② e3dn20（de novo・ranker 任せ）、③ e3m100dn20（両方）。
+          - **`fgap=λ`（10-13・セル F）**：GLACIER も ICEBERG も点を出せない分子だけ、最終リストの上位 25 を z(−log 順位)＋λ·z(自前の断片説明率) で並べ直す。断片説明は自前の `eval/fragexp.py` を `kernels/e3/ours_frag.py` に移したもの（同じ点を出すことを確認）。考え方の出典：ahmedberatozer v7c-e006-fraggap（コードは使っていない）。`python build.py fg05 fgap=0.5`。
+          - 出す順：① e3mmp100（MMP。0.420 の上では −0.007＝雑音。E006 は ICE を GLACIER の死角に回すので、MMP の異性体が並べ直される余地が大きい）、② e3dn20（de novo・ranker 任せ）、③ e3m100dn20（両方）、④ e3fg05（断片説明・λ 0.5）。
           - その日に 5 本使い切る。残りの枠は、10-14〜16 に作る部品（下）に充てる。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
