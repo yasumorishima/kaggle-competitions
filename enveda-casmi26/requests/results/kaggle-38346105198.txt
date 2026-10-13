@@ -1,0 +1,30 @@
+request: e2dnsl-1
+run: 38346105198  status: success  action: kernel  dir: enveda-casmi26/kernels/e1fuse  submit: yes
+kernel: yasunorim/casmi26-e2dnsl  version: 1
+memo: New part: fixed-slot de novo. Same CPU build as e2dn-1 (public 0.420 base, Apache-2.0, huseyinemreaksoy v4n fusion + our fp2 + MMP 100 + our dn1 de novo, 16 samples/spectrum, 150 min cap), plus ours: after the fusion, the top de novo row (our fp2 log-likelihood order) is moved to final slot 3 for library-weak molecules (engine lib_max < 0.7), the way the public v3 line slots PubChem-only proposals (2,4,6..) instead of letting the ranker place them. Reason: the ranker was trained without de novo rows (no library/analog support) and can bury them; offline, fp2 puts the truth at de novo rank 1 for 7 of 11 molecules where dn1 made it. Hypothesis: LB > e2dn-1 (ranker-placed de novo); compare to e2b-2 0.381.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e2dnsl
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-13 05:04:33.493000,e2dnsl-1: e2dn-1 + top de novo row at slot 3 when lib_max<0.7 (ours). Hypothesis: LB > e2dn-1 [run 38346105198],SubmissionStatus.PENDING,,
+submission.csv,2026-10-12 23:58:29.073000,"e2dn-1: e2b-2 CPU build + our dn1 de novo (top 20 by fp2, 16 samples/spectrum). Hypothesis: LB > 0.381 [run 38320824380]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-10 00:39:17.050000,"e2gpu-2: base 0.420 + MMP 100 / 2-step 20 / FP parents 10, GPU, MMP fallback + time gate [run 38007410657]",SubmissionStatus.COMPLETE,0.413,
+
+output files:
+total 148
+drwxr-xr-x  9 runner runner  4096 Oct 13 05:03 .
+drwxrwxrwt 14 root   root    4096 Oct 13 05:03 ..
+-rw-r--r--  1 runner runner  1889 Oct 13 05:03 cfg.json
+-rw-r--r--  1 runner runner 29204 Oct 13 05:03 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct 13 05:03 gl_work
+drwxr-xr-x  2 runner runner  4096 Oct 13 05:03 ice_work
+drwxr-xr-x  6 runner runner  4096 Oct 13 05:03 numba_cache
+drwxr-xr-x  5 runner runner  4096 Oct 13 05:03 ours
+-rw-r--r--  1 runner runner 51709 Oct 13 05:03 pc_lists.json
+-rw-r--r--  1 runner runner  2528 Oct 13 05:03 run_manifest.json
+drwxr-xr-x  2 runner runner  4096 Oct 13 05:03 smoke_comp
+drwxr-xr-x  2 runner runner  4096 Oct 13 05:03 stage_cache
+-rw-r--r--  1 runner runner 17256 Oct 13 05:03 submission.csv
+drwxr-xr-x  2 runner runner  4096 Oct 13 05:04 work

@@ -1,0 +1,4 @@
+v13 (submission/ from 10-13) = public LB 0.13 config (bases/pub013; source: https://www.kaggle.com/code/hsiaosuan/gemma-developer-agent-0-13-submission, 2026-10-03) + our changes:
+  1. coder: edit_file removed, edits only via a run_command Python heredoc with an exact-count assert (our v12 part; edit_file lost old_string in 625/775 failures on GPU and 861 events on TPU), write_file for new files.
+  2. read_file argument rules and no-repeat rule (our v7 part).
+  3. rg -> git grep (rg is not installed on the grader).

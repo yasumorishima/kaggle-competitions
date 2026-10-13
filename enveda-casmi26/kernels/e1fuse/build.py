@@ -43,6 +43,8 @@ dnmin = _arg("dnmin", 90.0)           # de novo cumulative time cap (minutes): d
 dnforms = _arg("dnforms", 2, int)     # formulas decoded per molecule (top-1 + the next distinct one within the top 5)
 dnlib = _arg("dnlib", 0.0)            # > 0: no de novo when lib_max >= dnlib
 dnsrc = _arg("dnsrc", "yasunorim/casmi26-dn1-denovo", str)   # kernel whose output holds dn1.pt
+dnslot = [int(x) for x in _arg("dnslot", "", str).split(",") if x]   # ours: fixed final slots (1-based) for the top de novo rows
+dnslotlib = _arg("dnslotlib", 0.7)    # slot merge only when the engine's lib_max < this (library-weak = class-3-like)
 c3np = "c3np" in sys.argv[3:]         # with c3val: the enveda-np-examples set (held out by dn1, fp2 and FPNet A)
 nb = json.load(open(os.path.join(HERE, "base_0420.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -261,6 +263,7 @@ upd["MMP_ORDER"] = mmpord
 upd["MMP_TWO"] = mmp2
 upd["MMP_BEAM"] = beam
 upd.update(DENOVO_N=denovo, DENOVO_S=dns, DENOVO_MIN=dnmin, DENOVO_FORMS=dnforms, DENOVO_MAX_LIB=dnlib or None)
+upd.update(DENOVO_SLOTS=dnslot, DENOVO_SLOT_LIB=dnslotlib)
 if iceb:
     upd["ICE_BUDGET"] = iceb
 if val:
@@ -434,6 +437,27 @@ if "cpu" in sys.argv[3:] or tpu:   # CPU kernel: ICEBERG / GLACIER fall back to 
 i20 = next(i for i, c in enumerate(cells) if "".join(c["source"]).startswith("# fusion_core:"))
 c20 = src(i20)
 c20 = swap(c20, "    frag_scores=FRAG)\n", "    frag_scores=FRAG, fp2_scores=FP2)\n")
+c20 = swap(c20, "fusion_core.validate(sub, list(samp.molecule_id))\n", """if CFG.get('DENOVO_N', 0) > 0 and CFG.get('DENOVO_SLOTS'):   # ours: top de novo rows into fixed final slots
+    try:
+        _ns = 0
+        _out = []
+        _as = {str(k): v for k, v in ours_denovo.ADDED_SMI.items()}
+        for _m, _s in zip(sub.molecule_id, sub.smiles):
+            _lm, _dn = _as.get(str(_m), (1.0, []))
+            if _dn and _lm < CFG['DENOVO_SLOT_LIB']:
+                _l = [x for x in _s.split(';') if x]
+                _dk = {chem.score_key(x) for x in _dn[:len(CFG['DENOVO_SLOTS'])]}
+                _l = [x for x in _l if chem.score_key(x) not in _dk]          # a de novo row moves, never doubles
+                for _slot, _d in zip(CFG['DENOVO_SLOTS'], _dn):
+                    _l.insert(min(_slot - 1, len(_l)), _d)
+                _s = ';'.join(_l[:25]); _ns += 1
+            _out.append(_s)
+        sub = sub.assign(smiles=_out)
+        log('DENOVO slots', CFG['DENOVO_SLOTS'], 'lib <', CFG['DENOVO_SLOT_LIB'], 'molecules', _ns)
+    except Exception as e:
+        print('DENOVO SLOTS FAILED -> fusion list as is', repr(e))
+fusion_core.validate(sub, list(samp.molecule_id))
+""")
 c20 += '''
 # ours: validation replay over FP2_LAMS (same stage caches, only the fp2 weight changes)
 if os.path.exists(os.path.join(STAGE, 'val_labels.csv')):
