@@ -31,6 +31,8 @@ dnmin = _arg("dnmin", 90.0)           # cumulative de novo time cap (minutes): d
 dnforms = _arg("dnforms", 2, int)     # formulas decoded per molecule
 dnlib = _arg("dnlib", 0.0)            # > 0: no de novo when lib_max >= dnlib
 dnsrc = _arg("dnsrc", "yasunorim/casmi26-dn1-denovo", str)   # kernel whose output holds dn1.pt
+dnslot = [int(x) for x in _arg("dnslot", "", str).split(",") if x]   # fixed final slots (1-based) for the top de novo rows
+dnslotlib = _arg("dnslotlib", 0.7)    # slot merge only when the engine's lib_max < this (library-weak = class-3-like)
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -56,6 +58,7 @@ if denovo > 0:
              "ours_fp2.py": open(os.path.join(E1, "ours_fp2.py"), encoding="utf-8").read(),
              "ours_denovo.py": open(os.path.join(E1, "ours_denovo.py"), encoding="utf-8").read()}
     cfg = dict(DENOVO_N=denovo, DENOVO_S=dns, DENOVO_MIN=dnmin, DENOVO_FORMS=dnforms, DENOVO_MAX_LIB=dnlib or None,
+               DENOVO_SLOTS=dnslot, DENOVO_SLOT_LIB=dnslotlib,
                DENOVO_SRC=dnsrc, VERSION=f"ours-{name}")
     hook_a = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # de novo (dn1) rows for class 3: engine pass 1 -> dn1 decodes SMILES under the top formulas -> dedupe -> fp2 order ->
@@ -108,6 +111,38 @@ if DENOVO_ON:
     i_eng = find_cell("'''v1 engine exactly as in v3.6")
     i_base = find_cell("'''all molecules -> base lists")
     assert i_eng < i_base
+    if dnslot:      # C. after the last base cell: the top de novo rows into fixed final slots of submission.csv
+        hook_c = """# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py): de novo rows into fixed final slots ====
+# library-weak molecules (engine lib_max < DENOVO_SLOT_LIB): the top de novo rows (our fp2 order) are moved to the final
+# slots DENOVO_SLOTS of submission.csv, the way the public line slots PubChem-only proposals, instead of the ranker's place.
+if DENOVO_ON and OURS_CFG.get('DENOVO_SLOTS'):
+    try:
+        from rdkit import Chem as _OC
+        def _oik(x):
+            m_ = _OC.MolFromSmiles(x)
+            return _OC.MolToInchiKey(m_)[:14] if m_ is not None else x
+        _sp = '/kaggle/working/submission.csv'
+        _sub = pd.read_csv(_sp)
+        _as = {str(k): v for k, v in ours_denovo.ADDED_SMI.items()}
+        _out, _ns = [], 0
+        for _m, _s in zip(_sub.molecule_id, _sub.smiles.fillna('')):
+            _lm, _dn = _as.get(str(_m), (1.0, []))
+            if _dn and _lm < OURS_CFG['DENOVO_SLOT_LIB']:
+                _dk = {_oik(x) for x in _dn[:len(OURS_CFG['DENOVO_SLOTS'])]}
+                _l = [x for x in str(_s).split(';') if x and _oik(x) not in _dk]
+                for _slot, _d in zip(OURS_CFG['DENOVO_SLOTS'], _dn):
+                    _l.insert(min(_slot - 1, len(_l)), _d)
+                _s = ';'.join(_l[:25]); _ns += 1
+            _out.append(_s)
+        _sub['smiles'] = _out
+        _sub.to_csv(_sp, index=False)
+        print('DENOVO slots', OURS_CFG['DENOVO_SLOTS'], 'lib <', OURS_CFG['DENOVO_SLOT_LIB'], 'molecules', _ns, flush=True)
+    except Exception as _e:
+        if not IS_RERUN:
+            raise
+        print('DENOVO SLOTS FAILED -> submission as is', repr(_e), flush=True)
+"""
+        cells.append(code_cell(hook_c))
     cells.insert(i_base + 1, code_cell(hook_b))     # later index first
     cells.insert(i_eng + 1, code_cell(hook_a))
 

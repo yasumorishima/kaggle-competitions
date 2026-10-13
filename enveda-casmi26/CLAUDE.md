@@ -50,6 +50,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
     - セル B（base リストの直後）：de novo の集計を出し、dn1 と fp2 を片付けて GPU を空ける。
     - `python build.py NAME denovo=20 [dns= dnmin= dnsrc=]`。denovo=0 なら base とコードセルが完全に一致する。偽の小さなデータでの試運転は通った。
     - 心配は時間：decode と 2 回目のエンジンで 1 分子 10〜15 秒、上限は 90 分。E006 本体の実行時間は分かっていない。
+    - **固定枠の口を e3 にも入れた（10-13）**：`dnslot=3`（`dnslotlib=0.7`）で、最後のセルの後に印付きのセル C を足す。submission.csv を読み、ライブラリ一致が弱い分子だけ de novo の 1 位を 3 位に置いて書き戻す。今の main.ipynb は `dn20sl`（denovo=20・dnslot=3）。10-17 には e2dnsl-1 の結果で `dn20` と `dn20sl` のどちらを先に出すかを決める（両方出してよい）。
   - de novo の効き目は、まず e2dn-1（CPU・0.420 系・提出済み）で測る。GPU が戻る 10-17 に e3＋de novo を出す。
   - enveda は **1 日 5 本**出せる。GPU の週枠 30 時間のうち、提出の T4 commit 実行を優先して使う。
 - 旧：**LB（10-10 01:01 取り直し・2,931 チーム）：1 位 0.484・金 15 位＝0.443・銀 146 位＝0.433・銅 293 位＝0.428・中央値 0.331。自分：0.410（e1a-1）・797 位。銅まで +0.018。締切 12-14。**
