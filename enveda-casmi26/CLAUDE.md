@@ -157,6 +157,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
         - **e2dnsl-1（10-13 04:4x UTC 投入・CPU・提出あり）＝新しい部品「de novo の固定枠」**：e2dn-1 と同じ版に、融合の後で de novo の 1 位（fp2 の並べ）を最終 3 位に差し込む処理を足した（ライブラリ一致が弱い分子＝lib_max < 0.7 だけ）。
           公開 v3 が PubChem の提案を ranker に任せず 2・4・6 位に置くのと同じ考え方。ranker は de novo の行を見ずに学習されており、類縁体の支えが無い de novo を沈める恐れがある。
           `python build.py e2dnsl 0 mmp=100 mmpc=1 cpu denovo=20 dns=16 dnmin=150 dnslot=3`（`dnslot=a,b` で複数枠・`dnslotlib=` で門）。仮説：LB > e2dn-1。
+          **結果（10-13 13:5x）：e2dnsl-1＝0.371（e2dn-1 0.373 と同じ・雑音の範囲）＝仮説は外れ**。
+          ライブラリが弱い分子は公開 LB の 130 分子の半分以上あるはずで、de novo の 1 位が 1 分子でも正解なら 3 位で +0.0026 ずつ出る。出ていない＝**今の dn1（既知の天然物で正解を作る率 0.09〜0.12）は、隠しの class 3 の正解をほぼ 1 位に作れていない**。
+          ⇒ (b)「ranker が沈める」ではなく (a)「生成が届かない」。10-17 の e3 は de novo を載せても 0.440 から動かない見込みが高い。銅（≥ 0.441）には、E006 の上に効く別の部品が要る（次の節で選ぶ）。
         - **dn1tpu（`kernels/dn1tpu`・TPU v5e-8・提出なし）**：dn1 の学習を JAX に移した版。dn1-1b の重みから続けて学習する。
           - データの準備と近い構造の除外は dn1 と同じ。8 コアでデータ並列にした。torch との出力の差は 1e-6 程度。
           - 出力の dn1.pt は dn1 と同じ形式で、dn1r がそのまま読める。dn1r で読むときは、kernel_sources を casmi26-dn1tpu に差し替える。
