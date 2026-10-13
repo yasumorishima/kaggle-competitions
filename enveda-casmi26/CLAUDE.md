@@ -151,6 +151,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
         - **e2dn-1（10-12 23:11 UTC 投入・CPU・提出あり）**：de novo を初めて LB で確かめる（user 10-12「リスクはとっていい」）。
           e2b-2（CPU・0.381）と同じ構成に `denovo=20 dns=16 dnmin=150` を足した版。重みは dn1-1b。
           `python build.py e2dncpu 0 mmp=100 mmpc=1 cpu denovo=20 dns=16 dnmin=150`。仮説：LB > 0.381（隠しの class 3 に de novo が届く）。
+          **結果（10-13 08:5x）：e2dn-1＝0.373（e2b-2 0.381 より −0.008＝1 分子分・雑音の範囲）**。ranker に任せる de novo の注入は LB で上積みなし。
+          読み：(a) 隠しの class 3 に dn1 が正解を作れていない、または (b) 作れても ranker が上位 25 に入れていない。(b) を切り分けるのが e2dnsl-1（固定枠）。
         - **e2dnsl-1（10-13 04:4x UTC 投入・CPU・提出あり）＝新しい部品「de novo の固定枠」**：e2dn-1 と同じ版に、融合の後で de novo の 1 位（fp2 の並べ）を最終 3 位に差し込む処理を足した（ライブラリ一致が弱い分子＝lib_max < 0.7 だけ）。
           公開 v3 が PubChem の提案を ranker に任せず 2・4・6 位に置くのと同じ考え方。ranker は de novo の行を見ずに学習されており、類縁体の支えが無い de novo を沈める恐れがある。
           `python build.py e2dnsl 0 mmp=100 mmpc=1 cpu denovo=20 dns=16 dnmin=150 dnslot=3`（`dnslot=a,b` で複数枠・`dnslotlib=` で門）。仮説：LB > e2dn-1。
