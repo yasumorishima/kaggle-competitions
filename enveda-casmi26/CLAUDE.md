@@ -165,6 +165,13 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           - 出す順：① e3mmp100（MMP。0.420 の上では −0.007＝雑音。E006 は ICE を GLACIER の死角に回すので、MMP の異性体が並べ直される余地が大きい）、② e3dn20（de novo・ranker 任せ）、③ e3m100dn20（両方）。
           - その日に 5 本使い切る。残りの枠は、10-14〜16 に作る部品（下）に充てる。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
+            **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
+            - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
+            - dual-band-massbank-iceberg-sota（saddamaditya）：v7c と同じコード。MassBank の dataset を付けているが、読むコードは無い。
+            - E008（nursrijan）：最後に submission.csv を書き換える。MassBank（samartalwar/casmi-2026-spectral-library-massbankharmonized・CASMI 部分は除く）を中性質量 ±10 ppm で引き、平方根強度のコサインで分子の平均類似度が 0.50 以上かつ差 0.10 以上なら 1 位（ライブラリ一致 ≥ 0.9 の分子は 2 位）、0.40 以上かつ 0.08 以上なら 2 位に入れる。候補プールに無い構造も入る。自分の LB は書いていない。
+            ⇒ **E006 に無い信号は 2 つ**：(i) train の外の実測スペクトル（MassBank の整形版）、(ii) 順方向モデルの点が無い分子の断片説明。
+            - 10-14 にやること：(i) は先に CPU で「その MassBank 版の構造のうち、train に無いものが何個あるか」を数える（train には massbank 10 万行が既にある＝重なりが大きければ効かない）。重なりが小さければ、自前で照合（付加イオンを考えた前駆体 m/z・entropy 類似度・train で門を較正）して E006 の上に載せる。
+              (ii) は自前の `eval/fragexp.py`（1〜2 結合切断）があるので、それを E006 の「順方向モデルの点が無い分子」だけに入れる版を作る（重みは train の同じ条件の分子で決める）。
         - **dn1tpu（`kernels/dn1tpu`・TPU v5e-8・提出なし）**：dn1 の学習を JAX に移した版。dn1-1b の重みから続けて学習する。
           - データの準備と近い構造の除外は dn1 と同じ。8 コアでデータ並列にした。torch との出力の差は 1e-6 程度。
           - 出力の dn1.pt は dn1 と同じ形式で、dn1r がそのまま読める。dn1r で読むときは、kernel_sources を casmi26-dn1tpu に差し替える。
