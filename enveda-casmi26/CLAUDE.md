@@ -183,6 +183,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
               **e3m100fg05c-1＝0.419**（両方）。断片説明だけの 0.432 より −0.013、MMP だけの 0.421 とほぼ同じ。
               ⇒ **MMP は断片説明の効きを打ち消す＝害**。0.420 の土台（−0.007）と E006 の CPU 版の 2 回で、どちらも下がった。**MMP は銅への部品から外す**（10-17 の e3mmp100 と e3m100dn20 は出さない）。
               ⇒ 残す部品は断片説明。10-17 に GPU で e3fg05 を出す。次の部品は、断片説明の延長ではない別の信号から選ぶ。
+            - **e3fgice05c-1（12:43 UTC 提出・`fgap=0.5 fgapcov=ice fgapmin=90 cpu`）**：断片説明を、ICEBERG の点が無い分子すべてに広げた版。GLACIER が点を出した分子も含む。
+              確認実行では 12 分子すべてで並べ直しが動いた（5 秒）。問い：断片説明は GLACIER の並べにも上乗せできるか。仮説：LB > 0.432。下がれば、断片説明は両方の点が無い分子だけに絞る。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
             - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
