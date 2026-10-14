@@ -21,7 +21,7 @@ cell), the top fgapk SMILES of submission.csv are re-ranked by z(-log rank) + fg
 ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
-                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [cpu]
+                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice] [cpu]
 
 cpu: CPU kernel (for weeks with the GPU quota spent; CPU kernels may submit within 9 h). The only base-cell edits are the
 T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, the smoke
@@ -51,6 +51,8 @@ fgap = _arg("fgap", 0.0)              # ours_frag: weight of z(fragment explanat
 fgapk = _arg("fgapk", 25, int)        # ... re-rank only the top K of the final list
 fgapsec = _arg("fgapsec", 10.0)       # ... per-molecule cap (s); the list is left as is when it is hit
 fgapmin = _arg("fgapmin", 40.0)       # ... total cap (minutes)
+fgapcov = _arg("fgapcov", "both", str)  # 'both': only where neither GLACIER nor ICEBERG scored; 'ice': wherever ICEBERG gave no score (GLACIER-scored too)
+assert fgapcov in ("both", "ice"), fgapcov
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -94,7 +96,7 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
-    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin)
+    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin, FGAP_COV=fgapcov)
     hook_f = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # fragment explanation where the forward models are blind: molecules with no GLACIER score (gl_of(mid) empty) and no
 # ICEBERG score (no non-None value in ICE_SCORES[mid]) get their final top FGAP_K re-ranked by
@@ -117,6 +119,8 @@ try:
         def _f_cov(m_):
             _i = _ice_all.get(str(m_), {{}})
             _i = _i if isinstance(_i, dict) and any(v is not None for v in _i.values()) else {{}}
+            if OURS_FCFG.get('FGAP_COV') == 'ice':   # fgapcov=ice: GLACIER-scored molecules are re-ranked too
+                return bool(_i)
             return bool(gl_of(str(m_))) or bool(_i)
         _fspec = {{}}
         for _r in te.itertuples():
@@ -142,7 +146,7 @@ try:
             _out.append(';'.join(_new))
         _sub['smiles'] = _out
         _sub.to_csv(_sp, index=False)
-        print(f'FGAP lam {{OURS_FCFG["FGAP_LAM"]}} K {{OURS_FCFG["FGAP_K"]}}: uncovered molecules {{_nunc}} of {{len(_sub)}} | '
+        print(f'FGAP lam {{OURS_FCFG["FGAP_LAM"]}} K {{OURS_FCFG["FGAP_K"]}} cov {{OURS_FCFG.get("FGAP_COV")}}: uncovered molecules {{_nunc}} of {{len(_sub)}} | '
               f're-ranked {{_nt}} | top-1 changed {{_n1}} | skipped (time cap) {{_nskip}} | {{time.time()-_ft0:.0f}}s', flush=True)
 except Exception as _e:
     if not IS_RERUN:                 # commit run: a bug must fail the commit
@@ -301,7 +305,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + (f"Ours: MMP class-3 generator (replacement rules mined from train, applied to the spectral analogs; max "
                     f"{mmp} products per molecule) inside the main engine's generator. " if mmp > 0 else "")
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fgapk} are re-ranked by "
-                    f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra). " if fgap > 0 else "")
+                    f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra)"
+                    + (" (fgapcov=ice: every molecule without an ICEBERG score, GLACIER-scored ones included)" if fgapcov == "ice" else "")
+                    + ". " if fgap > 0 else "")
                  + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
