@@ -185,6 +185,10 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
               ⇒ 残す部品は断片説明。10-17 に GPU で e3fg05 を出す。次の部品は、断片説明の延長ではない別の信号から選ぶ。
             - **e3fgice05c-1（12:43 UTC 提出・`fgap=0.5 fgapcov=ice fgapmin=90 cpu`）**：断片説明を、ICEBERG の点が無い分子すべてに広げた版。GLACIER が点を出した分子も含む。
               確認実行では 12 分子すべてで並べ直しが動いた（5 秒）。問い：断片説明は GLACIER の並べにも上乗せできるか。仮説：LB > 0.432。下がれば、断片説明は両方の点が無い分子だけに絞る。
+              **結果（19:26 UTC）：e3fgice05c-1＝0.427（両方の点が無い分子だけの 0.432 より −0.005＝約 1 分子分）＝仮説は外れ**。
+              ⇒ 断片説明は GLACIER の並べには上乗せにならない。**`fgapcov=both`（両方の点が無い分子だけ）のまま**にする。10-17 の GPU の e3fg05 も both で出す。
+            - **e3fg05dn20c-1（19:4x UTC 投入・`fgap=0.5 denovo=20 dns=16 dnmin=60 cpu`）**：e3fg05c-1（0.432）の上に、自前の de novo（dn1・分子式で縛った生成・fp2 で並べた上位 20 を pc_join の口から入れ、2 回目のエンジンで採点）を重ねた版。E006 の土台で de novo を確かめるのは初めて（0.420 の土台では −0.008）。
+              CPU の 9 時間に収めるため、de novo の時間の上限を 60 分にした。仮説：LB > 0.432。上がらなければ、10-17 の GPU では de novo を外す。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
             - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
