@@ -21,7 +21,11 @@ cell), the top fgapk SMILES of submission.csv are re-ranked by z(-log rank) + fg
 ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
-                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M]
+                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [cpu]
+
+cpu: CPU kernel (for weeks with the GPU quota spent; CPU kernels may submit within 9 h). The only base-cell edits are the
+T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, and the smoke
+postflight's cuda-only device check. Time budgets are unchanged (ICEBERG covers fewer molecules on the CPU).
 """
 import json
 import os
@@ -60,6 +64,24 @@ def find_cell(prefix):
 
 def code_cell(s):
     return {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": s}
+
+
+cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
+if cpu:   # the only base-cell edits: device strings and the T4-only checks (time budgets unchanged)
+    def _cpu_swap(i, old, new, n=1):
+        s_ = src(i)
+        assert s_.count(old) == n, (i, old, s_.count(old))
+        cells[i]["source"] = s_.replace(old, new)
+    _ip = find_cell('"""Read-only E004 observer')
+    _cpu_swap(_ip, """    gpu = subprocess.check_output(
+        ['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], text=True).strip()
+    assert 'T4' in gpu, gpu
+""", """    gpu = 'cpu'   # ours (cpu build): no GPU on this kernel
+""")
+    _ii = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "ice_fuse.run_ice(" in src(i))
+    _cpu_swap(_ii, "device='cuda'", "device=('cuda' if torch.cuda.is_available() else 'cpu')", 2)
+    _io = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "def _e004_postflight" in src(i))
+    _cpu_swap(_io, "meta['device'].startswith('cuda')", "meta['device'].startswith(('cuda', 'cpu'))")
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
@@ -282,6 +304,9 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 else []),
         "model_sources": []}
+if cpu:
+    meta.update(enable_gpu="false")
+    meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "cpu", cpu)
