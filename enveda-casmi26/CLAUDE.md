@@ -165,6 +165,15 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           - **`fgap=λ`（10-13・セル F）**：GLACIER も ICEBERG も点を出せない分子だけ、最終リストの上位 25 を z(−log 順位)＋λ·z(自前の断片説明率) で並べ直す。断片説明は自前の `eval/fragexp.py` を `kernels/e3/ours_frag.py` に移したもの（同じ点を出すことを確認）。考え方の出典：ahmedberatozer v7c-e006-fraggap（コードは使っていない）。`python build.py fg05 fgap=0.5`。
           - 出す順：① e3mmp100（MMP。0.420 の上では −0.007＝雑音。E006 は ICE を GLACIER の死角に回すので、MMP の異性体が並べ直される余地が大きい）、② e3dn20（de novo・ranker 任せ）、③ e3m100dn20（両方）、④ e3fg05（断片説明・λ 0.5）。
           - その日に 5 本使い切る。残りの枠は、10-14〜16 に作る部品（下）に充てる。
+          - **10-14：GPU を待たず、CPU の e3 で部品を LB に出す**（root の「提出枠を空けない」）。`build.py NAME ... cpu` を足した。E006 の元のセルで変えるのは、CPU で動かすための次の箇所だけ：
+            - T4 の検査
+            - ICEBERG と GLACIER の device（CPU に落とす）
+            - 確認実行だけで効く GPU 向けの検査（外す）
+            - 最後の段の ICE と GLACIER の状態の検査（CPU では時間の予算切れ `budget` で終わるので、それも通す）
+            どの build でも、最後に作業フォルダの ice_site などを消すセルを足す。出力が 500 ファイルを超えると、GHA の `kaggle kernels output` が先頭の 500 件しか取らず、submission.csv に届かない（10-17 の GPU 版でも同じことが起きていた）。
+            - e3mmp100c-1：確認実行で ICE の状態の assert に落ちた。-2：最後まで動いたが、出力が 500 件を超えて提出されなかった。**-3：02:12 UTC に提出**。仮説：LB ≥ 0.441。
+              確認実行の 12 分子で、MMP の規則は 443 万個、生成物は 551 個。CPU の ICEBERG は 1.55 予測／秒で、300 秒では 0 分子しか採点できなかった。GLACIER は 10.4 予測／秒で、11 分子すべてを採点した。
+            - e3fg05c-1（`fgap=0.5 cpu`）：02:15 UTC に投入。次に e3m100fg05c（両方）を出す。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
             - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
