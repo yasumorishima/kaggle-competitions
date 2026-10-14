@@ -278,6 +278,18 @@ print('ours MMP', 'ON' if MMP_ON else 'OFF', OURS_MCFG, f'{{time.time()-T0:.0f}}
     _ib = find_cell("'''all molecules -> base lists")
     cells.insert(_ib + 1, code_cell("# ==== ours (yasunorim): MMP summary ====\nif MMP_ON:\n    print('MMP stats', ours_mmp.STATS, flush=True)\n"))
 
+# Z. last cell (every build): drop the ICEBERG site tree from /kaggle/working. It holds > 500 files, and the kernel
+# output listing is paged at 500, so the workflow's `kaggle kernels output` never reached submission.csv
+# (e3mmp100c-2, 10-14). Only scratch directories go; submission.csv and the audit files stay.
+cells.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
+import os as _os, shutil as _sh
+for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods'):
+    _p = _os.path.join('/kaggle/working', _d)
+    if _os.path.isdir(_p):
+        _sh.rmtree(_p, ignore_errors=True)
+_n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
+print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
+"""))
 cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  f"# casmi26 {name} (yasunorim)\n\nBase: [CASMI26 E006 Window 40 ICE Fallback True (public LB 0.440)]"
                  "(https://www.kaggle.com/code/canqiang/casmi26-e006-window-40-ice-fallback-true) by canqiang, version 1, "
