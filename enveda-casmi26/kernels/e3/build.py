@@ -24,8 +24,9 @@ ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
                          [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [cpu]
 
 cpu: CPU kernel (for weeks with the GPU quota spent; CPU kernels may submit within 9 h). The only base-cell edits are the
-T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, and the smoke
-postflight's cuda-only device check. Time budgets are unchanged (ICEBERG covers fewer molecules on the CPU).
+T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, the smoke
+postflight's GPU acceptance checks (off), and the final pass's ICE / GLACIER status checks ('budget' allowed: on the CPU
+they end on their time budget with part of the molecules scored). Time budgets are unchanged (ICEBERG covers fewer molecules on the CPU).
 """
 import json
 import os
@@ -81,7 +82,15 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
     _ii = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "ice_fuse.run_ice(" in src(i))
     _cpu_swap(_ii, "device='cuda'", "device=('cuda' if torch.cuda.is_available() else 'cpu')", 2)
     _io = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "def _e004_postflight" in src(i))
-    _cpu_swap(_io, "meta['device'].startswith('cuda')", "meta['device'].startswith(('cuda', 'cpu'))")
+    _cpu_swap(_io, """        if not full:
+            assert meta['status'] == 'ok' and meta['device'].startswith('cuda'), (stage, meta)""",
+              """        if not full and False:   # ours (cpu build): smoke-only GPU acceptance checks off (ICE hits its 300 s budget on the CPU)
+            assert meta['status'] == 'ok' and meta['device'].startswith('cuda'), (stage, meta)""")
+    _if = find_cell("METRIC_SOURCE_SHA256 = ")   # final pass: on the CPU ICEBERG / GLACIER may end on their time budget
+    _cpu_swap(_if, "assert _stage_meta['ice'].get('status') == 'ok', _stage_meta['ice']",
+              "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
+    _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
+              "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
