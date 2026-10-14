@@ -1,0 +1,5 @@
+v14 (submission/ from 10-14) = v13 (bases/v13: public LB 0.13 config, https://www.kaggle.com/code/hsiaosuan/gemma-developer-agent-0-13-submission, + our heredoc edits, read_file rules, git grep) + our part:
+  4. repository maps as ADK skills (skills/repo-fastapi, repo-rich, repo-requests, repo-httpx; built by train/make_repomap.py from the
+     repository snapshots and the practice tasks' reference fixes): every source module with its top-level classes / methods / public
+     functions, the files the reference fixes changed most often, and the test layout. The explore stage loads its repository's map
+     first (load_skill) and scopes its one git grep to the file the map points to.

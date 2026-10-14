@@ -187,6 +187,16 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
           手元の 14 課題では v7 が 2 件、v12 が 6 件で、MISSINGARG も 0 件になったのに、LB は動かなかった。
           ⇒ edit_file の失敗は v7 系で一番の損ではなかった。隠しの課題では、v7 系の構成そのもの（探索の深さ・時間の配分）が詰まっている見込み。部品は、土台の強い公開 0.13 構成（v13）の上で確かめる。
         - **10-14 00:30 UTC：g4v13-1b を提出**（g4v13-1 の出し直し・中身は同じ）。仮説：LB > 0.13（銅 0.15）。
+          **結果（10-14 21:4x UTC・採点に約 21 時間）：g4v13-1b＝0.10**。土台の公開 0.13 より −0.03（約 2 課題分）＝仮説は外れ。
+          公開 LB は約 58 課題で ±3〜4 課題ぶれる（同じ zip が 0.12・0.10・0.06 を出した例あり）ので、自前の部品が土台を下げたとは言い切れない。ただし上積みも出ていない。
+          ⇒ edit_file を外す部品は、v7 系（0.08→0.08）でも公開系（0.13→0.10）でも LB を上げなかった。**損の中心は編集の失敗ではなく、場所を探す段階の時間**（v7 の未解決 258 件のうち、5 分で切れてパッチなしが 92）と見る。
+        - **v14（`submission/`・出典は `bases/v14_SOURCE.txt`）＝v13＋自前の部品「リポジトリの地図」**。v13 は `bases/v13` に保存。
+          - `train/make_repomap.py` で、4 つのリポジトリ（fastapi・rich・requests・httpx）ごとに ADK の skill（`skills/repo-<名前>/SKILL.md`）を作る。
+            中身は、ソースの全モジュールと、その top-level のクラス・メソッド・公開関数（snapshot を ast で読む）、練習課題の正解パッチがよく直したファイル、テストの置き場と回し方。1 本 1,000〜2,700 トークン。
+          - explore（場所を探す役）は、最初に自分の課題のリポジトリの地図を `load_skill` で 1 回読み、地図が指すファイルに絞って git grep を 1 回する。
+          - 公式パッケージ（adk_submission 0.2.12）で validate と compile は通った。explore の道具に SkillToolset（list_skills・load_skill など）が付き、4 本の skill が読めることを確かめた。
+          - 仮説：探索の往復が減り、時間切れでパッチなしの課題が減る ⇒ LB > 0.10（v13）、銅 0.15 を狙う。
+          - 10-14 の枠は g4v13-1b で使ったので、**10-15 00:00 UTC を過ぎたらすぐ g4v14-1 を出す**。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
