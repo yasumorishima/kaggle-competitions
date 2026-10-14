@@ -1,0 +1,55 @@
+request: e3fg05c-1
+run: 38500038168  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fg05c  version: 1
+memo: New part on the 0.440 base, CPU kernel (GPU week quota spent until 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), base cells unchanged except the CPU edits (T4 preflight, ICEBERG/GLACIER on CPU with 'budget' status allowed, smoke GPU checks off) and a last cell that drops scratch trees. Ours: where neither GLACIER nor ICEBERG gave a molecule any score, its final top 25 are re-ranked by z(-log rank) + 0.5 z(our 1-2 bond-cut fragment explanation of the spectra; ours_frag.py = port of our eval/fragexp.py). Idea source: ahmedberatozer v7c-e006-fraggap (code not used). On the CPU, ICEBERG scores fewer molecules, so this part covers more of them. Hypothesis: the fragment signal lifts molecules the forward models are blind to -> LB >= 0.441; compare with e3mmp100c-3 (same CPU base, MMP part).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fg05c
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-14 02:46:19.457000,e3fg05c-1: E006 0.440 base (CPU) + our fragment-explanation re-rank where ICE/GLACIER are blind (lambda 0.5). Hypothesis: LB >= 0.441 [run 38500038168],SubmissionStatus.PENDING,,
+submission.csv,2026-10-14 02:12:01.933000,e3mmp100c-3: E006 0.440 base (CPU) + our MMP class-3 generator (100/molecule). Hypothesis: LB >= 0.441 [run 38497073732],SubmissionStatus.PENDING,,
+submission.csv,2026-10-13 05:04:33.493000,e2dnsl-1: e2dn-1 + top de novo row at slot 3 when lib_max<0.7 (ours). Hypothesis: LB > e2dn-1 [run 38346105198],SubmissionStatus.COMPLETE,0.371,
+
+output files:
+total 560
+drwxr-xr-x  8 runner runner   4096 Oct 14 02:46 .
+drwxrwxrwt 14 root   root     4096 Oct 14 02:45 ..
+-rw-r--r--  1 runner runner  17129 Oct 14 02:45 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 14 02:45 candidate_audit.csv
+-rw-r--r--  1 runner runner   2441 Oct 14 02:45 candidate_audit.json
+-rw-r--r--  1 runner runner  29615 Oct 14 02:46 casmi26-e3fg05c.log
+-rw-r--r--  1 runner runner 129311 Oct 14 02:45 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9697 Oct 14 02:45 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 14 02:45 eng
+-rw-r--r--  1 runner runner  29204 Oct 14 02:45 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 14 02:45 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 14 02:45 experiment_audit.json
+-rw-r--r--  1 runner runner  23729 Oct 14 02:45 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139847 Oct 14 02:45 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 14 02:45 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 14 02:45 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 14 02:45 ice_work
+drwxr-xr-x  5 runner runner   4096 Oct 14 02:45 numba_cache
+-rw-r--r--  1 runner runner  27238 Oct 14 02:45 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 14 02:45 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 14 02:45 probe_core2.py
+-rw-r--r--  1 runner runner    338 Oct 14 02:46 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 14 02:46 smoke_comp
+-rw-r--r--  1 runner runner  17218 Oct 14 02:46 submission.csv
+-rw-r--r--  1 runner runner  17218 Oct 14 02:46 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17218 Oct 14 02:46 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 14 02:46 work
+[{"stream_name":"stderr","time":9.163602334,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.163659595,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.163665103,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.163690556,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.957427103,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.957467769,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.957474605,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.957479815,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":12.43088959,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":12.430935732,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":18.07152393,"data":" \n"}
+,{"stream_name":"stdout","time":18.071585255,"d
