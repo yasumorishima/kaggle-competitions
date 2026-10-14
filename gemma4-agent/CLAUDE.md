@@ -183,6 +183,10 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
           (1) coder から edit_file を外し、編集は run_command の heredoc だけにする（v12 の部品）。(2) read_file の引数の規則と、失敗した呼び出しを繰り返さない規則（v7 の部品）。(3) rg を git grep に替える（採点機に rg は無い）。
           v12 は `bases/v12` に保存。公式パッケージの validate と compile は通った。仮説：土台も edit_file の失敗で課題を落としている ⇒ LB > 0.13（銅 0.15）。
           - **00:34 に Kaggle が CreateCodeSubmission を 400 で拒否**（g4v12-1 が採点中のため。10-08 の g4v7-2 も前の 1 本がエラーで終わってから出せた）。g4v12-1 の採点が終わり次第、g4v13-1 を出し直す（wait15.py で見張る）。
+        - **g4v12-1 の結果（10-14 00:28 UTC・採点に約 25 時間）＝0.08**。v7 と同じ点。
+          手元の 14 課題では v7 が 2 件、v12 が 6 件で、MISSINGARG も 0 件になったのに、LB は動かなかった。
+          ⇒ edit_file の失敗は v7 系で一番の損ではなかった。隠しの課題では、v7 系の構成そのもの（探索の深さ・時間の配分）が詰まっている見込み。部品は、土台の強い公開 0.13 構成（v13）の上で確かめる。
+        - **10-14 00:30 UTC：g4v13-1b を提出**（g4v13-1 の出し直し・中身は同じ）。仮説：LB > 0.13（銅 0.15）。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
