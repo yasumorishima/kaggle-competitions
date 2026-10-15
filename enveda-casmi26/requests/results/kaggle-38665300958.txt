@@ -1,0 +1,55 @@
+request: e3fg05nli05c-1
+run: 38665300958  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fg05nli05c  version: 1
+memo: New part on the 0.440 base, CPU kernel (GPU quota spent until 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), base cells unchanged except the CPU edits (as e3fg05c-1 = 0.432, fragment re-rank on the blind molecules kept). Ours: the neutral-loss substructure evidence of e3fg05nl05c-1 (16 diagnostic losses) plus 17 diagnostic product ions (phosphocholine 184.073, choline, benzoyl 105.033, coumaroyl / caffeoyl / feruloyl / galloyl acylium ions, immonium ions of Leu / Phe / Tyr, indole 130.065, tropylium, HSO4- 96.960, PO3- 78.959, glycerophosphate, quinate), each with P(ion seen | group) and P(ion seen | no group) measured by us on train (e.g. benzoyl 0.57 vs 0.011, phosphocholine 0.30 vs 0.006). Final top 25 re-ranked by z(-log rank) + 0.5 x naive-Bayes log likelihood (nats). Coverage: 164 of 400 test molecules show a diagnostic loss or ion (28 with losses only). Held-out NP check (250 molecules, same-formula train isomers): MRR 0.345 vs 0.274 random on the 134 molecules it separates. Hypothesis: LB > e3fg05nl05c-1 and > 0.432 (bronze 0.441).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fg05nli05c
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-15 01:51:05.147000,e3fg05nli05c-1: E006 0.440 base (CPU) + our fragment re-rank (blind) + our neutral-loss and diagnostic-ion substructure evidence. Hypothesis: LB > 0.432 [run 38665300958],SubmissionStatus.PENDING,,
+submission.csv,2026-10-15 01:21:14.193000,"e3fg05fp05c-1: E006 0.440 base (CPU) + our fragment re-rank + our fp2 re-rank, both only where ICEBERG and GLACIER are blind. Hypothesis: LB > 0.432 [run 38662525978]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-15 00:50:33.913000,e3fg05nl05c-1: E006 0.440 base (CPU) + our fragment re-rank (blind) + our neutral-loss substructure evidence. Hypothesis: LB > 0.432 [run 38659345735],SubmissionStatus.PENDING,,
+
+output files:
+total 560
+drwxr-xr-x  8 runner runner   4096 Oct 15 01:51 .
+drwxrwxrwt 14 root   root     4096 Oct 15 01:49 ..
+-rw-r--r--  1 runner runner  17132 Oct 15 01:50 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 15 01:50 candidate_audit.csv
+-rw-r--r--  1 runner runner   2441 Oct 15 01:50 candidate_audit.json
+-rw-r--r--  1 runner runner  29864 Oct 15 01:51 casmi26-e3fg05nli05c.log
+-rw-r--r--  1 runner runner 129310 Oct 15 01:50 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9697 Oct 15 01:50 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 15 01:50 eng
+-rw-r--r--  1 runner runner  29204 Oct 15 01:50 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 15 01:50 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 15 01:50 experiment_audit.json
+-rw-r--r--  1 runner runner  23729 Oct 15 01:50 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139847 Oct 15 01:50 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 15 01:50 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 15 01:50 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 15 01:50 ice_work
+drwxr-xr-x  5 runner runner   4096 Oct 15 01:50 numba_cache
+-rw-r--r--  1 runner runner  27238 Oct 15 01:50 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 15 01:50 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 15 01:50 probe_core2.py
+-rw-r--r--  1 runner runner    338 Oct 15 01:50 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 15 01:50 smoke_comp
+-rw-r--r--  1 runner runner  17221 Oct 15 01:50 submission.csv
+-rw-r--r--  1 runner runner  17221 Oct 15 01:50 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17221 Oct 15 01:50 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 15 01:51 work
+[{"stream_name":"stderr","time":9.985207439,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.985279399,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.985284579,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.985287375,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.798229348,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.798271908,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.798277452,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.798281957,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":13.074586791,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":13.074630615,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":18.230436487,"data":" \n"}
+,{"stream_name":"stdout","time":18.230511
