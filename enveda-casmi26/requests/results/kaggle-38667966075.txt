@@ -1,0 +1,56 @@
+request: e3fg05dt20c-1
+run: 38667966075  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fg05dt20c  version: 1
+memo: New part on the 0.440 base, CPU kernel (GPU quota spent until 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), base cells unchanged except the CPU edits (as e3fg05c-1 = 0.432, fragment re-rank on the blind molecules kept). Ours: the formula-constrained de novo generator with NEW weights: dn1tpu-2 (our JAX training on TPU v5e-8 with randomized-SMILES augmentation, best epoch by held-out loss 0.7853 vs 0.8282). On 125 held-out NP molecules (dn1r-3) it generates the truth for 0.160 of them (dn1-1b, used in e3fg05dn20c-1: 0.088-0.124), MRR@25 0.104 after our fp2 order (0.065). Top 20 per molecule injected through pc_join, scored by the engine's pass 2 (60 min cap). Hypothesis: LB > e3fg05dn20c-1 and > 0.432.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fg05dt20c
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-15 02:24:51.047000,e3fg05dt20c-1: E006 0.440 base (CPU) + our fragment re-rank + our de novo with the TPU-trained dn1 weights (truth generated 0.160). Hypothesis: LB > 0.432 [run 38667966075],SubmissionStatus.PENDING,,
+submission.csv,2026-10-15 01:51:05.147000,e3fg05nli05c-1: E006 0.440 base (CPU) + our fragment re-rank (blind) + our neutral-loss and diagnostic-ion substructure evidence. Hypothesis: LB > 0.432 [run 38665300958],SubmissionStatus.PENDING,,
+submission.csv,2026-10-15 01:21:14.193000,"e3fg05fp05c-1: E006 0.440 base (CPU) + our fragment re-rank + our fp2 re-rank, both only where ICEBERG and GLACIER are blind. Hypothesis: LB > 0.432 [run 38662525978]",SubmissionStatus.PENDING,,
+
+output files:
+total 568
+drwxr-xr-x  8 runner runner   4096 Oct 15 02:24 .
+drwxrwxrwt 14 root   root     4096 Oct 15 02:23 ..
+-rw-r--r--  1 runner runner  17121 Oct 15 02:23 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 15 02:23 candidate_audit.csv
+-rw-r--r--  1 runner runner   2441 Oct 15 02:23 candidate_audit.json
+-rw-r--r--  1 runner runner  33093 Oct 15 02:24 casmi26-e3fg05dt20c.log
+-rw-r--r--  1 runner runner 129976 Oct 15 02:23 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9697 Oct 15 02:23 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 15 02:23 eng
+-rw-r--r--  1 runner runner  29204 Oct 15 02:23 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 15 02:23 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 15 02:23 experiment_audit.json
+-rw-r--r--  1 runner runner  23729 Oct 15 02:23 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139847 Oct 15 02:23 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 15 02:23 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 15 02:23 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 15 02:23 ice_work
+drwxr-xr-x  5 runner runner   4096 Oct 15 02:24 numba_cache
+-rw-r--r--  1 runner runner    633 Oct 15 02:24 ours_denovo_stats.json
+-rw-r--r--  1 runner runner  27238 Oct 15 02:24 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 15 02:24 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 15 02:24 probe_core2.py
+-rw-r--r--  1 runner runner    338 Oct 15 02:24 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 15 02:24 smoke_comp
+-rw-r--r--  1 runner runner  17121 Oct 15 02:24 submission.csv
+-rw-r--r--  1 runner runner  17121 Oct 15 02:24 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17121 Oct 15 02:24 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 15 02:24 work
+[{"stream_name":"stderr","time":9.145816334,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.145870556,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.145878081,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.145882204,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.912867722,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.912908428,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.912913701,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.912917355,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":11.819472551,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":11.819508362,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":16.610761839,"data":" \n"}
+,{"stream_name":"stdout","time":16.610795192,
