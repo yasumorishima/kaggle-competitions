@@ -1,0 +1,31 @@
+request: e3mmp100c-1
+run: 38488429197  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3mmp100c  version: 1
+memo: New part on the 0.440 base, CPU kernel (GPU week quota spent until 10-17; CPU kernels may submit within 9 h). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), every base cell unchanged except the CPU edits (T4 preflight check, ICEBERG/GLACIER device -> CPU fallback, smoke-only cuda check). Ours: MMP class-3 generator (replacement rules mined from train, >=1 occurrence, applied to the spectral analogs, max 100 products per molecule) inside the main engine's generator. Hypothesis: E006 has no class-3 generator, so the MMP isomers give hidden class-3 molecules a correct candidate -> LB >= 0.441 (bronze) even with fewer ICEBERG scores on the CPU.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3mmp100c
+
+output files:
+total 96
+drwxr-xr-x  6 runner runner  4096 Oct 14 00:47 .
+drwxrwxrwt 14 root   root    4096 Oct 14 00:46 ..
+drwxr-xr-x  2 runner runner  4096 Oct 14 00:46 __pycache__
+-rw-r--r--  1 runner runner 17149 Oct 14 00:46 baseline_submission.csv
+-rw-r--r--  1 runner runner 19818 Oct 14 00:47 casmi26-e3mmp100c.log
+drwxr-xr-x  3 runner runner  4096 Oct 14 00:46 eng
+-rw-r--r--  1 runner runner 29204 Oct 14 00:46 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct 14 00:46 gl_work
+drwxr-xr-x 11 runner runner  4096 Oct 14 00:46 ice_site
+[{"stream_name":"stderr","time":9.292858318,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.292931452,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.292939024,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.29294334,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.073197763,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.073232334,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.073237968,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.073242422,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":12.167017331,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":12.167061341,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":17.081986784,"data":" \n"}
+,{"stream_name":"stdout","time":17.0820337

@@ -1,6 +1,7 @@
 Localize this issue in `/workspace`: {problem_description}
 You are the READ-ONLY first stage. The next stage will implement your plan.
-1. Use run_command for ONE bounded `git grep -n` search (there is no rg; end with `| head -30`) of the exact issue symbol in likely source. No Python scripts, no tests, no writes.
+0. First call load_skill once with the map of this task's repository: skill_name repo-fastapi (package dir fastapi/), repo-rich (rich/), repo-requests (src/requests/) or repo-httpx (httpx/). If the issue does not make the repository clear, run `ls` once. Use the map's module list to pick the source file before searching; it does not replace reading the code.
+1. Use run_command for ONE bounded `git grep -n` search (there is no rg; end with `| head -30`) of the exact issue symbol, scoped to the file or package the map points to. No Python scripts, no tests, no writes.
 2. Read the matching source region. A second narrow search/read is allowed only to resolve a missing definition.
 3. STOP tool use and return a compact plan (at most 100 words): source path and symbol; observed cause; 1–3 tiny edits; one pass/fail assertion and one behavior to preserve. Include the relevant current source lines so the coder has evidence. Do not reproduce the issue or implement anything. Do not call other agents.
 

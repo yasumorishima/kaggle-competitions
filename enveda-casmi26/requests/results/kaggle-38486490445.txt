@@ -1,0 +1,9 @@
+request: dn1tpu-2
+run: 38486490445  status: success  action: kernel  dir: enveda-casmi26/kernels/dn1tpu  submit: no
+kernel: yasunorim/casmi26-dn1tpu  version: 2
+memo: TPU training, no submit. dn1tpu-1 overfit (held-out loss best 0.8149 at epoch 7, then up to 0.8919; train loss 0.54->0.42 = memorising canonical SMILES). dn1tpu-2 adds ours: (1) randomized-SMILES augmentation (idea: Arus-Pous et al. 2019, J Cheminform 11:71; 8 strings per structure, stereo kept, half of rows per epoch use a random string), (2) dn1.pt keeps only the best held-out epoch (mid-epoch saves go to dn1_last.pt). Continues from dn1-1b, 30 epochs, 1.7 h cap. Pass: dn1r truth generated >= 0.15 and valid >= 0.35 -> e3dn20 with these weights.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-dn1tpu
+
+output files:

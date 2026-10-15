@@ -1,0 +1,78 @@
+request: g4v14-1
+run: 38657601730  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 12
+memo: v14 = v13 (public LB 0.13 config hsiaosuan/gemma-developer-agent-0-13-submission as the base + our heredoc edits, read_file rules, git grep; g4v13-1b = 0.10) + our new part: repository maps as ADK skills (skills/repo-fastapi / rich / requests / httpx, built by our train/make_repomap.py from the repository snapshots and the practice tasks' reference fixes: every source module with its top-level classes, methods and public functions, the files fixes changed most often, the test layout). The explore stage loads its repository's map first (load_skill) and scopes its one git grep to the file the map points to. Hypothesis: the main loss is localisation time (v7: 92 of 258 unsolved runs hit the 5 min cap without a patch); fewer search rounds -> more patches -> LB > 0.10 and toward bronze 0.15.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 12 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      252  2026-10-15 00:01   agent.yaml
+      120  2026-10-15 00:01   configs/explore_sampling.yaml
+      120  2026-10-15 00:01   configs/sampling.yaml
+       94  2026-10-15 00:01   eval_config.yaml
+     2335  2026-10-15 00:01   prompts/explore.md
+     2439  2026-10-15 00:01   prompts/system.md
+     7820  2026-10-15 00:01   skills/repo-fastapi/SKILL.md
+     6046  2026-10-15 00:01   skills/repo-httpx/SKILL.md
+     4331  2026-10-15 00:01   skills/repo-requests/SKILL.md
+    10769  2026-10-15 00:01   skills/repo-rich/SKILL.md
+      586  2026-10-15 00:01   skills/swe-workflow/SKILL.md
+      570  2026-10-15 00:01   skills/verify-before-submit/SKILL.md
+      403  2026-10-15 00:01   sub_agents/coder.yaml
+      435  2026-10-15 00:01   sub_agents/explore.yaml
+---------                     -------
+    36320                     14 files
+agent.yaml 252
+configs/explore_sampling.yaml 120
+configs/sampling.yaml 120
+eval_config.yaml 94
+prompts/explore.md 2333
+prompts/system.md 2439
+skills/repo-fastapi/SKILL.md 7820
+skills/repo-httpx/SKILL.md 6046
+skills/repo-requests/SKILL.md 4331
+skills/repo-rich/SKILL.md 10769
+skills/swe-workflow/SKILL.md 586
+skills/verify-before-submit/SKILL.md 564
+sub_agents/coder.yaml 403
+sub_agents/explore.yaml 435
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 327897 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-10-15 00:02:49.537000,g4v14-1: v13 + our repository-map skills (explore loads its repo's module map before searching) [run 38657601730],SubmissionStatus.PENDING,,
+submission.zip,2026-10-14 00:29:51.083000,g4v13-1b: public 0.13 config + our heredoc edits (no edit_file) + read_file rules [run 38490384973],SubmissionStatus.COMPLETE,0.10,
+submission.zip,2026-10-12 23:07:55.427000,"g4v12-1: v7 minus edit_file, edits via run_command heredocs [run 38320387107]",SubmissionStatus.COMPLETE,0.08,
+
+output files:
+total 28
+drwxr-xr-x  2 runner runner  4096 Oct 15 00:02 .
+drwxrwxrwt 14 root   root    4096 Oct 15 00:02 ..
+-rw-r--r--  1 runner runner  2078 Oct 15 00:02 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 15700 Oct 15 00:02 submission.zip
+[{"stream_name":"stdout","time":1.027087521,"data":"agent.yaml 252\n"}
+,{"stream_name":"stdout","time":1.027145001,"data":"configs/explore_sampling.yaml 120\n"}
+,{"stream_name":"stdout","time":1.027705292,"data":"configs/sampling.yaml 120\n"}
+,{"stream_name":"stdout","time":1.027754102,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":1.027758542,"data":"prompts/explore.md 2333\n"}
+,{"stream_name":"stdout","time":1.027760932,"data":"prompts/system.md 2439\n"}
+,{"stream_name":"stdout","time":1.027991823,"data":"skills/repo-fastapi/SKILL.md 7820\n"}
+,{"stream_name":"stdout","time":1.028107703,"data":"skills/repo-httpx/SKILL.md 6046\n"}
+,{"stream_name":"stdout","time":1.028322823,"data":"skills/repo-requests/SKILL.md 4331\n"}
+,{"stream_name":"stdout","time":1.029151624,"data":"skills/repo-rich/SKILL.md 10769\n"}
+,{"stream_name":"stdout","time":1.029175745,"data":"skills/swe-workflow/SKILL.md 586\n"}
+,{"stream_name":"stdout","time":1.029179385,"data":"skills/verify-before-submit/SKILL.md 564\n"}
+,{"stream_name":"stdout","time":1.029236785,"data":"sub_agents/coder.yaml 403\n"}
+,{"stream_name":"stdout","time":1.029277505,"data":"sub_agents/explore.yaml 435\n"}
+,{"stream_name":"stdout","time":1.029438805,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":3.895042734,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":3.895090374,"data":"  cells[i][

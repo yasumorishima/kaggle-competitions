@@ -9,3 +9,8 @@ tools:
   - read_file
   - get_code_neighbors
   - get_code_subgraph
+skills:
+  - skills/repo-fastapi
+  - skills/repo-rich
+  - skills/repo-requests
+  - skills/repo-httpx

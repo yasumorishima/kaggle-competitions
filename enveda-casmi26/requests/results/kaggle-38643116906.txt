@@ -1,0 +1,9 @@
+request: dn1r-3
+run: 38643116906  status: success  action: kernel  dir: enveda-casmi26/kernels/dn1r  submit: no
+kernel: yasunorim/casmi26-dn1r-fp2rerank  version: 3
+memo: Decode-only check of the dn1tpu-2 weights (our JAX training on TPU, randomized-SMILES augmentation; dn1.pt = best epoch 17, held-out loss 0.7853 vs 0.8282 before training). Same dn1r as dn1r-2 (125 held-out NP molecules, formula-constrained decoding, fp2 re-rank), kernel source swapped from casmi26-dn1-denovo to casmi26-dn1tpu. Pass: truth generated >= 0.15 and valid >= 0.35 (dn1-1b: 0.088-0.124) -> the new weights go into the e3 denovo runs.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-dn1r-fp2rerank
+
+output files:

@@ -21,7 +21,12 @@ cell), the top fgapk SMILES of submission.csv are re-ranked by z(-log rank) + fg
 ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
-                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M]
+                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice] [cpu]
+
+cpu: CPU kernel (for weeks with the GPU quota spent; CPU kernels may submit within 9 h). The only base-cell edits are the
+T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, the smoke
+postflight's GPU acceptance checks (off), and the final pass's ICE / GLACIER status checks ('budget' allowed: on the CPU
+they end on their time budget with part of the molecules scored). Time budgets are unchanged (ICEBERG covers fewer molecules on the CPU).
 """
 import json
 import os
@@ -46,6 +51,8 @@ fgap = _arg("fgap", 0.0)              # ours_frag: weight of z(fragment explanat
 fgapk = _arg("fgapk", 25, int)        # ... re-rank only the top K of the final list
 fgapsec = _arg("fgapsec", 10.0)       # ... per-molecule cap (s); the list is left as is when it is hit
 fgapmin = _arg("fgapmin", 40.0)       # ... total cap (minutes)
+fgapcov = _arg("fgapcov", "both", str)  # 'both': only where neither GLACIER nor ICEBERG scored; 'ice': wherever ICEBERG gave no score (GLACIER-scored too)
+assert fgapcov in ("both", "ice"), fgapcov
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -62,8 +69,34 @@ def code_cell(s):
     return {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": s}
 
 
+cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
+if cpu:   # the only base-cell edits: device strings and the T4-only checks (time budgets unchanged)
+    def _cpu_swap(i, old, new, n=1):
+        s_ = src(i)
+        assert s_.count(old) == n, (i, old, s_.count(old))
+        cells[i]["source"] = s_.replace(old, new)
+    _ip = find_cell('"""Read-only E004 observer')
+    _cpu_swap(_ip, """    gpu = subprocess.check_output(
+        ['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], text=True).strip()
+    assert 'T4' in gpu, gpu
+""", """    gpu = 'cpu'   # ours (cpu build): no GPU on this kernel
+""")
+    _ii = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "ice_fuse.run_ice(" in src(i))
+    _cpu_swap(_ii, "device='cuda'", "device=('cuda' if torch.cuda.is_available() else 'cpu')", 2)
+    _io = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "def _e004_postflight" in src(i))
+    _cpu_swap(_io, """        if not full:
+            assert meta['status'] == 'ok' and meta['device'].startswith('cuda'), (stage, meta)""",
+              """        if not full and False:   # ours (cpu build): smoke-only GPU acceptance checks off (ICE hits its 300 s budget on the CPU)
+            assert meta['status'] == 'ok' and meta['device'].startswith('cuda'), (stage, meta)""")
+    _if = find_cell("METRIC_SOURCE_SHA256 = ")   # final pass: on the CPU ICEBERG / GLACIER may end on their time budget
+    _cpu_swap(_if, "assert _stage_meta['ice'].get('status') == 'ok', _stage_meta['ice']",
+              "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
+    _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
+              "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
+
+
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
-    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin)
+    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin, FGAP_COV=fgapcov)
     hook_f = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # fragment explanation where the forward models are blind: molecules with no GLACIER score (gl_of(mid) empty) and no
 # ICEBERG score (no non-None value in ICE_SCORES[mid]) get their final top FGAP_K re-ranked by
@@ -86,6 +119,8 @@ try:
         def _f_cov(m_):
             _i = _ice_all.get(str(m_), {{}})
             _i = _i if isinstance(_i, dict) and any(v is not None for v in _i.values()) else {{}}
+            if OURS_FCFG.get('FGAP_COV') == 'ice':   # fgapcov=ice: GLACIER-scored molecules are re-ranked too
+                return bool(_i)
             return bool(gl_of(str(m_))) or bool(_i)
         _fspec = {{}}
         for _r in te.itertuples():
@@ -111,7 +146,7 @@ try:
             _out.append(';'.join(_new))
         _sub['smiles'] = _out
         _sub.to_csv(_sp, index=False)
-        print(f'FGAP lam {{OURS_FCFG["FGAP_LAM"]}} K {{OURS_FCFG["FGAP_K"]}}: uncovered molecules {{_nunc}} of {{len(_sub)}} | '
+        print(f'FGAP lam {{OURS_FCFG["FGAP_LAM"]}} K {{OURS_FCFG["FGAP_K"]}} cov {{OURS_FCFG.get("FGAP_COV")}}: uncovered molecules {{_nunc}} of {{len(_sub)}} | '
               f're-ranked {{_nt}} | top-1 changed {{_n1}} | skipped (time cap) {{_nskip}} | {{time.time()-_ft0:.0f}}s', flush=True)
 except Exception as _e:
     if not IS_RERUN:                 # commit run: a bug must fail the commit
@@ -247,6 +282,18 @@ print('ours MMP', 'ON' if MMP_ON else 'OFF', OURS_MCFG, f'{{time.time()-T0:.0f}}
     _ib = find_cell("'''all molecules -> base lists")
     cells.insert(_ib + 1, code_cell("# ==== ours (yasunorim): MMP summary ====\nif MMP_ON:\n    print('MMP stats', ours_mmp.STATS, flush=True)\n"))
 
+# Z. last cell (every build): drop the ICEBERG site tree from /kaggle/working. It holds > 500 files, and the kernel
+# output listing is paged at 500, so the workflow's `kaggle kernels output` never reached submission.csv
+# (e3mmp100c-2, 10-14). Only scratch directories go; submission.csv and the audit files stay.
+cells.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
+import os as _os, shutil as _sh
+for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods'):
+    _p = _os.path.join('/kaggle/working', _d)
+    if _os.path.isdir(_p):
+        _sh.rmtree(_p, ignore_errors=True)
+_n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
+print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
+"""))
 cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  f"# casmi26 {name} (yasunorim)\n\nBase: [CASMI26 E006 Window 40 ICE Fallback True (public LB 0.440)]"
                  "(https://www.kaggle.com/code/canqiang/casmi26-e006-window-40-ice-fallback-true) by canqiang, version 1, "
@@ -258,7 +305,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + (f"Ours: MMP class-3 generator (replacement rules mined from train, applied to the spectral analogs; max "
                     f"{mmp} products per molecule) inside the main engine's generator. " if mmp > 0 else "")
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fgapk} are re-ranked by "
-                    f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra). " if fgap > 0 else "")
+                    f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra)"
+                    + (" (fgapcov=ice: every molecule without an ICEBERG score, GLACIER-scored ones included)" if fgapcov == "ice" else "")
+                    + ". " if fgap > 0 else "")
                  + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
@@ -282,6 +331,9 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 else []),
         "model_sources": []}
+if cpu:
+    meta.update(enable_gpu="false")
+    meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "cpu", cpu)
