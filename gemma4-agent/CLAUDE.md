@@ -18,6 +18,7 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
 
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
+**LB（10-15 取り直し・2,866 チーム）：1 位 0.24・銅 286 位＝0.18・中央値 0.12。自分 0.10（g4v13-1b・g4v14-1）。銅まで +0.08。公開 0.24 構成（pub024）を土台にし、自前の部品を載せて出す（v15 から）。**
 **LB（10-10 01:01 取り直し・2,231 チーム）：1 位 0.24・金 14 位＝0.18・銀 111 位＝0.17・銅 223 位＝0.15・中央値 0.10。自分：0.08（g4v6-1・g4v7-2）・1,587 位。銅まで +0.07（公開 約 58 課題で約 4 課題）。締切 12-02。**
 - 銅の線は 5 日で 0.13→0.15、中央値も 0.08→0.10 に上がった。
 - **計画監査（fable・10-10）での一番弱い前提**：手元の解決率が隠しに移ること。手元では v7 が 22 対 14 で v6 に勝ったが、LB は両方 0.08 だった。
@@ -197,6 +198,16 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
           - 公式パッケージ（adk_submission 0.2.12）で validate と compile は通った。explore の道具に SkillToolset（list_skills・load_skill など）が付き、4 本の skill が読めることを確かめた。
           - 仮説：探索の往復が減り、時間切れでパッチなしの課題が減る ⇒ LB > 0.10（v13）、銅 0.15 を狙う。
           - 10-14 の枠は g4v13-1b で使ったので、**10-15 00:00 UTC を過ぎたらすぐ g4v14-1 を出す**。
+          - **結果（10-15 17:51 UTC・採点に約 18 時間）：g4v14-1＝0.10**（v13 と同じ）＝仮説は外れ。地図で探索を短くしても、公開 0.13 系の土台の上では上積みが出ない。
+        - **LB 取り直し（10-15 17:5x・2,866 チーム）：1 位 0.24・14 位 0.22・銀 143 位＝0.18・銅 286 位＝0.18・中央値 0.12。自分 0.10。銅まで +0.08。**
+          公開ノートブックに LB 0.24 の構成が出た（honghanhhh/gemma-4-baseline-lb-0-24＝flexonafft/gemma-4-budget-aware-coding-agent-v2〔公開 0.22〕の prompt 改訂版）。
+          中身：sub-agent なしの 1 本、道具 28 回・8 分・コマンド 240 秒、thinking 4,096（include_thoughts true）、「12 回目までに必ず編集」の呼び出し計画、仕様の抜き出し→場所→編集→検証 2 回→`git status --short && git diff`→提出。
+          ⇒ 銅の線は公開の 0.22〜0.24 系が占めている。**土台を pub024 に替える**（`bases/pub024`・出典 `bases/pub024_SOURCE.txt`）。
+        - **v15（`submission/`・出典 `bases/v15_SOURCE.txt`）＝pub024＋自前の部品「edit_file を外し、編集は run_command の Python heredoc だけ」**。v14 は `bases/v14` に保存。
+          - 根拠は自前の診断：edit_file は old_string にコロンや空の引用符があると引数を落とし、同じ呼び出しを繰り返す（1 課題で最大 113 回）。28 回の上限では 1 回のループで未編集のまま終わる。
+            影響のあった 14 課題（TPU・直列）で v7 2 件・欠落 513 件 → heredoc だけの v12 6 件・欠落 0 件。
+          - 公式パッケージ（0.2.12）で validate と compile は通った。仮説：pub024 の失敗の一部は edit_file の欠落ループ ⇒ LB ≥ 0.22（銅 0.18 を越える）。
+          - 10-15 の枠は g4v14-1 で使ったので、**10-16 00:00 UTC を過ぎたらすぐ g4v15-1 を出す**。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
