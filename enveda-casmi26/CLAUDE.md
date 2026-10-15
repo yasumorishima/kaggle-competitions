@@ -245,6 +245,8 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
             並べ直し後の MRR@25 は最良 0.1036（mix）・top1 0.072〜0.080（dn1r-2 は fp で 0.065）。上位 25 の最良 Tanimoto は中央値 0.373。
             ⇒ 効くのは「正解を作れるか」で、そこが約 1.5 倍になった（有効率は下がったが、無効な SMILES は捨てるだけ）。**e3 の de novo の重みを casmi26-dn1tpu に替えて LB で確かめる**（`dnsrc=yasunorim/casmi26-dn1tpu`）。
             - **e3fg05dt20c-1（10-15・`fgap=0.5 denovo=20 dns=16 dnmin=60 dnsrc=yasunorim/casmi26-dn1tpu cpu`）**：e3fg05dn20c-1 と同じ形で、de novo の重みだけを dn1tpu-2 に替えた。仮説：LB > e3fg05dn20c-1、かつ > 0.432。
+              **結果（09:4x UTC）：e3fg05dt20c-1＝0.423（古い重みの 0.424 と同じ・断片説明だけの 0.432 より −0.009）＝仮説は外れ**。正解を作る率を 0.10 → 0.16 に上げても、LB では de novo の注入が 1 分子分ほど下げる。
+              ⇒ **de novo（ranker 任せの注入）は銅への部品から外す**（0.420 の土台・E006 の土台で計 4 回、どれも上積みなし）。10-17 の GPU では出さない。
             検証の損失は正規表記で測るので、水増しすると損失はやや不利に出る。決め手は dn1r の値にする。
           - **10-13 23:50 UTC：dn1tpu-2 を投入**（tpueval-7 は 23:48 に終了。GHA は成功）。
         - **dn1r（`kernels/dn1r`・CPU・提出なし・10-11）**：dn1g の生成に、自前の並べ直しを足した版。
