@@ -238,6 +238,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
           - **dn1r-3 の結果（10-15 00:4x UTC・125 分子・CPU で 11,924 秒）**：**正解を作った率 0.160（合格・dn1-1b は 0.088〜0.124）**、有効率 0.269（不合格・基準 0.35）、分子式が合う率 0.204。
             並べ直し後の MRR@25 は最良 0.1036（mix）・top1 0.072〜0.080（dn1r-2 は fp で 0.065）。上位 25 の最良 Tanimoto は中央値 0.373。
             ⇒ 効くのは「正解を作れるか」で、そこが約 1.5 倍になった（有効率は下がったが、無効な SMILES は捨てるだけ）。**e3 の de novo の重みを casmi26-dn1tpu に替えて LB で確かめる**（`dnsrc=yasunorim/casmi26-dn1tpu`）。
+            - **e3fg05dt20c-1（10-15・`fgap=0.5 denovo=20 dns=16 dnmin=60 dnsrc=yasunorim/casmi26-dn1tpu cpu`）**：e3fg05dn20c-1 と同じ形で、de novo の重みだけを dn1tpu-2 に替えた。仮説：LB > e3fg05dn20c-1、かつ > 0.432。
             検証の損失は正規表記で測るので、水増しすると損失はやや不利に出る。決め手は dn1r の値にする。
           - **10-13 23:50 UTC：dn1tpu-2 を投入**（tpueval-7 は 23:48 に終了。GHA は成功）。
         - **dn1r（`kernels/dn1r`・CPU・提出なし・10-11）**：dn1g の生成に、自前の並べ直しを足した版。
