@@ -21,7 +21,13 @@ cell), the top fgapk SMILES of submission.csv are re-ranked by z(-log rank) + fg
 ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
-                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice] [cpu]
+                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice]
+                         [nl=LAM] [nlk=K] [nlcov=all|blind] [cpu]
+
+With nl > 0 one marked code cell N is appended after cell F: for each molecule whose spectra show a diagnostic neutral
+loss (precursor m/z - peak m/z = hexose, glucuronic acid, SO3, H3PO4, CO2, NH3, CH3, ...; ours_nl.py, rates measured on
+train), the top nlk SMILES are re-ranked by z(-log rank) + nl * nl * (naive-Bayes log likelihood of the seen / unseen
+losses given each candidate's groups, raw nats). nlcov=blind limits it to the molecules neither GLACIER nor ICEBERG scored.
 
 cpu: CPU kernel (for weeks with the GPU quota spent; CPU kernels may submit within 9 h). The only base-cell edits are the
 T4 preflight check (cell "Read-only E004 observer"), device='cuda' -> CPU fallback for ICEBERG / GLACIER, the smoke
@@ -53,6 +59,10 @@ fgapsec = _arg("fgapsec", 10.0)       # ... per-molecule cap (s); the list is le
 fgapmin = _arg("fgapmin", 40.0)       # ... total cap (minutes)
 fgapcov = _arg("fgapcov", "both", str)  # 'both': only where neither GLACIER nor ICEBERG scored; 'ice': wherever ICEBERG gave no score (GLACIER-scored too)
 assert fgapcov in ("both", "ice"), fgapcov
+nl = _arg("nl", 0.0)                  # ours_nl: weight of z(neutral-loss substructure log likelihood) (0 = off)
+nlk = _arg("nlk", 25, int)            # ... re-rank only the top K of the final list
+nlcov = _arg("nlcov", "all", str)     # 'all': every molecule with a diagnostic loss; 'blind': only where neither GLACIER nor ICEBERG scored
+assert nlcov in ("all", "blind"), nlcov
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -154,6 +164,68 @@ except Exception as _e:
     print('FGAP FAILED -> submission as is', repr(_e), flush=True)
 '''
     cells.append(code_cell(hook_f))
+
+if nl > 0:       # N. after cell F, BEFORE hook C
+    NCFG = dict(NL_LAM=nl, NL_K=nlk, NL_COV=nlcov)
+    hook_n = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
+# neutral-loss substructure evidence (ours_nl): a peak at precursor m/z - L (hexose, glucuronic acid, SO3, H3PO4, CO2,
+# NH3, CH3, ...) says the molecule carries the group. The final top NL_K are re-ranked by z(-log rank) + NL_LAM *
+# (naive-Bayes log likelihood of the seen / unseen losses given each candidate's groups, raw nats; rates measured on train).
+# Molecules with no diagnostic loss, or whose candidates all agree on every group, are unchanged.
+OURS_NCFG = {NCFG!r}
+_ours_dir = '/kaggle/working/ours_mods'
+os.makedirs(_ours_dir, exist_ok=True)
+with open(os.path.join(_ours_dir, 'ours_nl.py'), 'w') as _fh:
+    _fh.write({open(os.path.join(HERE, "ours_nl.py"), encoding="utf-8").read()!r})
+if _ours_dir not in sys.path:
+    sys.path.insert(0, _ours_dir)
+try:
+    _nt0 = time.time()
+    if 'te' not in globals():
+        print('NL: te missing -> nothing done', flush=True)
+    else:
+        import ours_nl
+        _ice_all = ICE_SCORES if 'ICE_SCORES' in globals() and isinstance(ICE_SCORES, dict) else {{}}
+        def _n_cov(m_):              # True: the molecule is skipped
+            if OURS_NCFG['NL_COV'] != 'blind':
+                return False
+            _i = _ice_all.get(str(m_), {{}})
+            _i = _i if isinstance(_i, dict) and any(v is not None for v in _i.values()) else {{}}
+            return ('gl_of' in globals() and bool(gl_of(str(m_)))) or bool(_i)
+        _nspec = {{}}
+        for _r in te.itertuples():
+            _nspec.setdefault(str(_r.molecule_id), []).append(
+                (np.column_stack([np.asarray(_r.ms2_mzs, np.float64), np.asarray(_r.ms2_normalized_intensities, np.float64)]),
+                 float(_r.precursor_mz)))
+        _sp = '/kaggle/working/submission.csv'
+        _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
+        _out, _nseen, _nt, _n1, _nrule = [], 0, 0, 0, {{}}
+        for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+            _l = [x for x in str(_s).split(';') if x]
+            if _n_cov(_m) or len(_l) < 2 or not _nspec.get(str(_m)):
+                _out.append(_s); continue
+            _seen = ours_nl.observed(_nspec[str(_m)])
+            if not any(_seen.values()):
+                _out.append(_s); continue
+            _nseen += 1
+            for _k, _v in _seen.items():
+                _nrule[_k] = _nrule.get(_k, 0) + int(_v)
+            _top = _l[:OURS_NCFG['NL_K']]
+            _o = ours_nl.rerank(_top, ours_nl.score_list(_top, _seen), OURS_NCFG['NL_LAM'])
+            _new = [_top[i] for i in _o] + _l[len(_top):]
+            _nt += _new != _l; _n1 += _new[0] != _l[0]
+            _out.append(';'.join(_new))
+        _sub['smiles'] = _out
+        _sub.to_csv(_sp, index=False)
+        print(f'NL lam {{OURS_NCFG["NL_LAM"]}} K {{OURS_NCFG["NL_K"]}} cov {{OURS_NCFG["NL_COV"]}}: molecules with a diagnostic loss '
+              f'{{_nseen}} of {{len(_sub)}} | order changed {{_nt}} | top-1 changed {{_n1}} | rules {{ {{k: v for k, v in _nrule.items() if v}} }} | '
+              f'{{time.time()-_nt0:.0f}}s', flush=True)
+except Exception as _e:
+    if not IS_RERUN:                 # commit run: a bug must fail the commit
+        raise
+    print('NL FAILED -> submission as is', repr(_e), flush=True)
+'''
+    cells.append(code_cell(hook_n))
 
 if denovo > 0:
     # ---- embedded modules: ours_fp2 / ours_denovo (e1fuse, ours) + pc_join (0.420 notebook, Apache-2.0)
@@ -308,7 +380,11 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra)"
                     + (" (fgapcov=ice: every molecule without an ICEBERG score, GLACIER-scored ones included)" if fgapcov == "ice" else "")
                     + ". " if fgap > 0 else "")
-                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 else "")
+                 + (f"Ours: neutral-loss substructure evidence (diagnostic losses such as hexose, glucuronic acid, SO3, CO2 "
+                    f"from the precursor; rates measured on train) re-ranks the final top {nlk} by z(-log rank) + {nl} "
+                    f"x (naive-Bayes log likelihood, nats){' (only where neither GLACIER nor ICEBERG scored)' if nlcov == 'blind' else ''}. "
+                    if nl > 0 else "")
+                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
     if c["cell_type"] == "code":
@@ -336,4 +412,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "cpu", cpu)
