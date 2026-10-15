@@ -208,6 +208,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
                 train で測った率の例：ベンゾイル 0.57 対 0.011、ホスホコリン 0.30 対 0.006、HSO4- 0.13 対 0.0007。測り方は `scratchpad/nl/ionstat.py`（repo 外）。
                 test では型が見える分子が 28 → **164（400 分子中）**に増える。手元の確認（np-examples）では、差が出る分子 134 で MRR 0.345、ランダム 0.274。
               - **e3fg05nli05c-1（`fgap=0.5 nl=0.5 nlion=1 cpu`）**：脱離＋イオン。e3fg05nl05c-1 と比べてイオンの効き目を切り分ける。仮説：LB > 0.432。
+                **結果（08:2x UTC）：e3fg05nli05c-1＝0.424（脱離だけの 0.434 より −0.010）＝仮説は外れ**。イオンで効く分子を 164 に広げると下がった。
+                ⇒ 3 回目の同じ形：自前の証拠は、順方向モデルの点が無い分子では効き（断片説明 +、脱離 +）、GLACIER の点がある分子に重ねると下がる（断片説明 0.427、イオン 0.424）。
+              - **e3fg05nlib05c-1（`fgap=0.5 nl=0.5 nlion=1 nlcov=blind cpu`）**：脱離＋イオンを、GLACIER と ICEBERG の両方の点が無い分子だけに使う。仮説：イオンも、ほかに並べる信号が無い分子でなら効く ⇒ LB ≥ 0.434。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
             - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
