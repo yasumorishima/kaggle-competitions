@@ -22,7 +22,7 @@ ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
                          [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice]
-                         [nl=LAM] [nlk=K] [nlcov=all|blind] [fp2gap=LAM] [fp2k=K] [cpu]
+                         [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [cpu]
 
 With fp2gap > 0 one marked code cell P is appended after cell N: for the molecules neither GLACIER nor ICEBERG scored
 (as cell F), the top fp2k SMILES are re-ranked by z(-log rank) + fp2gap * z(our fp2 log likelihood: Morgan r2 bits of the
@@ -67,6 +67,7 @@ nl = _arg("nl", 0.0)                  # ours_nl: weight of z(neutral-loss substr
 nlk = _arg("nlk", 25, int)            # ... re-rank only the top K of the final list
 nlcov = _arg("nlcov", "all", str)     # 'all': every molecule with a diagnostic loss; 'blind': only where neither GLACIER nor ICEBERG scored
 assert nlcov in ("all", "blind"), nlcov
+nlion = _arg("nlion", 0, int)         # 1: diagnostic product ions (ours_nl.ION_RULES) join the neutral-loss evidence
 fp2gap = _arg("fp2gap", 0.0)          # ours_fp2: weight of z(fp2 log likelihood) where ICE/GLACIER gave no score (0 = off)
 fp2k = _arg("fp2k", 25, int)          # ... re-rank only the top K of the final list
 
@@ -172,7 +173,7 @@ except Exception as _e:
     cells.append(code_cell(hook_f))
 
 if nl > 0:       # N. after cell F, BEFORE hook C
-    NCFG = dict(NL_LAM=nl, NL_K=nlk, NL_COV=nlcov)
+    NCFG = dict(NL_LAM=nl, NL_K=nlk, NL_COV=nlcov, NL_IONS=bool(nlion))
     hook_n = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # neutral-loss substructure evidence (ours_nl): a peak at precursor m/z - L (hexose, glucuronic acid, SO3, H3PO4, CO2,
 # NH3, CH3, ...) says the molecule carries the group. The final top NL_K are re-ranked by z(-log rank) + NL_LAM *
@@ -191,6 +192,7 @@ try:
         print('NL: te missing -> nothing done', flush=True)
     else:
         import ours_nl
+        ours_nl.USE_IONS = OURS_NCFG.get('NL_IONS', False)
         _ice_all = ICE_SCORES if 'ICE_SCORES' in globals() and isinstance(ICE_SCORES, dict) else {{}}
         def _n_cov(m_):              # True: the molecule is skipped
             if OURS_NCFG['NL_COV'] != 'blind':
@@ -223,7 +225,7 @@ try:
             _out.append(';'.join(_new))
         _sub['smiles'] = _out
         _sub.to_csv(_sp, index=False)
-        print(f'NL lam {{OURS_NCFG["NL_LAM"]}} K {{OURS_NCFG["NL_K"]}} cov {{OURS_NCFG["NL_COV"]}}: molecules with a diagnostic loss '
+        print(f'NL lam {{OURS_NCFG["NL_LAM"]}} K {{OURS_NCFG["NL_K"]}} cov {{OURS_NCFG["NL_COV"]}} ions {{ours_nl.USE_IONS}}: molecules with a diagnostic loss '
               f'{{_nseen}} of {{len(_sub)}} | order changed {{_nt}} | top-1 changed {{_n1}} | rules {{ {{k: v for k, v in _nrule.items() if v}} }} | '
               f'{{time.time()-_nt0:.0f}}s', flush=True)
 except Exception as _e:
@@ -450,7 +452,8 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     + ". " if fgap > 0 else "")
                  + (f"Ours: neutral-loss substructure evidence (diagnostic losses such as hexose, glucuronic acid, SO3, CO2 "
                     f"from the precursor; rates measured on train) re-ranks the final top {nlk} by z(-log rank) + {nl} "
-                    f"x (naive-Bayes log likelihood, nats){' (only where neither GLACIER nor ICEBERG scored)' if nlcov == 'blind' else ''}. "
+                    f"x (naive-Bayes log likelihood, nats){' (only where neither GLACIER nor ICEBERG scored)' if nlcov == 'blind' else ''}"
+                    f"{'; diagnostic product ions (phosphocholine, benzoyl, caffeoyl, immonium ions, HSO4-, ...) join the evidence' if nlion else ''}. "
                     if nl > 0 else "")
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fp2k} are re-ranked by "
                     f"z(-log rank) + {fp2gap} z(our fp2 Morgan-bit log likelihood). " if fp2gap > 0 else "")
@@ -482,4 +485,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "fp2gap", fp2gap, "cpu", cpu)

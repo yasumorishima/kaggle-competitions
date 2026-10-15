@@ -9,6 +9,8 @@ of the molecule's observed / not observed losses given whether the candidate has
 the group (glycoside vs aglycone-C-isomer, acid vs ester, sulfate vs sulfonate ...) get separated; candidates that
 agree on every group get the same score (the order is then unchanged). The log likelihood enters raw (not z-scored).
 Losses are adduct-invariant (precursor m/z - fragment m/z), so every polarity and adduct is used.
+With USE_IONS, diagnostic product ions (phosphocholine 184.073, benzoyl 105.033, caffeoyl 163.039, galloyl 153.018,
+immonium ions, HSO4- 96.960, PO3- 78.959, ...) join the evidence the same way (rates measured on the same train set).
 """
 import math
 
@@ -35,13 +37,36 @@ RULES = {  # name: (loss Da, SMARTS of the group, P(seen | has), P(seen | not))
     "malonyl": (86.00039, 'O=C(CC(=O)O)O', 0.0250, 0.00236),
     "acetyl": (42.01057, '[CH3]C(=O)[OX2][CX4]', 0.0931, 0.01093)
 }
-_PAT = {k: Chem.MolFromSmarts(v[1]) for k, v in RULES.items()}
-_LL = {k: ((math.log(v[2]), math.log(1 - v[2])), (math.log(max(v[3], 1e-5)), math.log(1 - v[3]))) for k, v in RULES.items()}
+ION_RULES = {  # name: (product ion m/z, SMARTS of the group, P(seen | has), P(seen | not)); same train set and peak rule
+    "phosphocholine": (184.07332, 'C[N+](C)(C)CCOP(=O)([OX2,OX1-])[OX2]', 0.2986, 0.00610),
+    "choline": (104.10699, 'C[N+](C)(C)CC[OX2]', 0.0675, 0.00061),
+    "coumaroyl_ion": (147.04406, '[#6](=O)[CH]=[CH]c1ccc([OX2])cc1', 0.2695, 0.01461),
+    "caffeoyl_ion": (163.03897, '[#6](=O)[CH]=[CH]c1ccc([OX2])c([OX2])c1', 0.2865, 0.00841),
+    "feruloyl_ion": (177.05462, '[#6](=O)[CH]=[CH]c1ccc([OX2])c(O[CH3])c1', 0.2371, 0.00910),
+    "galloyl_ion": (153.01824, '[#6](=O)c1cc([OX2])c([OX2])c([OX2])c1', 0.1938, 0.00476),
+    "benzoyl_ion": (105.03349, '[CX3](=O)c1[cH][cH][cH][cH][cH]1', 0.5700, 0.01103),
+    "tropylium": (91.05423, '[CH2]c1[cH][cH][cH][cH][cH]1', 0.3752, 0.09990),
+    "hydroxybenzoyl_ion": (121.02841, '[CX3](=O)c1ccc([OH])cc1', 0.0856, 0.01400),
+    "indole_ion": (130.06513, 'c1ccc2c(c1)cc[nX3]2', 0.1737, 0.02390),
+    "leu_immonium": (86.09643, '[CH3][CH]([CH3])C[CH](N)C(=O)', 0.3005, 0.02186),
+    "phe_immonium": (120.08078, 'c1ccccc1C[CH](N)C(=O)', 0.2580, 0.02011),
+    "tyr_immonium": (136.07569, 'c1cc(O)ccc1C[CH](N)C(=O)', 0.2996, 0.00943),
+    "hso4": (96.96010, '[OX2,OX1-]S(=O)(=O)[OX2]', 0.1312, 0.00066),
+    "po3": (78.95905, 'P(=O)([OX2,OX1-])[OX2,OX1-]', 0.0453, 0.00056),
+    "glycerophosphate": (152.99583, 'OCC(O)COP(=O)(O)O', 0.0271, 0.00073),
+    "quinic_ion": (191.05611, 'OC1CC(O)(C(=O)O)CC(O)C1O', 0.1250, 0.00325)
+}
+USE_IONS = False   # set by the notebook (nlion=1): diagnostic product ions join the evidence
+_PAT = {k: Chem.MolFromSmarts(v[1]) for k, v in {**RULES, **ION_RULES}.items()}
+_LL = {k: ((math.log(v[2]), math.log(1 - v[2])), (math.log(max(v[3], 1e-5)), math.log(1 - v[3])))
+       for k, v in {**RULES, **ION_RULES}.items()}
 
 
 def observed(spectra):
     """spectra: [(peaks Nx2 [mz, intensity], precursor_mz)] -> {rule: seen in any spectrum}."""
     seen = {k: False for k in RULES}
+    if USE_IONS:
+        seen.update({k: False for k in ION_RULES})
     for pk, prec in spectra:
         pk = np.asarray(pk, float)
         if not len(pk) or prec is None or not np.isfinite(prec):
@@ -54,6 +79,11 @@ def observed(spectra):
         for k, v in RULES.items():
             if not seen[k] and np.any(np.abs(loss - v[0]) <= tol):
                 seen[k] = True
+        if USE_IONS:
+            ions = pk[it >= REL_MIN * it.max(), 0]
+            for k, v in ION_RULES.items():
+                if not seen[k] and np.any(np.abs(ions - v[0]) <= tol):
+                    seen[k] = True
     return seen
 
 
