@@ -24,12 +24,13 @@ _GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2)
 
 def load(log=print):
     global _FS
-    cands = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "publicnp.model.gz")]   # embedded copy
+    cands = []
     try:
         from rdkit.Chem import RDConfig
         cands.append(os.path.join(RDConfig.RDContribDir, "NP_Score", "publicnp.model.gz"))
     except Exception:
         pass
+    cands += glob.glob("/usr/local/lib/python3*/*-packages/rdkit/Contrib/NP_Score/publicnp.model.gz")
     cands += glob.glob("/kaggle/input/**/publicnp.model.gz", recursive=True)
     cands += glob.glob("/usr/**/NP_Score/publicnp.model.gz", recursive=True)
     cands += glob.glob("/opt/**/NP_Score/publicnp.model.gz", recursive=True)
