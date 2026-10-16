@@ -22,7 +22,7 @@ ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
                          [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice]
-                         [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [cpu]
+                         [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [np=LAM] [npk=K] [npcov=all|blind] [iceb=S] [cpu]
 
 With fp2gap > 0 one marked code cell P is appended after cell N: for the molecules neither GLACIER nor ICEBERG scored
 (as cell F), the top fp2k SMILES are re-ranked by z(-log rank) + fp2gap * z(our fp2 log likelihood: Morgan r2 bits of the
@@ -69,7 +69,11 @@ nlcov = _arg("nlcov", "all", str)     # 'all': every molecule with a diagnostic 
 assert nlcov in ("all", "blind"), nlcov
 nlion = _arg("nlion", 0, int)         # 1: diagnostic product ions (ours_nl.ION_RULES) join the neutral-loss evidence
 fp2gap = _arg("fp2gap", 0.0)          # ours_fp2: weight of z(fp2 log likelihood) where ICE/GLACIER gave no score (0 = off)
-fp2k = _arg("fp2k", 25, int)          # ... re-rank only the top K of the final list
+fp2k = _arg("fp2k", 25, int)
+npl = _arg("np", 0.0)                  # ours_np: weight of z(Ertl NP-likeness) in the final top-K re-rank (0 = off)
+npk = _arg("npk", 25, int)            # ... re-rank only the top K of the final list
+npcov = _arg("npcov", "all", str)     # 'all': every molecule; 'blind': only where neither GLACIER nor ICEBERG scored
+iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -297,6 +301,64 @@ except Exception as _e:
 '''
     cells.append(code_cell(hook_p))
 
+if iceb > 0:     # the base's ICEBERG budget on the rerun (on the CPU 5400 s scores only part of the molecules)
+    _ib = next(i for i, c in enumerate(cells) if c["cell_type"] == "code"
+                                            and "TOPN, ICE_LAM, ICE_BUDGET, ICE_PC = 60, 1.0, 5400, True" in src(i))
+    cells[_ib]["source"] = src(_ib).replace("TOPN, ICE_LAM, ICE_BUDGET, ICE_PC = 60, 1.0, 5400, True",
+                                            f"TOPN, ICE_LAM, ICE_BUDGET, ICE_PC = 60, 1.0, {iceb}, True   # ours: ICE budget (base 5400)")
+
+if npl > 0:      # Q. after cells F / N / P, BEFORE hook C
+    import base64
+    QCFG = dict(NP_LAM=npl, NP_K=npk, NP_COV=npcov)
+    _npmodel = os.path.join(os.path.dirname(__import__("rdkit").__file__), "Contrib", "NP_Score", "publicnp.model.gz")
+    hook_q = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
+# natural-product-likeness prior (ours_np): the final top NP_K of each molecule are re-ranked by
+# z(-log rank) + NP_LAM * z(Ertl NP-likeness score; Ertl et al. 2008, model of RDKit Contrib/NP_Score embedded).
+# The hidden test is Enveda's natural products; the candidate windows mix them with synthetic isomers.
+OURS_QCFG = {QCFG!r}
+_ours_dir = '/kaggle/working/ours_mods'
+os.makedirs(_ours_dir, exist_ok=True)
+with open(os.path.join(_ours_dir, 'ours_np.py'), 'w') as _fh:
+    _fh.write({open(os.path.join(HERE, "ours_np.py"), encoding="utf-8").read()!r})
+import base64 as _b64
+with open(os.path.join(_ours_dir, 'publicnp.model.gz'), 'wb') as _fh:
+    _fh.write(_b64.b64decode({base64.b64encode(open(_npmodel, "rb").read()).decode()!r}))
+if _ours_dir not in sys.path:
+    sys.path.insert(0, _ours_dir)
+try:
+    _qt0 = time.time()
+    import ours_np
+    ours_np.load(log=print)
+    _ice_all = ICE_SCORES if 'ICE_SCORES' in globals() and isinstance(ICE_SCORES, dict) else {{}}
+    def _q_cov(m_):                  # True: the molecule is skipped
+        if OURS_QCFG['NP_COV'] != 'blind':
+            return False
+        _i = _ice_all.get(str(m_), {{}})
+        _i = _i if isinstance(_i, dict) and any(v is not None for v in _i.values()) else {{}}
+        return ('gl_of' in globals() and bool(gl_of(str(m_)))) or bool(_i)
+    _sp = '/kaggle/working/submission.csv'
+    _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
+    _out, _nt, _nc, _n1 = [], 0, 0, 0
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _l = [x for x in str(_s).split(';') if x]
+        if _q_cov(_m) or len(_l) < 2:
+            _out.append(_s); continue
+        _top = _l[:OURS_QCFG['NP_K']]
+        _o = ours_np.rerank(_top, OURS_QCFG['NP_LAM'])
+        _new = [_top[i] for i in _o] + _l[len(_top):]
+        _nt += 1; _nc += _new != _l; _n1 += _new[0] != _l[0]
+        _out.append(';'.join(_new))
+    _sub['smiles'] = _out
+    _sub.to_csv(_sp, index=False)
+    print(f'NP lam {{OURS_QCFG["NP_LAM"]}} K {{OURS_QCFG["NP_K"]}} cov {{OURS_QCFG["NP_COV"]}}: re-ranked {{_nt}} of {{len(_sub)}} | '
+          f'order changed {{_nc}} | top-1 changed {{_n1}} | {{time.time()-_qt0:.0f}}s', flush=True)
+except Exception as _e:
+    if not IS_RERUN:                 # commit run: a bug must fail the commit
+        raise
+    print('NP FAILED -> submission as is', repr(_e), flush=True)
+'''
+    cells.append(code_cell(hook_q))
+
 if denovo > 0:
     # ---- embedded modules: ours_fp2 / ours_denovo (e1fuse, ours) + pc_join (0.420 notebook, Apache-2.0)
     nb420 = json.load(open(os.path.join(E1, "base_0420.ipynb"), encoding="utf-8"))
@@ -457,7 +519,11 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     if nl > 0 else "")
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fp2k} are re-ranked by "
                     f"z(-log rank) + {fp2gap} z(our fp2 Morgan-bit log likelihood). " if fp2gap > 0 else "")
-                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 else "")
+                 + (f"Ours: natural-product-likeness prior: the final top {npk} are re-ranked by z(-log rank) + {npl} "
+                    f"z(Ertl NP-likeness, RDKit Contrib/NP_Score model){' (only where neither GLACIER nor ICEBERG scored)' if npcov == 'blind' else ''}. "
+                    if npl > 0 else "")
+                 + (f"Ours (CPU): the base's ICEBERG budget raised from 5400 s to {iceb} s so the CPU scores more molecules. " if iceb > 0 else "")
+                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and iceb == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
     if c["cell_type"] == "code":
