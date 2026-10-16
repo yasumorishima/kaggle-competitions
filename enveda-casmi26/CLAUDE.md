@@ -228,6 +228,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
                 - 次に e3fg05nl05tx05c（`tx=0.5`）を出す。残る 2 本は、この 3 本の点を見てから組み合わせを決める。
                 - **e3fg05nl05tx05c-1**（`tx=0.5`・01:44 UTC 提出）：**結果（08:0x UTC）＝0.428（0.434 より −0.006）＝仮説は外れ**。NP らしさ（0.426）と同じく、構造の事前分布でも、順方向モデルが点を出した分子を並べ直すと下がった（5・6 回目の同じ形）。
                 - **e3fg05nl05txb05c-1**（`fgap=0.5 nl=0.5 tx=0.5 txcov=blind cpu`・08:2x UTC 投入）：化学型の事前分布を、GLACIER も ICEBERG も点を出せない分子だけに使う。錨は点の出た分子の 1 位だけ（順方向モデルが裏付ける構造）。`build.py` に `txcov=all|blind` を足した。仮説：LB > 0.434。
+                  **結果（15:2x UTC）：e3fg05nl05txb05c-1＝0.425（0.434 より −0.009）＝仮説は外れ**。点の無い分子だけに絞っても下がった＝化学型の事前分布は、断片説明が並べた順を崩す。tx は銅への部品から外す。構造の事前分布（np・tx）は 2 つとも LB で負け。
           - 10-14〜16 に作る部品の候補（CPU/TPU で作れるもの）：公開の次の系統（ahmedberatozer v7c-e006-fraggap＝順方向モデルの証拠が無い分子に断片の点、nursrijan E008＝MassBank の 2 帯）を読み、E006 にまだ無い信号で自前のものを選ぶ。
             **読んだ結果（10-13・3 本を E006 と突き合わせ）**：
             - v7c-e006-fraggap（ahmedberatozer）：GLACIER も ICEBERG も点を出せない分子だけ、1〜2 結合切断の断片説明率（frag_rescore.py・2 切断は重み 0.6）を `gl_fuse.rerank_multi(..., [FRAG_GAP[mid]], [0.5])` で混ぜる。自分の LB は書いていない。
