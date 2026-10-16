@@ -208,6 +208,7 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
             影響のあった 14 課題（TPU・直列）で v7 2 件・欠落 513 件 → heredoc だけの v12 6 件・欠落 0 件。
           - 公式パッケージ（0.2.12）で validate と compile は通った。仮説：pub024 の失敗の一部は edit_file の欠落ループ ⇒ LB ≥ 0.22（銅 0.18 を越える）。
           - 10-15 の枠は g4v14-1 で使ったので、**10-16 00:00 UTC を過ぎたらすぐ g4v15-1 を出す**。
+          - **10-16 00:12 UTC に g4v15-1 を提出（採点待ち）**。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
