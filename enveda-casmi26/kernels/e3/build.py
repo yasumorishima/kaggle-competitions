@@ -22,7 +22,7 @@ ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
                          [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice]
-                         [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [np=LAM] [npk=K] [npcov=all|blind] [tx=LAM] [txk=K] [iceb=S] [cpu]
+                         [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [np=LAM] [npk=K] [npcov=all|blind] [tx=LAM] [txk=K] [txcov=all|blind] [iceb=S] [cpu]
 
 With fp2gap > 0 one marked code cell P is appended after cell N: for the molecules neither GLACIER nor ICEBERG scored
 (as cell F), the top fp2k SMILES are re-ranked by z(-log rank) + fp2gap * z(our fp2 log likelihood: Morgan r2 bits of the
@@ -75,6 +75,8 @@ npk = _arg("npk", 25, int)            # ... re-rank only the top K of the final 
 npcov = _arg("npcov", "all", str)     # 'all': every molecule; 'blind': only where neither GLACIER nor ICEBERG scored
 txl = _arg("tx", 0.0)                  # ours_tx: weight of z(similarity to the other test molecules' rank-1 structures) (0 = off)
 txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final list
+txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
+assert txcov in ("all", "blind"), txcov
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
 nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
@@ -357,11 +359,13 @@ except Exception as _e:
     cells.append(code_cell(hook_q))
 
 if txl > 0:      # T. after cell Q (the NP prior), BEFORE hook C: anchors are the final rank-1 structures
-    TCFG = dict(TX_LAM=txl, TX_K=txk)
+    TCFG = dict(TX_LAM=txl, TX_K=txk, TX_COV=txcov)
     hook_t = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # test-set chemotype prior (ours_tx): natural products come in families. Each molecule's final top TX_K are re-ranked
 # by z(-log rank) + TX_LAM * z(mean top-3 Morgan r2 Tanimoto to the OTHER test molecules' rank-1 structures).
 # The anchors are the rank-1 structures before this cell (one pass, no iteration).
+# TX_COV 'blind': only the molecules neither GLACIER nor ICEBERG scored are re-ranked, and only the scored molecules
+# (whose rank-1 the forward models back) serve as anchors.
 OURS_TCFG = {TCFG!r}
 _ours_dir = '/kaggle/working/ours_mods'
 os.makedirs(_ours_dir, exist_ok=True)
@@ -375,11 +379,17 @@ try:
     _sp = '/kaggle/working/submission.csv'
     _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
     _lists = {{str(_m): [x for x in str(_s).split(';') if x] for _m, _s in zip(_sub.molecule_id, _sub.smiles)}}
-    _anc = ours_tx.anchors(_lists)
+    _ice_all = ICE_SCORES if 'ICE_SCORES' in globals() and isinstance(ICE_SCORES, dict) else {{}}
+    def _t_blind(m_):
+        _i = _ice_all.get(str(m_), {{}})
+        _i = _i if isinstance(_i, dict) and any(v is not None for v in _i.values()) else {{}}
+        return not (('gl_of' in globals() and bool(gl_of(str(m_)))) or bool(_i))
+    _bl = {{k for k in _lists if _t_blind(k)}} if OURS_TCFG['TX_COV'] == 'blind' else set()
+    _anc = ours_tx.anchors({{k: v for k, v in _lists.items() if k not in _bl}})
     _out, _nt, _nc, _n1 = [], 0, 0, 0
     for _m, _s in zip(_sub.molecule_id, _sub.smiles):
         _l = _lists[str(_m)]
-        if len(_l) < 2:
+        if len(_l) < 2 or (OURS_TCFG['TX_COV'] == 'blind' and str(_m) not in _bl):
             _out.append(_s); continue
         _top = _l[:OURS_TCFG['TX_K']]
         _o = ours_tx.rerank(ours_tx.score_list(str(_m), _top, _anc), OURS_TCFG['TX_LAM'])
@@ -388,7 +398,7 @@ try:
         _out.append(';'.join(_new))
     _sub['smiles'] = _out
     _sub.to_csv(_sp, index=False)
-    print(f'TX lam {{OURS_TCFG["TX_LAM"]}} K {{OURS_TCFG["TX_K"]}}: anchors {{len(_anc)}} | re-ranked {{_nt}} of {{len(_sub)}} | '
+    print(f'TX lam {{OURS_TCFG["TX_LAM"]}} K {{OURS_TCFG["TX_K"]}} cov {{OURS_TCFG["TX_COV"]}} (blind {{len(_bl)}}): anchors {{len(_anc)}} | re-ranked {{_nt}} of {{len(_sub)}} | '
           f'order changed {{_nc}} | top-1 changed {{_n1}} | {{time.time()-_tt0:.0f}}s', flush=True)
 except Exception as _e:
     if not IS_RERUN:                 # commit run: a bug must fail the commit
@@ -561,7 +571,8 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"z(Ertl NP-likeness, RDKit Contrib/NP_Score model){' (only where neither GLACIER nor ICEBERG scored)' if npcov == 'blind' else ''}. "
                     if npl > 0 else "")
                  + (f"Ours: test-set chemotype prior: the final top {txk} are re-ranked by z(-log rank) + {txl} "
-                    f"z(mean top-3 Tanimoto to the other test molecules' rank-1 structures). " if txl > 0 else "")
+                    f"z(mean top-3 Tanimoto to the other test molecules' rank-1 structures)"
+                    f"{' (only where neither GLACIER nor ICEBERG scored; anchors = the scored molecules)' if txcov == 'blind' else ''}. " if txl > 0 else "")
                  + (f"Ours (CPU): the base's ICEBERG budget raised from 5400 s to {iceb} s so the CPU scores more molecules. " if iceb > 0 else "")
                  + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
