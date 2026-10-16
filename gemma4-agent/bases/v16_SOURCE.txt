@@ -1,0 +1,4 @@
+v16 (submission/ from 10-16) = v15 (bases/v15: bases/pub024 public LB 0.24 + our heredoc-only edits) + a runtime guard.
+g4v15-1 ended "Your submission notebook exceeded the allowed runtime" (no score), so our heredoc part was never measured.
+pub024 fits the 12 h with 8 min / 240 s per command; v15 did not. Guard: max_time_minutes 8 -> 7, timeout_seconds 240 -> 120
+(an in-flight command can overrun the task budget by up to one command timeout), and the prompt's limit line says so.
