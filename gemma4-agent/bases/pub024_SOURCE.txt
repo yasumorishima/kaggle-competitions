@@ -1,0 +1,2 @@
+Public LB 0.24 notebook: https://www.kaggle.com/code/honghanhhh/gemma-4-baseline-lb-0-24
+(itself built on https://www.kaggle.com/code/flexonafft/gemma-4-budget-aware-coding-agent-v2, public 0.22). Pulled 2026-10-15 via the Kaggle API; files are its FILES dict, unchanged.

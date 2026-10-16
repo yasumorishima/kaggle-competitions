@@ -1,0 +1,5 @@
+v15 (submission/ from 10-15) = bases/pub024 (public LB 0.24, https://www.kaggle.com/code/honghanhhh/gemma-4-baseline-lb-0-24, on flexonafft/gemma-4-budget-aware-coding-agent-v2)
++ our part: edit_file removed from the tools; existing files are edited only with a run_command Python heredoc (old/new raw strings, assert count == 1).
+  Our diagnosis (localeval-6c/8, tpueval-6/7): edit_file loses old_string when it contains a colon or empty quotes (tool-call parsing), and the model repeats the failing call
+  (up to 113 times in one task). On 14 affected practice tasks (TPU, serial): v7 2 solved / 513 dropped-argument errors, heredoc-only v12 6 solved / 0.
+  With the base's 28-call cap, one such loop leaves the tree unedited.
