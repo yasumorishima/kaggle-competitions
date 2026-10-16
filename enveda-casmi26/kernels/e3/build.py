@@ -21,7 +21,7 @@ cell), the top fgapk SMILES of submission.csv are re-ranked by z(-log rank) + fg
 ours_frag.py = port of eval/fragexp.py); the rest of the list is kept.
 
     python build.py NAME [denovo=N] [dns=S] [dnmin=M] [dnsrc=owner/slug] [dnforms=K] [dnlib=L] [dnslot=a,b]
-                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice]
+                         [mmp=N] [mmpc=C] [mmp2=N] [fgap=LAM] [fgapk=K] [fgapsec=S] [fgapmin=M] [fgapcov=both|ice] [fgapdec=0|1]
                          [nl=LAM] [nlk=K] [nlcov=all|blind] [nlion=0|1] [fp2gap=LAM] [fp2k=K] [np=LAM] [npk=K] [npcov=all|blind] [tx=LAM] [txk=K] [txcov=all|blind] [iceb=S] [cpu]
 
 With fp2gap > 0 one marked code cell P is appended after cell N: for the molecules neither GLACIER nor ICEBERG scored
@@ -63,6 +63,7 @@ fgapsec = _arg("fgapsec", 10.0)       # ... per-molecule cap (s); the list is le
 fgapmin = _arg("fgapmin", 40.0)       # ... total cap (minutes)
 fgapcov = _arg("fgapcov", "both", str)  # 'both': only where neither GLACIER nor ICEBERG scored; 'ice': wherever ICEBERG gave no score (GLACIER-scored too)
 assert fgapcov in ("both", "ice"), fgapcov
+fgapdec = _arg("fgapdec", 0, int)     # 1: decoy-corrected fragment score (ours_frag.DECOY_OFFSETS = -9,-5,-3,3,5,9 Da)
 nl = _arg("nl", 0.0)                  # ours_nl: weight of z(neutral-loss substructure log likelihood) (0 = off)
 nlk = _arg("nlk", 25, int)            # ... re-rank only the top K of the final list
 nlcov = _arg("nlcov", "all", str)     # 'all': every molecule with a diagnostic loss; 'blind': only where neither GLACIER nor ICEBERG scored
@@ -121,7 +122,7 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
-    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin, FGAP_COV=fgapcov)
+    FCFG = dict(FGAP_LAM=fgap, FGAP_K=fgapk, FGAP_SECS=fgapsec, FGAP_MIN=fgapmin, FGAP_COV=fgapcov, FGAP_DEC=fgapdec)
     hook_f = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # fragment explanation where the forward models are blind: molecules with no GLACIER score (gl_of(mid) empty) and no
 # ICEBERG score (no non-None value in ICE_SCORES[mid]) get their final top FGAP_K re-ranked by
@@ -140,6 +141,8 @@ try:
         print('FGAP: ICE_SCORES / gl_of / te missing -> nothing done', flush=True)
     else:
         import ours_frag
+        if OURS_FCFG.get('FGAP_DEC'):
+            ours_frag.DECOY_OFFSETS = (-9.0, -5.0, -3.0, 3.0, 5.0, 9.0)
         _ice_all = ICE_SCORES if isinstance(ICE_SCORES, dict) else {{}}
         def _f_cov(m_):
             _i = _ice_all.get(str(m_), {{}})
@@ -559,6 +562,7 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fgapk} are re-ranked by "
                     f"z(-log rank) + {fgap} z(our 1-2 bond-cut fragment explanation of the spectra)"
                     + (" (fgapcov=ice: every molecule without an ICEBERG score, GLACIER-scored ones included)" if fgapcov == "ice" else "")
+                    + (" minus its chance rate (mean over the spectra shifted by +-3/5/9 Da, our decoy correction)" if fgapdec else "")
                     + ". " if fgap > 0 else "")
                  + (f"Ours: neutral-loss substructure evidence (diagnostic losses such as hexose, glucuronic acid, SO3, CO2 "
                     f"from the precursor; rates measured on train) re-ranks the final top {nlk} by z(-log rank) + {nl} "
