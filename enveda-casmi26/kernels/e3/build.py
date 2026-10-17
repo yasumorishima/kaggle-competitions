@@ -83,6 +83,7 @@ assert base in ("e006", "a451"), base
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
+lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
@@ -103,6 +104,18 @@ def code_cell(s):
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
 assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
 assert bfrag == 0 or base == "a451", "bfrag uses the a451 base's frag_rescore"
+assert lfrag == 0 or base == "a451", "lfrag patches the a451 base's frag_rescore"
+if lfrag:   # the one base-cell edit of lfrag: right after the base imports frag_rescore, our learned credits replace its score
+    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "    import frag_rescore, math\n" in src(i))
+    _old = "    import frag_rescore, math\n"
+    assert src(_il).count(_old) == 1
+    _lsrc = open(os.path.join(HERE, "ours_lfrag.py"), encoding="utf-8").read()
+    cells[_il]["source"] = src(_il).replace(_old, _old + (
+        "    # ==== ours (yasunorim, build.py lfrag=1): learned peak credits (ours_lfrag) replace frag_rescore.score_molecule ====\n"
+        f"    open('/kaggle/working/ours_lfrag.py', 'w').write({_lsrc!r})\n"
+        "    import ours_lfrag\n"
+        "    ours_lfrag.install(frag_rescore)\n"
+        "    print('ours_lfrag installed: learned fragment credits', flush=True)\n"))
 if cpu:   # the only base-cell edits: device strings and the T4-only checks (time budgets unchanged)
     def _cpu_swap(i, old, new, n=1):
         s_ = src(i)
@@ -616,6 +629,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "(https://www.kaggle.com/code/saddamaditya/0-451-sota-forensics-lab-apex-synthesis) by saddamaditya, "
                     "version 1 (E006 + PubChem promotion rel>150 + engine-2 rank-2 + fragment gap / group gap), Apache-2.0, "
                     "and everything it credits (cells below, unchanged). ")
+                 + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
+                    "level x hydrogen shift of the cheapest explanation, linear and sqrt intensity; listwise fit on 4,432 "
+                    "train isomer panels; held out MRR 0.723 -> 0.748 on enveda-180, 0.567 -> 0.584 on np-examples). " if lfrag else "")
                  + (f"Ours: the base's fragment scorer (frag_rescore) also re-ranks molecules GLACIER or ICEBERG DID score: "
                     f"final top {bfragk}, inside same-formula groups, z(-log rank) + {bfrag} z(frag_rescore). " if bfrag > 0 else "")
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
@@ -643,7 +659,7 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"z(mean top-3 Tanimoto to the other test molecules' rank-1 structures)"
                     f"{' (only where neither GLACIER nor ICEBERG scored; anchors = the scored molecules)' if txcov == 'blind' else ''}. " if txl > 0 else "")
                  + (f"Ours (CPU): the base's ICEBERG budget raised from 5400 s to {iceb} s so the CPU scores more molecules. " if iceb > 0 else "")
-                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 and bfrag == 0 else "")
+                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 and bfrag == 0 and not lfrag else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
     if c["cell_type"] == "code":
@@ -672,4 +688,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fp2gap", fp2gap, "cpu", cpu)
