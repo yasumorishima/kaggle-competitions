@@ -59,6 +59,11 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   - 副産物：融合と ICEBERG／GLACIER の段は、覚えている 1 位を崩す（c2 0.99→0.74）。逆に c1 は上げる（0.84→0.89）。
   - 直し：公開 FPNet が見ていない **enveda-np-examples 250 分子**に切り替えた（`build.py val2 base=a451 val=250 valsrc=np`・e3val2-1・提出なし）。
     E004 の事前記録のセルが偽 test より前にあって最後の検査で止まった件も直した（偽 test を前に移し、val では事後検査を止めない）。
+  - さらに、a451 のエンジン 1 の FP（`fpnet_full1`）は「np-examples を含む train 全部で学習」とデータの説明にある。
+    そこで **e3val3-1 を出した（エンジン 1 の FP を FPNet A に落とす。A は学習で np の fold を抜いている：`casmi/traindata.py`）**。
+    e3val2-1（full1 のまま）も走らせ続けており、2 本の差が full1 の漏れの大きさになる。エンジン 2（prvsiyan の fp-models-v2）の学習の分け方は不明。
+  - 公開コードの読み取り：`ahmedberatozer/casmi26-v4b-models` の `code/`（MIT）を `requests/results/ds-ds-v4b-1/` に取得した（GHA の `action: dsfiles`）。
+    ranker は LightGBM lambdarank（160 特徴・500 回・4 本の袋）。学習の行は模擬の class の質問で作る。
   - 道具：kernel の出力は cloud から落とせない（www.kaggleusercontent.com が拒否）。そこで GHA の `action: output` ＋ `post: tools/val_report.py` で採点し、数字だけを結果ファイルに残す。正解は train 由来なので csv は repo に入れない。
   - **次の部品の見通し**：np-examples でも段 1 が高すぎる（≫0.45）なら、ranker も覚えている。その場合は (A) **ranker と FPNet を held-out 分子抜きで自前に学習し直す**が先になる。部品であると同時に、漏れの無い検証を作る唯一の道でもある。
 
