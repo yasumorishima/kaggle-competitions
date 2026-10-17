@@ -1,0 +1,53 @@
+request: g4v16-1
+run: 38985210662  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 14
+memo: v16 = v15 (public LB 0.24 single-agent config as the base, source in bases/pub024_SOURCE.txt, + our heredoc-only edits with no edit_file) + our runtime guard: max_time_minutes 8 -> 7 per task and run_command timeout_seconds 240 -> 120, and the system prompt states the budget (28 tool calls, 7 minutes, one command stopped after 120 s). g4v15-1 got no score because the notebook exceeded the allowed runtime. Hypothesis: with every task bounded the notebook finishes inside the limit, and v15's edits lift LB to >= 0.22 (bronze 0.18).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 14 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      300  2026-10-17 00:11   agent.yaml
+      119  2026-10-17 00:11   configs/sampling.yaml
+       94  2026-10-17 00:11   eval_config.yaml
+     7226  2026-10-17 00:11   prompts/system.md
+---------                     -------
+     7739                     4 files
+agent.yaml 300
+configs/sampling.yaml 119
+eval_config.yaml 94
+prompts/system.md 7226
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 286997 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-10-17 00:12:45.997000,"g4v16-1: v15 (public 0.24 base + our heredoc-only edits) + our runtime guard (7 min/task, 120 s/command) [run 38985210662]",SubmissionStatus.PENDING,,
+submission.zip,2026-10-16 00:12:41.503000,g4v15-1: public LB 0.24 config + our heredoc-only edits (no edit_file; assert-once replace) [run 38828055004],SubmissionStatus.COMPLETE,,
+submission.zip,2026-10-15 00:02:49.537000,g4v14-1: v13 + our repository-map skills (explore loads its repo's module map before searching) [run 38657601730],SubmissionStatus.COMPLETE,0.10,
+
+output files:
+total 20
+drwxr-xr-x  2 runner runner 4096 Oct 17 00:12 .
+drwxrwxrwt 14 root   root   4096 Oct 17 00:12 ..
+-rw-r--r--  1 runner runner 1198 Oct 17 00:12 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 4122 Oct 17 00:12 submission.zip
+[{"stream_name":"stdout","time":0.950174758,"data":"agent.yaml 300\n"}
+,{"stream_name":"stdout","time":0.950325001,"data":"configs/sampling.yaml 119\n"}
+,{"stream_name":"stdout","time":0.950335849,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":0.950710468,"data":"prompts/system.md 7226\n"}
+,{"stream_name":"stdout","time":0.950814594,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":3.864220643,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":3.864256068,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":4.289247152,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":4.289274639,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":6.09961809,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":7.691994307,"data":"[NbConvertApp] Writing 286997 bytes to __results__.html\n"}
+]
