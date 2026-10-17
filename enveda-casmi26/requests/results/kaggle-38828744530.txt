@@ -1,0 +1,9 @@
+request: e3fg05nl05np05c-1
+run: 38828744530  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fg05nl05np05c  version: 
+memo: New component on the 0.440 base, CPU kernel (GPU quota spent until 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), base cells unchanged except the CPU edits; our best stack kept (fragment re-rank on blind molecules + neutral-loss evidence = e3fg05nl05c-1 0.434). New part (ours_np): a natural-product-likeness prior. The final top 25 of every molecule are re-ranked by z(-log rank) + 0.5 z(Ertl NP-likeness; Ertl et al. 2008, RDKit Contrib/NP_Score model). Unlike our spectral evidence it does not compete with GLACIER: it is a structure prior for the domain shift between the mixed train libraries (the ranker's data) and Enveda's natural-product test. Train check: on enveda-np-examples (171 molecules, truth among 49 same-formula train isomers) the NP score alone gives MRR 0.441 vs random 0.289; on enveda-180 structures (synthetic-like, NP median -1.45) it is flat (0.169 vs 0.168). So the LB also tells whether the hidden test is natural-product-like. Hypothesis: LB > 0.434, toward bronze 0.441.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+400 Client Error: Bad Request for url: https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel
+
+output files:

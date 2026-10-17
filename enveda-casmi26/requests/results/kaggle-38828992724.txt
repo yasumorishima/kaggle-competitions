@@ -1,0 +1,56 @@
+request: e3fg05nl05np05c-2
+run: 38828992724  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fg05nl05np05c  version: 1
+memo: Resubmission of e3fg05nl05np05c-1, whose kernel push was refused (400: the NP model was embedded in the notebook, 2.9 MB); the model is now read from the installed RDKit Contrib/NP_Score. New component on the 0.440 base, CPU kernel (GPU quota spent until 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440, Apache-2.0), base cells unchanged except the CPU edits; our best stack kept (fragment re-rank on blind molecules + neutral-loss evidence = e3fg05nl05c-1 0.434). New part (ours_np): a natural-product-likeness prior. The final top 25 of every molecule are re-ranked by z(-log rank) + 0.5 z(Ertl NP-likeness; Ertl et al. 2008, RDKit Contrib/NP_Score model). It is a structure prior for the domain shift between the mixed train libraries (the ranker's data) and Enveda's natural-product test, not spectral evidence competing with GLACIER. Train check: on enveda-np-examples (171 molecules, truth among 49 same-formula train isomers) the NP score alone gives MRR 0.441 vs random 0.289; on enveda-180 structures (synthetic-like, NP median -1.45) it is flat (0.169 vs 0.168). The LB also tells whether the hidden test is natural-product-like. Hypothesis: LB > 0.434, toward bronze 0.441.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fg05nl05np05c
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-16 01:14:12.297000,e3fg05nl05np05c-2: E006 0.440 base (CPU) + our fragment re-rank + neutral-loss evidence + our NP-likeness prior on every molecule. Hypothesis: LB > 0.434 [run 38828992724],SubmissionStatus.PENDING,,
+submission.csv,2026-10-16 00:42:30.503000,"e3fg05nl05ib126c-1: E006 0.440 base (CPU, ICEBERG budget 12600 s) + our fragment re-rank + neutral-loss evidence. Hypothesis: LB >= 0.441 [run 38828807283]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-15 08:56:54.817000,"e3fg05nlib05c-1: E006 0.440 base (CPU) + our fragment re-rank + our neutral-loss and ion evidence, both only where ICEBERG and GLACIER are blind. Hypothesis: LB >= 0.434 [run 38705933648]",SubmissionStatus.COMPLETE,0.434,
+
+output files:
+total 560
+drwxr-xr-x  8 runner runner   4096 Oct 16 01:14 .
+drwxrwxrwt 14 root   root     4096 Oct 16 01:13 ..
+-rw-r--r--  1 runner runner  17132 Oct 16 01:13 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 16 01:13 candidate_audit.csv
+-rw-r--r--  1 runner runner   2440 Oct 16 01:13 candidate_audit.json
+-rw-r--r--  1 runner runner  29790 Oct 16 01:14 casmi26-e3fg05nl05np05c.log
+-rw-r--r--  1 runner runner 129310 Oct 16 01:13 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9683 Oct 16 01:13 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 16 01:13 eng
+-rw-r--r--  1 runner runner  29204 Oct 16 01:13 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 16 01:13 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 16 01:13 experiment_audit.json
+-rw-r--r--  1 runner runner  23729 Oct 16 01:13 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139847 Oct 16 01:13 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 16 01:13 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 16 01:13 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 16 01:13 ice_work
+drwxr-xr-x  5 runner runner   4096 Oct 16 01:13 numba_cache
+-rw-r--r--  1 runner runner  27238 Oct 16 01:13 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 16 01:13 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 16 01:13 probe_core2.py
+-rw-r--r--  1 runner runner    338 Oct 16 01:13 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 16 01:13 smoke_comp
+-rw-r--r--  1 runner runner  17221 Oct 16 01:13 submission.csv
+-rw-r--r--  1 runner runner  17221 Oct 16 01:13 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17221 Oct 16 01:13 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 16 01:14 work
+[{"stream_name":"stderr","time":8.812167216,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.812230169,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.812238344,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.812243327000001,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.59972846,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.599775383,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.599785908,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.599789183,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":11.699686624,"data":"v17 popularity prior 0.25 200 /kaggle/input/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":11.699725188,"data":"rdkit wheel: ['/kaggle/input/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":16.641562398,"data":" \n"}
+,{"stream_name":"stdout","time":16.641603149,"data":"rdkit 2026.03.3\n"}
+,{"stre

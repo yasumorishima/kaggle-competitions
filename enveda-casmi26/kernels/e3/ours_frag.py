@@ -19,6 +19,10 @@ PROTON = 1.007276467
 TOL_PPM, TOL_DA = 10.0, 0.005
 H = 1.00782503207
 MAX_BONDS = 80
+# decoy correction (0 = off): the score becomes explained share minus its mean over the spectra shifted by these
+# offsets (Da). A candidate with more distinct 1-2 cut fragment masses explains more peaks by chance; the shifted
+# spectra measure that chance rate for the same candidate.
+DECOY_OFFSETS = ()
 
 
 def fragment_masses(smi, deadline=None):
@@ -126,7 +130,12 @@ def score_list(smis, spectra, max_secs=3.0):
     dl = time.time() + max_secs
     out = []
     for s in smis:
-        out.append(explain_mixed(fragment_masses(s, deadline=dl), spectra))
+        fm = fragment_masses(s, deadline=dl)
+        v = explain_mixed(fm, spectra)
+        if DECOY_OFFSETS:
+            v -= float(np.mean([explain_mixed(fm, [(np.c_[pk[:, 0] + o, pk[:, 1]], prec + o, pol)
+                                                   for pk, prec, pol in spectra]) for o in DECOY_OFFSETS]))
+        out.append(v)
         if time.time() > dl:
             return None
     return out
