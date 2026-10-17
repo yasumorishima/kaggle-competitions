@@ -1,0 +1,9 @@
+request: e3val1-1
+run: 39030107798  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3val1  version: 1
+memo: Validation run, NO submission (plan audit 10-17, item 1). The a451 base (saddamaditya Apex Synthesis, unchanged) end to end on a fake test: 300 enveda-180 (timsTOF) molecules held out of train.parquet, up to 3 spectra each; c1 half = molecules with spectra in other libraries (only their enveda-180 rows leave train), c2 half = enveda-180-only molecules (all rows leave train). submission.csv is snapshotted after every code cell from the base-list cell on and each snapshot is scored per class (MRR@25, top1, hit@5, hit@25) into val_scores.json / val_ranks.csv, plus whether the truth is in the engine-1 pool. Purpose: a validation that follows the whole pipeline, to pick the next component (ranker retraining vs ICEBERG fine-tune) from the stage and class where the truth is lost. build.py val1 base=a451 val=300 (build_val.py).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3val1
+
+output files:
