@@ -180,6 +180,7 @@ if valsrc == "np" and not valfull:
 hook_c3 = """# ==== ours (yasunorim; val c3): remove the c2 truths from the candidate pools ====
 import numpy as np, pandas as pd, os
 VAL_C3 = set(VAL_C2)
+_POOL_DIR_ORIG = POOL_DIR
 _c3d = '/tmp/valcomp/pool'
 os.makedirs(_c3d, exist_ok=True)
 _st = pd.read_parquet(os.path.join(POOL_DIR, 'train_structs.parquet'))
@@ -221,3 +222,29 @@ if valc3:
             _c["source"] = _src.replace(_old2, _new2)
             _n2 += 1
     assert _n2 == 1, f"engine-2 pool line found {_n2} times"
+    # engine 1 + fe_v4 keep the original pool (fe_v4 res tables are aligned to it); its candidate windows skip the c3 rows.
+    # The filtered POOL_DIR copy above is used only by the PubChem worker (cell before this one).
+    hook_c3b = """# ==== ours (yasunorim; val c3): engine 1 keeps the original pool; its mass windows skip the c3 truths ====
+POOL_DIR = _POOL_DIR_ORIG
+_C3SET = set(open('/tmp/valcomp/c3_keys.txt').read().split())
+"""
+    hook_c3c = """# ==== ours (yasunorim; val c3): patch Pool.window so the c3 truths never become engine-1 candidates ====
+import numpy as np, pandas as pd
+from casmi import pool as _c3pool
+if not getattr(_c3pool.Pool, '_c3_patched', False):
+    _c3_orig_window = _c3pool.Pool.window
+    def _c3_window(self, target, ppm, _o=_c3_orig_window):
+        r = _o(self, target, ppm)
+        m = getattr(self, '_c3mask', None)
+        if m is None:
+            k = pd.Series(self.key).astype(str)
+            m = self._c3mask = (k.str[:14].isin(_C3SET) | k.isin(_C3SET)).values
+            print('VALC3 engine-1 window mask', int(m.sum()), 'of', len(m), flush=True)
+        return r[~m[r]]
+    _c3pool.Pool.window = _c3_window
+    _c3pool.Pool._c3_patched = True
+"""
+    _i16 = find_cell("'''v1 engine code")
+    cells.insert(_i16, code_cell(hook_c3b))
+    _i17 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "E = Engine(L, P, tfp" in "".join(c["source"]))
+    cells.insert(_i17, code_cell(hook_c3c))
