@@ -1,0 +1,55 @@
+request: e3fg05dnl05-1
+run: 38985285361  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3e3fg05dnl05  version: 1
+memo: GPU kernel (quota back 10-17). Base: canqiang/casmi26-e006-window-40-ice-fallback-true v1 (public LB 0.440 on GPU, Apache-2.0), base cells unchanged. Our stack, all on molecules neither GLACIER nor ICEBERG scored: decoy-corrected fragment re-rank (explained share minus its mean over spectra shifted -9/-5/-3/+3/+5/+9 Da) + neutral-loss evidence. On the CPU build of the same base this scored 0.437 (e3fg05dnl05c-1, our best; CPU base alone ~0.432). Hypothesis: the CPU-vs-GPU gap of the base (~0.008) and our part (+0.005) add on GPU -> LB >= 0.441 = bronze.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3e3fg05dnl05
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-17 00:38:54.903000,e3fg05dnl05-1: E006 0.440 base (GPU) + our decoy-corrected fragment re-rank + neutral-loss evidence. Hypothesis: LB >= 0.441 [run 38985285361],SubmissionStatus.PENDING,,
+submission.csv,2026-10-16 16:06:18.453000,e3fg05dnl05c-1: E006 0.440 base (CPU) + our decoy-corrected fragment re-rank + neutral-loss evidence. Hypothesis: LB > 0.434 [run 38925011996],SubmissionStatus.COMPLETE,0.437,
+submission.csv,2026-10-16 08:39:45.997000,e3fg05nl05txb05c-1: E006 0.440 base (CPU) + our fragment re-rank + neutral-loss evidence + our chemotype prior on blind molecules only. Hypothesis: LB > 0.434 [run 38871457621],SubmissionStatus.COMPLETE,0.425,
+
+output files:
+total 560
+drwxr-xr-x  8 runner runner   4096 Oct 17 00:38 .
+drwxrwxrwt 14 root   root     4096 Oct 17 00:39 ..
+-rw-r--r--  1 runner runner  17135 Oct 17 00:37 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 17 00:37 candidate_audit.csv
+-rw-r--r--  1 runner runner   2579 Oct 17 00:37 candidate_audit.json
+-rw-r--r--  1 runner runner  29733 Oct 17 00:38 casmi26-e3e3fg05dnl05.log
+-rw-r--r--  1 runner runner 129277 Oct 17 00:38 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9849 Oct 17 00:38 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 17 00:38 eng
+-rw-r--r--  1 runner runner  29205 Oct 17 00:38 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 17 00:38 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 17 00:38 experiment_audit.json
+-rw-r--r--  1 runner runner  23740 Oct 17 00:38 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139858 Oct 17 00:38 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 17 00:38 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 17 00:38 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 17 00:38 ice_work
+drwxr-xr-x  5 runner runner   4096 Oct 17 00:38 numba_cache
+-rw-r--r--  1 runner runner  27248 Oct 17 00:38 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 17 00:38 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 17 00:38 probe_core2.py
+-rw-r--r--  1 runner runner    345 Oct 17 00:38 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 17 00:38 smoke_comp
+-rw-r--r--  1 runner runner  17224 Oct 17 00:38 submission.csv
+-rw-r--r--  1 runner runner  17224 Oct 17 00:38 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17224 Oct 17 00:38 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 17 00:38 work
+[{"stream_name":"stderr","time":8.178332055,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.178377179,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.17838346,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.178388207,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.837284164,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.837331056,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.837336372,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.837342689,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":10.842249095,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":10.842299975,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":16.588601545,"data":" \n"}
+,{"stream_name":"stdout","time":16.588639972,"
