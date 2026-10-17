@@ -174,3 +174,50 @@ if valsrc == "np" and not valfull:
             _c["source"] = _src.replace(_old, "_FULL = []  # ours (val np): fpnet_full1 saw np-examples; use FPNet A")
             _nfb += 1
     assert _nfb == 1, f"fpnet_full1 line found {_nfb} times"
+
+# c3 run (valc3=1): the c2 half also leaves the candidate pools, so only the PubChem tier can still propose the truth.
+# engine 1 + its PubChem worker read POOL_DIR -> a filtered copy; engine 2 drops the keys while building its own pool.
+hook_c3 = """# ==== ours (yasunorim; val c3): remove the c2 truths from the candidate pools ====
+import numpy as np, pandas as pd, os
+VAL_C3 = set(VAL_C2)
+_c3d = '/tmp/valcomp/pool'
+os.makedirs(_c3d, exist_ok=True)
+_st = pd.read_parquet(os.path.join(POOL_DIR, 'train_structs.parquet'))
+_c3keys = set(_st.key[_st.inchikey14.isin(VAL_C3)].astype(str)) if {'key', 'inchikey14'} <= set(_st.columns) else set()
+_pm = pd.read_parquet(os.path.join(POOL_DIR, 'pool_meta.parquet'))
+_k = _pm.key.astype(str)
+_dropm = (_k.str[:14].isin(VAL_C3) | _k.isin(_c3keys)).values
+_keep = np.where(~_dropm)[0]
+_pm.iloc[_keep].reset_index(drop=True).to_parquet(os.path.join(_c3d, 'pool_meta.parquet'), index=False)
+np.save(os.path.join(_c3d, 'pool_fp.npy'), np.load(os.path.join(POOL_DIR, 'pool_fp.npy'), mmap_mode='r')[_keep])
+if os.path.exists(os.path.join(POOL_DIR, 'pool_frag_off.npy')):
+    _off = np.load(os.path.join(POOL_DIR, 'pool_frag_off.npy'))
+    _fm = np.load(os.path.join(POOL_DIR, 'pool_frag_mass.npy'), mmap_mode='r')
+    _len = np.diff(_off)[_keep]
+    _noff = np.concatenate([[0], np.cumsum(_len)]).astype(_off.dtype)
+    _pos = np.repeat(_off[_keep] - _noff[:-1], _len) + np.arange(_noff[-1])
+    np.save(os.path.join(_c3d, 'pool_frag_mass.npy'), np.asarray(_fm[_pos]))
+    np.save(os.path.join(_c3d, 'pool_frag_off.npy'), _noff)
+for _f in os.listdir(POOL_DIR):
+    if not os.path.exists(os.path.join(_c3d, _f)):
+        os.symlink(os.path.join(POOL_DIR, _f), os.path.join(_c3d, _f))
+POOL_DIR = _c3d
+open('/tmp/valcomp/c3_keys.txt', 'w').write('\\n'.join(sorted(VAL_C3 | _c3keys | {_x[:14] for _x in _c3keys})))
+_tm = _pm.key.astype(str).str[:14]
+print('VALC3 engine-1 pool dropped', int(_dropm.sum()), 'of', len(_pm), '| c2 truths', len(VAL_C3),
+      '| key sample', list(_k.iloc[:2]), '| struct keys', len(_c3keys), flush=True)
+"""
+if valc3:
+    assert valsrc == "np", "valc3 needs valsrc=np"
+    _iv2 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "VALIDATION RUN, not a submission" in "".join(c["source"]))
+    cells.insert(_iv2 + 1, code_cell(hook_c3))
+    _old2 = '    good = np.isfinite(mass)\\n'
+    _new2 = ('    good = np.isfinite(mass) & ~pd.Series(keys).astype(str).str[:14].isin(set(open("/tmp/valcomp/c3_keys.txt").read().split())'
+             ' if os.path.exists("/tmp/valcomp/c3_keys.txt") else set()).values; log(f"VALC3 engine-2 pool kept {int(good.sum()):,} of {len(good):,}")\\n')
+    _n2 = 0
+    for _c in cells:
+        _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+        if _c["cell_type"] == "code" and _old2 in _src:
+            _c["source"] = _src.replace(_old2, _new2)
+            _n2 += 1
+    assert _n2 == 1, f"engine-2 pool line found {_n2} times"
