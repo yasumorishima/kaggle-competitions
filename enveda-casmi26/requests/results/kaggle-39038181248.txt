@@ -1,0 +1,43 @@
+request: e3val1-out1
+run: 39038181248  status: success  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3val1  version: 
+memo: Fetch the output of the validation run casmi26-e3val1 v1 (no push, no submission). The kernel stopped at the base's E004 postflight check (its preflight recorded the real test ids before our fake-test cell), but the 7 stage snapshots and val_truth.csv were written; the cloud session cannot reach www.kaggleusercontent.com, so the csv files are committed here to be scored in the cloud.
+
+Output file downloaded to /tmp/kout/ice_site/rdkit-stubs/Chem/rdMHFPFingerprint.pyi
+Kernel log downloaded to /tmp/kout/casmi26-e3val1.log 
+Next page token: eyJHY3NQYWdlVG9rZW4iOiIzNTkzNDU1NzAvb3V0cHV0L2ljZV9zaXRlL3Jka2l0LXN0dWJzL0NoZW0vcmRNSEZQRmluZ2VycHJpbnQucHlpIn0=
+copied 3 files to enveda-casmi26/requests/results/out-e3val1-out1
+total 344
+drwxr-xr-x 2 runner runner   4096 Oct 17 13:52 .
+drwxr-xr-x 3 runner runner  12288 Oct 17 13:52 ..
+-rw-r--r-- 1 runner runner 313658 Oct 17 13:52 baseline_submission.csv
+-rw-r--r-- 1 runner runner   9739 Oct 17 13:52 candidate_audit.csv
+-rw-r--r-- 1 runner runner   6354 Oct 17 13:52 experiment_audit.csv
+
+output files:
+total 1112
+drwxr-xr-x  6 runner runner   4096 Oct 17 13:52 .
+drwxrwxrwt 14 root   root     4096 Oct 17 13:50 ..
+drwxr-xr-x  2 runner runner   4096 Oct 17 13:50 __pycache__
+-rw-r--r--  1 runner runner 313658 Oct 17 13:50 baseline_submission.csv
+-rw-r--r--  1 runner runner   9739 Oct 17 13:50 candidate_audit.csv
+-rw-r--r--  1 runner runner   4582 Oct 17 13:50 candidate_audit.json
+-rw-r--r--  1 runner runner  27918 Oct 17 13:52 casmi26-e3val1.log
+drwxr-xr-x  3 runner runner   4096 Oct 17 13:50 eng
+-rw-r--r--  1 runner runner 733319 Oct 17 13:50 eng_lists.json
+-rw-r--r--  1 runner runner   6354 Oct 17 13:50 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 17 13:50 experiment_audit.json
+drwxr-xr-x  2 runner runner   4096 Oct 17 13:50 gl_work
+drwxr-xr-x 11 runner runner   4096 Oct 17 13:51 ice_site
+[{"stream_name":"stderr","time":6.400240763,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.400280142,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.400284261,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.400286653,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.964646407,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.964671485,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.964676351,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.964680458,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":8.827656907,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":8.827681341,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":13.823800532,"data":" \n"}
+,{"stream_name":"stdout","time":13.823830234999
