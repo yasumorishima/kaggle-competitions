@@ -62,6 +62,21 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   - さらに、a451 のエンジン 1 の FP（`fpnet_full1`）は「np-examples を含む train 全部で学習」とデータの説明にある。
     そこで **e3val3-1 を出した（エンジン 1 の FP を FPNet A に落とす。A は学習で np の fold を抜いている：`casmi/traindata.py`）**。
     e3val2-1（full1 のまま）も走らせ続けており、2 本の差が full1 の漏れの大きさになる。エンジン 2（prvsiyan の fp-models-v2）の学習の分け方は不明。
+  - **検証台 2・3 回目（10-17 20:3x・np-examples 250 分子・提出なし）**：
+
+    | 版 | エンジン 1 の FP | 最初の提出形 | 融合＋ICE/GL の後 | 最終 |
+    |---|---|---|---|---|
+    | e3val2-2 | fpnet_full1（np を見た） | 0.867（c1 0.830／c2 0.903） | 0.917（c1 0.937／c2 0.897） | 0.909 |
+    | e3val3-2 | FPNet A（np を見ていない） | 0.885（c1 0.867／c2 0.903） | 0.921（c1 0.947／c2 0.895） | — |
+
+    - どちらも hit@25 は 0.99、1 位の分子式の正解率は 0.96〜0.99。full1 の漏れは、あっても小さい。
+    - 後付けの段（E2R2・E005〜E007 など）は手元で −0.01（0.919→0.909）。
+    - **読み**：正解の構造が候補プールにあれば、土台はほぼ 1 位に置く（MRR 約 0.9）。LB 0.45 との差は、①隠し test の正解の約半分がプールに無い（class 3）か、②まだ残る漏れ、のどちらか。
+      ②の候補は二つ。v4b の ranker は np の fold の行で学習した見込みで、特徴に Murcko 骨格のハッシュ（`fe_v4/chemfeat.py` の scaf_h）があり、分子を覚えうる。エンジン 2（prvsiyan fp-models-v2）は学習の分け方が不明。
+    - ⇒ **この検証台では (A)／(B) は選べない**（プール内の並べはすでに天井近く）。
+      銅・金への差は「プールに無い正解を候補に入れる」側（PubChem 層の検索の精度、class 3）にある見込みが高い。
+      ただし de novo 系は 6 回否定済みなので、PubChem 層（1.06 億構造）の FP 検索と差し込みの改良を次の部品の第一候補にする。
+    - 次の検証台：c3 型（正解の構造をプール・train 構造・COCONUT から抜き、PubChem 層だけに残す）。PubChem 経路が正解を何位に置くかを測る。
   - 公開コードの読み取り：`ahmedberatozer/casmi26-v4b-models` の `code/`（MIT）を `requests/results/ds-ds-v4b-1/` に取得した（GHA の `action: dsfiles`）。
     ranker は LightGBM lambdarank（160 特徴・500 回・4 本の袋）。学習の行は模擬の class の質問で作る。
   - 道具：kernel の出力は cloud から落とせない（www.kaggleusercontent.com が拒否）。そこで GHA の `action: output` ＋ `post: tools/val_report.py` で採点し、数字だけを結果ファイルに残す。正解は train 由来なので csv は repo に入れない。
