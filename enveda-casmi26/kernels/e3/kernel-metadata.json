@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3e3fg05dnl05",
-  "title": "casmi26 e3e3fg05dnl05",
+  "id": "yasunorim/casmi26-e3a451nl05",
+  "title": "casmi26 e3a451nl05",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -22,7 +22,7 @@
     "ahmedberatozer/casmi26-v2-pool",
     "ahmedberatozer/casmi26-v3-models",
     "ahmedberatozer/casmi26-v4b-models",
-    "prvsiyan/chebi-lipidmaps-casmi26",
+    "sergiomalv/casmi-chebi-lmsd-structures",
     "prvsiyan/coconut-casmi26-candidates",
     "hengck23/hengck23-dreams-enveda-casmi26",
     "metric/rdkit-2026-3-3-wheel",
