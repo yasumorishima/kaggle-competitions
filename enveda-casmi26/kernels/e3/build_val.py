@@ -146,6 +146,11 @@ _iv = find_cell("'''SMOKE switch")
 for _k, _c in enumerate(cells[:_iv]):
     if _c["cell_type"] == "code" and "_e004_preflight" in "".join(_c["source"]):
         _iv = _k
+        # the preflight asserts the real competition path; the fake test lives in /tmp/valcomp
+        _psrc = "".join(_c["source"])
+        _pold = "    assert comp in {f'/kaggle/input/{slug}', f'/kaggle/input/competitions/{slug}'}\n"
+        assert _psrc.count(_pold) == 1, "E004 preflight path assert not found"
+        _c["source"] = _psrc.replace(_pold, "    # ours (val): path assert dropped, COMP is the fake test\n")
         break
 cells.insert(_iv, code_cell(hook_v))
 # a val run never submits: a base acceptance check must not stop the run before the scoring cell
