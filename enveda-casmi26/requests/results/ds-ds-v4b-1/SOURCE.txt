@@ -1,0 +1,1 @@
+Source: kaggle.com/datasets/ahmedberatozer/casmi26-v4b-models (code by Ahmed Berat Ozer, MIT per the dataset description, licence updated 2026-10-13; dreams_model.py re-implements DreaMS, MIT, see LICENSE-NOTICE.txt). Fetched by the enveda workflow (action dsfiles) to read the ranker training code; the data table res/fragnet/stageB.txt was left out.
