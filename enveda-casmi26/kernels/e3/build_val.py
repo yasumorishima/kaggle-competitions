@@ -157,3 +157,15 @@ for _c in cells:
                             "    print('VAL: E004 postflight failed (ignored in a val run):', repr(_ve), flush=True)")
         _c["source"] = _src
 cells.append(code_cell(hook_score))
+
+# np-examples run: the engine-1 FP bank fpnet_full1 was trained on ALL train incl. np-examples (its dataset card),
+# so fall back to the base's own fallback, FPNet A (fpnet_0, np fold held out in its training: traindata.py)
+if valsrc == "np":
+    _nfb = 0
+    for _c in cells:
+        _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+        _old = "_FULL = glob.glob('/kaggle/input/**/casmi26-fpnet-full1/**/fpnet_full1.pt', recursive=True)"
+        if _c["cell_type"] == "code" and _old in _src:
+            _c["source"] = _src.replace(_old, "_FULL = []  # ours (val np): fpnet_full1 saw np-examples; use FPNet A")
+            _nfb += 1
+    assert _nfb == 1, f"fpnet_full1 line found {_nfb} times"
