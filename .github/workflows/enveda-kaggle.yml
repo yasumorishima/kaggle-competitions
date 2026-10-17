@@ -18,6 +18,8 @@ name: Enveda CASMI26 Kaggle
 #   action "output": download a finished kernel's output (no push) and commit the files that match
 #            "files" (a glob, default "val_*") under requests/results/out-<id>/ (the cloud session cannot
 #            reach www.kaggleusercontent.com, where the output files are served); "dir" names the kernel
+#   post     output only: a .py under enveda-casmi26/ run on the downloaded files; then only its printout
+#            goes into the outcome file and the files are not committed (e.g. tools/val_report.py)
 #   version  kernel only: an already pushed version number; skip the push and wait for /
 #            submit that version (a TPU run can sit in the queue longer than this job may wait)
 # Only the user's standing instruction allows a submit (see enveda-casmi26/CLAUDE.md).
@@ -90,6 +92,9 @@ jobs:
               pat = str(r.get("files", "val_*"))
               assert "/" not in pat and ".." not in pat, "files must be a plain glob"
               f.write(f"OUTGLOB={pat}\n")
+              post = str(r.get("post", "")).strip()
+              assert post == "" or (post.endswith(".py") and ".." not in post and os.path.isfile(os.path.join("enveda-casmi26", post))), "post must be a .py under enveda-casmi26/"
+              f.write(f"POST={post}\n")
           print(action, d, "submit" if submit else "no submit", "|", memo)
           PY
 
@@ -160,6 +165,7 @@ jobs:
           ID=$(python -c "import json;print(json.load(open('$DIR/kernel-metadata.json'))['id'])")
           echo "KERNEL=$ID" >> "$GITHUB_ENV"
           dst="enveda-casmi26/requests/results/out-${RID}"
+          if [ -n "$POST" ]; then dst=/tmp/kres; fi
           mkdir -p "$dst"
           # the CLI fetches only the first page (500 files) of the output listing, so page through it here
           python - "$ID" "$OUTGLOB" "$dst" <<'PY' 2>&1 | tee /tmp/out.txt
@@ -198,6 +204,10 @@ jobs:
           PY
           n=$(ls "$dst" | wc -l)
           test "$n" -gt 0 || { echo "::error::no file matched $OUTGLOB"; exit 1; }
+          if [ -n "$POST" ]; then
+            pip install -q rdkit pandas numpy
+            python "enveda-casmi26/$POST" "$dst" 2>&1 | tee -a /tmp/out.txt
+          fi
 
       - name: Commit the outcome
         if: always() && github.event_name == 'push' && env.SKIP != 'yes'
