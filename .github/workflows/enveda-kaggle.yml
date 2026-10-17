@@ -15,6 +15,9 @@ name: Enveda CASMI26 Kaggle
 #   message  submission / dataset version message
 #   wait     kernel only: "no" to return right after the push (long training runs; read the
 #            log later from www.kaggle.com/api/v1/kernels/output) so the queue is not held
+#   action "output": download a finished kernel's output (no push) and commit the files that match
+#            "files" (a glob, default "val_*") under requests/results/out-<id>/ (the cloud session cannot
+#            reach www.kaggleusercontent.com, where the output files are served); "dir" names the kernel
 #   version  kernel only: an already pushed version number; skip the push and wait for /
 #            submit that version (a TPU run can sit in the queue longer than this job may wait)
 # Only the user's standing instruction allows a submit (see enveda-casmi26/CLAUDE.md).
@@ -70,7 +73,7 @@ jobs:
           memo = str(r.get("memo", "")).strip()
           assert memo, "memo is required"
           action = r.get("action")
-          assert action in ("kernel", "dataset"), "action must be kernel or dataset"
+          assert action in ("kernel", "dataset", "output"), "action must be kernel, dataset or output"
           d = str(r.get("dir", ""))
           assert d and ".." not in d and not d.startswith("/"), "dir must be relative, without .."
           d = os.path.join("enveda-casmi26", d)
@@ -84,6 +87,9 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nNOWAIT={'yes' if nowait else 'no'}\nUSEVER={usever}\nMSG={msg}\n")
               f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
+              pat = str(r.get("files", "val_*"))
+              assert "/" not in pat and ".." not in pat, "files must be a plain glob"
+              f.write(f"OUTGLOB={pat}\n")
           print(action, d, "submit" if submit else "no submit", "|", memo)
           PY
 
@@ -145,6 +151,28 @@ jobs:
             grep -q "run ${GITHUB_RUN_ID}" /tmp/out.txt || { echo "::error::submission not found in the list"; exit 1; }
           fi
 
+      - name: Kernel output to the repo
+        if: env.ACTION == 'output' && env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          ID=$(python -c "import json;print(json.load(open('$DIR/kernel-metadata.json'))['id'])")
+          echo "KERNEL=$ID" >> "$GITHUB_ENV"
+          mkdir -p /tmp/kout
+          kaggle kernels output "$ID" -p /tmp/kout 2>&1 | tail -3 | tee /tmp/out.txt || true
+          dst="enveda-casmi26/requests/results/out-${RID}"
+          mkdir -p "$dst"
+          n=0
+          for f in /tmp/kout/$OUTGLOB; do
+            [ -f "$f" ] || continue
+            sz=$(stat -c %s "$f")
+            if [ "$sz" -le 20000000 ]; then cp "$f" "$dst/"; n=$((n+1)); else echo "skip (too big) $f $sz" | tee -a /tmp/out.txt; fi
+          done
+          echo "copied $n files to $dst" | tee -a /tmp/out.txt
+          ls -la "$dst" | tee -a /tmp/out.txt
+          test "$n" -gt 0 || { echo "::error::no file matched $OUTGLOB"; exit 1; }
+
       - name: Commit the outcome
         if: always() && github.event_name == 'push' && env.SKIP != 'yes'
         env:
@@ -168,6 +196,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$out"
+          if [ -d "enveda-casmi26/requests/results/out-${RID:-none}" ]; then git add "enveda-casmi26/requests/results/out-${RID}"; fi
           git commit -q -m "enveda-casmi26: kaggle outcome ${RUN_ID}"
           for i in 1 2 3 4 5; do
             git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
