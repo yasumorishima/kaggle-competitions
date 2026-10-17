@@ -85,6 +85,7 @@ bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the fi
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
 val = _arg("val", 0, int)             # > 0: validation run, no submission (build_val.py): fake test = val enveda-180 molecules held out of train, stage-wise scores
 valseed = _arg("valseed", 0, int)
+valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
 valsrc = _arg("valsrc", "e180", str)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pick among the final top K of rank 1's formula goes to this rank (ours)
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)

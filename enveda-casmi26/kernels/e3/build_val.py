@@ -165,7 +165,7 @@ cells.append(code_cell(hook_score))
 
 # np-examples run: the engine-1 FP bank fpnet_full1 was trained on ALL train incl. np-examples (its dataset card),
 # so fall back to the base's own fallback, FPNet A (fpnet_0, np fold held out in its training: traindata.py)
-if valsrc == "np":
+if valsrc == "np" and not valfull:
     _nfb = 0
     for _c in cells:
         _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
