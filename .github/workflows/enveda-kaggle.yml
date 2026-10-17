@@ -18,6 +18,9 @@ name: Enveda CASMI26 Kaggle
 #   action "output": download a finished kernel's output (no push) and commit the files that match
 #            "files" (a glob, default "val_*") under requests/results/out-<id>/ (the cloud session cannot
 #            reach www.kaggleusercontent.com, where the output files are served); "dir" names the kernel
+#   action "dsfiles": download the small text files (<= 1 MB) of a public dataset "ref" (owner/slug) that match
+#            "files" (a glob over the path inside the dataset) into requests/results/ds-<id>/ (for reading
+#            public code, e.g. a model's training scripts; never a competition file)
 #   post     output only: a .py under enveda-casmi26/ run on the downloaded files; then only its printout
 #            goes into the outcome file and the files are not committed (e.g. tools/val_report.py)
 #   version  kernel only: an already pushed version number; skip the push and wait for /
@@ -75,7 +78,13 @@ jobs:
           memo = str(r.get("memo", "")).strip()
           assert memo, "memo is required"
           action = r.get("action")
-          assert action in ("kernel", "dataset", "output"), "action must be kernel, dataset or output"
+          assert action in ("kernel", "dataset", "output", "dsfiles"), "action must be kernel, dataset, output or dsfiles"
+          if action == "dsfiles":
+              ref = str(r.get("ref", ""))
+              assert ref.count("/") == 1 and ".." not in ref and "enveda-CASMI26" not in ref, "ref must be owner/slug"
+              r.setdefault("dir", "requests")
+              with open(os.environ["GITHUB_ENV"], "a") as g:
+                  g.write(f"DSREF={ref}\n")
           d = str(r.get("dir", ""))
           assert d and ".." not in d and not d.startswith("/"), "dir must be relative, without .."
           d = os.path.join("enveda-casmi26", d)
@@ -209,6 +218,39 @@ jobs:
             python "enveda-casmi26/$POST" "$dst" 2>&1 | tee -a /tmp/out.txt
           fi
 
+      - name: Dataset files to the repo
+        if: env.ACTION == 'dsfiles' && env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/ds && cd /tmp/ds
+          kaggle datasets download "$DSREF" --unzip -q 2>&1 | tail -3 | tee /tmp/out.txt || true
+          cd "$GITHUB_WORKSPACE"
+          dst="enveda-casmi26/requests/results/ds-${RID}"
+          mkdir -p "$dst"
+          python - "$OUTGLOB" "$dst" <<'PY' 2>&1 | tee -a /tmp/out.txt
+          import fnmatch, os, shutil, sys
+          pat, dst = sys.argv[1:]
+          n = 0
+          for root, _, fs in os.walk("/tmp/ds"):
+              for f in fs:
+                  p = os.path.join(root, f)
+                  rel = os.path.relpath(p, "/tmp/ds")
+                  if not fnmatch.fnmatch(rel, pat) or os.path.getsize(p) > 1_000_000:
+                      continue
+                  try:
+                      open(p, encoding="utf-8").read()
+                  except Exception:
+                      continue
+                  q = os.path.join(dst, rel)
+                  os.makedirs(os.path.dirname(q), exist_ok=True)
+                  shutil.copy(p, q)
+                  n += 1
+                  print("got", rel, os.path.getsize(p))
+          print("copied", n, "files")
+          PY
+
       - name: Commit the outcome
         if: always() && github.event_name == 'push' && env.SKIP != 'yes'
         env:
@@ -233,6 +275,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$out"
           if [ -d "enveda-casmi26/requests/results/out-${RID:-none}" ]; then git add "enveda-casmi26/requests/results/out-${RID}"; fi
+          if [ -d "enveda-casmi26/requests/results/ds-${RID:-none}" ]; then git add -f "enveda-casmi26/requests/results/ds-${RID}"; fi
           git commit -q -m "enveda-casmi26: kaggle outcome ${RUN_ID}"
           for i in 1 2 3 4 5; do
             git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
