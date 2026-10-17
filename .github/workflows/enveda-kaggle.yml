@@ -159,18 +159,39 @@ jobs:
           set -o pipefail
           ID=$(python -c "import json;print(json.load(open('$DIR/kernel-metadata.json'))['id'])")
           echo "KERNEL=$ID" >> "$GITHUB_ENV"
-          mkdir -p /tmp/kout
-          kaggle kernels output "$ID" -p /tmp/kout 2>&1 | tail -3 | tee /tmp/out.txt || true
           dst="enveda-casmi26/requests/results/out-${RID}"
           mkdir -p "$dst"
-          n=0
-          for f in /tmp/kout/$OUTGLOB; do
-            [ -f "$f" ] || continue
-            sz=$(stat -c %s "$f")
-            if [ "$sz" -le 20000000 ]; then cp "$f" "$dst/"; n=$((n+1)); else echo "skip (too big) $f $sz" | tee -a /tmp/out.txt; fi
-          done
-          echo "copied $n files to $dst" | tee -a /tmp/out.txt
-          ls -la "$dst" | tee -a /tmp/out.txt
+          # the CLI fetches only the first page (500 files) of the output listing, so page through it here
+          python - "$ID" "$OUTGLOB" "$dst" <<'PY' 2>&1 | tee /tmp/out.txt
+          import fnmatch, json, os, sys, urllib.parse, urllib.request
+          kid, pat, dst = sys.argv[1:]
+          user, slug = kid.split("/")
+          tok, files = "", []
+          while True:
+              u = f"https://www.kaggle.com/api/v1/kernels/output?userName={user}&kernelSlug={slug}"
+              if tok:
+                  u += "&pageToken=" + urllib.parse.quote(tok)
+              x = json.load(urllib.request.urlopen(u, timeout=120))
+              files += x.get("files", [])
+              tok = x.get("nextPageToken") or ""
+              if not tok:
+                  break
+          print("listed", len(files), "files")
+          n = 0
+          for f in files:
+              name = f.get("fileName", "")
+              if "/" in name or not fnmatch.fnmatch(name, pat):
+                  continue
+              data = urllib.request.urlopen(f["url"], timeout=300).read()
+              if len(data) > 20_000_000:
+                  print("skip (too big)", name, len(data))
+                  continue
+              open(os.path.join(dst, name), "wb").write(data)
+              n += 1
+              print("got", name, len(data))
+          print("copied", n, "files to", dst)
+          PY
+          n=$(ls "$dst" | wc -l)
           test "$n" -gt 0 || { echo "::error::no file matched $OUTGLOB"; exit 1; }
 
       - name: Commit the outcome
