@@ -3,10 +3,10 @@
 # code cell from the base-list cell on; the last cell scores every snapshot against the held-out truth.
 # No submission is made from a val build (the request must not say "submit").
 
-VCFG = dict(N=val, SEED=valseed)
+VCFG = dict(N=val, SEED=valseed, LIB={"e180": "enveda-180", "np": "enveda-np-examples"}[valsrc])
 
 hook_v = """# ==== ours (yasunorim; build.py val): VALIDATION RUN, not a submission ====
-# fake test = N enveda-180 (timsTOF, like the hidden test) molecules held out of train.parquet:
+# fake test = N molecules of library OURS_VCFG['LIB'] held out of train.parquet (np-examples: unseen by the public FPNet):
 #   c1 half: molecules that also have spectra in other libraries; only their enveda-180 rows leave train (class-1 sim)
 #   c2 half: molecules only in enveda-180; all their rows leave train (no reference spectrum; the structure can stay in
 #            the precomputed engine-1 pool, so c2 is optimistic against a hidden class-2/3 molecule)
@@ -16,13 +16,19 @@ import pyarrow as pa, pyarrow.parquet as pq, numpy as np, pandas as pd
 _vsrc = os.path.join(COMP, 'train.parquet')
 _vpf = pq.ParquetFile(_vsrc)
 _vm = _vpf.read(columns=['ingest_lib', 'inchikey14']).to_pandas()
-_ve = set(_vm.inchikey14[_vm.ingest_lib == 'enveda-180'])
-_vo = set(_vm.inchikey14[_vm.ingest_lib != 'enveda-180'])
+_VLIB = OURS_VCFG['LIB']
+_ve = set(_vm.inchikey14[_vm.ingest_lib == _VLIB])
+_vo = set(_vm.inchikey14[_vm.ingest_lib != _VLIB])
 del _vm
 _vr = np.random.RandomState(OURS_VCFG['SEED'])
 _n1 = OURS_VCFG['N'] // 2
-VAL_C1 = set(_vr.choice(sorted(_ve & _vo), _n1, replace=False))
-VAL_C2 = set(_vr.choice(sorted(_ve - _vo), OURS_VCFG['N'] - _n1, replace=False))
+if _VLIB == 'enveda-180':
+    VAL_C1 = set(_vr.choice(sorted(_ve & _vo), _n1, replace=False))
+    VAL_C2 = set(_vr.choice(sorted(_ve - _vo), OURS_VCFG['N'] - _n1, replace=False))
+else:
+    # np-examples: every molecule also has spectra in other libraries; c1 keeps those, c2 loses every spectrum
+    _vp = list(_vr.permutation(sorted(_ve)))[:min(OURS_VCFG['N'], len(_ve))]
+    VAL_C1, VAL_C2 = set(_vp[:len(_vp) // 2]), set(_vp[len(_vp) // 2:])
 _vall = VAL_C1 | VAL_C2
 VC = '/tmp/valcomp'
 os.makedirs(VC, exist_ok=True)
@@ -30,8 +36,8 @@ _vw, _vtest = None, []
 for _b in _vpf.iter_batches(batch_size=200000):
     _t = _b.to_pandas()
     _hit = _t.inchikey14.isin(_vall)
-    _vtest.append(_t[_hit & (_t.ingest_lib == 'enveda-180')])
-    _drop = _t.inchikey14.isin(VAL_C2) | (_t.inchikey14.isin(VAL_C1) & (_t.ingest_lib == 'enveda-180'))
+    _vtest.append(_t[_hit & (_t.ingest_lib == _VLIB)])
+    _drop = _t.inchikey14.isin(VAL_C2) | (_t.inchikey14.isin(VAL_C1) & (_t.ingest_lib == _VLIB))
     _tb = pa.Table.from_pandas(_t[~_drop], schema=_b.schema, preserve_index=False)
     if _vw is None:
         _vw = pq.ParquetWriter(os.path.join(VC, 'train.parquet'), _b.schema)
@@ -135,5 +141,19 @@ _code = [i for i, c in enumerate(cells) if c["cell_type"] == "code" and i >= _fi
 for _i in reversed(_code):
     cells.insert(_i + 1, code_cell(hook_snap.replace("__CELL__", str(_i))))
 _iv = find_cell("'''SMOKE switch")
+# the fake test must exist before any cell that records the input ids (a451: the E004 preflight, which the
+# E004 postflight later asserts against; e3val1-1 stopped there because the preflight saw the real test)
+for _k, _c in enumerate(cells[:_iv]):
+    if _c["cell_type"] == "code" and "_e004_preflight" in "".join(_c["source"]):
+        _iv = _k
+        break
 cells.insert(_iv, code_cell(hook_v))
+# a val run never submits: a base acceptance check must not stop the run before the scoring cell
+for _c in cells:
+    _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+    if _c["cell_type"] == "code" and "E004_REPORT = _e004_postflight(globals())" in _src:
+        _src = _src.replace("E004_REPORT = _e004_postflight(globals())",
+                            "try:\n    E004_REPORT = _e004_postflight(globals())\nexcept Exception as _ve:\n"
+                            "    print('VAL: E004 postflight failed (ignored in a val run):', repr(_ve), flush=True)")
+        _c["source"] = _src
 cells.append(code_cell(hook_score))

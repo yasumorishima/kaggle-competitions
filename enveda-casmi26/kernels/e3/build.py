@@ -85,6 +85,7 @@ bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the fi
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
 val = _arg("val", 0, int)             # > 0: validation run, no submission (build_val.py): fake test = val enveda-180 molecules held out of train, stage-wise scores
 valseed = _arg("valseed", 0, int)
+valsrc = _arg("valsrc", "e180", str)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pick among the final top K of rank 1's formula goes to this rank (ours)
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
@@ -696,7 +697,7 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "train isomer panels; held out MRR 0.723 -> 0.748 on enveda-180, 0.567 -> 0.584 on np-examples). " if lfrag else "")
                  + (f"Ours: the base's fragment scorer (frag_rescore) also re-ranks molecules GLACIER or ICEBERG DID score: "
                     f"final top {bfragk}, inside same-formula groups, z(-log rank) + {bfrag} z(frag_rescore). " if bfrag > 0 else "")
-                 + (f"VALIDATION RUN (val={val}): the test is replaced by {val} enveda-180 molecules held out of train; no submission. " if val > 0 else "")
+                 + (f"VALIDATION RUN (val={val}, valsrc={valsrc}): the test is replaced by {val} molecules held out of train; no submission. " if val > 0 else "")
                  + (f"Ours (fins={fins}): ranks 1-{fins-1} kept; the fragment scorer's top pick among the final top {bfragk} with rank 1's formula moves to rank {fins}. " if fins > 0 else "")
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
                     f"main engine through pc_join (huseyinemreaksoy, v4n fusion 0.420) in a second engine pass; max "
