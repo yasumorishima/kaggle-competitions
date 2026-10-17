@@ -1,0 +1,9 @@
+request: e3val4-2
+run: 39072831035  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3val4  version: 2
+memo: Validation run, NO submission. e3val2/e3val3 showed the base ranks an in-pool truth near the top (np-examples MRR ~0.92, hit@25 0.99), so the LB 0.45 gap is likely truths missing from the candidate pool. This run measures that case: np-examples 250 molecules, c1 = only np-examples rows leave train; c2 (= class 3 here) = all spectra leave train AND the structure leaves the engine-1 pool (filtered copy of POOL_DIR, also read by the PubChem worker) and the engine-2 pool (COCONUT + ChEBI/LIPID MAPS + train), so only the PubChem tier can still propose it. Engine-1 FP bank = FPNet A. build.py val4 base=a451 val=250 valsrc=np valc3=1. Purpose: how often and how high the PubChem path puts an out-of-pool truth, to aim the next component. Rerun: v1 stopped because fe_v4 has res tables aligned to the pool (frag2 pool_f1/cap, analog_struct, chemfeat); now engine 1 keeps the original pool and Pool.window skips the c3 rows, while the PubChem worker gets the filtered pool copy and engine 2 filters its own pool (v1 log: engine-1 pool 125 of 710,701 matched, engine-2 kept 788,458 of 788,586).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3val4
+
+output files:
