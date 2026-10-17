@@ -163,26 +163,31 @@ jobs:
           mkdir -p "$dst"
           # the CLI fetches only the first page (500 files) of the output listing, so page through it here
           python - "$ID" "$OUTGLOB" "$dst" <<'PY' 2>&1 | tee /tmp/out.txt
-          import fnmatch, json, os, sys, urllib.parse, urllib.request
+          import fnmatch, os, sys, requests
+          from kaggle.api.kaggle_api_extended import KaggleApi
+          from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
           kid, pat, dst = sys.argv[1:]
           user, slug = kid.split("/")
+          api = KaggleApi(); api.authenticate()
           tok, files = "", []
-          while True:
-              u = f"https://www.kaggle.com/api/v1/kernels/output?userName={user}&kernelSlug={slug}"
-              if tok:
-                  u += "&pageToken=" + urllib.parse.quote(tok)
-              x = json.load(urllib.request.urlopen(u, timeout=120))
-              files += x.get("files", [])
-              tok = x.get("nextPageToken") or ""
-              if not tok:
-                  break
+          with api.build_kaggle_client() as kg:
+              while True:
+                  rq = ApiListKernelSessionOutputRequest()
+                  rq.user_name, rq.kernel_slug = user, slug
+                  if tok:
+                      rq.page_token = tok
+                  rs = kg.kernels.kernels_api_client.list_kernel_session_output(rq)
+                  files += [{"fileName": f.file_name, "url": f.url} for f in rs.files]
+                  tok = rs.next_page_token or ""
+                  if not tok:
+                      break
           print("listed", len(files), "files")
           n = 0
           for f in files:
               name = f.get("fileName", "")
               if "/" in name or not fnmatch.fnmatch(name, pat):
                   continue
-              data = urllib.request.urlopen(f["url"], timeout=300).read()
+              data = requests.get(f["url"], timeout=300).content
               if len(data) > 20_000_000:
                   print("skip (too big)", name, len(data))
                   continue
