@@ -1,0 +1,58 @@
+request: e3pcv-1
+run: 39086574783  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3a451pcv  version: 1
+memo: Base: saddamaditya 'Forensics Lab: Apex Synthesis' (public LB 0.451, Apache-2.0, kernels/e3/base_a451.ipynb), unchanged except ours. Finding behind it (our validation e3val4, np-examples 250 molecules, class 3 = truth removed from both engine pools, only in the PubChem tier): the gated PubChem merge puts the truth at MRR 0.80 / top1 0.74, the two-engine fusion drops it to 0.56 / 0.35 (48 top-1 lost, 0 gained), the later overlays to 0.46 / 0.22; c1 (truth in the pool) is 0.94 after the fusion and 0.93 at the end. Parts (ours, kernels/e3/build_pc.py): pcfix = at the end every PubChem-only candidate of the merged list returns to its merged-list rank if a later stage moved it down; pcvote = in the fusion a PubChem-only candidate gets engine 2's vote at its main-list rank; latecut = at the end back to the list of the final metric pass (identity overlay, E005-E007, E2R2 undone). This version: pcvote alone (fix at the source; GLACIER still re-ranks). build.py a451pcv base=a451 pcvote=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3a451pcv
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-18 01:48:12.920000,e3pcv-1: Apex Synthesis 0.451 base (GPU) + our PubChem-only protection (pcvote=1) [run 39086574783],SubmissionStatus.PENDING,,
+submission.csv,2026-10-18 01:27:03.683000,e3pcf-1: Apex Synthesis 0.451 base (GPU) + our PubChem-only protection (pcfix=1) [run 39085327916],SubmissionStatus.PENDING,,
+submission.csv,2026-10-18 01:06:19.420000,e3pcfv-1: Apex Synthesis 0.451 base (GPU) + our PubChem-only protection (pcfix=1 pcvote=1) [run 39084032766],SubmissionStatus.PENDING,,
+
+output files:
+total 600
+drwxr-xr-x  8 runner runner   4096 Oct 18 01:48 .
+drwxrwxrwt 14 root   root     4096 Oct 18 01:47 ..
+-rw-r--r--  1 runner runner  17131 Oct 18 01:47 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 18 01:47 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Oct 18 01:47 candidate_audit.json
+-rw-r--r--  1 runner runner  30213 Oct 18 01:48 casmi26-e3a451pcv.log
+-rw-r--r--  1 runner runner 129279 Oct 18 01:47 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9850 Oct 18 01:47 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 18 01:47 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 18 01:47 eng
+-rw-r--r--  1 runner runner  29183 Oct 18 01:47 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 18 01:47 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 18 01:47 experiment_audit.json
+-rw-r--r--  1 runner runner  23750 Oct 18 01:47 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139868 Oct 18 01:47 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 18 01:47 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 18 01:47 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 18 01:47 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 18 01:47 ice_work
+drwxr-xr-x  6 runner runner   4096 Oct 18 01:47 numba_cache
+-rw-r--r--  1 runner runner  27248 Oct 18 01:47 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 18 01:47 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 18 01:47 probe_core2.py
+-rw-r--r--  1 runner runner    344 Oct 18 01:47 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 18 01:47 smoke_comp
+-rw-r--r--  1 runner runner  17220 Oct 18 01:47 submission.csv
+-rw-r--r--  1 runner runner  17220 Oct 18 01:47 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17220 Oct 18 01:47 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17220 Oct 18 01:47 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 18 01:48 work
+[{"stream_name":"stderr","time":6.225896583,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.225947375,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.225951771,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.225954299,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.809956227,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.809994659,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.809999385,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.810002278,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":9.085062474,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":9.29264538,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":13.007817719,"data":" \n"}
+,{"stream_name":"stdout","time":13.007846545,"da
