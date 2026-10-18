@@ -97,7 +97,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
     - **10-18 の 5 本**＝部品の ON／OFF の対と束ねた版。
       - e3pcl-1：3 つ全部。→ **LB 0.385**（土台 0.451 より −0.066。検証台の +0.115 と逆向き。どの部品の害かは残り 4 本で切り分ける）
       - e3pcfv-1：fix＋vote。→ **LB 0.398**（latecut 抜きで +0.013。fix か vote が大きく害）
-      - e3pcf-1：fix だけ。
+      - e3pcf-1：fix だけ。→ **LB 0.398**（fix＋vote と同じ＝**害の主は pcfix（−0.053）**。PubChem 専用の候補を合流の順位へ戻すと、実際のテストでは偽物を上げる）
       - e3pcv-1：vote だけ。
       - e3lc-1：latecut だけ。
       - 順に `scratchpad/chain18.py` で 1 本ずつ出す（GPU は ARC と 2 本まで）。見える 400 分子での top-1 の変化数は、commit の smoke では測れない。手元の検証台の class 別の数で代える。
