@@ -121,6 +121,13 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       - 後付けの上書きは、c1 に +0.07 の得、class 3 に −0.26 の害。latecut は両方を捨てる。
       - ⇒ 分子ごとに選ぶ部品が要る。**`pcguard=1`（自前・build_pc.py）**：融合の後の 1 位が PubChem 専用の候補の分子だけ、融合の後のリストを使い、ほかは後付けの段の後のリストを使う。理想どおり選べれば c1 0.936／class 3 0.752 ≒ 全体 0.84。
     - 次：e3val6（pcvote＋pcguard・`pcdump=1` で PubChem 専用の候補の集合を `val_pconly.json` に出す）。これで分子ごとの選び方の規則を、kernel を回し直さずに手元で比べられる。
+  - **検証台 6 回目（e3val6-1・pcvote＋pcguard・規則の比較は `tools/val_rules.py`）**：
+    - L（土台の最終）0.698（c1 0.936／c3 0.459）、F（融合の後）0.815、pcguard 0.800（c1 0.875／c3 0.724・105 分子を変更）、fixF 0.811、fixS on F 0.813。
+    - 読み：pcvote 入りの融合では c1 の分子でも PubChem 専用の候補が 1 位になるので、pcguard は c1 も −0.06 下げる。
+      LB で pcfix が −0.053 だったのは、この c1 型（と「スペクトルが無いが正解はプールにある」c2 型）の害が、実際のテストでは class 3 の得より大きいから。
+      **検証台に c2 型（スペクトル無し・正解はプール内）が無かった**のが読み違いの元。
+    - 次：e3val7（`valc3=2`・300 分子＝c1 150／c2 75／c3 75、各分子のライブラリ一致の最大値 `val_libmax.json` も出す）。
+      c2 と c3 を分ける手がかり（ライブラリ一致・PubChem の候補の強さ）で守る分子を絞れるかを測る。
   - 公開コードの読み取り：`ahmedberatozer/casmi26-v4b-models` の `code/`（MIT）を `requests/results/ds-ds-v4b-1/` に取得した（GHA の `action: dsfiles`）。
     ranker は LightGBM lambdarank（160 特徴・500 回・4 本の袋）。学習の行は模擬の class の質問で作る。
   - 道具：kernel の出力は cloud から落とせない（www.kaggleusercontent.com が拒否）。そこで GHA の `action: output` ＋ `post: tools/val_report.py` で採点し、数字だけを結果ファイルに残す。正解は train 由来なので csv は repo に入れない。

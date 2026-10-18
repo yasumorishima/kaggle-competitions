@@ -19,6 +19,7 @@ print('PCONLY molecules with PubChem-only candidates in the merged list', sum(1 
 if 'VAL_C2' in globals():  # validation only: keep the PubChem-only sets so per-molecule rules can be scored offline
     import json as _pj
     _pj.dump(PC_ONLY, open('/kaggle/working/val_pconly.json', 'w'))
+    _pj.dump({str(k): float(v[2]) for k, v in BASE.items() if len(v) > 2}, open('/kaggle/working/val_libmax.json', 'w'))
 """
 
 hook_pc_fix = """# ==== ours (yasunorim; pcfix): PubChem-only candidates return to their merged-list rank ====

@@ -42,6 +42,13 @@ def top1pc(lst, m):
     return bool(lst) and key(lst[0]) in pk(m)
 
 
+_lp = os.path.join(d, "val_libmax.json")
+lm = json.load(open(_lp)) if os.path.isfile(_lp) else {}
+if lm:
+    for c in ("c1", "c2", "c3"):
+        v = [lm.get(m, np.nan) for m in L if cls.get(m) == c]
+        if v:
+            print(f"LIBMAX {c} n {len(v)} q10 {np.nanquantile(v, .1):.3f} q50 {np.nanquantile(v, .5):.3f} q90 {np.nanquantile(v, .9):.3f}")
 rules = {
     "L (base late)": lambda m: L[m],
     "F (fused)": lambda m: F[m],
@@ -53,8 +60,12 @@ rules = {
     "fixS: PC-only back to S rank in L": lambda m: fixto(L[m], S[m], m),
     "fixS on F": lambda m: fixto(F[m], S[m], m),
 }
+if lm:
+    for t in (0.3, 0.4, 0.5, 0.6, 0.7):
+        rules[f"guard if libmax < {t}"] = (lambda t: lambda m: F[m] if top1pc(F[m], m) and lm.get(m, 1.0) < t else L[m])(t)
+        rules[f"F if libmax < {t}"] = (lambda t: lambda m: F[m] if lm.get(m, 1.0) < t else L[m])(t)
 for nm, fn in rules.items():
-    out = {c: [] for c in ("all", "c1", "c2")}
+    out = {c: [] for c in ("all", "c1", "c2", "c3")}
     nch = 0
     for m in L:
         if m not in tk:
@@ -65,4 +76,4 @@ for nm, fn in rules.items():
         rr = k.index(tk[m]) + 1 if tk[m] in k else 0
         v = 1 / rr if rr else 0.0
         out["all"].append(v); out[cls[m]].append(v)
-    print(f"RULE {nm:46s} all {np.mean(out['all']):.4f} c1 {np.mean(out['c1']):.4f} c2 {np.mean(out['c2']):.4f} | changed {nch}")
+    print(f"RULE {nm:46s} all {np.mean(out['all']):.4f} c1 {np.mean(out['c1']):.4f} c2 {np.mean(out['c2']):.4f} c3 {np.mean(out['c3']) if out['c3'] else float('nan'):.4f} | changed {nch}")
