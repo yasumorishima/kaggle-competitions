@@ -16,6 +16,9 @@ for _m, _l in _PC_S1.items():
     PC_ONLY[_m] = {s: r for r, s in enumerate(_l, 1) if s not in _b}
 print('PCONLY molecules with PubChem-only candidates in the merged list', sum(1 for v in PC_ONLY.values() if v),
       '| at rank 1', sum(1 for v in PC_ONLY.values() if 1 in v.values()), flush=True)
+if 'VAL_C2' in globals():  # validation only: keep the PubChem-only sets so per-molecule rules can be scored offline
+    import json as _pj
+    _pj.dump(PC_ONLY, open('/kaggle/working/val_pconly.json', 'w'))
 """
 
 hook_pc_fix = """# ==== ours (yasunorim; pcfix): PubChem-only candidates return to their merged-list rank ====
@@ -80,7 +83,7 @@ if latecut:
     _im = find_cell("METRIC_SOURCE_SHA256 =")
     cells.insert(_im + 1, code_cell(hook_late_snap))
     cells.append(code_cell(hook_late_restore))
-if pcfix or pcvote:
+if pcfix or pcvote or pcdump or pcguard:
     _ig = find_cell("'''gated PubChem merge")
     cells.insert(_ig + 1, code_cell(hook_pc_snap))
 if pcvote:
@@ -102,3 +105,46 @@ if pcvote:
     cells[_if]["source"] = _s.replace(_o1, _n1).replace(_o2, _n2)
 if pcfix:
     cells.append(code_cell(hook_pc_fix))
+
+hook_guard_snap = """# ==== ours (yasunorim; pcguard): keep the post-fusion list ====
+import shutil as _gsh
+_gsh.copy('submission.csv', '/tmp/ours_after_fusion.csv')
+print('PCGUARD snapshot after the fusion', flush=True)
+"""
+hook_guard = """# ==== ours (yasunorim; pcguard): per molecule, the post-fusion list when its top-1 is PubChem-only ====
+# validation e3val5 (np-examples): the overlays after the fusion lift c1 0.879 -> 0.936 but sink class 3 0.752 -> 0.459;
+# a class-3 molecule is one whose post-fusion top-1 came from the PubChem tier only, so only those keep the fused order.
+import os as _gos, pandas as pd
+from rdkit import Chem as _GCh, RDLogger as _GRL
+_GRL.DisableLog('rdApp.*')
+def _gkey(s):
+    try:
+        _m = _GCh.MolFromSmiles(s)
+        return _GCh.MolToInchiKey(_m)[:14] if _m is not None else s
+    except Exception:
+        return s
+try:
+    assert _gos.path.isfile('/tmp/ours_after_fusion.csv'), 'snapshot missing'
+    _fu = {str(a): b for a, b in pd.read_csv('/tmp/ours_after_fusion.csv', dtype=str, keep_default_na=False).itertuples(index=False)}
+    _sub = pd.read_csv('submission.csv', dtype=str, keep_default_na=False)
+    _out, _n = [], 0
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _f = _fu.get(str(_m), '')
+        _ft = [x for x in _f.split(';') if x and x != 'CCO'][:1]
+        _pk = set(_gkey(c) for c in PC_ONLY.get(str(_m), {}))
+        if _ft and _gkey(_ft[0]) in _pk and _f != _s:
+            _out.append((_m, _f)); _n += 1
+        else:
+            _out.append((_m, _s))
+    _gs = pd.DataFrame(_out, columns=['molecule_id', 'smiles'])
+    assert len(_gs) == len(_sub) and _gs.molecule_id.is_unique and (_gs.smiles.str.len() > 0).all()
+    _gs.to_csv('submission.csv', index=False)
+    print('PCGUARD molecules back to the fused list', _n, flush=True)
+except Exception as _e:
+    print('PCGUARD failed, submission unchanged:', repr(_e), flush=True)
+"""
+if pcguard:
+    _if2 = find_cell("ALPHA, KRR")
+    cells.insert(_if2 + 1, code_cell(hook_guard_snap))
+    cells.append(code_cell(hook_guard))
+

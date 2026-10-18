@@ -101,6 +101,22 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       - e3pcv-1：vote だけ。
       - e3lc-1：latecut だけ。
       - 順に `scratchpad/chain18.py` で 1 本ずつ出す（GPU は ARC と 2 本まで）。見える 400 分子での top-1 の変化数は、commit の smoke では測れない。手元の検証台の class 別の数で代える。
+  - **検証台 5 回目（e3val5-1・10-18 04:5x 完了・c3 の台に pcvote＋latecut＋pcfix を全部入れた）**：
+
+    | 段 | c1 | class 3 | 全体 |
+    |---|---|---|---|
+    | 合流の後 | 0.871 | 0.796 | 0.834 |
+    | 融合の後（**pcvote 入り**） | 0.879 | **0.752**（e3val4 では 0.560） | 0.815 |
+    | 後付けの上書きの段の後 | 0.947 | 0.491 | 0.719 |
+    | 最終の手前（E2R2 などの後） | 0.936 | 0.459 | 0.698＝e3val4 の最終と同じ |
+    | latecut で戻した後 | 0.879 | 0.752 | 0.815 |
+    | pcfix の後（最終） | 0.863 | 0.763 | **0.813** |
+
+    - 読み：
+      - pcvote は融合の class 3 を +0.19 上げ、c1 を −0.065 下げる。ただし後付けの段が両方を元に戻すので、**pcvote 単体（e3pcv-1）は土台と同じになるはず**。
+      - 後付けの上書きは、c1 に +0.07 の得、class 3 に −0.26 の害。latecut は両方を捨てる。
+      - ⇒ 分子ごとに選ぶ部品が要る。**`pcguard=1`（自前・build_pc.py）**：融合の後の 1 位が PubChem 専用の候補の分子だけ、融合の後のリストを使い、ほかは後付けの段の後のリストを使う。理想どおり選べれば c1 0.936／class 3 0.752 ≒ 全体 0.84。
+    - 次：e3val6（pcvote＋pcguard・`pcdump=1` で PubChem 専用の候補の集合を `val_pconly.json` に出す）。これで分子ごとの選び方の規則を、kernel を回し直さずに手元で比べられる。
   - 公開コードの読み取り：`ahmedberatozer/casmi26-v4b-models` の `code/`（MIT）を `requests/results/ds-ds-v4b-1/` に取得した（GHA の `action: dsfiles`）。
     ranker は LightGBM lambdarank（160 特徴・500 回・4 本の袋）。学習の行は模擬の class の質問で作る。
   - 道具：kernel の出力は cloud から落とせない（www.kaggleusercontent.com が拒否）。そこで GHA の `action: output` ＋ `post: tools/val_report.py` で採点し、数字だけを結果ファイルに残す。正解は train 由来なので csv は repo に入れない。
