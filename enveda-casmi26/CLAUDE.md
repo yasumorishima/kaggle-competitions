@@ -77,6 +77,30 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       銅・金への差は「プールに無い正解を候補に入れる」側（PubChem 層の検索の精度、class 3）にある見込みが高い。
       ただし de novo 系は 6 回否定済みなので、PubChem 層（1.06 億構造）の FP 検索と差し込みの改良を次の部品の第一候補にする。
     - 次の検証台：c3 型（正解の構造をプール・train 構造・COCONUT から抜き、PubChem 層だけに残す）。PubChem 経路が正解を何位に置くかを測る。
+  - **検証台 4 回目（e3val4-2・10-18 00:2x・`valc3=1`）＝銅への部品が見えた**：
+    - c2 の半分を class 3 にした。正解の構造をエンジン 1 のプール（`Pool.window` で除外）とエンジン 2 のプールから抜き、PubChem 層だけに残す。
+
+    | 段 | c1（プール内） | class 3（PubChem だけ） |
+    |---|---|---|
+    | PubChem の合流の後（最初の提出形） | 0.869 | **0.796（top1 0.74）** |
+    | 二つのエンジンの融合＋GLACIER の後 | 0.944 | **0.560（top1 0.35）**＝1 位を 48 失い、得たのは 0 |
+    | 同一性の上書き（セル 29）の後 | 0.944 | 0.491 |
+    | 最終（E005〜E007・E2R2 の後） | 0.933 | 0.459（top1 0.22） |
+
+    - 読み：PubChem 層は、プールに無い正解を 1〜2 位に置けている。それを土台の融合と後付けの上書きが沈めている。
+      融合は主リスト 1/(3+r)＋エンジン 2 0.6/(3+r) の和なので、エンジン 2 の票が無い PubChem 専用の候補は、両方の票があるプールの候補に必ず抜かれる。
+    - 部品（自前・`kernels/e3/build_pc.py`）：
+      - `pcfix=1`：最後に、合流のリストにあった PubChem 専用の候補を合流の時の順位へ戻す。ほかの並びは触らない。
+      - `pcvote=1`：融合の中で、PubChem 専用の候補に、主リストの順位でのエンジン 2 の票を与える。
+      - `latecut=1`：最後に、最終の metric の段のリストへ戻す（後付けの 3 段を外す）。
+      - 手元の単体試験（偽データで並べ替えと融合）は通過した。
+    - **10-18 の 5 本**＝部品の ON／OFF の対と束ねた版。
+      - e3pcl-1：3 つ全部。
+      - e3pcfv-1：fix＋vote。
+      - e3pcf-1：fix だけ。
+      - e3pcv-1：vote だけ。
+      - e3lc-1：latecut だけ。
+      - 順に `scratchpad/chain18.py` で 1 本ずつ出す（GPU は ARC と 2 本まで）。見える 400 分子での top-1 の変化数は、commit の smoke では測れない。手元の検証台の class 別の数で代える。
   - 公開コードの読み取り：`ahmedberatozer/casmi26-v4b-models` の `code/`（MIT）を `requests/results/ds-ds-v4b-1/` に取得した（GHA の `action: dsfiles`）。
     ranker は LightGBM lambdarank（160 特徴・500 回・4 本の袋）。学習の行は模擬の class の質問で作る。
   - 道具：kernel の出力は cloud から落とせない（www.kaggleusercontent.com が拒否）。そこで GHA の `action: output` ＋ `post: tools/val_report.py` で採点し、数字だけを結果ファイルに残す。正解は train 由来なので csv は repo に入れない。
