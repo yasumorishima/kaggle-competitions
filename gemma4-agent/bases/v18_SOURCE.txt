@@ -1,0 +1,4 @@
+v18 (submission/ from 10-18) = bases/pub024 (public LB 0.24, https://www.kaggle.com/code/honghanhhh/gemma-4-baseline-lb-0-24,
+edit_file, 8 min / 240 s, unchanged) + our own time guard from v17: the limit line tells the agent to call get_status after its
+edit and, with under 120 s left, skip verification and submit. g4v17-1 (heredoc, 5 min / 60 s) scored 0.13, so v18 isolates the
+edit tool / time budget: keep pub024's tools and budget, add only the guard against the 12 h overrun.

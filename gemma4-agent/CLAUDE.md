@@ -236,6 +236,8 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
             ただし土台の pub024（公開 0.24・edit_file・8 分）より −0.11、銅 0.18 まで +0.05。
             読み：時間に収めると点が出るが、heredoc（または 5 分に締めたこと）で解ける課題が減っている。どちらが効いているかは、編集の道具だけを変えた版で切り分ける。
             - 次（10-19 の枠）：**v18＝pub024 の edit_file・8 分に戻し、自前の部品として「編集の後に get_status を呼び、残りが少なければ検証を飛ばして提出」だけを載せる**。仮説：pub024 帯（0.24）を保ったまま時間超過を防ぎ、LB ≥ 0.18（銅）。0.13 以下なら、heredoc ではなく 5 分が害だったと読む。
+              - 10-18 に作った：`submission/`＝`bases/pub024` そのまま＋prompt の上限の行に「編集の後に get_status、残り 120 秒未満なら検証を飛ばして提出」の 1 文（出典 `bases/v18_SOURCE.txt`・v17 は `bases/v17` に保存）。`kernels/pack/main.py` も作り直した。**10-19 00:00 UTC を過ぎたら `requests/kaggle.json` を g4v18-1 にして push する**。
+              - 自前の改良は時間の守りの 1 文だけで薄い。切り分けの版として出し、次の大きい部品（LoRA・G3）は 11-01 開始の予定を前倒しできるか 10-19 に見直す。
       合格：v10 で欠落が 5 回以上続く課題が 0、かつ v10 ≥ v7＋2 ⇒ 健全 72 課題で確認してから g4v10-1 を提出。
   提出の流れ：`kernels/pack`（CPU・設定を zip に固める）＋ `.github/workflows/gemma4-kaggle.yml`（`gemma4-agent/requests/kaggle.json` を push）。
 - 10-01：**g4v1-1＝エラー**（"Your notebook hit an unhandled error while rerunning your code"・点なし）。CPU の notebook 自体は問題ない（公開の 0.10 walkthrough も CPU）。
