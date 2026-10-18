@@ -88,6 +88,9 @@ valseed = _arg("valseed", 0, int)
 valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
 valsrc = _arg("valsrc", "e180", str)
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
+pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
+latecut = _arg("latecut", 0, int)     # a451: at the end, back to the list of the final metric pass (later overlays undone; build_pc.py)
+pcvote = _arg("pcvote", 0, int)       # a451: PubChem-only candidates get engine 2's vote at their main rank in the fusion (build_pc.py)
 fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pick among the final top K of rank 1's formula goes to this rank (ours)
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
@@ -261,6 +264,8 @@ except Exception as _e:
 '''
     cells.append(code_cell(hook_b))
 
+if pcfix or pcvote or latecut:   # P. PubChem-only protection (build_pc.py)
+    exec(open(os.path.join(HERE, "build_pc.py"), encoding="utf-8").read())
 if val > 0:      # V. validation rig (build_val.py): fake test before the smoke switch, stage snapshots, scores at the end
     exec(open(os.path.join(HERE, "build_val.py"), encoding="utf-8").read())
 
@@ -755,4 +760,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "val", val, "fp2gap", fp2gap, "cpu", cpu)
