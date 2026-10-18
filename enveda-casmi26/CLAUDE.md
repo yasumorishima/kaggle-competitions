@@ -99,7 +99,11 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
       - e3pcfv-1：fix＋vote。→ **LB 0.398**（latecut 抜きで +0.013。fix か vote が大きく害）
       - e3pcf-1：fix だけ。→ **LB 0.398**（fix＋vote と同じ＝**害の主は pcfix（−0.053）**。PubChem 専用の候補を合流の順位へ戻すと、実際のテストでは偽物を上げる）
       - e3pcv-1：vote だけ。→ **LB 0.451**（土台と同じ。検証台の予想どおり、後付けの段が vote の効きを消す）
-      - e3lc-1：latecut だけ。
+      - e3lc-1：latecut だけ。→ **LB 0.442**（後付けの段は実際のテストでは +0.009 の得）
+      - **5 本の読み（10-18 06:1x）**：pcfix −0.053（主犯）、latecut −0.009、pcvote ±0。
+        検証台の class 3 は「PubChem 専用の候補＝正解」に偏りすぎていた（正解をプールから抜いたので、PubChem 層の 1 位が当たりやすい）。
+        実際のテストでは、PubChem 専用の候補を上げると偽物を上げることが多い。⇒ 検証台の class 3 の割合と PubChem 層の当たり率を、実際のテストに合わせ直すのが先。
+        pcguard は後付けの段を大半の分子で残すので害は小さいはずだが、PubChem 専用の 1 位を守る点は pcfix と同じ向き。e3val6 の規則の比較で、守る分子を絞る（例：合流と融合の両方で 1 位、かつ c1 の害が小さい規則）。
       - 順に `scratchpad/chain18.py` で 1 本ずつ出す（GPU は ARC と 2 本まで）。見える 400 分子での top-1 の変化数は、commit の smoke では測れない。手元の検証台の class 別の数で代える。
   - **検証台 5 回目（e3val5-1・10-18 04:5x 完了・c3 の台に pcvote＋latecut＋pcfix を全部入れた）**：
 
