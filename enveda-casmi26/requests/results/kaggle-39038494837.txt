@@ -1,0 +1,19 @@
+request: e3val1-out3
+run: 39038494837  status: success  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3val1  version: 
+memo: Fetch the output of the validation run casmi26-e3val1 v1 (no push, no submission). The kernel stopped at the base's E004 postflight check (its preflight recorded the real test ids before our fake-test cell), but the 7 stage snapshots and val_truth.csv were written; the cloud session cannot reach www.kaggleusercontent.com, so the csv files are committed here to be scored in the cloud. Retry: out1 used the CLI, which fetches only the first 500 output files; out2 pages through the listing.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+listed 1805 files
+got val_stage01_after_cell23.csv 312902
+got val_stage02_after_cell24.csv 312902
+got val_stage03_after_cell25.csv 313658
+got val_stage04_after_cell26.csv 313658
+got val_stage05_after_cell27.csv 313658
+got val_stage06_after_cell28.csv 313658
+got val_stage07_after_cell29.csv 313658
+got val_truth.csv 23168
+copied 8 files to enveda-casmi26/requests/results/out-e3val1-out3
+
+output files:

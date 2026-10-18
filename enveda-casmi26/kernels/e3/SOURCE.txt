@@ -27,3 +27,19 @@ read from ../e1fuse/base_0420.ipynb (the injection route of our de novo rows).
 
 Ours (kernels/e3/build.py): only two inserted, clearly marked code cells (de novo setup after the engine cell, de novo
 summary after the base-list cell). Every base cell is unchanged.
+
+base_a451.ipynb -- unchanged copy of a public Kaggle notebook (the blob.source of the Kaggle API pull, byte for byte; pulled 2026-10-17)
+
+Title:      [0.451 SOTA] Forensics Lab: Apex Synthesis
+Author:     saddamaditya (display name "Maman Salto")
+URL:        https://www.kaggle.com/code/saddamaditya/0-451-sota-forensics-lab-apex-synthesis
+Kernel id:  138982225, version 1
+Public LB:  0.451 (as stated in its title; not verified by us)
+SHA256 of base_a451.ipynb: 118846112b477af283dfebd72ac37e403ecd984761b602b4005f66a202ce190e
+License:    Apache-2.0 (Kaggle notebook default; the E006 lineage it builds on declares Apache-2.0).
+Content:    E006 (above) + PubChem promotion threshold rel > 150 (seyitkaangunes, LB 0.446) + engine-2 top-1 inserted at
+            rank 2 (antriksharya, LB 0.443) + MetFrag-lite fragment re-score where GLACIER and ICEBERG are blind, for whole
+            molecules (ahmedberatozer v7c) and for uncovered same-formula groups. Runtime: GPU T4, same docker image as E006.
+            Datasets: as E006 with sergiomalv/casmi-chebi-lmsd-structures in place of prvsiyan/chebi-lipidmaps-casmi26.
+Ours on it (build.py base=a451): cell B (bfrag: the base's frag_rescore as a third re-scorer on molecules the forward
+            models scored) and cell N (our neutral-loss evidence). Base cells unchanged.

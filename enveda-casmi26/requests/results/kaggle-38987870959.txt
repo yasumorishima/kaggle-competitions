@@ -1,0 +1,59 @@
+request: e3a451lf-1
+run: 38987870959  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3a451lf  version: 1
+memo: New base + our new component. Base: saddamaditya/0-451-sota-forensics-lab-apex-synthesis v1 (public LB 0.451 as titled, Apache-2.0; E006 + PubChem promotion rel>150 + engine-2 rank-2 + MetFrag-lite fragment gap/group gap), base cells unchanged except one marked insertion. Ours (ours_lfrag, build.py lfrag=1): the base's frag_rescore credits a peak 1.0 (precursor / 1-bond cut) or 0.6 (2-bond cut) whatever hydrogen shift it needs; we learn the credits per bucket (cut level x hydrogen shift of the cheapest explanation, linear and sqrt intensity) with a listwise softmax over 20 same-formula train isomers, fitted on 4,432 train molecules (3,000 enveda-180 + 1,432 other libraries). Held out: enveda-180 500 molecules MRR 0.723 -> 0.748, np-examples 171 molecules 0.567 -> 0.584. The learned score replaces frag_rescore everywhere the base uses it (molecules and same-formula groups no forward model scored). Hypothesis: LB > 0.451 (bronze 0.446).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3a451lf
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-17 01:20:46.670000,e3a451lf-1: Apex Synthesis 0.451 base (GPU) + our learned fragment credits. Hypothesis: LB > 0.451 [run 38987870959],SubmissionStatus.PENDING,,
+submission.csv,2026-10-17 00:58:35.603000,e3a451bf03-1: Apex Synthesis 0.451 base (GPU) + our frag re-score on forward-model-scored molecules. Hypothesis: LB > 0.451 [run 38986208672],SubmissionStatus.PENDING,,
+submission.csv,2026-10-17 00:38:54.903000,e3fg05dnl05-1: E006 0.440 base (GPU) + our decoy-corrected fragment re-rank + neutral-loss evidence. Hypothesis: LB >= 0.441 [run 38985285361],SubmissionStatus.PENDING,,
+
+output files:
+total 604
+drwxr-xr-x  8 runner runner   4096 Oct 17 01:20 .
+drwxrwxrwt 14 root   root     4096 Oct 17 01:19 ..
+-rw-r--r--  1 runner runner  17131 Oct 17 01:19 baseline_submission.csv
+-rw-r--r--  1 runner runner    546 Oct 17 01:19 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Oct 17 01:19 candidate_audit.json
+-rw-r--r--  1 runner runner  30230 Oct 17 01:20 casmi26-e3a451lf.log
+-rw-r--r--  1 runner runner 129279 Oct 17 01:19 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9849 Oct 17 01:19 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 17 01:19 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 17 01:19 eng
+-rw-r--r--  1 runner runner  29183 Oct 17 01:19 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 17 01:19 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 17 01:19 experiment_audit.json
+-rw-r--r--  1 runner runner  23750 Oct 17 01:19 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139868 Oct 17 01:19 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 17 01:19 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 17 01:19 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 17 01:19 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 17 01:19 ice_work
+drwxr-xr-x  6 runner runner   4096 Oct 17 01:20 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 17 01:20 ours_lfrag.py
+-rw-r--r--  1 runner runner  27248 Oct 17 01:20 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 17 01:20 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 17 01:20 probe_core2.py
+-rw-r--r--  1 runner runner    345 Oct 17 01:20 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 17 01:20 smoke_comp
+-rw-r--r--  1 runner runner  17220 Oct 17 01:20 submission.csv
+-rw-r--r--  1 runner runner  17220 Oct 17 01:20 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17220 Oct 17 01:20 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17220 Oct 17 01:20 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 17 01:20 work
+[{"stream_name":"stderr","time":8.78440348,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.784466432,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.784473676,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.784478603,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.494222451,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.494252778,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.49425793,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.49426172,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":11.455709485,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":11.455744984,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":16.28669036,"data":" \n"}
+,{"stream_name":"stdout","time":16.286721394,"dat

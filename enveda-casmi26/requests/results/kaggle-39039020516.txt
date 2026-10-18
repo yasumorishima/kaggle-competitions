@@ -1,0 +1,44 @@
+request: ds-v4b-1
+run: 39039020516  status: success  action: dsfiles  dir: enveda-casmi26/requests  submit: no
+kernel:   version: 
+memo: Read the public training code of the base's ranker (ahmedberatozer/casmi26-v4b-models, code/casmi/traindata.py, ranker.py, engine.py; Apache-2.0 per its LICENSE-NOTICE) to plan component (A): retrain the LightGBM ranker / FPNet without the held-out molecules, with our own evidence as features. Text files only, no submission.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Dataset URL: https://www.kaggle.com/datasets/ahmedberatozer/casmi26-v4b-models
+License(s): other
+got LICENSE-NOTICE.txt 1363
+got MANIFEST.json 9209
+got code/casmi/graphs.py 2850
+got code/casmi/frag.py 11172
+got code/casmi/spectra.py 10057
+got code/casmi/xenc.py 6938
+got code/casmi/dreams_model.py 32798
+got code/casmi/library.py 7577
+got code/casmi/structs.py 2791
+got code/casmi/fpnet6.py 14661
+got code/casmi/ranker.py 4189
+got code/casmi/chem.py 12328
+got code/casmi/build.py 4979
+got code/casmi/pool.py 2370
+got code/casmi/engine.py 26449
+got code/casmi/fpnet.py 9551
+got code/casmi/traindata.py 9425
+got code/casmi/__init__.py 0
+got code/casmi/derive.py 6929
+got code/fe_v4/v1engine.py 8391
+got code/fe_v4/chemfeat.py 6158
+got code/fe_v4/derive6.py 8635
+got code/fe_v4/fragcaps.py 6766
+got code/fe_v4/hooks_v1.py 4338
+got code/fe_v4/ctxlib.py 20737
+got code/fe_v4/fams/frag2.py 29368
+got code/fe_v4/fams/model_views.py 3492
+got code/fe_v4/fams/fragnet.py 46806
+got code/fe_v4/fams/derivation.py 29276
+got code/fe_v4/fams/analog_struct.py 30583
+got code/fe_v4/fams/__init__.py 0
+got code/fe_v4/res/frag2/caps.txt 149
+got code/fe_v4/res/fragnet/stageB.txt 544829
+copied 33 files
+
+output files:

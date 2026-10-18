@@ -78,9 +78,21 @@ txl = _arg("tx", 0.0)                  # ours_tx: weight of z(similarity to the 
 txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final list
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
+base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
+assert base in ("e006", "a451"), base
+bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
+bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
+bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
+val = _arg("val", 0, int)             # > 0: validation run, no submission (build_val.py): fake test = val enveda-180 molecules held out of train, stage-wise scores
+valseed = _arg("valseed", 0, int)
+valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
+valsrc = _arg("valsrc", "e180", str)
+valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
+fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pick among the final top K of rank 1's formula goes to this rank (ours)
+lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
-nb = json.load(open(os.path.join(HERE, "base_e006.ipynb"), encoding="utf-8"))
+nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
 
@@ -96,6 +108,21 @@ def code_cell(s):
 
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
+assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
+assert bfrag == 0 or base == "a451", "bfrag uses the a451 base's frag_rescore"
+assert fins == 0 or base == "a451", "fins uses the a451 base's frag_rescore"
+assert lfrag == 0 or base == "a451", "lfrag patches the a451 base's frag_rescore"
+if lfrag:   # the one base-cell edit of lfrag: right after the base imports frag_rescore, our learned credits replace its score
+    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "    import frag_rescore, math\n" in src(i))
+    _old = "    import frag_rescore, math\n"
+    assert src(_il).count(_old) == 1
+    _lsrc = open(os.path.join(HERE, "ours_lfrag.py"), encoding="utf-8").read()
+    cells[_il]["source"] = src(_il).replace(_old, _old + (
+        "    # ==== ours (yasunorim, build.py lfrag=1): learned peak credits (ours_lfrag) replace frag_rescore.score_molecule ====\n"
+        f"    open('/kaggle/working/ours_lfrag.py', 'w').write({_lsrc!r})\n"
+        "    import ours_lfrag\n"
+        "    ours_lfrag.install(frag_rescore)\n"
+        "    print('ours_lfrag installed: learned fragment credits', flush=True)\n"))
 if cpu:   # the only base-cell edits: device strings and the T4-only checks (time budgets unchanged)
     def _cpu_swap(i, old, new, n=1):
         s_ = src(i)
@@ -182,6 +209,115 @@ except Exception as _e:
     print('FGAP FAILED -> submission as is', repr(_e), flush=True)
 '''
     cells.append(code_cell(hook_f))
+
+if bfrag > 0:    # B. a451 base only, after cell F, BEFORE cell N
+    BCFG = dict(BF_LAM=bfrag, BF_K=bfragk, BF_MIN=bfragmin)
+    hook_b = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
+# the base's own fragment scorer (frag_rescore, MetFrag-lite) as a third re-scorer where the forward models DID score:
+# the base uses it only where neither GLACIER nor ICEBERG scored (whole molecule or a whole same-formula group).
+# Here every molecule with a GLACIER or ICEBERG score gets its final top BF_K re-ranked inside same-formula groups by
+# z(-log rank) + BF_LAM * z(frag_rescore) (gl_fuse.rerank_multi). Our check: on 171 enveda-np-examples molecules
+# (truth among 20 same-formula train isomers) frag_rescore alone ranks the truth at MRR 0.568 (random 0.305).
+OURS_BCFG = {BCFG!r}
+try:
+    _bt0 = time.time()
+    _ice_all = ICE_SCORES if isinstance(ICE_SCORES, dict) else {{}}
+    def _b_cov(m_):
+        _i = _ice_all.get(str(m_), {{}})
+        return bool(gl_of(str(m_))) or (isinstance(_i, dict) and any(v is not None for v in _i.values()))
+    _bby = {{str(m): g for m, g in te.groupby('molecule_id', sort=False)}}
+    _bcache = _fcache if '_fcache' in globals() and isinstance(_fcache, dict) else {{}}
+    _sp = '/kaggle/working/submission.csv'
+    _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
+    _out, _nc, _nt, _n1, _nskip = [], 0, 0, 0, 0
+    _bdl = _bt0 + 60 * OURS_BCFG['BF_MIN']
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _l = [x for x in str(_s).split(';') if x]
+        _g = _bby.get(str(_m))
+        if not _b_cov(_m) or len(_l) < 2 or _g is None:
+            _out.append(_s); continue
+        _nc += 1
+        if time.time() > _bdl:
+            _nskip += 1; _out.append(_s); continue
+        _top = _l[:OURS_BCFG['BF_K']]
+        _spec = [dict(mz=np.asarray(r.ms2_mzs, np.float64), it=np.asarray(r.ms2_normalized_intensities, np.float64),
+                      adduct=r.adduct, prec=float(r.precursor_mz), mode=1 if r.ionization_mode == 'positive' else -1)
+                 for r in _g.itertuples()][:16]
+        _fx = frag_rescore.score_molecule(_spec, _top, cache=_bcache)
+        _fd = {{t: float(v) for t, v in zip(_top, _fx) if v is not None}}
+        _o = gl_fuse.rerank_multi(_top, list(_top), [-float(np.log(i + 1)) for i in range(len(_top))],
+                                  [_form2(t) for t in _top], [_fd], [OURS_BCFG['BF_LAM']], top_n=len(_top))
+        _new = [_top[i] for i in _o] + _l[len(_top):]
+        _nt += _new != _l; _n1 += _new[0] != _l[0]
+        _out.append(';'.join(_new))
+    _sub['smiles'] = _out
+    _sub.to_csv(_sp, index=False)
+    print(f'BFRAG lam {{OURS_BCFG["BF_LAM"]}} K {{OURS_BCFG["BF_K"]}}: covered molecules {{_nc}} of {{len(_sub)}} | order changed {{_nt}} | '
+          f'top-1 changed {{_n1}} | skipped (time cap) {{_nskip}} | {{time.time()-_bt0:.0f}}s', flush=True)
+except Exception as _e:
+    if not IS_RERUN:                 # commit run: a bug must fail the commit
+        raise
+    print('BFRAG FAILED -> submission as is', repr(_e), flush=True)
+'''
+    cells.append(code_cell(hook_b))
+
+if val > 0:      # V. validation rig (build_val.py): fake test before the smoke switch, stage snapshots, scores at the end
+    exec(open(os.path.join(HERE, "build_val.py"), encoding="utf-8").read())
+
+if fins > 0:     # I. a451 base only, appended after the last base cell (after the base's E2R2)
+    ICFG = dict(FI_SLOT=fins, FI_K=bfragk, FI_MIN=bfragmin)
+    hook_i = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
+# fragment-hedge insert: a third opinion placed at a fixed rank, like the base's engine-2 rank-2 insert. Ranks 1 and 2
+# are kept. Among the final top FI_K candidates with rank 1's molecular formula, the one the fragment scorer
+# (frag_rescore.score_molecule, with lfrag=1 our learned credits) likes best moves to rank FI_SLOT when it is not already
+# above it. Isomer check (truth among 20 same-formula train isomers): learned scorer MRR 0.748 on enveda-180 held out.
+OURS_ICFG = {ICFG!r}
+try:
+    _it0 = time.time()
+    _iby = {{str(m): g for m, g in te.groupby('molecule_id', sort=False)}}
+    _icache = _fcache if '_fcache' in globals() and isinstance(_fcache, dict) else {{}}
+    _sp = '/kaggle/working/submission.csv'
+    _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
+    _out, _nm, _nins, _nskip, _nalr = [], 0, 0, 0, 0
+    _idl = _it0 + 60 * OURS_ICFG['FI_MIN']
+    _slot = OURS_ICFG['FI_SLOT']
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _l = [x for x in str(_s).split(';') if x]
+        _g = _iby.get(str(_m))
+        if len(_l) <= _slot or _g is None or _l[0] == 'CCO':
+            _out.append(_s); continue
+        if time.time() > _idl:
+            _nskip += 1; _out.append(_s); continue
+        _f1 = _form2(_l[0])
+        _top = [t for t in _l[:OURS_ICFG['FI_K']] if _f1 is not None and _form2(t) == _f1]
+        if len(_top) < 2:
+            _out.append(_s); continue
+        _nm += 1
+        _spec = [dict(mz=np.asarray(r.ms2_mzs, np.float64), it=np.asarray(r.ms2_normalized_intensities, np.float64),
+                      adduct=r.adduct, prec=float(r.precursor_mz), mode=1 if r.ionization_mode == 'positive' else -1)
+                 for r in _g.itertuples()][:16]
+        _fx = frag_rescore.score_molecule(_spec, _top, cache=_icache)
+        _fd = [(float(v), t) for t, v in zip(_top, _fx) if v is not None and np.isfinite(v)]
+        if not _fd:
+            _out.append(_s); continue
+        _best = max(_fd, key=lambda z: z[0])[1]
+        _pos = _l.index(_best)
+        if _pos < _slot:
+            _nalr += 1; _out.append(_s); continue
+        _new = [t for t in _l if t != _best]
+        _new.insert(_slot - 1, _best)
+        _nins += 1
+        _out.append(';'.join(_new[:25]))
+    _sub['smiles'] = _out
+    _sub.to_csv(_sp, index=False)
+    print(f'FINS slot {{_slot}} K {{OURS_ICFG["FI_K"]}}: scored molecules {{_nm}} of {{len(_sub)}} | inserted {{_nins}} | '
+          f'already above {{_nalr}} | skipped (time cap) {{_nskip}} | {{time.time()-_it0:.0f}}s', flush=True)
+except Exception as _e:
+    if not IS_RERUN:                 # commit run: a bug must fail the commit
+        raise
+    print('FINS FAILED -> submission as is', repr(_e), flush=True)
+'''
+    cells.append(code_cell(hook_i))
 
 if nl > 0:       # N. after cell F, BEFORE hook C
     NCFG = dict(NL_LAM=nl, NL_K=nlk, NL_COV=nlcov, NL_IONS=bool(nlion))
@@ -550,9 +686,21 @@ _n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
 print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
 """))
 cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
-                 f"# casmi26 {name} (yasunorim)\n\nBase: [CASMI26 E006 Window 40 ICE Fallback True (public LB 0.440)]"
-                 "(https://www.kaggle.com/code/canqiang/casmi26-e006-window-40-ice-fallback-true) by canqiang, version 1, "
-                 "Apache-2.0, and everything it credits (cells below, unchanged). "
+                 f"# casmi26 {name} (yasunorim)\n\n"
+                 + ("Base: [CASMI26 E006 Window 40 ICE Fallback True (public LB 0.440)]"
+                    "(https://www.kaggle.com/code/canqiang/casmi26-e006-window-40-ice-fallback-true) by canqiang, version 1, "
+                    "Apache-2.0, and everything it credits (cells below, unchanged). " if base == "e006" else
+                    "Base: [Forensics Lab: Apex Synthesis (public LB 0.451 as titled)]"
+                    "(https://www.kaggle.com/code/saddamaditya/0-451-sota-forensics-lab-apex-synthesis) by saddamaditya, "
+                    "version 1 (E006 + PubChem promotion rel>150 + engine-2 rank-2 + fragment gap / group gap), Apache-2.0, "
+                    "and everything it credits (cells below, unchanged). ")
+                 + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
+                    "level x hydrogen shift of the cheapest explanation, linear and sqrt intensity; listwise fit on 4,432 "
+                    "train isomer panels; held out MRR 0.723 -> 0.748 on enveda-180, 0.567 -> 0.584 on np-examples). " if lfrag else "")
+                 + (f"Ours: the base's fragment scorer (frag_rescore) also re-ranks molecules GLACIER or ICEBERG DID score: "
+                    f"final top {bfragk}, inside same-formula groups, z(-log rank) + {bfrag} z(frag_rescore). " if bfrag > 0 else "")
+                 + (f"VALIDATION RUN (val={val}, valsrc={valsrc}): the test is replaced by {val} molecules held out of train; no submission. " if val > 0 else "")
+                 + (f"Ours (fins={fins}): ranks 1-{fins-1} kept; the fragment scorer's top pick among the final top {bfragk} with rank 1's formula moves to rank {fins}. " if fins > 0 else "")
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
                     f"main engine through pc_join (huseyinemreaksoy, v4n fusion 0.420) in a second engine pass; max "
                     f"{denovo} rows per molecule, {dnmin:.0f} min cap. Two inserted cells are marked 'ours'. "
@@ -578,7 +726,7 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"z(mean top-3 Tanimoto to the other test molecules' rank-1 structures)"
                     f"{' (only where neither GLACIER nor ICEBERG scored; anchors = the scored molecules)' if txcov == 'blind' else ''}. " if txl > 0 else "")
                  + (f"Ours (CPU): the base's ICEBERG budget raised from 5400 s to {iceb} s so the CPU scores more molecules. " if iceb > 0 else "")
-                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 else "")
+                 + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 and bfrag == 0 and not lfrag and fins == 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 for c in cells:
     if c["cell_type"] == "code":
@@ -595,7 +743,8 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-fpnet-full1", "ahmedberatozer/casmi26-glacier",
                             "ahmedberatozer/casmi26-iceberg", "ahmedberatozer/casmi26-pubchem-tier",
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
-                            "ahmedberatozer/casmi26-v4b-models", "prvsiyan/chebi-lipidmaps-casmi26",
+                            "ahmedberatozer/casmi26-v4b-models",
+                            "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
                             "prvsiyan/coconut-casmi26-candidates", "hengck23/hengck23-dreams-enveda-casmi26",
                             "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"],
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
@@ -606,4 +755,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "val", val, "fp2gap", fp2gap, "cpu", cpu)

@@ -1,0 +1,6 @@
+v17 (submission/ from 10-17) = v16 (bases/v16 = bases/pub024 public LB 0.24 + our heredoc-only edits + 7 min / 120 s) with the
+per-task budget our v12-v14 used and that finished inside the 12 h limit: max_time_minutes 7 -> 5, timeout_seconds 120 -> 60.
+g4v15-1 (8 min / 240 s) and g4v16-1 (7 min / 120 s) both ended "exceeded the allowed runtime" (no score). The harness exposes only
+the per-task remaining time (get_status), not the notebook's, so the time split is a fixed cap: ~120 hidden tasks in 12 h = ~6 min
+per task with setup and tests. Prompt: the limit line says 5 min / 60 s and to submit without verifying when get_status shows
+< 90 s left after the edit; the pytest wrapper timeout 150 -> 50 so it ends inside the 60 s command limit.
