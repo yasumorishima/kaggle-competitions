@@ -179,7 +179,11 @@ if valsrc == "np" and not valfull:
 # engine 1 + its PubChem worker read POOL_DIR -> a filtered copy; engine 2 drops the keys while building its own pool.
 hook_c3 = """# ==== ours (yasunorim; val c3): remove the c2 truths from the candidate pools ====
 import numpy as np, pandas as pd, os
-VAL_C3 = set(VAL_C2)
+VAL_C3 = set(VAL_C2) if __VALC3__ == 1 else set(sorted(VAL_C2)[::2])  # valc3=2: half of c2 keeps its pool entry (c2), half leaves (c3)
+if __VALC3__ == 2:
+    _tru['cls'] = np.where(_tru.inchikey14.isin(VAL_C3), 'c3', _tru.cls)
+    _tru.to_csv('/kaggle/working/val_truth.csv', index=False)
+    print('VALC3 classes', _tru.cls.value_counts().to_dict(), flush=True)
 _POOL_DIR_ORIG = POOL_DIR
 _c3d = '/tmp/valcomp/pool'
 os.makedirs(_c3d, exist_ok=True)
@@ -211,7 +215,7 @@ print('VALC3 engine-1 pool dropped', int(_dropm.sum()), 'of', len(_pm), '| c2 tr
 if valc3:
     assert valsrc == "np", "valc3 needs valsrc=np"
     _iv2 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "VALIDATION RUN, not a submission" in "".join(c["source"]))
-    cells.insert(_iv2 + 1, code_cell(hook_c3))
+    cells.insert(_iv2 + 1, code_cell(hook_c3.replace("__VALC3__", str(int(valc3)))))
     _old2 = '    good = np.isfinite(mass)\\n'
     _new2 = ('    good = np.isfinite(mass) & ~pd.Series(keys).astype(str).str[:14].isin(set(open("/tmp/valcomp/c3_keys.txt").read().split())'
              ' if os.path.exists("/tmp/valcomp/c3_keys.txt") else set()).values; log(f"VALC3 engine-2 pool kept {int(good.sum()):,} of {len(good):,}")\\n')

@@ -818,6 +818,20 @@ if streams != 10:
         c13 = c13.replace(old, new)
     cells[i13]["source"] = c13
 
+# ---- ctxk=K (ours, 10-19): per-game context window 128K -> K K-tokens, the trimmer's drain scaled with it
+# (58K of 128K). a2s13 (13 streams at 128K) filled the KV pool (usage 0.94, prefix cache evicted, prefill x4); a
+# smaller window per game frees the KV that the extra streams need (13 x ~0.6 x 80K < 10 x ~0.8 x 128K).
+ctxk = int(opts.get("ctxk", "128"))
+if ctxk != 128:
+    iw = next(i for i, c in enumerate(cells) if "'LOCAL_ANALYZER_CONTEXT_WINDOW': (116+12)*1024," in "".join(c["source"]))
+    cw = src(iw)
+    drain = max(8, round(58 * ctxk / 128))
+    for old, new in (("'LOCAL_ANALYZER_CONTEXT_WINDOW': (116+12)*1024,", f"'LOCAL_ANALYZER_CONTEXT_WINDOW': {ctxk}*1024,  # ours (base 128K)"),
+                     ("'ARC3_CONTEXT_DRAIN_TOKENS': 58*1024,", f"'ARC3_CONTEXT_DRAIN_TOKENS': {drain}*1024,  # ours (base 58K)")):
+        assert cw.count(old) == 1, old
+        cw = cw.replace(old, new)
+    cells[iw]["source"] = cw
+
 # ---- diagnostics (ours, no behaviour change): summarise the SGLang serve.log in the notebook log, because kernel
 # output files cannot be fetched from the cloud container. Per 10-minute bucket: decode batch size, queue,
 # KV usage, generation throughput, and prefill new vs cached tokens (cache reuse).
@@ -869,5 +883,5 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")))
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote", name, "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reuse", opts.get("reuse", "0"),
+print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reuse", opts.get("reuse", "0"),
       "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"))

@@ -161,7 +161,8 @@ jobs:
             test -s /tmp/kout/submission.csv || { echo "::error::no submission.csv to submit"; exit 1; }
             kaggle competitions submit "$COMP" -k "$ID" -v "$VER" -f submission.csv -m "$MSG [run ${GITHUB_RUN_ID}]" 2>&1 | tee -a /tmp/out.txt
             sleep 30
-            kaggle competitions submissions "$COMP" -v 2>&1 | head -5 | tee -a /tmp/out.txt
+            # head closes the pipe early (SIGPIPE under pipefail once the list is long), so the listing never fails the step
+            { kaggle competitions submissions "$COMP" -v 2>&1 || true; } | head -5 | tee -a /tmp/out.txt || true
             grep -q "run ${GITHUB_RUN_ID}" /tmp/out.txt || { echo "::error::submission not found in the list"; exit 1; }
           fi
 

@@ -46,7 +46,7 @@ for f in files:
         fin[m] = any(x[1] == tf[m] for x in inf)
     nm = os.path.basename(f).replace(".csv", "")
     ranks[nm] = r
-    for c in ("all", "c1", "c2"):
+    for c in ("all", "c1", "c2", "c3"):
         ms = [m for m in r if c == "all" or cls[m] == c]
         a = np.array([r[m] for m in ms])
         if not len(a):

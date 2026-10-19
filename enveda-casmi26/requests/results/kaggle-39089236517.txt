@@ -1,0 +1,9 @@
+request: e3val5-1
+run: 39089236517  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3val5  version: 1
+memo: Validation run, NO submission: the c3 rig of e3val4 (np-examples 250; c1 in-pool, c2 = class 3 only in the PubChem tier) with the three 10-18 parts on (pcvote in the fusion, latecut and pcfix at the end), stage snapshots after each, to measure each part per class next to e3val4 (fusion c1 0.944 / c3 0.560, final c1 0.933 / c3 0.459). build.py val5 base=a451 val=250 valsrc=np valc3=1 pcfix=1 pcvote=1 latecut=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3val5
+
+output files:

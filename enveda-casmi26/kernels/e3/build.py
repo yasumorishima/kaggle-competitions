@@ -47,6 +47,10 @@ E1 = os.path.join(HERE, "..", "e1fuse")
 name = sys.argv[1]
 _arg = lambda k, d, f=float: next((f(a.split("=", 1)[1]) for a in sys.argv[2:] if a.startswith(k + "=")), d)  # noqa: E731
 denovo = _arg("denovo", 0, int)       # max de novo rows per molecule (0 = off = the base notebook)
+pcl = _arg("pcl", 0, int)             # ours_pcl (10-19): > 0 = PubChemLite rows into engine 1 through the de novo route (max per molecule)
+if pcl > 0:
+    assert denovo == 0, "pcl replaces the de novo provider"
+    denovo = pcl
 dns = _arg("dns", 48, int)            # samples per spectrum (4 spectra; S // 2 for the 2nd formula)
 dnmin = _arg("dnmin", 90.0)           # cumulative de novo time cap (minutes): decode + engine pass 2
 dnforms = _arg("dnforms", 2, int)     # formulas decoded per molecule
@@ -79,7 +83,7 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451"), base
+assert base in ("e006", "a451", "v15"), base   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
@@ -88,6 +92,12 @@ valseed = _arg("valseed", 0, int)
 valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
 valsrc = _arg("valsrc", "e180", str)
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
+pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
+latecut = _arg("latecut", 0, int)
+pcglib = _arg("pcglib", 9.0)          # pcguard only where lib_max < pcglib (ours, e3val7)
+pcguard = _arg("pcguard", 0, int)     # a451: per molecule, the post-fusion list when its top-1 is PubChem-only, else the final list (build_pc.py)
+pcdump = _arg("pcdump", 0, int)       # validation: write val_pconly.json (build_pc.py)     # a451: at the end, back to the list of the final metric pass (later overlays undone; build_pc.py)
+pcvote = _arg("pcvote", 0, int)       # a451: PubChem-only candidates get engine 2's vote at their main rank in the fusion (build_pc.py)
 fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pick among the final top K of rank 1's formula goes to this rank (ours)
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
@@ -109,12 +119,21 @@ def code_cell(s):
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
 assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
-assert bfrag == 0 or base == "a451", "bfrag uses the a451 base's frag_rescore"
-assert fins == 0 or base == "a451", "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base == "a451", "lfrag patches the a451 base's frag_rescore"
+assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
+assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
+gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
+if gg:
+    assert base == "v15", "gg ports the a451 group gap into v15"
+    _a451 = json.load(open(os.path.join(HERE, "base_a451.ipynb"), encoding="utf-8"))["cells"]
+    for _pre in ("# v7c: MetFrag-lite fragment evidence", "def _factorial_entry(scope):"):
+        _iv = find_cell(_pre)
+        _ia = [i for i, c in enumerate(_a451) if c["cell_type"] == "code" and "".join(c["source"]).startswith(_pre)]
+        assert len(_ia) == 1, _pre
+        cells[_iv]["source"] = "".join(_a451[_ia[0]]["source"])
 if lfrag:   # the one base-cell edit of lfrag: right after the base imports frag_rescore, our learned credits replace its score
-    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "    import frag_rescore, math\n" in src(i))
-    _old = "    import frag_rescore, math\n"
+    _old = "    import frag_rescore, math\n" if any("    import frag_rescore, math\n" in src(i) for i in range(len(cells))) else "    import frag_rescore\n"
+    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and _old in src(i))
     assert src(_il).count(_old) == 1
     _lsrc = open(os.path.join(HERE, "ours_lfrag.py"), encoding="utf-8").read()
     cells[_il]["source"] = src(_il).replace(_old, _old + (
@@ -261,6 +280,8 @@ except Exception as _e:
 '''
     cells.append(code_cell(hook_b))
 
+if pcfix or pcvote or latecut or pcguard or pcdump:   # P. PubChem-only protection (build_pc.py)
+    exec(open(os.path.join(HERE, "build_pc.py"), encoding="utf-8").read())
 if val > 0:      # V. validation rig (build_val.py): fake test before the smoke switch, stage snapshots, scores at the end
     exec(open(os.path.join(HERE, "build_val.py"), encoding="utf-8").read())
 
@@ -554,9 +575,11 @@ if denovo > 0:
     embed = {"pc_join.py": ns["EMBED"]["pc_join.py"],
              "ours_fp2.py": open(os.path.join(E1, "ours_fp2.py"), encoding="utf-8").read(),
              "ours_denovo.py": open(os.path.join(E1, "ours_denovo.py"), encoding="utf-8").read()}
+    if pcl > 0:
+        embed["ours_pcl.py"] = open(os.path.join(E1, "ours_pcl.py"), encoding="utf-8").read()
     cfg = dict(DENOVO_N=denovo, DENOVO_S=dns, DENOVO_MIN=dnmin, DENOVO_FORMS=dnforms, DENOVO_MAX_LIB=dnlib or None,
                DENOVO_SLOTS=dnslot, DENOVO_SLOT_LIB=dnslotlib,
-               DENOVO_SRC=dnsrc, VERSION=f"ours-{name}")
+               DENOVO_SRC=dnsrc, PCL=pcl, VERSION=f"ours-{name}")
     hook_a = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # de novo (dn1) rows for class 3: engine pass 1 -> dn1 decodes SMILES under the top formulas -> dedupe -> fp2 order ->
 # top DENOVO_N injected through pc_join -> engine pass 2 (ranker, features) as for any pool-like candidate.
@@ -576,6 +599,9 @@ try:
     ours_denovo.MAX_NEW = OURS_CFG['DENOVO_N']; ours_denovo.SAMPLES = OURS_CFG['DENOVO_S']
     ours_denovo.MAX_SECS = 60 * OURS_CFG['DENOVO_MIN']; ours_denovo.MAX_FORMS = OURS_CFG['DENOVO_FORMS']
     ours_denovo.MAX_LIB = OURS_CFG['DENOVO_MAX_LIB']
+    if OURS_CFG.get('PCL'):          # ours_pcl: PubChemLite structures instead of dn1 samples (fp2 nets only)
+        import ours_pcl
+        ours_pcl.install(ours_denovo, log=print)
     ours_denovo.load(log=print)
     ours_denovo.install(E, V, lambda C_, X_, F_, n_: rank_score(np.concatenate([X_, F_], 1), list(FEATURES) + list(n_)),
                         log=print)
@@ -693,7 +719,12 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "Base: [Forensics Lab: Apex Synthesis (public LB 0.451 as titled)]"
                     "(https://www.kaggle.com/code/saddamaditya/0-451-sota-forensics-lab-apex-synthesis) by saddamaditya, "
                     "version 1 (E006 + PubChem promotion rel>150 + engine-2 rank-2 + fragment gap / group gap), Apache-2.0, "
-                    "and everything it credits (cells below, unchanged). ")
+                    "and everything it credits (cells below, unchanged). " if base == "a451" else
+                    "Base: [casmi26-v15-n1a](https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a) by Ahmed Berat Ozer, "
+                    "version 1 (its v14, public LB 0.455 = E006 lineage + PubChemLite CC0 candidates in engine 2, + N1A GLACIER proxies "
+                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
+                 + ("Ported (not ours): the group-gap fragment step of saddamaditya's Apex Synthesis (public 0.451, Apache-2.0): "
+                    "the v7c and E005-E007 cells are taken from it (fragment evidence also for same-formula groups no simulator scored). " if gg else "")
                  + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
                     "level x hydrogen shift of the cheapest explanation, linear and sqrt intensity; listwise fit on 4,432 "
                     "train isomer panels; held out MRR 0.723 -> 0.748 on enveda-180, 0.567 -> 0.584 on np-examples). " if lfrag else "")
@@ -701,10 +732,14 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"final top {bfragk}, inside same-formula groups, z(-log rank) + {bfrag} z(frag_rescore). " if bfrag > 0 else "")
                  + (f"VALIDATION RUN (val={val}, valsrc={valsrc}): the test is replaced by {val} molecules held out of train; no submission. " if val > 0 else "")
                  + (f"Ours (fins={fins}): ranks 1-{fins-1} kept; the fragment scorer's top pick among the final top {bfragk} with rank 1's formula moves to rank {fins}. " if fins > 0 else "")
+                 + (f"Ours (pcl={pcl}): PubChemLite CC0 structures (the base gives them to engine 2 only) also enter engine 1: "
+                    f"after engine 1's pass 1, PubChemLite structures with its top formulas (+-5 ppm, RDKit formula check), not "
+                    f"already candidates, ordered by our fp2 log likelihood, top {pcl} injected through pc_join (huseyinemreaksoy, "
+                    f"v4n fusion 0.420) into a second engine-1 pass, so both engines can vote for them. " if pcl > 0 else "")
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
                     f"main engine through pc_join (huseyinemreaksoy, v4n fusion 0.420) in a second engine pass; max "
                     f"{denovo} rows per molecule, {dnmin:.0f} min cap. Two inserted cells are marked 'ours'. "
-                    if denovo > 0 else "")
+                    if denovo > 0 and not pcl else "")
                  + (f"Ours: MMP class-3 generator (replacement rules mined from train, applied to the spectral analogs; max "
                     f"{mmp} products per molecule) inside the main engine's generator. " if mmp > 0 else "")
                  + (f"Ours: where neither GLACIER nor ICEBERG scored a molecule, its final top {fgapk} are re-ranked by "
@@ -745,14 +780,15 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
-                            "prvsiyan/coconut-casmi26-candidates", "hengck23/hengck23-dreams-enveda-casmi26",
-                            "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"],
+                            "prvsiyan/coconut-casmi26-candidates"]
+                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
+                              ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
-        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 else []),
+        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 and not pcl else []),
         "model_sources": []}
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "val", val, "fp2gap", fp2gap, "cpu", cpu)

@@ -43,3 +43,21 @@ Content:    E006 (above) + PubChem promotion threshold rel > 150 (seyitkaangunes
             Datasets: as E006 with sergiomalv/casmi-chebi-lmsd-structures in place of prvsiyan/chebi-lipidmaps-casmi26.
 Ours on it (build.py base=a451): cell B (bfrag: the base's frag_rescore as a third re-scorer on molecules the forward
             models scored) and cell N (our neutral-loss evidence). Base cells unchanged.
+
+---------------------------------------------------------------------------------------------------------------------
+base_v15.ipynb -- unchanged copy of a public Kaggle notebook (the blob.source of the Kaggle API pull, byte for byte)
+
+Title:      casmi26-v15-n1a
+Author:     Ahmed Berat Özer (ahmedberatozer)
+URL:        https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a
+Kernel id:  139443307
+Version:    1 (lastRunTime 2026-10-16T00:14:06Z; pulled 2026-10-19)
+Public LB:  its v14 (casmi26-v14-pubchemlite) = 0.455 as stated in the notebook's first cell; v15 adds N1A from
+            seyitkaangunes/casmi26-e006-n1a-cc-by-chebi-lb-0-452.
+SHA256 of base_v15.ipynb: ba4f15fd13702df200c045a5161c65c820833a17795ea2f2a2a5c2f0fe6b04f4
+License:    E006 lineage, Apache-2.0 (Credits & Attribution cell); upstream datasets keep their own licences
+            (PubChemLite CC0 candidate fingerprints by franciscoangulo; ChEBI / LIPID MAPS CC BY 4.0 by sergiomalv).
+Datasets (15): the 16 of base_e006 minus hengck23 / eveliaveldrine wheels / prvsiyan chebi, plus
+            sergiomalv/casmi-chebi-lmsd-structures and franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints.
+Ported into it by build.py gg=1 (not ours): the v7c and E005-E007 cells of base_a451.ipynb (saddamaditya's group gap).
+Ours on it: lfrag (ours_lfrag), pcl (ours_pcl: PubChemLite into engine 1 through pc_join), pcvote / pcguard / pcglib.
