@@ -42,6 +42,20 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
 
 ## 🎯 メダルへの道筋（2026-09-27 策定・毎セッション最初に読む）
 
+**LB（10-19 00:3x 取り直し・3,557 チーム）：1 位 0.495・金 17 位＝0.461・銀 177 位＝0.454・銅 355 位＝0.451。自分：0.451（e3a451lf-1）・231 位（銅の線と同点＝押し出される寸前）。銀まで +0.003、金まで +0.010。締切 12-14。**
+- **10-19 の作戦（土台を替える）**：公開の最上位系統が ahmedberatozer の v14（**LB 0.455**＝E006 系＋エンジン 2 の候補に PubChemLite CC0〔franciscoangulo〕）と、その上の v15（＋seyitkaangunes の N1A：[M+H]+ の無い分子に [M+NH4]+／[M-H2O+H]+ を [M+H]+ 扱いにして GLACIER）。
+  guhongbin v465 は v15 の人気度の重み 0.25→0.15 だけ（刻みなので採らない）。
+  - ⇒ **土台を v15 に替える**（`kernels/e3/base_v15.ipynb`・`build.py base=v15`）。セルの並びは a451 と同じで、違いは PubChemLite・N1A と、a451 の group gap が無いこと。
+  - 読み：v13→v14 の +0.004 は「厳選された候補（PubChemLite 38.6 万構造）をエンジン 2 のプールに足す」だけで出た。PubChem 全体（1.06 億）の昇格は害（pcfix −0.053）でも、小さく厳選された候補をエンジンに採点させる形は効く。
+  - 外部スペクトル（sergiomalv/casmi-open-msms-spectra・MassBank／GNPS2／MultiMS2 の 42 万本・CC BY-SA）は、train に無い構造が 1,258 個（2%）だけ＝train がすでに同じライブラリを含む。上積みは小さいので使わない。
+  - LOTUS＋NPAtlas（dmitriigluzdov の天然物表 15.3 万）は「98% が公開の候補プールに入っている」と説明にある＝プールの追加では増えない。
+  - **10-19 の 5 本（土台 v15・`scratchpad/chain19.py` で 1 本ずつ）**：
+    - e3v15lf-1（`lfrag=1`）：自前の学習した断片の点。土台替えの基準を兼ねる。
+    - e3v15pcl-1（`pcl=20`・**自前の新部品 ours_pcl**＝`kernels/e1fuse/ours_pcl.py`）：PubChemLite をエンジン 1 にも入れる。エンジン 1 の 1 回目の上位の分子式で PubChemLite を引き（±5 ppm・RDKit で分子式一致）、まだ候補に無いものを自前の fp2 の尤度で並べて上位 20 を pc_join から 2 回目のエンジン 1 に注入（de novo の経路の流用）。両エンジンの票が入るので、融合で負けにくくなる。手元の単体試験：分子式ごとに 12〜46 候補・1 回 0.01〜2 秒。
+    - e3v15gglf-1（`gg=1 lfrag=1`）：a451 の group gap（saddamaditya・Apache-2.0）を v15 に移植＋lfrag。e3v15lf-1 と対。
+    - e3v15gd-1（`pcvote=1 pcguard=1 pcglib=0.3`）：PubChem 専用の 1 位を守る方向の最後の形（libmax < 0.3 の分子だけ・e3val7 で c1 無傷・変更 10 分子）。
+    - e3v15all-1（`pcl=20 gg=1 lfrag=1`）：束ねた版。
+
 **LB（10-17 09:4x 取り直し・3,462 チーム）：1 位 0.495・金 16 位＝0.459・銀 173 位＝0.451・銅 346 位＝0.446。自分：0.451（e3a451lf-1）・65 位（同点の並びで銀圏）。金まで +0.008（約 1 分子）。締切 12-14。銀の線は 12-14 までに 0.455 前後へ上がる見込み＝今の 0.451 は守りにならない。**
 - **計画監査（fable・10-17・3 回目）の要点と採否**：
   - 採る：**a451 の全パイプラインを通す検証台**（enveda-180 held-out 300 分子＋np-examples 171 分子・class 1＝他装置のライブラリだけ残す／class 2＝スペクトルを抜き構造は COCONUT・PubChem 側にだけ残す）で、class 別の hit@25・top1・MRR と「正解が候補プールにあるか」を出す。期日 10-19。
