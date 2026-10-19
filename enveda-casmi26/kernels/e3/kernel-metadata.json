@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3val7",
-  "title": "casmi26 e3val7",
+  "id": "yasunorim/casmi26-e3v15lf",
+  "title": "casmi26 e3v15lf",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -24,9 +24,8 @@
     "ahmedberatozer/casmi26-v4b-models",
     "sergiomalv/casmi-chebi-lmsd-structures",
     "prvsiyan/coconut-casmi26-candidates",
-    "hengck23/hengck23-dreams-enveda-casmi26",
-    "metric/rdkit-2026-3-3-wheel",
-    "eveliaveldrine/rdkit-wheels"
+    "franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints",
+    "metric/rdkit-2026-3-3-wheel"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"
