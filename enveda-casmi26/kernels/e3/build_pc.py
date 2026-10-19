@@ -133,7 +133,9 @@ try:
         _f = _fu.get(str(_m), '')
         _ft = [x for x in _f.split(';') if x and x != 'CCO'][:1]
         _pk = set(_gkey(c) for c in PC_ONLY.get(str(_m), {}))
-        if _ft and _gkey(_ft[0]) in _pk and _f != _s:
+        _glm = BASE.get(str(_m), ([], [], 0.0)) if isinstance(BASE, dict) else ([], [], 0.0)
+        _glm = float(_glm[2]) if len(_glm) > 2 else 0.0
+        if _ft and _gkey(_ft[0]) in _pk and _f != _s and _glm < PCG_LIB:   # PCG_LIB: ours (pcglib), 9.0 = no gate
             _out.append((_m, _f)); _n += 1
         else:
             _out.append((_m, _s))
@@ -145,6 +147,8 @@ except Exception as _e:
     print('PCGUARD failed, submission unchanged:', repr(_e), flush=True)
 """
 if pcguard:
+    hook_guard = hook_guard.replace("import os as _gos, pandas as pd\n", f"import os as _gos, pandas as pd\nPCG_LIB = {pcglib!r}   # ours: guard only molecules whose engine library match lib_max < PCG_LIB (e3val7: 0.3 leaves c1 untouched)\n", 1)
+    assert "PCG_LIB = " in hook_guard
     _if2 = find_cell("ALPHA, KRR")
     cells.insert(_if2 + 1, code_cell(hook_guard_snap))
     cells.append(code_cell(hook_guard))
