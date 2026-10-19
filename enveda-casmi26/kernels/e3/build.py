@@ -79,7 +79,7 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451"), base
+assert base in ("e006", "a451", "v15"), base   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
@@ -114,12 +114,12 @@ def code_cell(s):
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
 assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
-assert bfrag == 0 or base == "a451", "bfrag uses the a451 base's frag_rescore"
-assert fins == 0 or base == "a451", "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base == "a451", "lfrag patches the a451 base's frag_rescore"
+assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
+assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
 if lfrag:   # the one base-cell edit of lfrag: right after the base imports frag_rescore, our learned credits replace its score
-    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "    import frag_rescore, math\n" in src(i))
-    _old = "    import frag_rescore, math\n"
+    _old = "    import frag_rescore, math\n" if base == "a451" else "    import frag_rescore\n"
+    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and _old in src(i))
     assert src(_il).count(_old) == 1
     _lsrc = open(os.path.join(HERE, "ours_lfrag.py"), encoding="utf-8").read()
     cells[_il]["source"] = src(_il).replace(_old, _old + (
@@ -700,7 +700,10 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "Base: [Forensics Lab: Apex Synthesis (public LB 0.451 as titled)]"
                     "(https://www.kaggle.com/code/saddamaditya/0-451-sota-forensics-lab-apex-synthesis) by saddamaditya, "
                     "version 1 (E006 + PubChem promotion rel>150 + engine-2 rank-2 + fragment gap / group gap), Apache-2.0, "
-                    "and everything it credits (cells below, unchanged). ")
+                    "and everything it credits (cells below, unchanged). " if base == "a451" else
+                    "Base: [casmi26-v15-n1a](https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a) by Ahmed Berat Ozer, "
+                    "version 1 (its v14, public LB 0.455 = E006 lineage + PubChemLite CC0 candidates in engine 2, + N1A GLACIER proxies "
+                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
                  + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
                     "level x hydrogen shift of the cheapest explanation, linear and sqrt intensity; listwise fit on 4,432 "
                     "train isomer panels; held out MRR 0.723 -> 0.748 on enveda-180, 0.567 -> 0.584 on np-examples). " if lfrag else "")
@@ -752,8 +755,9 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
-                            "prvsiyan/coconut-casmi26-candidates", "hengck23/hengck23-dreams-enveda-casmi26",
-                            "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"],
+                            "prvsiyan/coconut-casmi26-candidates"]
+                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
+                              ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 else []),
         "model_sources": []}
