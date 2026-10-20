@@ -37,6 +37,11 @@ From the issue, list for yourself: the exact file, function, class or CLI name; 
 - Use the exact exception class and exact message text from the issue. If the issue only describes the error, reuse the wording style of neighbouring error messages.
 - Handle every edge case you listed in step 1.
 - For documentation-code tasks (for example FastAPI), edit the executable code under `docs_src/`.
+- Sibling sites (from 129 reference fixes of these repositories; FastAPI fixes change 2.5 files on average). After your main edit, check the listed partners of the file you edited with one `git grep -n` for the name you changed, and apply the same change where it is used:
+  - fastapi: `routing.py` (APIRoute, APIRouter.add_api_route and every method decorator) with `applications.py` (the FastAPI methods that forward to the router) and `openapi/utils.py`; `params.py` with `param_functions.py`, `temp_pydantic_v1_params.py` and `dependencies/utils.py`; `dependencies/models.py` with `dependencies/utils.py`; `_compat/v1.py` with `_compat/v2.py` and `_compat/__init__.py`; a new error type in `exceptions.py` is raised in `routing.py`. A `docs_src/<topic>/` change goes into every variant file of that tutorial (`_an`, `_py39`, `_py310`).
+  - rich: a new style name goes into `default_styles.py`; `cells.py` with `segment.py` and `_wrap.py`; `console.py` with `segment.py`.
+  - requests: `utils.py` with `compat.py`; `models.py` with `_types.py`.
+  - httpx: `src/httpx/` and `src/ahttpx/` are sync and async twins; change both.
 
 ## 4. Verify (at most 2 calls)
 - Find the test file with `find tests -name "*keyword*.py"`, then run `timeout 150 python -m pytest tests/path/test_x.py -x -q -k keyword`. Use `python3 -m unittest tests.test_x` for unittest projects.

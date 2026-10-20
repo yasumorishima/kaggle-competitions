@@ -1,0 +1,6 @@
+v19 (submission/ from 10-20) = v18 (bases/v18: pub024 = honghanhhh/gemma-4-baseline-lb-0-24, from flexonafft/gemma-4-budget-aware-coding-agent-v2,
++ our get_status time rule) + our part:
+  sibling sites: a co-edit checklist in step 3 of the prompt, mined from the 129 practice tasks' reference patches (pairs of files changed
+  together: fastapi routing/applications/openapi, params/param_functions/dependencies, _compat v1/v2, docs_src tutorial variants; rich
+  default_styles, cells/segment/_wrap; requests utils/compat; httpx sync/async twin packages). FastAPI reference fixes change 2.46 files
+  on average; the agent's single-file edits miss the hidden tests that exercise the sibling.
