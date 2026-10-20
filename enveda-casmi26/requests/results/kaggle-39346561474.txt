@@ -1,0 +1,61 @@
+request: e3v15pcc-1
+run: 39346561474  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3v15pcc  version: 1
+memo: Base: Ahmed Berat Ozer 'casmi26-v15-n1a' v1 (its v14 = public LB 0.455: E006 lineage + PubChemLite CC0 candidates in engine 2; v15 adds seyitkaangunes' N1A GLACIER proxies), kernels/e3/base_v15.ipynb, unchanged except the cells marked ours. This version: ours_pcl (PubChemLite CC0 structures, franciscoangulo, also into engine 1: top 20 by our fp2 likelihood under engine 1's top formulas, injected through pc_join, huseyinemreaksoy v4n 0.420) + NEW ours pclcap: an injected row may not hold rank 1 (it swaps with the best row engine 1 had before the injection). e3v15pcl-1 (pcl alone) lost 0.022 vs 0.455. Hypothesis: the loss is wrong injected structures taking rank 1 from correct pass-1 rows; with the cap the loss is gone and correct injected rows still score at rank 2, LB >= 0.455. Pair with e3v15pcl-1. build.py v15pcc base=v15 pcl=20 pclcap=1 lfrag=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3v15pcc
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-20 00:36:23.027000,e3v15pcc-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 pclcap=1 lfrag=1) [run 39346561474],SubmissionStatus.PENDING,,
+submission.csv,2026-10-19 02:07:00.177000,e3v15all-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 gg=1 lfrag=1) [run 39186880222],SubmissionStatus.COMPLETE,0.433,
+submission.csv,2026-10-19 01:44:55.670000,e3v15gd-1: v15-n1a base (v14 public 0.455) + ours (pcvote=1 pcguard=1 pcglib=0.3) [run 39185191203],SubmissionStatus.COMPLETE,0.447,
+
+output files:
+total 616
+drwxr-xr-x  9 runner runner   4096 Oct 20 00:36 .
+drwxrwxrwt 14 root   root     4096 Oct 20 00:35 ..
+-rw-r--r--  1 runner runner  17307 Oct 20 00:35 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 20 00:35 candidate_audit.csv
+-rw-r--r--  1 runner runner   2579 Oct 20 00:35 candidate_audit.json
+-rw-r--r--  1 runner runner  36403 Oct 20 00:36 casmi26-e3v15pcc.log
+-rw-r--r--  1 runner runner 130505 Oct 20 00:35 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9850 Oct 20 00:35 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 20 00:35 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 20 00:35 eng
+-rw-r--r--  1 runner runner  29969 Oct 20 00:35 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 20 00:35 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 20 00:35 experiment_audit.json
+-rw-r--r--  1 runner runner  23735 Oct 20 00:35 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139853 Oct 20 00:35 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 20 00:35 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 20 00:35 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 20 00:35 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 20 00:35 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 20 00:35 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 20 00:36 numba_cache
+-rw-r--r--  1 runner runner    670 Oct 20 00:36 ours_denovo_stats.json
+-rw-r--r--  1 runner runner   3557 Oct 20 00:36 ours_lfrag.py
+-rw-r--r--  1 runner runner  27248 Oct 20 00:36 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 20 00:36 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 20 00:36 probe_core2.py
+-rw-r--r--  1 runner runner    345 Oct 20 00:36 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 20 00:36 smoke_comp
+-rw-r--r--  1 runner runner  17307 Oct 20 00:36 submission.csv
+-rw-r--r--  1 runner runner  17307 Oct 20 00:36 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17307 Oct 20 00:36 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17307 Oct 20 00:36 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 20 00:36 work
+[{"stream_name":"stderr","time":6.837379605,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.837421216,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.837427482,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.8374315249999995,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":7.418512179,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.418569406,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.418575749,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.418579433,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":13.982550177,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":13.982587249,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":17.692826357,"data":" \n"}
+,{"stream_name":"stdout","time":17.692
