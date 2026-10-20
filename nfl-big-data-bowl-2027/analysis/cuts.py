@@ -93,7 +93,7 @@ def game_cuts(data, years=(2023, 2024, 2025), positions=("WR", "CB", "SS", "FS",
     rows = []
     for yr in years:
         for ch in pd.read_csv(os.path.join(data, f"game_tracking_{yr}.csv"), chunksize=3_000_000,
-                              usecols=["game_id", "play_id", "nfl_id", "time", "x", "y", "event"]):
+                              usecols=["game_id", "play_id", "nfl_id", "time", "x", "y", "o", "event"]):
             ch = ch[ch.nfl_id.isin(keep)]
             rows.append(ch)
     g = pd.concat(rows, ignore_index=True)
@@ -110,9 +110,16 @@ def game_cuts(data, years=(2023, 2024, 2025), positions=("WR", "CB", "SS", "FS",
         s1 = min(end[0] if end else len(t) - 1, s0 + int(max_after_snap * HZ))
         lo = max(0, s0 - 6)
         seg = t.iloc[lo:s1 + 7]
-        for d in detect(seg.x.values, seg.y.values):
+        sx, sy, so = seg.x.values, seg.y.values, seg.o.values
+        for d in detect(sx, sy):
             if not (s0 <= lo + d["frame"] <= s1):
                 continue
+            # backpedal entry: facing vs direction of travel over the 0.6 s before the apex (o and the heading share
+            # the NGS convention: degrees clockwise from +y; checked: dir vs atan2(dx, dy) median gap 0.7 deg)
+            a, b = max(1, d["frame"] - 6), max(2, d["frame"])
+            hd = np.degrees(np.arctan2(np.diff(sx[a - 1:b]), np.diff(sy[a - 1:b]))) % 360
+            gap = np.abs((so[a:b] - hd + 180) % 360 - 180)
+            d["back_in"] = float(np.nanmean(gap)) if len(gap) else np.nan
             d.update(nfl_id=pid, source="game", game_id=gid, play_id=play, t_after_snap=(lo + d["frame"] - s0) / HZ)
             out.append(d)
     return pd.DataFrame(out)
