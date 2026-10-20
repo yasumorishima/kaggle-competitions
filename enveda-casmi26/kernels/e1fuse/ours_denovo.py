@@ -49,6 +49,7 @@ STATS = dict(molecules=0, skipped_lib=0, no_formula=0, no_new=0, samples=0, vali
              diag_molecules=0, truth_formula_chosen=0, truth_generated=0, truth_in_added=0, truth_rank1=0)
 ADDED = {}            # molecule id -> metric keys of the injected de novo rows
 ADDED_SMI = {}        # molecule id -> (lib_max, SMILES of the injected rows in fp2 order) for the slot merge
+NO_INJECT = False     # ours (10-20): True = propose and record ADDED_SMI (for the slot cell) but keep the pass-1 result
 DIAG = {}             # validation: molecule id -> truth SMILES
 CUR = {}              # mid (set by the notebook), pass, generator cache
 _M = {}
@@ -389,6 +390,10 @@ def install(E, V, score_fn, log=print):
             _diag(mid, forms, ranked, recs, chem, Chem)
         if not recs:
             STATS["no_new"] += 1
+            return None
+        if NO_INJECT:                                   # slot only: the engine never scores these rows
+            ADDED_SMI[mid] = (lib_max, [r["smiles"] for r in recs])
+            STATS["slot_only"] = STATS.get("slot_only", 0) + 1
             return None
         t2 = time.time()
         pc_join.set_injection(E, prev_inj + recs)
