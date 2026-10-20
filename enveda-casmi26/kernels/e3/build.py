@@ -48,6 +48,8 @@ name = sys.argv[1]
 _arg = lambda k, d, f=float: next((f(a.split("=", 1)[1]) for a in sys.argv[2:] if a.startswith(k + "=")), d)  # noqa: E731
 denovo = _arg("denovo", 0, int)       # max de novo rows per molecule (0 = off = the base notebook)
 pcl = _arg("pcl", 0, int)             # ours_pcl (10-19): > 0 = PubChemLite rows into engine 1 through the de novo route (max per molecule)
+pclcap = _arg("pclcap", 0, int)       # ours (10-20), 1: rows injected into engine 1 (pcl / de novo) may not hold rank 1 of submission.csv
+dnnoinj = _arg("dnnoinj", 0, int)     # ours (10-20), 1: the proposed rows are not injected into engine 1, only kept for the dnslot cell
 if pcl > 0:
     assert denovo == 0, "pcl replaces the de novo provider"
     denovo = pcl
@@ -579,7 +581,7 @@ if denovo > 0:
         embed["ours_pcl.py"] = open(os.path.join(E1, "ours_pcl.py"), encoding="utf-8").read()
     cfg = dict(DENOVO_N=denovo, DENOVO_S=dns, DENOVO_MIN=dnmin, DENOVO_FORMS=dnforms, DENOVO_MAX_LIB=dnlib or None,
                DENOVO_SLOTS=dnslot, DENOVO_SLOT_LIB=dnslotlib,
-               DENOVO_SRC=dnsrc, PCL=pcl, VERSION=f"ours-{name}")
+               DENOVO_SRC=dnsrc, PCL=pcl, PCL_CAP=pclcap, DENOVO_NOINJ=dnnoinj, VERSION=f"ours-{name}")
     hook_a = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
 # de novo (dn1) rows for class 3: engine pass 1 -> dn1 decodes SMILES under the top formulas -> dedupe -> fp2 order ->
 # top DENOVO_N injected through pc_join -> engine pass 2 (ranker, features) as for any pool-like candidate.
@@ -599,6 +601,7 @@ try:
     ours_denovo.MAX_NEW = OURS_CFG['DENOVO_N']; ours_denovo.SAMPLES = OURS_CFG['DENOVO_S']
     ours_denovo.MAX_SECS = 60 * OURS_CFG['DENOVO_MIN']; ours_denovo.MAX_FORMS = OURS_CFG['DENOVO_FORMS']
     ours_denovo.MAX_LIB = OURS_CFG['DENOVO_MAX_LIB']
+    ours_denovo.NO_INJECT = bool(OURS_CFG.get('DENOVO_NOINJ'))
     if OURS_CFG.get('PCL'):          # ours_pcl: PubChemLite structures instead of dn1 samples (fp2 nets only)
         import ours_pcl
         ours_pcl.install(ours_denovo, log=print)
@@ -634,6 +637,39 @@ if DENOVO_ON:
     i_eng = find_cell("'''v1 engine exactly as in v3.6")
     i_base = find_cell("'''all molecules -> base lists")
     assert i_eng < i_base
+    if pclcap:      # D. rank 1 of submission.csv only for candidates engine 1 had before the injection (ours, 10-20)
+        hook_d = """# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py): injected rows may not hold rank 1 ====
+# e3v15pcl-1 (PubChemLite into engine 1, both engines vote) lost 0.022 on the LB: wrong injected structures took rank 1.
+# Here an injected row at rank 1 swaps with the best row engine 1 already had (pass 1); the injected row keeps rank 2.
+if DENOVO_ON and OURS_CFG.get('PCL_CAP'):
+    try:
+        from rdkit import Chem as _OC
+        def _oik(x):
+            m_ = _OC.MolFromSmiles(x)
+            return _OC.MolToInchiKey(m_)[:14] if m_ is not None else x
+        _sp = '/kaggle/working/submission.csv'
+        _sub = pd.read_csv(_sp)
+        _as = {str(k): v for k, v in ours_denovo.ADDED_SMI.items()}
+        _out, _nc = [], 0
+        for _m, _s in zip(_sub.molecule_id, _sub.smiles.fillna('')):
+            _lm, _dn = _as.get(str(_m), (1.0, []))
+            _l = [x for x in str(_s).split(';') if x]
+            if _dn and _l:
+                _dk = {_oik(x) for x in _dn}
+                if _oik(_l[0]) in _dk:
+                    _j = next((j for j, x in enumerate(_l) if _oik(x) not in _dk), None)
+                    if _j is not None:
+                        _l.insert(0, _l.pop(_j)); _nc += 1
+            _out.append(';'.join(_l[:25]))
+        _sub['smiles'] = _out
+        _sub.to_csv(_sp, index=False)
+        print('PCL CAP: injected rank-1 rows moved down in', _nc, 'molecules of', len(_sub), flush=True)
+    except Exception as _e:
+        if not IS_RERUN:
+            raise
+        print('PCL CAP FAILED -> submission as is', repr(_e), flush=True)
+"""
+        cells.append(code_cell(hook_d))
     if dnslot:      # C. after the last base cell: the top de novo rows into fixed final slots of submission.csv
         hook_c = """# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py): de novo rows into fixed final slots ====
 # library-weak molecules (engine lib_max < DENOVO_SLOT_LIB): the top de novo rows (our fp2 order) are moved to the final
@@ -736,6 +772,10 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"after engine 1's pass 1, PubChemLite structures with its top formulas (+-5 ppm, RDKit formula check), not "
                     f"already candidates, ordered by our fp2 log likelihood, top {pcl} injected through pc_join (huseyinemreaksoy, "
                     f"v4n fusion 0.420) into a second engine-1 pass, so both engines can vote for them. " if pcl > 0 else "")
+                 + ("Ours (pclcap=1): an injected row at rank 1 of the final list swaps with the best row engine 1 already had "
+                    "before the injection (the injected row keeps rank 2). " if pclcap else "")
+                 + (f"Ours (dnnoinj=1): the proposed rows are not injected into the engines; only the slot cell uses them (final "
+                    f"slots {dnslot} where lib_max < {dnslotlib}). " if dnnoinj else "")
                  + (f"Ours: formula-constrained de novo candidates (our dn1 model, ordered by our fp2) injected into the "
                     f"main engine through pc_join (huseyinemreaksoy, v4n fusion 0.420) in a second engine pass; max "
                     f"{denovo} rows per molecule, {dnmin:.0f} min cap. Two inserted cells are marked 'ours'. "
@@ -791,4 +831,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
