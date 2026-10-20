@@ -831,6 +831,9 @@ if ctxk != 128:
         assert cw.count(old) == 1, old
         cw = cw.replace(old, new)
     cells[iw]["source"] = cw
+    if ctxk > 128:   # ours (10-20): the server's context length must cover the larger window (base 128K + 8K)
+        ic = next(i for i, c in enumerate(cells) if "CTX=(116+12+8)*1024," in "".join(c["source"]))
+        cells[ic]["source"] = src(ic).replace("CTX=(116+12+8)*1024,", f"CTX=({ctxk}+8)*1024,  # ours (base 136K)")
 
 # ---- diagnostics (ours, no behaviour change): summarise the SGLang serve.log in the notebook log, because kernel
 # output files cannot be fetched from the cloud container. Per 10-minute bucket: decode batch size, queue,
