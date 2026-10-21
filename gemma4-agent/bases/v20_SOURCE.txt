@@ -1,0 +1,4 @@
+v20 (submission/ from 10-21) = pub024v4 (bases/pub024v4: https://www.kaggle.com/code/honghanhhh/gemma-4-baseline-lb-0-24, version run
+2026-10-18, pulled 2026-10-21; its prompt adds "keep current behaviour for inputs the issue does not mention" and verifies by rerunning
+the issue's example, then the whole test file; other files byte-identical to bases/pub024) + our two parts from v18 / v19:
+  the get_status time guard (under 120 s left after the edit -> skip verification, submit) and the sibling-site checklist.

@@ -1,0 +1,30 @@
+request: e3v15bxoc-2
+run: 39535143032  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3v15bxoc  version: 1
+memo: Base: Ahmed Berat Ozer 'casmi26-v15-n1a' v1 (its v14 = public LB 0.455: E006 lineage + PubChemLite CC0 candidates in engine 2; v15 adds seyitkaangunes' N1A GLACIER proxies), kernels/e3/base_v15.ipynb, unchanged except the cells marked ours. This version: port of ahmedberatozer casmi26-v19-bioext's BX block (not ours: PubChem structures from biological depositors into engine 2's pool, output of ahmedberatozer/casmi26-bioext-build; its LB is not published) + our two pool parts (own COCONUT, own PubChem tier >= 5 PubMed links) + ours_lfrag. Hypothesis: the public lineage's next pool step plus ours lifts us toward silver/gold, LB > 0.456. CPU kernel (the GPU week of 30 h ran out at the push of e3v15bxo-1): ICEBERG / GLACIER on the CPU, the base's ICEBERG budget (5,400 s) kept so the larger pool still fits in 9 h; the CPU versions of earlier bases scored about 0.006 under their GPU runs, so the comparison is with the CPU line. build.py v15bxoc base=v15 bx=1 ownco=1 ownpc=5 lfrag=1 cpu.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3v15bxoc
+
+output files:
+total 80
+drwxr-xr-x  6 runner runner  4096 Oct 21 03:37 .
+drwxrwxrwt 14 root   root    4096 Oct 21 03:36 ..
+drwxr-xr-x  2 runner runner  4096 Oct 21 03:36 __pycache__
+-rw-r--r--  1 runner runner 22124 Oct 21 03:37 casmi26-e3v15bxoc.log
+drwxr-xr-x  3 runner runner  4096 Oct 21 03:36 eng
+-rw-r--r--  1 runner runner 30701 Oct 21 03:36 eng_lists.json
+drwxr-xr-x  2 runner runner  4096 Oct 21 03:36 gl_work
+drwxr-xr-x 11 runner runner  4096 Oct 21 03:36 ice_site
+[{"stream_name":"stderr","time":10.02586836,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.025939793,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.025950326,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.025955751,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.896568398,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.896605696,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.896611854,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.896617006,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":18.947469589,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":18.947508233,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":24.593801176,"data":" \n"}
+,{"stream_name":"stdout","time":24.593

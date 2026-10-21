@@ -1,0 +1,60 @@
+request: e3v15op-1
+run: 39529095677  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3v15op  version: 1
+memo: Base: Ahmed Berat Ozer 'casmi26-v15-n1a' v1 (its v14 = public LB 0.455: E006 lineage + PubChemLite CC0 candidates in engine 2; v15 adds seyitkaangunes' N1A GLACIER proxies), kernels/e3/base_v15.ipynb, unchanged except the cells marked ours. This version: NEW ours ownpc: engine 2's pool also takes our own PubChem tier (yasunorim/casmi26-own-pubchem-tier, built by us from the PubChem FTP CID-PMID / CID-SMILES / InChIKey files) restricted to structures with >= 5 PubMed links (392k, the size of PubChemLite) that the pool does not have, fingerprinted in-run like the training structures. Hypothesis: literature-known structures outside PubChemLite hold hidden class-2 answers, LB > 0.455. build.py v15op base=v15 ownpc=5 lfrag=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3v15op
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-21 02:12:12.793000,e3v15op-1: v15-n1a base (v14 public 0.455) + ours (ownpc=5 lfrag=1) [run 39529095677],SubmissionStatus.PENDING,,
+submission.csv,2026-10-21 01:43:59.690000,e3v15oc-1: v15-n1a base (v14 public 0.455) + ours (ownco=1 lfrag=1) [run 39525758527],SubmissionStatus.PENDING,,
+submission.csv,2026-10-21 01:09:14.927000,e3v15pcs-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 dnnoinj=1 dnslot=3 lfrag=1) [run 39519903795],SubmissionStatus.PENDING,,
+
+output files:
+total 616
+drwxr-xr-x  9 runner runner   4096 Oct 21 02:12 .
+drwxrwxrwt 14 root   root     4096 Oct 21 02:11 ..
+-rw-r--r--  1 runner runner  17380 Oct 21 02:11 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 21 02:11 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Oct 21 02:11 candidate_audit.json
+-rw-r--r--  1 runner runner  34270 Oct 21 02:12 casmi26-e3v15op.log
+-rw-r--r--  1 runner runner 132087 Oct 21 02:11 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9849 Oct 21 02:11 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 21 02:11 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 21 02:11 eng
+-rw-r--r--  1 runner runner  30702 Oct 21 02:11 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 21 02:11 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 21 02:11 experiment_audit.json
+-rw-r--r--  1 runner runner  23735 Oct 21 02:11 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139853 Oct 21 02:11 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 21 02:11 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 21 02:11 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 21 02:11 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 21 02:11 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 21 02:11 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 21 02:11 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 21 02:11 ours_lfrag.py
+-rw-r--r--  1 runner runner  27248 Oct 21 02:11 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 21 02:11 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 21 02:11 probe_core2.py
+-rw-r--r--  1 runner runner    345 Oct 21 02:11 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 21 02:11 smoke_comp
+-rw-r--r--  1 runner runner  17378 Oct 21 02:11 submission.csv
+-rw-r--r--  1 runner runner  17378 Oct 21 02:11 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17380 Oct 21 02:11 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17380 Oct 21 02:11 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 21 02:12 work
+[{"stream_name":"stderr","time":8.525299924,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.525350889,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.525355916,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.525358464,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.18937604,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.189418753,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.189429353,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.18943415,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":13.680634146,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":13.68067522,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":17.98213006,"data":" \n"}
+,{"stream_name":"stdout","time":17.982162677,"dat

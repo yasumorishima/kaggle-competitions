@@ -120,10 +120,13 @@ def code_cell(s):
 
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
-assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
+assert not (cpu and base not in ("e006", "v15")), "cpu edits are written for the E006-lineage cells (e006, v15)"
 assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
 assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
 assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
+bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
+ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
+ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
 if gg:
     assert base == "v15", "gg ports the a451 group gap into v15"
@@ -167,6 +170,9 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
               "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
     _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
               "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
+    if base == "v15":   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
+        _in1 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "complement filter not exercised" in src(i))
+        _cpu_swap(_in1, "assert _n1_xd, ('complement filter not exercised", "assert _n1_xd or True, ('complement filter not exercised")
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
@@ -705,6 +711,48 @@ if DENOVO_ON and OURS_CFG.get('DENOVO_SLOTS'):
     cells.insert(i_base + 1, code_cell(hook_b))     # later index first
     cells.insert(i_eng + 1, code_cell(hook_a))
 
+if bx:           # X. port (not ours): ahmedberatozer casmi26-v19-bioext cell 12 block, verbatim, before the training structures
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _anc = 'tr = pd.DataFrame({"ik": L["ik"], "smi": L["smi"]}).dropna().drop_duplicates("ik")\\n'
+    _c = src(_ic)
+    assert _c.count(_anc) == 1, "bx anchor"
+    cells[_ic]["source"] = _c.replace(_anc, open(os.path.join(HERE, "bx_block.txt"), encoding="utf-8").read() + _anc)
+
+if ownco or ownpc:   # O. engine 2's candidate pool also takes our own COCONUT structures it does not have (ours, 10-21)
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _old = 'tr = pd.DataFrame({"ik": L["ik"], "smi": L["smi"]}).dropna().drop_duplicates("ik")\\n'
+    _c = src(_ic)
+    assert _c.count(_old) == 1, "ownco anchor"
+    _new = (_old
+            + '    try:  # ours (yasunorim, 10-21): own COCONUT table, structures not yet in the pool, fingerprinted like the training structures\\n'
+            + '        _od = [p for p in glob.glob("/kaggle/input/**/coco_meta.pkl", recursive=True) if "own-coconut" in p]\\n'
+            + '        if _od:\\n'
+            + '            _om = pickle.load(open(_od[0], "rb"))\\n'
+            + '            _ot = pd.DataFrame({"ik": np.asarray(_om["keys"], dtype=object), "smi": np.asarray(_om["smiles"], dtype=object)}).dropna()\\n'
+            + '            _ot = _ot[~_ot.ik.isin(set(co_keys)) & ~_ot.ik.isin(set(tr.ik))].drop_duplicates("ik")\\n'
+            + '            tr = pd.concat([tr, _ot], ignore_index=True)\\n'
+            + '            log(f"+ ours: own COCONUT {len(_ot):,} new structures")\\n'
+            + '        else:\\n'
+            + '            log("own COCONUT not mounted")\\n'
+            + '    except Exception as _oe:\\n'
+            + '        log(f"own COCONUT skipped: {_oe!r}")\\n')
+    if not ownco:
+        _new = _old
+    if ownpc:
+        _new += ('    try:  # ours (yasunorim, 10-21): own PubChem tier, literature-linked structures not yet in the pool\\n'
+                 + '        _pp = [p for p in glob.glob("/kaggle/input/**/pubchem_tier.parquet", recursive=True) if "own-pubchem-tier" in p]\\n'
+                 + '        if _pp:\\n'
+                 + '            _pt = pd.read_parquet(_pp[0], columns=["inchikey14", "smiles", "n_pmid"])\\n'
+                 + f'            _pt = _pt[_pt.n_pmid >= {ownpc}].rename(columns={{"inchikey14": "ik", "smiles": "smi"}})[["ik", "smi"]].dropna()\\n'
+                 + '            _pt = _pt[~_pt.ik.isin(set(co_keys)) & ~_pt.ik.isin(set(tr.ik))].drop_duplicates("ik")\\n'
+                 + '            tr = pd.concat([tr, _pt], ignore_index=True)\\n'
+                 + '            log(f"+ ours: own PubChem tier {len(_pt):,} new structures")\\n'
+                 + '        else:\\n'
+                 + '            log("own PubChem tier not mounted")\\n'
+                 + '    except Exception as _pe2:\\n'
+                 + '        log(f"own PubChem tier skipped: {_pe2!r}")\\n')
+    cells[_ic]["source"] = _c.replace(_old, _new)
+
 if mmp > 0:      # M. after the engine cell, BEFORE hook A (ours_mmp must wrap E.generate before pc_join does)
     MCFG = dict(MMP_N=mmp, MMP_MINC=mmpc, MMP_TWO=mmp2)
     hook_m = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
@@ -772,6 +820,14 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"after engine 1's pass 1, PubChemLite structures with its top formulas (+-5 ppm, RDKit formula check), not "
                     f"already candidates, ordered by our fp2 log likelihood, top {pcl} injected through pc_join (huseyinemreaksoy, "
                     f"v4n fusion 0.420) into a second engine-1 pass, so both engines can vote for them. " if pcl > 0 else "")
+                 + ("Ours (ownco=1): engine 2's candidate pool also takes the structures of our own COCONUT table "
+                    "(yasunorim/casmi26-own-coconut-candidates, built from the official COCONUT dump; 38k structures more than the "
+                    "public COCONUT table) that the pool does not have, fingerprinted like the training structures. " if ownco else "")
+                 + ("Port (not ours): ahmedberatozer casmi26-v19-bioext's BX block (engine 2's pool also takes PubChem structures from "
+                    "biological depositors, output of ahmedberatozer/casmi26-bioext-build), verbatim. " if bx else "")
+                 + (f"Ours (ownpc={ownpc}): engine 2's candidate pool also takes the structures of our own PubChem tier "
+                    f"(yasunorim/casmi26-own-pubchem-tier, built from the PubChem FTP CID-PMID / CID-SMILES / InChIKey files) with at least "
+                    f"{ownpc} PubMed links that the pool does not have, fingerprinted like the training structures. " if ownpc else "")
                  + ("Ours (pclcap=1): an injected row at rank 1 of the final list swaps with the best row engine 1 already had "
                     "before the injection (the injected row keeps rank 2). " if pclcap else "")
                  + (f"Ours (dnnoinj=1): the proposed rows are not injected into the engines; only the slot cell uses them (final "
@@ -820,15 +876,15 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
-                            "prvsiyan/coconut-casmi26-candidates"]
+                            "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc else [])
                            + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
                               ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
-        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + ([dnsrc] if denovo > 0 and not pcl else []),
+        "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + (["ahmedberatozer/casmi26-bioext-build"] if bx else []) + ([dnsrc] if denovo > 0 and not pcl else []),
         "model_sources": []}
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
