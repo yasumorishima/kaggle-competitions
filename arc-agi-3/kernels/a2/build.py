@@ -818,6 +818,13 @@ if streams != 10:
         c13 = c13.replace(old, new)
     cells[i13]["source"] = c13
 
+# ---- reset=1 (ours, 10-21): the base patch can advertise RESET (restart the current level, 1 action) to the model
+# but leaves it off (EXPOSE_RESET defaults to 'off'; the Tufa harness hid it). With it on, the model sees RESET in its
+# action list with the patch's own RESET_INFO_ADDENDUM, its guards and the post-reset context line.
+if opts.get("reset", "0") == "1":
+    ir = next(i for i, c in enumerate(cells) if "    'EXPOSE_UNDO': 'on',\n" in "".join(c["source"]))
+    cells[ir]["source"] = src(ir).replace("    'EXPOSE_UNDO': 'on',\n", "    'EXPOSE_UNDO': 'on',\n    'EXPOSE_RESET': 'on',  # ours\n")
+
 # ---- ctxk=K (ours, 10-19): per-game context window 128K -> K K-tokens, the trimmer's drain scaled with it
 # (58K of 128K). a2s13 (13 streams at 128K) filled the KV pool (usage 0.94, prefix cache evicted, prefill x4); a
 # smaller window per game frees the KV that the extra streams need (13 x ~0.6 x 80K < 10 x ~0.8 x 128K).
@@ -886,5 +893,5 @@ json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), ind
 meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")))
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
-print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reuse", opts.get("reuse", "0"),
+print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
       "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"))
