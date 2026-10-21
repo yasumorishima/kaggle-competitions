@@ -83,6 +83,7 @@ GitHub の無料枠（個人アカウント）：Actions は**非公開リポジ
 - **Kaggle と GitHub Actions の操作**：
   - cloud から api.kaggle.com には届かない。Kaggle API は `www.kaggle.com/api/v1` を使う。
   - GHA の dispatch は 403 になる。重い処理と提出は、依頼ファイルを push して GHA に回す。
+- **裏の処理はセッションが待機に入ると止まる（10-20 に実測：enveda の 5 本の連続提出が 2 本目で止まり、3 枠を空けた）。** 連続提出の日は、全部出し終わるまでセッションを続けて待つ（背景の until ループで待ち、終わりを確かめてから最終報告にする）。
 - **毎日の再開は、このセッションへの send_later で行う。**
   - 「毎回新しいセッション」の予約は、この repo では使えない（09-27 確認：push できず、GitHub ツールも無い）。
   - idle-compact は cloud では動かない（09-27 実測）。
