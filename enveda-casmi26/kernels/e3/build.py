@@ -120,7 +120,7 @@ def code_cell(s):
 
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
-assert not (cpu and base != "e006"), "cpu edits are written for the E006 cells"
+assert not (cpu and base not in ("e006", "v15")), "cpu edits are written for the E006-lineage cells (e006, v15)"
 assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
 assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
 assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
