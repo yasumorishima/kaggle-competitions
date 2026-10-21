@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3v15pcs",
-  "title": "casmi26 e3v15pcs",
+  "id": "yasunorim/casmi26-e3v15oc",
+  "title": "casmi26 e3v15oc",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -24,6 +24,7 @@
     "ahmedberatozer/casmi26-v4b-models",
     "sergiomalv/casmi-chebi-lmsd-structures",
     "prvsiyan/coconut-casmi26-candidates",
+    "yasunorim/casmi26-own-coconut-candidates",
     "franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints",
     "metric/rdkit-2026-3-3-wheel"
   ],
