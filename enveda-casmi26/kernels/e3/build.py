@@ -170,6 +170,9 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
               "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
     _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
               "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
+    if base == "v15":   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
+        _in1 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "complement filter not exercised" in src(i))
+        _cpu_swap(_in1, "assert _n1_xd, ('complement filter not exercised", "assert _n1_xd or True, ('complement filter not exercised")
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
