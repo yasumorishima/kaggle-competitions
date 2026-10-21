@@ -1,0 +1,61 @@
+request: e3v15pcs-1
+run: 39519903795  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3v15pcs  version: 1
+memo: Base: Ahmed Berat Ozer 'casmi26-v15-n1a' v1 (its v14 = public LB 0.455: E006 lineage + PubChemLite CC0 candidates in engine 2; v15 adds seyitkaangunes' N1A GLACIER proxies), kernels/e3/base_v15.ipynb, unchanged except the cells marked ours. This version: NEW ours: PubChemLite slot without injection. Engine 1 never scores the PubChemLite rows; for library-weak molecules (lib_max < 0.7) the best PubChemLite structure under engine 1's top formulas that engine 1 does not have, by our fp2 likelihood, is placed at final rank 3 (ranks 1-2 untouched). Idea of a fixed rank-3 slot: ahmedberatozer v18 C3R3; the candidate source and order are ours. Hypothesis: one-engine PubChemLite answers exist that the fusion keeps below rank 25 or never sees; a rank-3 hedge adds them without risking rank 1, LB > 0.455. Result of 10-20: pclcap alone 0.433 = pcl alone (the injected rows were not what took rank 1: the injection itself shifts the base's second pass); the library gate 0.443. So the only clean test of PubChemLite in engine 1's top formulas is this slot without injection. build.py v15pcs base=v15 pcl=20 dnnoinj=1 dnslot=3 lfrag=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3v15pcs
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-21 01:09:14.927000,e3v15pcs-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 dnnoinj=1 dnslot=3 lfrag=1) [run 39519903795],SubmissionStatus.PENDING,,
+submission.csv,2026-10-20 01:14:12.867000,e3v15pcw-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 dnlib=0.5 lfrag=1) [run 39348772160],SubmissionStatus.COMPLETE,0.443,
+submission.csv,2026-10-20 00:36:23.027000,e3v15pcc-1: v15-n1a base (v14 public 0.455) + ours (pcl=20 pclcap=1 lfrag=1) [run 39346561474],SubmissionStatus.COMPLETE,0.433,
+
+output files:
+total 616
+drwxr-xr-x  9 runner runner   4096 Oct 21 01:09 .
+drwxrwxrwt 14 root   root     4096 Oct 21 01:09 ..
+-rw-r--r--  1 runner runner  17303 Oct 21 01:08 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 21 01:08 candidate_audit.csv
+-rw-r--r--  1 runner runner   2580 Oct 21 01:08 candidate_audit.json
+-rw-r--r--  1 runner runner  36477 Oct 21 01:09 casmi26-e3v15pcs.log
+-rw-r--r--  1 runner runner 130647 Oct 21 01:08 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9851 Oct 21 01:08 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 21 01:08 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 21 01:08 eng
+-rw-r--r--  1 runner runner  29969 Oct 21 01:08 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 21 01:08 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 21 01:08 experiment_audit.json
+-rw-r--r--  1 runner runner  23735 Oct 21 01:08 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 139853 Oct 21 01:08 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1463 Oct 21 01:08 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 21 01:08 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 21 01:08 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 21 01:08 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 21 01:08 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 21 01:08 numba_cache
+-rw-r--r--  1 runner runner    670 Oct 21 01:08 ours_denovo_stats.json
+-rw-r--r--  1 runner runner   3557 Oct 21 01:08 ours_lfrag.py
+-rw-r--r--  1 runner runner  27248 Oct 21 01:08 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 21 01:08 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 21 01:08 probe_core2.py
+-rw-r--r--  1 runner runner    345 Oct 21 01:08 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 21 01:08 smoke_comp
+-rw-r--r--  1 runner runner  17303 Oct 21 01:08 submission.csv
+-rw-r--r--  1 runner runner  17303 Oct 21 01:08 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17303 Oct 21 01:08 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17303 Oct 21 01:08 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 21 01:09 work
+[{"stream_name":"stderr","time":8.070403501,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.070445014,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.070449046,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.070451482,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.701354022,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.70138239,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.701386998,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.701390643,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":92.260871241,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":92.260932497,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":100.254828477,"data":" \n"}
+,{"stream_name":"stdout","time":100.254856263
