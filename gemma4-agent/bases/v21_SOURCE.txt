@@ -1,0 +1,3 @@
+v21 (submission/ from 10-22) = v20 (bases/v20/system.md: pub024v4 prompt + our time guard + our sibling-site checklist) with step 4
+back to at most 2 calls: the issue's example rerun (from pub024v4) first, then only `-k keyword` with timeout 90 (never the whole
+test file). g4v20-1 exceeded the 12 h runtime (no score); pub024v4's whole-file pytest run is the only time change from v19.
