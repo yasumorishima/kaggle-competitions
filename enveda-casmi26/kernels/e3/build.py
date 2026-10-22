@@ -85,7 +85,8 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451", "v15"), base   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
+assert base in ("e006", "a451", "v15", "v22"), base   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
+#   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
@@ -120,10 +121,10 @@ def code_cell(s):
 
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
-assert not (cpu and base not in ("e006", "v15")), "cpu edits are written for the E006-lineage cells (e006, v15)"
-assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
-assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
+assert not (cpu and base not in ("e006", "v15", "v22")), "cpu edits are written for the E006-lineage cells (e006, v15)"
+assert bfrag == 0 or base in ("a451", "v15", "v22"), "bfrag uses the a451 base's frag_rescore"
+assert fins == 0 or base in ("a451", "v15", "v22"), "fins uses the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15", "v22"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
 n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
@@ -173,7 +174,7 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
               "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
     _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
               "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
-    if base == "v15":   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
+    if base in ("v15", "v22"):   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
         _in1 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "complement filter not exercised" in src(i))
         _cpu_swap(_in1, "assert _n1_xd, ('complement filter not exercised", "assert _n1_xd or True, ('complement filter not exercised")
 
@@ -913,7 +914,11 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "and everything it credits (cells below, unchanged). " if base == "a451" else
                     "Base: [casmi26-v15-n1a](https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a) by Ahmed Berat Ozer, "
                     "version 1 (its v14, public LB 0.455 = E006 lineage + PubChemLite CC0 candidates in engine 2, + N1A GLACIER proxies "
-                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
+                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). " if base == "v15" else
+                    "Base: [casmi26-v22-n1-challenger](https://www.kaggle.com/code/ahmedberatozer/casmi26-v22-n1-challenger) by Ahmed Berat Ozer "
+                    "(= his v15-n1a + the N1 challenger of flexonafft, casmi26-closing-the-evidence-gap v47, also dmitriigluzdov v16 "
+                    "public LB 0.464: GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG + proxy-GLACIER re-ordering), "
+                    "Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
                  + ("Ported (not ours): the group-gap fragment step of saddamaditya's Apex Synthesis (public 0.451, Apache-2.0): "
                     "the v7c and E005-E007 cells are taken from it (fragment evidence also for same-formula groups no simulator scored). " if gg else "")
                  + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
@@ -994,7 +999,7 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
                             "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else [])
-                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
+                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base in ("v15", "v22") else
                               ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + (["ahmedberatozer/casmi26-bioext-build"] if bx else []) + ([dnsrc] if denovo > 0 and not pcl else []),
