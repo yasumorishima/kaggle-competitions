@@ -54,6 +54,7 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
     ahmedberatozer が同じ手を v15 に足した `casmi26-v22-n1-challenger` を `kernels/e3/base_v22.ipynb` として取り込み、`build.py base=v22` で選べるようにした（v15 との違いはセル 0・21・33 だけ。CPU 用の書き換えもそのまま当たる）。
     - 2 本目 e3v22ngoc-1（v22＋自前 COCONUT＋n1neg。n1neg の代理も challenger の並べ直しに乗る）、3 本目 e3v22pnoc-1（v22＋自前 COCONUT＋ownpcnp）、4 本目 e3v22oc-1（v22＋自前 COCONUT＝v22 での基準）、5 本目 e3v22allnew-1（v22＋3 部品すべて＋自前 COCONUT）。
     - 1 本目 e3v15btoc-1 だけは v15 のまま（先に出した）。
+    - **5 本とも提出済み（01:06〜06:40 UTC）**。途中でコンテナが再起動して連続提出のスクリプトが止まったが、GHA 側は続いていたので、3 本目の結果を待って 4 本目から掛け直した（`scratchpad/resume22.sh`）。5 本目は GitHub のランナー待ちで約 1 時間半遅れた。
 **LB（10-19 00:3x 取り直し・3,557 チーム）：1 位 0.495・金 17 位＝0.461・銀 177 位＝0.454・銅 355 位＝0.451。自分：0.451（e3a451lf-1）・231 位（銅の線と同点＝押し出される寸前）。銀まで +0.003、金まで +0.010。締切 12-14。**
 - **10-19 の作戦（土台を替える）**：公開の最上位系統が ahmedberatozer の v14（**LB 0.455**＝E006 系＋エンジン 2 の候補に PubChemLite CC0〔franciscoangulo〕）と、その上の v15（＋seyitkaangunes の N1A：[M+H]+ の無い分子に [M+NH4]+／[M-H2O+H]+ を [M+H]+ 扱いにして GLACIER）。
   guhongbin v465 は v15 の人気度の重み 0.25→0.15 だけ（刻みなので採らない）。
