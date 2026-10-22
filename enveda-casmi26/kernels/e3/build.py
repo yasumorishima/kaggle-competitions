@@ -126,6 +126,7 @@ assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_res
 assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
+n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
 bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
@@ -754,6 +755,63 @@ if ownco or ownpc:   # O. engine 2's candidate pool also takes our own COCONUT s
                  + '        log(f"own PubChem tier skipped: {_pe2!r}")\\n')
     cells[_ic]["source"] = _c.replace(_old, _new)
 
+if n1neg:   # G. ours: N1A's [M+H]+ proxies extended to negative-mode-only molecules (charge-flipped peaks)
+    _ic = find_cell("# ---- N1A_MCE") if False else next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "N1_CORE_SRC = ''.join([" in src(i))
+    _c = src(_ic)
+    _o1 = "    print('[N1]', N1K.selftest(), flush=True)\n"
+    _o2 = "WLp=0, proxy_empty=0)"
+    assert _c.count(_o1) == 1 and _c.count(_o2) == 1, ("n1neg anchors", _c.count(_o1), _c.count(_o2))
+    _patch = (_o1 + """    # ==== ours (yasunorim, 10-22): n1neg -- a GLACIER-blind molecule with no positive proxy also gets [M+H]+ proxies
+    # from its [M-H]- / [M+CH2O2-H]- spectra: M from the negative precursor, the precursor region cut like N1A's, every
+    # fragment m/z + 2 x proton ([F-H]- -> [F+H]+), relabelled [M+H]+ positive. The bench core stays byte-identical; its
+    # build_variants / mol_flags / arm_tags are wrapped here.
+    _ng_bv0, _ng_mf0, _ng_at0 = N1K.build_variants, N1K.mol_flags, N1K.arm_tags
+    def _ng_proxy(sp):
+        try:
+            prec = float(sp['prec'])
+        except Exception:
+            return None
+        ad = sp.get('adduct')
+        if ad == '[M-H]-':
+            M = prec + N1K.PROTON; cut = prec - N1K.CUT_DA
+        elif ad == '[M+CH2O2-H]-':
+            M = prec - 44.997655; cut = M - N1K.PROTON - N1K.CUT_DA
+        else:
+            return None
+        k = N1K._keep_below(sp, cut, N1K.MIN_PEAKS)
+        if k is None:
+            return None
+        out = dict(sp)
+        out.update(mz=[float(x) + 2 * N1K.PROTON for x in k[0]], it=[float(x) for x in k[1]], prec=M + N1K.PROTON,
+                   adduct='[M+H]+', mode='positive', n1_src=ad)
+        return out
+    def _ng_bv(items_all):
+        out, st = _ng_bv0(items_all)
+        by = {str(it['mid']): it for it in items_all}
+        for o in out:
+            if str(o['mid']).startswith(('n1x:', 'n1b:')):   # the base's synthetic commit exercise stays as it is
+                continue
+            for j, sp in enumerate(by[str(o['mid'])].get('spectra') or []):
+                if isinstance(sp, dict) and sp.get('mode') == 'negative':
+                    p = _ng_proxy(sp)
+                    if p is not None:
+                        o['spectra'].append(dict(p, sid=f'{j}:NEGp', tag='NEGp')); st['NEGp'] = st.get('NEGp', 0) + 1
+        return out, st
+    def _ng_mf(item):
+        fl = _ng_mf0(item)
+        fl['has_NEGp'] = any(s.get('tag') == 'NEGp' for s in item['spectra'])
+        return fl
+    def _ng_at(arm, flags):
+        tags, mode = _ng_at0(arm, flags)
+        if arm in ('N1A', 'N1A_D') and not flags.get('has_H') and not flags.get('has_NH4p') and not flags.get('has_WLp'):
+            tags = tuple(tags) + ('NEGp',)
+        return tags, mode
+    N1K.build_variants, N1K.mol_flags, N1K.arm_tags = _ng_bv, _ng_mf, _ng_at
+    print('[N1] ours n1neg: negative-only blind molecules get charge-flipped [M+H]+ proxies', flush=True)
+""")
+    _c = _c.replace(_o1, _patch).replace(_o2, "WLp=0, NEGp=0, proxy_empty=0)")
+    cells[_ic]["source"] = _c
+
 if bt:   # B. ours_bt: biotransformation neighbours at the test masses into engine 2's pool (ours, 10-22)
     _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
     _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
@@ -845,6 +903,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + ("Ours (ownco=1): engine 2's candidate pool also takes the structures of our own COCONUT table "
                     "(yasunorim/casmi26-own-coconut-candidates, built from the official COCONUT dump; 38k structures more than the "
                     "public COCONUT table) that the pool does not have, fingerprinted like the training structures. " if ownco else "")
+                 + ("Ours (n1neg=1): N1A's [M+H]+ proxies (seyitkaangunes) extended to GLACIER-blind molecules that have only "
+                    "negative [M-H]- / [M+CH2O2-H]- spectra: M from the negative precursor, the precursor region cut like N1A, every "
+                    "fragment m/z + 2 x proton ([F-H]- -> [F+H]+), relabelled [M+H]+ (25 of the 400 visible test molecules). " if n1neg else "")
                  + ("Ours (bt=1, ours_bt.py): for every test target mass, one-step biotransformation neighbours of the pool and "
                     "training structures (sugar off, + hexose / deoxyhexose / glucuronic acid / pentose on a phenol, -/+ CH2, + SO3, "
                     "+/- O, + H2) that land within 10 ppm of it join engine 2's candidate pool (at most 40 per target, RDKit "
@@ -913,4 +974,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "bt", bt, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
