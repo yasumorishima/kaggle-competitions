@@ -42,7 +42,7 @@
   - **毎セッションの最初に、全コンペの最新の提出日時を取る**（`www.kaggle.com/api/v1/competitions/submissions/list/<comp>`）。その日の枠が残っていれば、その日のうちに新しい部品の版を出す。
   - **各コンペの枠（10-13 に API で確認）**：enveda は **1 日 5 本**（今まで 1 日 1 本しか使っていなかった）、Gemma は 1 日 1 本で、**採点中の提出が 1 本あると次は 400 で拒否される**（採点に 12 時間以上かかるので、終わったらすぐ次を出す）、ARC は 1 日 1 本。
     確かめ方：`www.kaggle.com/api/v1/competitions/list?search=<名前>` の `maxDailySubmissions`。
-  - GPU の週枠が切れていても止めない：CPU の kernel（9 時間以内）、TPU、主催側で採点されるコンペはそのまま出す。
+  - GPU の週枠が切れていても止めない：**TPU の kernel（GPU の代わり・10-22 user 再指示）**、CPU の kernel（9 時間以内）、主催側で採点されるコンペはそのまま出す。
   - 出す版は「銅への部品」を 1 つ確かめるもの（上の節）。種違いや刻みで枠を埋めることはしない。部品が仕上がっていなければ、部品の作業をその日の提出に間に合わせる。
 - 銅への道筋が今は見えないコンペでも、届く道筋を自分で組み立てて実行する。差の大きさと、その差を埋める部品と期日を正直に書く。公開の上位手法は土台にしてよい（下の「使ってはいけないもの」）。
 
@@ -68,6 +68,7 @@ GitHub の無料枠（個人アカウント）：Actions は**非公開リポジ
   - `kaggle-competitions`（公開）の GHA は無料。ただし larger runner（GPU・大きいマシン）は公開でも有料なので使わない。
 - **待つだけのジョブを長く走らせない**（例：Kaggle kernel の完了待ちで 100 分ランナーを占有）。公開なら無料だが、非公開に同じ形を持ち込まない。
 - **重い計算の置き場所の優先順**：cloud コンテナ（無料）→ Kaggle Notebook（GPU 週 30 時間まで無料）→ 公開リポジトリの GHA → self-hosted（RPi5）。**有料になるもの（非公開の GitHub ランナー・Codespaces・larger runner・有料 API）は使わない。**
+  - **🔴 GPU の週枠が切れたら TPU を使う（2026-10-22 user 再指示・原文「GPUなくなったときはTPUでもいいんだよ？メモ」）。**「GPU が戻るまで提出できない」「CPU だけで出す」で止めない。GPU が要る処理（ARC の LLM agent・enveda の GPU 版など）は、まず TPU の kernel（`accelerator: tpu` 系）で動かせるか確かめ、動くならその日のうちに TPU で出す。
   - **Kaggle の TPU も無料枠。必要なときは遠慮なく使う**（2026-10-05 user 指示）。GPU 枠が足りないとき（seed や epoch を変えた複数学習・大きいモデルの学習など）は TPU に回す。PyTorch なら torch_xla、または JAX に移植する。
   - **GPU 週 30 時間は全コンペ共通の枠**（10-07 に Gemma の手元評価・ARC・enveda で使い切り、enveda の提出が push で拒否された）。重い GPU の評価を入れる前に、その週の提出用の時間（enveda の本番は 1 本ごとに T4 の commit 実行）を残す。切れた週は CPU の kernel（9 時間以内なら提出可）と TPU で進める。
 - Codespaces は作らない。
