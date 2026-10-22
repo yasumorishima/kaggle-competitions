@@ -41,6 +41,27 @@ if _ours_os.environ.get("ARC_OURS_DOSSIER", "0") in ("1", "2"):
         s = self._last_step_summary or {}
         acts = self.__dict__.setdefault("_ours_level_actions", [])
         acts.extend(str(a) for a in (s.get("executed_actions") or []))
+        if _ours_os.environ.get("ARC_OURS_LEDGER", "0") == "1":
+            # ours (10-22) ledger: an attempt that ended in GAME OVER or in the model's own RESET is recorded (exact
+            # actions) and shown on the next user message, the last 3 per level; cleared when the level is solved
+            _ex = [str(a).strip().upper() for a in (s.get("executed_actions") or [])]
+            if s.get("level_transition"):
+                self.__dict__["_ours_ledger"] = []
+            elif (s.get("game_over") or "RESET" in _ex) and acts:
+                _cut = max((i for i, a in enumerate(acts) if a.strip().upper() == "RESET"), default=len(acts))
+                _seq = [a for a in acts[:_cut] if a.strip().upper() != "RESET"] if not s.get("game_over") else list(acts)
+                if _seq:
+                    _led = self.__dict__.setdefault("_ours_ledger", [])
+                    _how = "GAME OVER" if s.get("game_over") else "your RESET"
+                    _more = f" (last 120 of {len(_seq)})" if len(_seq) > 120 else ""
+                    _led.append(f"- failed attempt {len(_led) + 1}: {len(_seq)} actions, ended by {_how}{_more}: "
+                                + " ".join(_seq[-120:]))
+                    del _led[:-3]
+                    _blk = ("## Failed attempts on this level (exact actions)\n"
+                            + "\n".join(_led) + "\nDo not replay a failed line: change the part of the plan that failed, "
+                            "and use fewer actions.")
+                    self.__dict__["_ours_inline"] = (str(self.__dict__.get("_ours_inline") or "") + "\n\n" + _blk).strip()
+                acts[:] = [a for a in acts[_cut + 1:]] if not s.get("game_over") else []
         if s.get("game_over") and not s.get("level_transition"):
             acts.clear()                                  # keep the final (successful) attempt only
         if s.get("level_transition"):
@@ -774,6 +795,7 @@ c5 = c5.replace(anchor, anchor + (
     f"os.environ['ARC_OURS_REUSE'] = '{opts.get('reuse', '0')}'\n"
     f"os.environ['ARC_OURS_TURNLOG'] = '{opts.get('turnlog', '0')}'\n"
     f"os.environ['ARC_OURS_AUTOPILOT'] = '{int(opts.get('autopilot', '0'))}'\n"
+    f"os.environ['ARC_OURS_LEDGER'] = '{opts.get('ledger', '0')}'\n"
     f"_OURS_PATCH = {PATCH!r}\n"
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"

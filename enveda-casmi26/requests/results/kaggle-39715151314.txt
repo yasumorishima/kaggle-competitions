@@ -1,0 +1,60 @@
+request: e3v22oc-1
+run: 39715151314  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3v22oc  version: 1
+memo: Base: Ahmed Berat Ozer 'casmi26-v22-n1-challenger' (his v15-n1a + flexonafft's N1 challenger, casmi26-closing-the-evidence-gap v47; the same step is dmitriigluzdov's v16 at public LB 0.464), kernels/e3/base_v22.ipynb, unchanged except the cells marked ours. This version: v22 base + our own COCONUT in engine 2 (e3v15oc-1 0.457, +0.002 on v15) + ours_lfrag: the reference for today's v22 parts and the check that our pool part carries over to the challenger base. Hypothesis: LB >= 0.464. CPU kernel (GPU week spent until about 10-24). build.py v22oc base=v22 ownco=1 lfrag=1 cpu.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3v22oc
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-22 04:14:09.550000,e3v22oc-1: v22 n1-challenger base + ours (base=v22 ownco=1 lfrag=1 cpu) [run 39715151314],SubmissionStatus.PENDING,,
+submission.csv,2026-10-22 03:06:44.090000,e3v22pnoc-1: v22 n1-challenger base + ours (base=v22 ownpcnp=1.5 ownco=1 lfrag=1 cpu) [run 39709633503],SubmissionStatus.PENDING,,
+submission.csv,2026-10-22 02:06:26.660000,e3v22ngoc-1: v22 n1-challenger base + ours (base=v22 n1neg=1 ownco=1 lfrag=1 cpu) [run 39703882861],SubmissionStatus.PENDING,,
+
+output files:
+total 640
+drwxr-xr-x  9 runner runner   4096 Oct 22 04:14 .
+drwxrwxrwt 14 root   root     4096 Oct 22 04:13 ..
+-rw-r--r--  1 runner runner  17299 Oct 22 04:13 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 22 04:13 candidate_audit.csv
+-rw-r--r--  1 runner runner   2442 Oct 22 04:13 candidate_audit.json
+-rw-r--r--  1 runner runner  34961 Oct 22 04:14 casmi26-e3v22oc.log
+-rw-r--r--  1 runner runner 130593 Oct 22 04:13 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9698 Oct 22 04:13 e004_verification.json
+-rw-r--r--  1 runner runner    517 Oct 22 04:13 e2r2_stats.json
+drwxr-xr-x  3 runner runner   4096 Oct 22 04:13 eng
+-rw-r--r--  1 runner runner  29926 Oct 22 04:13 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 22 04:13 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 22 04:13 experiment_audit.json
+-rw-r--r--  1 runner runner  28552 Oct 22 04:13 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164019 Oct 22 04:13 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Oct 22 04:13 experiment_verification.json
+-rw-r--r--  1 runner runner  12857 Oct 22 04:13 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 22 04:13 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 22 04:13 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 22 04:13 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 22 04:13 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 22 04:13 ours_lfrag.py
+-rw-r--r--  1 runner runner  27237 Oct 22 04:13 pc_lists.json
+-rw-r--r--  1 runner runner   4531 Oct 22 04:13 pc_runner.py
+-rw-r--r--  1 runner runner   9980 Oct 22 04:13 probe_core2.py
+-rw-r--r--  1 runner runner    338 Oct 22 04:13 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 22 04:13 smoke_comp
+-rw-r--r--  1 runner runner  17299 Oct 22 04:13 submission.csv
+-rw-r--r--  1 runner runner  17299 Oct 22 04:13 submission_base_e2r2.csv
+-rw-r--r--  1 runner runner  17299 Oct 22 04:13 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17299 Oct 22 04:13 submission_reference.csv
+drwxr-xr-x  2 runner runner   4096 Oct 22 04:14 work
+[{"stream_name":"stderr","time":9.540600041,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.540657161,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.540661591,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.540664821,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.217730613,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.217761523,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.217766283,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.217769623,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":83.384914135,"data":"v17 popularity prior 0.25 200 /kaggle/input/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior\n"}
+,{"stream_name":"stdout","time":83.384947424,"data":"rdkit wheel: ['/kaggle/input/datasets/metric/rdkit-2026-3-3-wheel/rdkit-2026.3.3-cp312-cp312-manylinux_2_28_x86_64.whl']\n"}
+,{"stream_name":"stdout","time":90.846211392,"data":" \n"}
+,{"stream_name":"stdout","time":90.846249

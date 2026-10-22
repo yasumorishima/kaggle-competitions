@@ -85,7 +85,8 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451", "v15"), base   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
+assert base in ("e006", "a451", "v15", "v22"), base   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
+#   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
 bfragmin = _arg("bfragmin", 30.0)     # ... total cap (minutes)
@@ -120,12 +121,15 @@ def code_cell(s):
 
 
 cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4 checks relaxed, ICEBERG / GLACIER on the CPU
-assert not (cpu and base not in ("e006", "v15")), "cpu edits are written for the E006-lineage cells (e006, v15)"
-assert bfrag == 0 or base in ("a451", "v15"), "bfrag uses the a451 base's frag_rescore"
-assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
+assert not (cpu and base not in ("e006", "v15", "v22")), "cpu edits are written for the E006-lineage cells (e006, v15)"
+assert bfrag == 0 or base in ("a451", "v15", "v22"), "bfrag uses the a451 base's frag_rescore"
+assert fins == 0 or base in ("a451", "v15", "v22"), "fins uses the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15", "v22"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
+n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
+ownpcnp = _arg("ownpcnp", 0.0)        # ours (10-22), > 0: own PubChem tier (>= 1 PubMed link) structures with Ertl NP-likeness >= this into engine 2's pool
+bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
 if gg:
@@ -170,7 +174,7 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
               "assert _stage_meta['ice'].get('status') in ('ok', 'budget'), _stage_meta['ice']   # ours (cpu build): budget allowed")
     _cpu_swap(_if, "assert _stage_meta['glacier'].get('status') == 'ok', _stage_meta['glacier']",
               "assert _stage_meta['glacier'].get('status') in ('ok', 'budget'), _stage_meta['glacier']   # ours (cpu build)")
-    if base == "v15":   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
+    if base in ("v15", "v22"):   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
         _in1 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "complement filter not exercised" in src(i))
         _cpu_swap(_in1, "assert _n1_xd, ('complement filter not exercised", "assert _n1_xd or True, ('complement filter not exercised")
 
@@ -753,6 +757,110 @@ if ownco or ownpc:   # O. engine 2's candidate pool also takes our own COCONUT s
                  + '        log(f"own PubChem tier skipped: {_pe2!r}")\\n')
     cells[_ic]["source"] = _c.replace(_old, _new)
 
+if n1neg:   # G. ours: N1A's [M+H]+ proxies extended to negative-mode-only molecules (charge-flipped peaks)
+    _ic = find_cell("# ---- N1A_MCE") if False else next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "N1_CORE_SRC = ''.join([" in src(i))
+    _c = src(_ic)
+    _o1 = "    print('[N1]', N1K.selftest(), flush=True)\n"
+    _o2 = "WLp=0, proxy_empty=0)"
+    assert _c.count(_o1) == 1 and _c.count(_o2) == 1, ("n1neg anchors", _c.count(_o1), _c.count(_o2))
+    _patch = (_o1 + """    # ==== ours (yasunorim, 10-22): n1neg -- a GLACIER-blind molecule with no positive proxy also gets [M+H]+ proxies
+    # from its [M-H]- / [M+CH2O2-H]- spectra: M from the negative precursor, the precursor region cut like N1A's, every
+    # fragment m/z + 2 x proton ([F-H]- -> [F+H]+), relabelled [M+H]+ positive. The bench core stays byte-identical; its
+    # build_variants / mol_flags / arm_tags are wrapped here.
+    _ng_bv0, _ng_mf0, _ng_at0 = N1K.build_variants, N1K.mol_flags, N1K.arm_tags
+    def _ng_proxy(sp):
+        try:
+            prec = float(sp['prec'])
+        except Exception:
+            return None
+        ad = sp.get('adduct')
+        if ad == '[M-H]-':
+            M = prec + N1K.PROTON; cut = prec - N1K.CUT_DA
+        elif ad == '[M+CH2O2-H]-':
+            M = prec - 44.997655; cut = M - N1K.PROTON - N1K.CUT_DA
+        else:
+            return None
+        k = N1K._keep_below(sp, cut, N1K.MIN_PEAKS)
+        if k is None:
+            return None
+        out = dict(sp)
+        out.update(mz=[float(x) + 2 * N1K.PROTON for x in k[0]], it=[float(x) for x in k[1]], prec=M + N1K.PROTON,
+                   adduct='[M+H]+', mode='positive', n1_src=ad)
+        return out
+    def _ng_bv(items_all):
+        out, st = _ng_bv0(items_all)
+        by = {str(it['mid']): it for it in items_all}
+        for o in out:
+            if str(o['mid']).startswith(('n1x:', 'n1b:')):   # the base's synthetic commit exercise stays as it is
+                continue
+            for j, sp in enumerate(by[str(o['mid'])].get('spectra') or []):
+                if isinstance(sp, dict) and sp.get('mode') == 'negative':
+                    p = _ng_proxy(sp)
+                    if p is not None:
+                        o['spectra'].append(dict(p, sid=f'{j}:NEGp', tag='NEGp')); st['NEGp'] = st.get('NEGp', 0) + 1
+        return out, st
+    def _ng_mf(item):
+        fl = _ng_mf0(item)
+        fl['has_NEGp'] = any(s.get('tag') == 'NEGp' for s in item['spectra'])
+        return fl
+    def _ng_at(arm, flags):
+        tags, mode = _ng_at0(arm, flags)
+        if arm in ('N1A', 'N1A_D') and not flags.get('has_H') and not flags.get('has_NH4p') and not flags.get('has_WLp'):
+            tags = tuple(tags) + ('NEGp',)
+        return tags, mode
+    N1K.build_variants, N1K.mol_flags, N1K.arm_tags = _ng_bv, _ng_mf, _ng_at
+    print('[N1] ours n1neg: negative-only blind molecules get charge-flipped [M+H]+ proxies', flush=True)
+""")
+    _c = _c.replace(_o1, _patch).replace(_o2, "WLp=0, NEGp=0, proxy_empty=0)")
+    cells[_ic]["source"] = _c
+
+if ownpcnp > 0:   # Pn. own PubChem tier, natural-product-like part only, into engine 2's pool (ours, 10-22)
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
+    _c = src(_ic)
+    assert _c.count(_old) == 1, "ownpcnp anchor"
+    _new = ('    try:  # ours (yasunorim, 10-22): own PubChem tier (>= 1 PubMed link), only structures with Ertl NP-likeness >= th\\n'
+            + '        _pp = [p for p in glob.glob("/kaggle/input/**/pubchem_tier.parquet", recursive=True) if "own-pubchem-tier" in p]\\n'
+            + '        sys.path.insert(0, "/kaggle/working/ours_bt")\\n'
+            + '        import ours_np\\n'
+            + '        ours_np.load(log=log)\\n'
+            + '        _pt = pd.read_parquet(_pp[0], columns=["inchikey14", "smiles", "n_pmid"])\\n'
+            + '        _pt = _pt[_pt.n_pmid >= 1].rename(columns={"inchikey14": "ik", "smiles": "smi"})[["ik", "smi"]].dropna()\\n'
+            + '        _pt = _pt[~_pt.ik.isin(set(co_keys)) & ~_pt.ik.isin(set(tr.ik))].drop_duplicates("ik")\\n'
+            + '        with MPool(workers) as _mp:\\n'
+            + '            _ns = np.array([np.nan if v is None else v for v in _mp.map(ours_np.score_smiles, list(_pt.smi), chunksize=5000)], float)\\n'
+            + f'        _pt = _pt[_ns >= {ownpcnp}]\\n'
+            + '        tr = pd.concat([tr, _pt], ignore_index=True)\\n'
+            + f'        log(f"+ ours: own PubChem tier, NP-likeness >= {ownpcnp}: {{len(_pt):,}} new structures")\\n'
+            + '    except Exception as _npe:\\n'
+            + '        log(f"own PubChem NP part skipped: {_npe!r}")\\n')
+    cells[_ic]["source"] = _c.replace(_old, _new + _old)
+
+if bt or ownpcnp > 0:   # W. our modules for engine 2's subprocess
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _w = ("# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py) ====\n"
+          "# ours_bt.py / ours_np.py for engine 2's subprocess\n"
+          "import os\nos.makedirs('/kaggle/working/ours_bt', exist_ok=True)\n"
+          f"open('/kaggle/working/ours_bt/ours_bt.py', 'w').write({open(os.path.join(HERE, 'ours_bt.py'), encoding='utf-8').read()!r})\n"
+          f"open('/kaggle/working/ours_bt/ours_np.py', 'w').write({open(os.path.join(HERE, 'ours_np.py'), encoding='utf-8').read()!r})\n"
+          "print('ours_bt / ours_np written')\n")
+    cells.insert(_ic, code_cell(_w))
+
+if bt:   # B. ours_bt: biotransformation neighbours at the test masses into engine 2's pool (ours, 10-22)
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
+    _c = src(_ic)
+    assert _c.count(_old) == 1, "bt anchor"
+    _new = ('    try:  # ours (yasunorim, 10-22): ours_bt, one-step biotransformation neighbours that land on a test mass\\n'
+            + '        sys.path.insert(0, "/kaggle/working/ours_bt")\\n'
+            + '        import ours_bt\\n'
+            + '        _tp = next((a for a in sys.argv if str(a).endswith("test.parquet")), None)\\n'
+            + '        _bt = ours_bt.extend(tr, co_keys, co_smi, co_mass, _tp, pv.neutral_mass, canon_key, log, workers)\\n'
+            + '        tr = pd.concat([tr, _bt], ignore_index=True)\\n'
+            + '    except Exception as _bte:\\n'
+            + '        log(f"ours_bt skipped: {_bte!r}")\\n')
+    cells[_ic]["source"] = _c.replace(_old, _new + _old)
+
 if mmp > 0:      # M. after the engine cell, BEFORE hook A (ours_mmp must wrap E.generate before pc_join does)
     MCFG = dict(MMP_N=mmp, MMP_MINC=mmpc, MMP_TWO=mmp2)
     hook_m = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
@@ -806,7 +914,11 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "and everything it credits (cells below, unchanged). " if base == "a451" else
                     "Base: [casmi26-v15-n1a](https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a) by Ahmed Berat Ozer, "
                     "version 1 (its v14, public LB 0.455 = E006 lineage + PubChemLite CC0 candidates in engine 2, + N1A GLACIER proxies "
-                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
+                    "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). " if base == "v15" else
+                    "Base: [casmi26-v22-n1-challenger](https://www.kaggle.com/code/ahmedberatozer/casmi26-v22-n1-challenger) by Ahmed Berat Ozer "
+                    "(= his v15-n1a + the N1 challenger of flexonafft, casmi26-closing-the-evidence-gap v47, also dmitriigluzdov v16 "
+                    "public LB 0.464: GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG + proxy-GLACIER re-ordering), "
+                    "Apache-2.0 lineage, and everything it credits (cells below, unchanged). ")
                  + ("Ported (not ours): the group-gap fragment step of saddamaditya's Apex Synthesis (public 0.451, Apache-2.0): "
                     "the v7c and E005-E007 cells are taken from it (fragment evidence also for same-formula groups no simulator scored). " if gg else "")
                  + ("Ours: the base's fragment scorer (frag_rescore) scores with our learned peak credits (bucket = cleavage "
@@ -823,6 +935,16 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + ("Ours (ownco=1): engine 2's candidate pool also takes the structures of our own COCONUT table "
                     "(yasunorim/casmi26-own-coconut-candidates, built from the official COCONUT dump; 38k structures more than the "
                     "public COCONUT table) that the pool does not have, fingerprinted like the training structures. " if ownco else "")
+                 + ("Ours (n1neg=1): N1A's [M+H]+ proxies (seyitkaangunes) extended to GLACIER-blind molecules that have only "
+                    "negative [M-H]- / [M+CH2O2-H]- spectra: M from the negative precursor, the precursor region cut like N1A, every "
+                    "fragment m/z + 2 x proton ([F-H]- -> [F+H]+), relabelled [M+H]+ (25 of the 400 visible test molecules). " if n1neg else "")
+                 + (f"Ours (ownpcnp={ownpcnp}): engine 2's candidate pool also takes the structures of our own PubChem tier with at "
+                    f"least one PubMed link and an Ertl NP-likeness score >= {ownpcnp} (RDKit Contrib/NP_Score model) that the pool "
+                    "does not have, fingerprinted like the training structures. " if ownpcnp > 0 else "")
+                 + ("Ours (bt=1, ours_bt.py): for every test target mass, one-step biotransformation neighbours of the pool and "
+                    "training structures (sugar off, + hexose / deoxyhexose / glucuronic acid / pentose on a phenol, -/+ CH2, + SO3, "
+                    "+/- O, + H2) that land within 10 ppm of it join engine 2's candidate pool (at most 40 per target, RDKit "
+                    "reactions, fingerprinted like the training structures). " if bt else "")
                  + ("Port (not ours): ahmedberatozer casmi26-v19-bioext's BX block (engine 2's pool also takes PubChem structures from "
                     "biological depositors, output of ahmedberatozer/casmi26-bioext-build), verbatim. " if bx else "")
                  + (f"Ours (ownpc={ownpc}): engine 2's candidate pool also takes the structures of our own PubChem tier "
@@ -876,8 +998,8 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
-                            "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc else [])
-                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
+                            "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else [])
+                           + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base in ("v15", "v22") else
                               ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + (["ahmedberatozer/casmi26-bioext-build"] if bx else []) + ([dnsrc] if denovo > 0 and not pcl else []),
@@ -887,4 +1009,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)

@@ -61,3 +61,9 @@ Datasets (15): the 16 of base_e006 minus hengck23 / eveliaveldrine wheels / prvs
             sergiomalv/casmi-chebi-lmsd-structures and franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints.
 Ported into it by build.py gg=1 (not ours): the v7c and E005-E007 cells of base_a451.ipynb (saddamaditya's group gap).
 Ours on it: lfrag (ours_lfrag), pcl (ours_pcl: PubChemLite into engine 1 through pc_join), pcvote / pcguard / pcglib.
+
+base_v22.ipynb (10-22): https://www.kaggle.com/code/ahmedberatozer/casmi26-v22-n1-challenger, pulled 2026-10-22 via the Kaggle
+API (kernels/pull), unchanged. = his casmi26-v15-n1a + the N1 challenger of flexonafft (casmi26-closing-the-evidence-gap v47;
+the same step is dmitriigluzdov "CASMI 26: The Data Behind Spectra to Structures" v16, public LB 0.464): N1_COMPLEMENT=False
+(GLACIER proxies kept where ICEBERG scores exist) and the final fusion re-orders those molecules jointly by ICEBERG and the
+proxy GLACIER. Differs from base_v15.ipynb in cells 0, 21 and 33 only.

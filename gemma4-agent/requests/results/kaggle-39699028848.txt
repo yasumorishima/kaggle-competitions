@@ -1,0 +1,12 @@
+request: g4v21-1
+run: 39699028848  status: failure  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 19
+memo: v21 = v20 (current public LB 0.24 prompt, honghanhhh/gemma-4-baseline-lb-0-24 run 2026-10-18 = bases/pub024v4, + our get_status time guard + our sibling-site checklist) with verification back to at most 2 calls: rerun the issue's example first (pub024v4's new check), then only -k keyword tests with timeout 90, never the whole test file. g4v20-1 exceeded the 12 h runtime; the whole-file pytest run was its only time change from v19 (0.15). bases/v21_SOURCE.txt. Hypothesis: the issue-example check and the keep-behaviour rule are the public prompt's gain; inside 12 h they lift us to LB >= 0.18 (bronze).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.2)
+Kernel version 19 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+
+output files:
+total 8
+drwxr-xr-x  2 runner runner 4096 Oct 22 00:20 .
+drwxrwxrwt 14 root   root   4096 Oct 22 00:20 ..
