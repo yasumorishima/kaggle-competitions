@@ -126,6 +126,7 @@ assert fins == 0 or base in ("a451", "v15"), "fins uses the a451 base's frag_res
 assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
+bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
 if gg:
@@ -753,6 +754,27 @@ if ownco or ownpc:   # O. engine 2's candidate pool also takes our own COCONUT s
                  + '        log(f"own PubChem tier skipped: {_pe2!r}")\\n')
     cells[_ic]["source"] = _c.replace(_old, _new)
 
+if bt:   # B. ours_bt: biotransformation neighbours at the test masses into engine 2's pool (ours, 10-22)
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
+    _c = src(_ic)
+    assert _c.count(_old) == 1, "bt anchor"
+    _new = ('    try:  # ours (yasunorim, 10-22): ours_bt, one-step biotransformation neighbours that land on a test mass\\n'
+            + '        sys.path.insert(0, "/kaggle/working/ours_bt")\\n'
+            + '        import ours_bt\\n'
+            + '        _tp = next((a for a in sys.argv if str(a).endswith("test.parquet")), None)\\n'
+            + '        _bt = ours_bt.extend(tr, co_keys, co_smi, co_mass, _tp, pv.neutral_mass, canon_key, log, workers)\\n'
+            + '        tr = pd.concat([tr, _bt], ignore_index=True)\\n'
+            + '    except Exception as _bte:\\n'
+            + '        log(f"ours_bt skipped: {_bte!r}")\\n')
+    cells[_ic]["source"] = _c.replace(_old, _new + _old)
+    _w = ("# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py) ====\n"
+          "# ours_bt.py for engine 2's subprocess (biotransformation neighbours at the test masses join its pool)\n"
+          "import os\nos.makedirs('/kaggle/working/ours_bt', exist_ok=True)\n"
+          f"open('/kaggle/working/ours_bt/ours_bt.py', 'w').write({open(os.path.join(HERE, 'ours_bt.py'), encoding='utf-8').read()!r})\n"
+          "print('ours_bt written')\n")
+    cells.insert(_ic, code_cell(_w))
+
 if mmp > 0:      # M. after the engine cell, BEFORE hook A (ours_mmp must wrap E.generate before pc_join does)
     MCFG = dict(MMP_N=mmp, MMP_MINC=mmpc, MMP_TWO=mmp2)
     hook_m = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py -- every base cell is unchanged) ====
@@ -823,6 +845,10 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + ("Ours (ownco=1): engine 2's candidate pool also takes the structures of our own COCONUT table "
                     "(yasunorim/casmi26-own-coconut-candidates, built from the official COCONUT dump; 38k structures more than the "
                     "public COCONUT table) that the pool does not have, fingerprinted like the training structures. " if ownco else "")
+                 + ("Ours (bt=1, ours_bt.py): for every test target mass, one-step biotransformation neighbours of the pool and "
+                    "training structures (sugar off, + hexose / deoxyhexose / glucuronic acid / pentose on a phenol, -/+ CH2, + SO3, "
+                    "+/- O, + H2) that land within 10 ppm of it join engine 2's candidate pool (at most 40 per target, RDKit "
+                    "reactions, fingerprinted like the training structures). " if bt else "")
                  + ("Port (not ours): ahmedberatozer casmi26-v19-bioext's BX block (engine 2's pool also takes PubChem structures from "
                     "biological depositors, output of ahmedberatozer/casmi26-bioext-build), verbatim. " if bx else "")
                  + (f"Ours (ownpc={ownpc}): engine 2's candidate pool also takes the structures of our own PubChem tier "
@@ -887,4 +913,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "bt", bt, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
