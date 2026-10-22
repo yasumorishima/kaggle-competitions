@@ -144,7 +144,12 @@ jobs:
             sleep 60
           done
           echo "$S" | grep -q COMPLETE || { echo "::error::kernel did not finish in time"; exit 1; }
-          mkdir -p /tmp/kout && kaggle kernels output "$ID" -p /tmp/kout >/dev/null 2>&1 || true
+          mkdir -p /tmp/kout
+          for i in 1 2 3 4 5 6; do   # the output can lag the COMPLETE status (10-22: empty right after it)
+            kaggle kernels output "$ID" -p /tmp/kout >/dev/null 2>&1 || true
+            if [ "$SUBMIT" != "yes" ] || [ -s /tmp/kout/submission.zip ]; then break; fi
+            echo "output not ready yet ($i)"; sleep 30
+          done
           ls -la /tmp/kout
           ls -la /tmp/kout/submission.zip 2>/dev/null || echo "no submission.zip in the output"
           unzip -l /tmp/kout/submission.zip 2>/dev/null | tee -a /tmp/out.txt || true
