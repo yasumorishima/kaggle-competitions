@@ -127,6 +127,7 @@ assert lfrag == 0 or base in ("a451", "v15"), "lfrag patches the a451 base's fra
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
 n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
+ownpcnp = _arg("ownpcnp", 0.0)        # ours (10-22), > 0: own PubChem tier (>= 1 PubMed link) structures with Ertl NP-likeness >= this into engine 2's pool
 bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
@@ -812,6 +813,38 @@ if n1neg:   # G. ours: N1A's [M+H]+ proxies extended to negative-mode-only molec
     _c = _c.replace(_o1, _patch).replace(_o2, "WLp=0, NEGp=0, proxy_empty=0)")
     cells[_ic]["source"] = _c
 
+if ownpcnp > 0:   # Pn. own PubChem tier, natural-product-like part only, into engine 2's pool (ours, 10-22)
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
+    _c = src(_ic)
+    assert _c.count(_old) == 1, "ownpcnp anchor"
+    _new = ('    try:  # ours (yasunorim, 10-22): own PubChem tier (>= 1 PubMed link), only structures with Ertl NP-likeness >= th\\n'
+            + '        _pp = [p for p in glob.glob("/kaggle/input/**/pubchem_tier.parquet", recursive=True) if "own-pubchem-tier" in p]\\n'
+            + '        sys.path.insert(0, "/kaggle/working/ours_bt")\\n'
+            + '        import ours_np\\n'
+            + '        ours_np.load(log=log)\\n'
+            + '        _pt = pd.read_parquet(_pp[0], columns=["inchikey14", "smiles", "n_pmid"])\\n'
+            + '        _pt = _pt[_pt.n_pmid >= 1].rename(columns={"inchikey14": "ik", "smiles": "smi"})[["ik", "smi"]].dropna()\\n'
+            + '        _pt = _pt[~_pt.ik.isin(set(co_keys)) & ~_pt.ik.isin(set(tr.ik))].drop_duplicates("ik")\\n'
+            + '        with MPool(workers) as _mp:\\n'
+            + '            _ns = np.array([np.nan if v is None else v for v in _mp.map(ours_np.score_smiles, list(_pt.smi), chunksize=5000)], float)\\n'
+            + f'        _pt = _pt[_ns >= {ownpcnp}]\\n'
+            + '        tr = pd.concat([tr, _pt], ignore_index=True)\\n'
+            + f'        log(f"+ ours: own PubChem tier, NP-likeness >= {ownpcnp}: {{len(_pt):,}} new structures")\\n'
+            + '    except Exception as _npe:\\n'
+            + '        log(f"own PubChem NP part skipped: {_npe!r}")\\n')
+    cells[_ic]["source"] = _c.replace(_old, _new + _old)
+
+if bt or ownpcnp > 0:   # W. our modules for engine 2's subprocess
+    _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
+    _w = ("# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py) ====\n"
+          "# ours_bt.py / ours_np.py for engine 2's subprocess\n"
+          "import os\nos.makedirs('/kaggle/working/ours_bt', exist_ok=True)\n"
+          f"open('/kaggle/working/ours_bt/ours_bt.py', 'w').write({open(os.path.join(HERE, 'ours_bt.py'), encoding='utf-8').read()!r})\n"
+          f"open('/kaggle/working/ours_bt/ours_np.py', 'w').write({open(os.path.join(HERE, 'ours_np.py'), encoding='utf-8').read()!r})\n"
+          "print('ours_bt / ours_np written')\n")
+    cells.insert(_ic, code_cell(_w))
+
 if bt:   # B. ours_bt: biotransformation neighbours at the test masses into engine 2's pool (ours, 10-22)
     _ic = find_cell("\'\'\'Our engine (two-ranker + BIO + AFIX) in a subprocess")
     _old = '    tr = tr[~tr.ik.isin(set(co_keys))]\\n'
@@ -826,12 +859,6 @@ if bt:   # B. ours_bt: biotransformation neighbours at the test masses into engi
             + '    except Exception as _bte:\\n'
             + '        log(f"ours_bt skipped: {_bte!r}")\\n')
     cells[_ic]["source"] = _c.replace(_old, _new + _old)
-    _w = ("# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py) ====\n"
-          "# ours_bt.py for engine 2's subprocess (biotransformation neighbours at the test masses join its pool)\n"
-          "import os\nos.makedirs('/kaggle/working/ours_bt', exist_ok=True)\n"
-          f"open('/kaggle/working/ours_bt/ours_bt.py', 'w').write({open(os.path.join(HERE, 'ours_bt.py'), encoding='utf-8').read()!r})\n"
-          "print('ours_bt written')\n")
-    cells.insert(_ic, code_cell(_w))
 
 if mmp > 0:      # M. after the engine cell, BEFORE hook A (ours_mmp must wrap E.generate before pc_join does)
     MCFG = dict(MMP_N=mmp, MMP_MINC=mmpc, MMP_TWO=mmp2)
@@ -906,6 +933,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + ("Ours (n1neg=1): N1A's [M+H]+ proxies (seyitkaangunes) extended to GLACIER-blind molecules that have only "
                     "negative [M-H]- / [M+CH2O2-H]- spectra: M from the negative precursor, the precursor region cut like N1A, every "
                     "fragment m/z + 2 x proton ([F-H]- -> [F+H]+), relabelled [M+H]+ (25 of the 400 visible test molecules). " if n1neg else "")
+                 + (f"Ours (ownpcnp={ownpcnp}): engine 2's candidate pool also takes the structures of our own PubChem tier with at "
+                    f"least one PubMed link and an Ertl NP-likeness score >= {ownpcnp} (RDKit Contrib/NP_Score model) that the pool "
+                    "does not have, fingerprinted like the training structures. " if ownpcnp > 0 else "")
                  + ("Ours (bt=1, ours_bt.py): for every test target mass, one-step biotransformation neighbours of the pool and "
                     "training structures (sugar off, + hexose / deoxyhexose / glucuronic acid / pentose on a phenol, -/+ CH2, + SO3, "
                     "+/- O, + H2) that land within 10 ppm of it join engine 2's candidate pool (at most 40 per target, RDKit "
@@ -963,7 +993,7 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
                             "ahmedberatozer/casmi26-v2-pool", "ahmedberatozer/casmi26-v3-models",
                             "ahmedberatozer/casmi26-v4b-models",
                             "prvsiyan/chebi-lipidmaps-casmi26" if base == "e006" else "sergiomalv/casmi-chebi-lmsd-structures",
-                            "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc else [])
+                            "prvsiyan/coconut-casmi26-candidates"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else [])
                            + (["franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints", "metric/rdkit-2026-3-3-wheel"] if base == "v15" else
                               ["hengck23/hengck23-dreams-enveda-casmi26", "metric/rdkit-2026-3-3-wheel", "eveliaveldrine/rdkit-wheels"]),
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
@@ -974,4 +1004,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
