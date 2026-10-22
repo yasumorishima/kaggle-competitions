@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3v22ngoc",
-  "title": "casmi26 e3v22ngoc",
+  "id": "yasunorim/casmi26-e3v22pnoc",
+  "title": "casmi26 e3v22pnoc",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -24,6 +24,7 @@
     "sergiomalv/casmi-chebi-lmsd-structures",
     "prvsiyan/coconut-casmi26-candidates",
     "yasunorim/casmi26-own-coconut-candidates",
+    "yasunorim/casmi26-own-pubchem-tier",
     "franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints",
     "metric/rdkit-2026-3-3-wheel"
   ],
