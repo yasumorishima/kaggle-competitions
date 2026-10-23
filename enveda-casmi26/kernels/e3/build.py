@@ -130,6 +130,8 @@ ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tie
 n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
 ownpcnp = _arg("ownpcnp", 0.0)        # ours (10-22), > 0: own PubChem tier (>= 1 PubMed link) structures with Ertl NP-likeness >= this into engine 2's pool
 bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
+n1b = _arg("n1b", 0.0)              # ours (10-23), S > 0: N1 / challenger GLACIER proxy budget on the scoring rerun (base 1,200 s; for CPU kernels)
+icepar = _arg("icepar", 0, int)       # ours (10-23), N > 1: ICEBERG in N parallel CPU runner processes (ours_icepar.py; same budget)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
 if gg:
@@ -177,6 +179,25 @@ if cpu:   # the only base-cell edits: device strings and the T4-only checks (tim
     if base in ("v15", "v22"):   # v15's N1 commit-only self-test needs a finite ICEBERG score, which the CPU smoke (300 s) does not reach
         _in1 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "complement filter not exercised" in src(i))
         _cpu_swap(_in1, "assert _n1_xd, ('complement filter not exercised", "assert _n1_xd or True, ('complement filter not exercised")
+
+
+if icepar > 1:   # ours: the one edit is the run_ice call; ours_icepar is written into the same cell just before it
+    _ii = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "ICE_SCORES = ice_fuse.run_ice(" in src(i))
+    assert src(_ii).count("ICE_SCORES = ice_fuse.run_ice(ICE_PKG, items, ") == 1
+    _qsrc = open(os.path.join(HERE, "ours_icepar.py"), encoding="utf-8").read()
+    cells[_ii]["source"] = src(_ii).replace("ICE_SCORES = ice_fuse.run_ice(ICE_PKG, items, ",
+        f"open('/kaggle/working/ours_icepar.py', 'w').write({_qsrc!r}); sys.path.insert(0, '/kaggle/working'); import ours_icepar   # ours (build.py icepar)\n"
+        f"    ICE_SCORES = ours_icepar.run(ice_fuse.run_ice, ICE_PKG, items, n={icepar}, ")
+    if n1b > 0:
+        _ib = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "N1_BUDGET = 1200.0 if IS_RERUN else 600.0" in src(i))
+        cells[_ib]["source"] = src(_ib).replace("N1_BUDGET = 1200.0 if IS_RERUN else 600.0",
+                                                f"N1_BUDGET = {float(n1b)} if IS_RERUN else 600.0   # ours (build.py n1b)")
+    _old_n1 = "n1_run(_n1_run, N1_BUDGET) if _n1_run"
+    _i1 = next((i for i, c in enumerate(cells) if c["cell_type"] == "code" and _old_n1 in src(i)), None)
+    if _i1 is not None:   # v15 / v22: the N1 (challenger) GLACIER proxies in the same parallel form
+        assert src(_i1).count(_old_n1) == 1
+        cells[_i1]["source"] = src(_i1).replace(_old_n1, "__import__('ours_icepar').n1par(_n1_run, N1_BUDGET, N1_WORK, GL_PKG, N1_DEVICE, "
+            f"N1_SITE, os.path.join(ICE_PKG, 'wheels'), N1_DRIVER_EXTRA, n={icepar}) if _n1_run")
 
 
 if fgap > 0:     # F. after the last base cell, BEFORE hook C (appended below), so de novo slots are applied last
@@ -1009,4 +1030,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
