@@ -1,0 +1,53 @@
+request: g4v22-1
+run: 40043936191  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 22
+memo: v22 = v21 (LB 0.18, g4v21-3: public 0.24 prompt honghanhhh/gemma-4-baseline-lb-0-24 run 2026-10-18 + our get_status time guard + our sibling-site checklist, verification at most 2 calls) + our time-gated regression check: after the issue-example rerun the agent reads get_status and, with more than 240 s left, runs the changed module's whole test file once (timeout 120); otherwise only the -k run. The grader runs the whole file; v21 could not see regressions in tests that pass today, and the public's unconditional whole-file runs took g4v20-1 past 12 h. bases/v22_SOURCE.txt. Hypothesis: LB >= 0.20 (silver line) inside the 12 h.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 22 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      314  2026-10-24 00:14   agent.yaml
+      119  2026-10-24 00:14   configs/sampling.yaml
+       94  2026-10-24 00:14   eval_config.yaml
+     8964  2026-10-24 00:14   prompts/system.md
+---------                     -------
+     9491                     4 files
+agent.yaml 314
+configs/sampling.yaml 119
+eval_config.yaml 94
+prompts/system.md 8964
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 288593 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-10-24 00:15:11.250000,g4v22-1: v21 (0.18) + our time-gated whole-file regression check [run 40043936191],SubmissionStatus.PENDING,,
+submission.zip,2026-10-23 00:13:02.307000,g4v21-3: public 0.24 prompt (issue-example check) inside the time budget + our time guard + sibling-site checklist (resend after platform rerun error) [run 39876636080],SubmissionStatus.COMPLETE,0.18,
+submission.zip,2026-10-22 00:23:53.637000,g4v21-1: public 0.24 prompt (issue-example check) inside the time budget + our time guard + sibling-site checklist [run 39699318481],SubmissionStatus.COMPLETE,,
+
+output files:
+total 20
+drwxr-xr-x  2 runner runner 4096 Oct 24 00:15 .
+drwxrwxrwt 14 root   root   4096 Oct 24 00:15 ..
+-rw-r--r--  1 runner runner 1198 Oct 24 00:15 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 4714 Oct 24 00:15 submission.zip
+[{"stream_name":"stdout","time":1.039033837,"data":"agent.yaml 314\n"}
+,{"stream_name":"stdout","time":1.039100627,"data":"configs/sampling.yaml 119\n"}
+,{"stream_name":"stdout","time":1.039165637,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":1.039832655,"data":"prompts/system.md 8964\n"}
+,{"stream_name":"stdout","time":1.039855038,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":4.439522712,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":4.439560504,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":4.927301254,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":4.92733357,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":6.896170901,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":8.788585812,"data":"[NbConvertApp] Writing 288593 bytes to __results__.html\n"}
+]
