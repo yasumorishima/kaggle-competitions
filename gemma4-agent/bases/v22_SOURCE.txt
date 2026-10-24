@@ -1,0 +1,6 @@
+v22 (10-24) = v21 (bases/v21: public 0.24 prompt honghanhhh/gemma-4-baseline-lb-0-24 run 2026-10-18 = bases/pub024v4,
++ our get_status time guard + our sibling-site checklist, verification at most 2 calls; LB 0.18 g4v21-3)
++ ours: time-gated regression check. After the issue-example rerun, the agent reads get_status: with more than 240 s
+left it runs the changed module's whole test file once (timeout 120), as the public prompt always does; otherwise only
+the -k keyword run of v21. The public's unconditional whole-file runs (up to 3) took g4v20-1 past the 12 h limit;
+v21 never runs the whole file and cannot see regressions in tests that pass today, which the grader runs.
