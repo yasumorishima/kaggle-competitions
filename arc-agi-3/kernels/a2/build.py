@@ -903,6 +903,48 @@ except Exception as _e:
 """
 cells.append({"cell_type": "code", "metadata": {}, "source": DIAG, "outputs": [], "execution_count": None})
 
+# ---- watch=1 (ours, 10-24): the base waits 12 min for the SGLang server, then releases the benchmark; the first
+# analyzer request retries 15 min more and then every game gives up after 3 retries. With the model precache reading
+# 185 GB beside the weight load, the server was ready only after about 25 min in our runs, and a2lg-sub1 scored 0.00 in
+# 40 min (every game gave up). In a real rerun this cell waits for /health up to 40 more minutes before the benchmark
+# and relaunches the server once if its process has died. The per-game deadline (ours, part 1) is computed after it.
+if opts.get("watch", "0") == "1":
+    iL = next(i for i, c in enumerate(cells) if "releasing the benchmark with the server still loading" in "".join(c["source"]))
+    WATCH = r"""# ==== ours (yasunorim, build.py watch=1): wait for the server before a real rerun's benchmark ====
+import time as _ow_t, urllib.request as _ow_u, subprocess as _ow_sp
+def _ow_ready():
+    try:
+        with _ow_u.urlopen(f"http://127.0.0.1:{SERVED_MODEL_PORT}/health", timeout=5) as _r:
+            return _r.status == 200
+    except Exception:
+        return False
+if TRUE_SUBMISSION or os.environ.get("ARC_OURS_WATCH_ALWAYS") == "1":
+    _ow_t0, _ow_relaunched, _ow_last = _ow_t.time(), False, -60
+    while _ow_t.time() - _ow_t0 < 40 * 60:
+        if _ow_ready():
+            print(f"ours watch: server READY after {int(_ow_t.time() - NOTEBOOK_START_TIME)}s from notebook start", flush=True)
+            break
+        if proc.poll() is not None:
+            print(f"ours watch: server process exited with {proc.returncode}", flush=True)
+            try:
+                show_log_tail()
+            except Exception:
+                pass
+            if _ow_relaunched:
+                break
+            with open(LOG, "ab", buffering=0) as _lf:
+                proc = _ow_sp.Popen(args, env=env, stdout=_lf, stderr=_ow_sp.STDOUT, start_new_session=True)
+            _ow_relaunched = True
+            print(f"ours watch: relaunched the server, pid {proc.pid}", flush=True)
+        _el = int(_ow_t.time() - _ow_t0)
+        if _el - _ow_last >= 60:
+            print(f"ours watch: waiting for the server, {_el}s", flush=True); _ow_last = _el
+        _ow_t.sleep(5)
+    else:
+        print("ours watch: server not ready after 40 more minutes; benchmark released as in the base", flush=True)
+"""
+    cells.insert(iL + 1, {"cell_type": "code", "metadata": {}, "source": WATCH, "outputs": [], "execution_count": None})
+
 cells[0]["source"] = ("# arc3 a2 (yasunorim)\n\nBase: the ARC-AGI-3 Milestone 2 solution by dfranzen "
                       "(https://www.kaggle.com/code/dfranzen/arc-agi-3-milestone-2-solution, built on Tufa Labs' Duck "
                       "harness), unchanged. Ours: a run deadline that respects the 9-hour limit, and a level dossier "
@@ -916,4 +958,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"))
