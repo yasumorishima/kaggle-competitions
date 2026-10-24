@@ -44,9 +44,9 @@ From the issue, list for yourself: the exact file, function, class or CLI name; 
   - requests: `utils.py` with `compat.py`; `models.py` with `_types.py`.
   - httpx: `src/httpx/` and `src/ahttpx/` are sync and async twins; change both.
 
-## 4. Verify (at most 2 calls)
+## 4. Verify (at most 3 calls)
 - If the issue contains example code or expected output, first rerun that example with python -c and compare the result with what the issue expects: exact text, type, exception and status code. This is the closest check to the hidden test.
-- If calls and time remain, find the test file with `find tests -name "*keyword*.py"` and run `timeout 90 python -m pytest tests/path/test_x.py -x -q -k keyword`. Never run a whole test file. Use `python3 -m unittest tests.test_x` for unittest projects.
+- Then find the test file for the module you changed with `find tests -name "*keyword*.py"`. The grader runs that whole file, including the tests that pass today. Read `get_status`: with more than 240 seconds left, run the whole file once with `timeout 120 python -m pytest tests/path/test_x.py -x -q` to catch anything your change broke; with less, run only `timeout 90 python -m pytest tests/path/test_x.py -x -q -k keyword`. Never run more than one test file. Use `python3 -m unittest tests.test_x` for unittest projects.
 - Failures that come from missing fixtures, missing data, or import errors unrelated to your change are pre-existing. Ignore them. Never repair tests or the environment.
 - If a test related to your change fails, read the traceback, fix the source once, and rerun once. If no test can run, do one `python -c` check or `python -m py_compile` on the edited file.
 

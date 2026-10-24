@@ -85,7 +85,7 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451", "v15", "v22"), base   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
+assert base in ("e006", "a451", "v15", "v22", "f465"), base   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
 #   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
@@ -124,7 +124,7 @@ cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4
 assert not (cpu and base not in ("e006", "v15", "v22")), "cpu edits are written for the E006-lineage cells (e006, v15)"
 assert bfrag == 0 or base in ("a451", "v15", "v22"), "bfrag uses the a451 base's frag_rescore"
 assert fins == 0 or base in ("a451", "v15", "v22"), "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base in ("a451", "v15", "v22"), "lfrag patches the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15", "v22", "f465"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
 n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
@@ -936,6 +936,11 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     "Base: [casmi26-v15-n1a](https://www.kaggle.com/code/ahmedberatozer/casmi26-v15-n1a) by Ahmed Berat Ozer, "
                     "version 1 (its v14, public LB 0.455 = E006 lineage + PubChemLite CC0 candidates in engine 2, + N1A GLACIER proxies "
                     "from seyitkaangunes), Apache-2.0 lineage, and everything it credits (cells below, unchanged). " if base == "v15" else
+                    "Base: the pipeline of [Candidate-aware PubChem promotion 0.465](https://www.kaggle.com/code/sanpier/candidate-aware-pubchem-promotion-0-465) "
+                    "by Saner Turhaner (its embedded frozen_0465.ipynb, version 7) = [CASMI 26: The Data Behind Spectra to Structures]"
+                    "(https://www.kaggle.com/code/dmitriigluzdov/casmi-26-the-data-behind-spectra-to-structures) by dmitriigluzdov, v16 "
+                    "(public LB 0.464), + sanpier's candidate-specific rank-1 PubChem promotion (public LB 0.465); everything they credit "
+                    "(cells below, unchanged). " if base == "f465" else
                     "Base: [casmi26-v22-n1-challenger](https://www.kaggle.com/code/ahmedberatozer/casmi26-v22-n1-challenger) by Ahmed Berat Ozer "
                     "(= his v15-n1a + the N1 challenger of flexonafft, casmi26-closing-the-evidence-gap v47, also dmitriigluzdov v16 "
                     "public LB 0.464: GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG + proxy-GLACIER re-ordering), "
@@ -1025,6 +1030,12 @@ meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code
         "competition_sources": ["enveda-CASMI26-molecule-id-mass-spectra"],
         "kernel_sources": ["yasunorim/casmi26-fp2-peak-transformer", "yasunorim/casmi26-fp2L3"] + (["ahmedberatozer/casmi26-bioext-build"] if bx else []) + ([dnsrc] if denovo > 0 and not pcl else []),
         "model_sources": []}
+if base == "f465":   # dmitriigluzdov's five datasets are self-contained; no other inputs (find() takes the shortest glob hit)
+    meta["dataset_sources"] = ["dmitriigluzdov/casmi26-fold-safe-fpnet", "dmitriigluzdov/casmi26-natural-product-knowledge-table",
+                               "dmitriigluzdov/casmi26-natural-product-panel-benchmark", "dmitriigluzdov/casmi26-pubchem-popularity-prior",
+                               "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets"] + (
+        ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else [])
+    meta["kernel_sources"] = []
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")

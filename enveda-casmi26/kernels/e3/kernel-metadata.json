@@ -1,38 +1,27 @@
 {
-  "id": "yasunorim/casmi26-e3v22icnb",
-  "title": "casmi26 e3v22icnb",
+  "id": "yasunorim/casmi26-e3f465pn",
+  "title": "casmi26 e3f465pn",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",
-  "enable_gpu": "false",
+  "enable_gpu": "true",
   "enable_tpu": "false",
+  "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
   "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
   "dataset_sources": [
-    "prvsiyan/casmi26-ranker-features",
-    "prvsiyan/casmi26-fp-models-v2",
+    "dmitriigluzdov/casmi26-fold-safe-fpnet",
+    "dmitriigluzdov/casmi26-natural-product-knowledge-table",
+    "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
     "dmitriigluzdov/casmi26-pubchem-popularity-prior",
-    "megayak/casmi26-simulated-ranker-rows",
-    "ahmedberatozer/casmi26-fpnet-full1",
-    "ahmedberatozer/casmi26-glacier",
-    "ahmedberatozer/casmi26-iceberg",
-    "ahmedberatozer/casmi26-pubchem-tier",
-    "ahmedberatozer/casmi26-v2-pool",
-    "ahmedberatozer/casmi26-v3-models",
-    "ahmedberatozer/casmi26-v4b-models",
-    "sergiomalv/casmi-chebi-lmsd-structures",
-    "prvsiyan/coconut-casmi26-candidates",
+    "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets",
     "yasunorim/casmi26-own-coconut-candidates",
-    "franciscoangulo/casmi26-pubchemlite-cc0-candidate-fingerprints",
-    "metric/rdkit-2026-3-3-wheel"
+    "yasunorim/casmi26-own-pubchem-tier"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"
   ],
-  "kernel_sources": [
-    "yasunorim/casmi26-fp2-peak-transformer",
-    "yasunorim/casmi26-fp2L3"
-  ],
+  "kernel_sources": [],
   "model_sources": []
 }
