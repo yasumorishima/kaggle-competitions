@@ -1,0 +1,64 @@
+request: e3f465pn-1
+run: 40053649564  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3f465pn  version: 1
+memo: Base: the pipeline embedded in sanpier (Saner Turhaner) 'Candidate-aware PubChem promotion 0.465' (frozen_0465.ipynb) = dmitriigluzdov 'CASMI 26: The Data Behind Spectra to Structures' v16 (public 0.464) + sanpier's candidate-specific rank-1 PubChem promotion (public 0.465), kernels/e3/base_f465.ipynb, unchanged except the cells marked ours. This version: f465 base + own COCONUT + ours_lfrag + ownpcnp (ours): our own PubChem tier (>= 1 PubMed link) restricted to Ertl NP-likeness >= 1.5 (about 93k structures) into engine 2's pool. f465 weights natural-product evidence (LOTUS, NP and depositor bonuses) in its PubChem channel; our NP-like literature structures give engine 2 the same NP slice. Flat on CPU kernels (0.448 vs 0.449). Hypothesis: LB > e3f465oc-1. build.py f465pn base=f465 ownpcnp=1.5 ownco=1 lfrag=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3f465pn
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-24 02:52:33.963000,"e3f465pn-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 ownpcnp=1.5 ownco=1 lfrag=1) [run 40053649564]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-24 02:17:16.923000,"e3f465bt-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 bt=1 ownco=1 lfrag=1) [run 40051153745]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-24 01:41:33.413000,"e3f465ng-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 n1neg=1 ownco=1 lfrag=1) [run 40048848179]",SubmissionStatus.PENDING,,
+
+output files:
+total 920
+drwxr-xr-x 12 runner runner   4096 Oct 24 02:52 .
+drwxrwxrwt 14 root   root     4096 Oct 24 02:51 ..
+-rw-r--r--  1 runner runner  17296 Oct 24 02:51 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 24 02:51 candidate_audit.csv
+-rw-r--r--  1 runner runner   2579 Oct 24 02:51 candidate_audit.json
+-rw-r--r--  1 runner runner  37973 Oct 24 02:52 casmi26-e3f465pn.log
+-rw-r--r--  1 runner runner 193571 Oct 24 02:51 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9850 Oct 24 02:51 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 24 02:51 eng
+-rw-r--r--  1 runner runner  30024 Oct 24 02:51 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 24 02:51 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 24 02:51 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Oct 24 02:51 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Oct 24 02:51 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Oct 24 02:51 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 24 02:51 external_reference_c9nk_cu_
+-rw-r--r--  1 runner runner  12857 Oct 24 02:51 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 24 02:51 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 24 02:51 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 24 02:51 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 24 02:52 numba_cache
+drwxr-xr-x  3 runner runner   4096 Oct 24 02:52 ours_bt
+-rw-r--r--  1 runner runner   3557 Oct 24 02:52 ours_lfrag.py
+-rw-r--r--  1 runner runner  72500 Oct 24 02:52 pc_lists.json
+-rw-r--r--  1 runner runner   4856 Oct 24 02:52 pc_runner.py
+-rw-r--r--  1 runner runner  16124 Oct 24 02:52 probe_core2.py
+-rw-r--r--  1 runner runner      1 Oct 24 02:52 pubchem_promotion_audit.csv
+-rw-r--r--  1 runner runner    231 Oct 24 02:52 rank2_overlay.json
+-rw-r--r--  1 runner runner    345 Oct 24 02:52 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 24 02:52 smoke_comp
+-rw-r--r--  1 runner runner  17296 Oct 24 02:52 submission.csv
+-rw-r--r--  1 runner runner  17296 Oct 24 02:52 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17296 Oct 24 02:52 submission_e006_control.csv
+-rw-r--r--  1 runner runner  17296 Oct 24 02:52 submission_reference.csv
+-rw-r--r--  1 runner runner   7336 Oct 24 02:52 v43_execution_receipt.json
+-rw-r--r--  1 runner runner 143355 Oct 24 02:52 v43_mounted_input_hashes.json
+drwxr-xr-x  4 runner runner   4096 Oct 24 02:52 v43_v4code
+drwxr-xr-x  2 runner runner   4096 Oct 24 02:52 work
+[{"stream_name":"stderr","time":11.131760831,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":11.131792299,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":12.59415266,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":12.594185245,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":12.594189093,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":12.594191749,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":13.383001379,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":13.38302923,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":13.383035494,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":13.383042144,"data":"0.00s - Note: Debugging wi
