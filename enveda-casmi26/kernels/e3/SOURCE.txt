@@ -67,3 +67,11 @@ API (kernels/pull), unchanged. = his casmi26-v15-n1a + the N1 challenger of flex
 the same step is dmitriigluzdov "CASMI 26: The Data Behind Spectra to Structures" v16, public LB 0.464): N1_COMPLEMENT=False
 (GLACIER proxies kept where ICEBERG scores exist) and the final fusion re-orders those molecules jointly by ICEBERG and the
 proxy GLACIER. Differs from base_v15.ipynb in cells 0, 21 and 33 only.
+
+base_f465.ipynb (10-24): the pipeline embedded as combined_code/frozen_0465.ipynb in sanpier (Saner Turhaner)
+"Candidate-aware PubChem promotion 0.465" (https://www.kaggle.com/code/sanpier/candidate-aware-pubchem-promotion-0-465,
+version 7), unchanged. It is dmitriigluzdov "CASMI 26: The Data Behind Spectra to Structures" v16 (public LB 0.464;
+E006 lineage + natural-product / LOTUS / synonym priors, fold-safe FPNet, external reference spectra, flexonafft's N1
+challenger) plus sanpier's fix: the rank-1 PubChem promotion uses the post-simulator leader's own evidence (public 0.465).
+Datasets: dmitriigluzdov/casmi26-{fold-safe-fpnet, natural-product-knowledge-table, natural-product-panel-benchmark,
+pubchem-popularity-prior, attributed-v4g-reproduction-assets}.
