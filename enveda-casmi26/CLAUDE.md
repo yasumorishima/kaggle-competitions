@@ -51,6 +51,11 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   - 間で /kaggle/working を掃除し、最後に分子ごとに上位 25 を順位の逆数 1/(10+r)・等しい重みで融合する（InChIKey 前半で照合・同点は A の順）。B が失敗するか 8 時間 35 分を超えそうなら A をそのまま出す。
   - 9 時間の見積り：隠しの再実行の予算は 1 系統あたり ICE 5,400＋GLACIER 4,000＋N1 1,200 秒＝最悪で 2 系統 約 6.9 時間。
   - 効果量の見積り：両系統は FPNet（fold-safe と full1）・天然物の事前分布・PubChem の昇格が違い、点は 1 分子以内。top-1 が変わるのは 5〜10% の分子と見る（kernel のログに「top-1 changed vs A」を出す）。仮説：LB > 0.467。
+- **10-25：e3f465nn-1 を GPU で提出（GHA で e3fu1-1 の後に順番待ち）**。最良版（f465＋自前 COCONUT＋lfrag＝0.467）の最後に、sanpier の公開版「PubChem + Neural025 — LB 0.466」のニューラルの並べ直しを移植した（`build.py nn=0.25`・コードは `kernels/e3/nn_port/` に無改変で写し、出典は `nn_port/SOURCE.txt`）。
+  - 中身：sanpier が train で学習したスペクトルと候補構造の二塔モデル（dataset `sanpier/casmi-spectrum-model-v1`）で、最終の上位 25 の各候補を全スペクトルと照合して点を付け、土台の順位と点の順位を順位の逆数で混ぜる（重み 0.25・offset 3。候補の集合は変えない）。
+  - 彼の土台（frozen_0465）は私たちの base_f465 とハッシュが一致する＝同じ変数がそのまま使える。失敗したら元の submission に戻す。
+  - 公開での効果は 0.465→0.466（1 分子ぶんにも満たない）＝単独では 2 分子の基準に届かない。監査の「ranker の作り直し」と同じ方向（学習した照合の点）が、私たちの 2 部品の上でも効くかの初回の確認として出し、明日の融合との束（A 側にこれを入れる）の材料にする。仮説：LB ≥ 0.468。
+  - 公開の新しい動き（10-24〜25）：sanpier の二塔モデルを使う版が 3 本（sanpier 0.466、kozykappa「modular retrieval & ranking overhaul」＝listwise LightGBM で特徴を組み直す設計・点は未測定、lavinwins「Main top-1 protection」）。
 - **計画監査（fable・10-24・user 許可の 1 回）の要点と採否**：
   - 一番弱い前提：「公開の土台を追い、部品を 1 つずつ足せば銅を越える」。約 30 本で自前の上積みは COCONUT の +0.002 だけ。点が動いたのは土台替えだけで、線も同じ速さで上がる（6 日で +0.012）。12-14 の線は 0.47 台と見て、土台から +0.01〜0.015（約 2 分子）が要る。
   - 採る：bt・n1neg・ownpcnp・np・tx は、今日の GPU 再試験の結果を記録したら打ち切る（同系統の変種は出さない）。
