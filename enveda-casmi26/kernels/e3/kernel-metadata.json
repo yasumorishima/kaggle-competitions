@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3fu1",
-  "title": "casmi26 e3fu1",
+  "id": "yasunorim/casmi26-e3fu2",
+  "title": "casmi26 e3fu2",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -29,6 +29,7 @@
     "prvsiyan/casmi26-fp-models-v2",
     "prvsiyan/casmi26-ranker-features",
     "prvsiyan/coconut-casmi26-candidates",
+    "sanpier/casmi-spectrum-model-v1",
     "sergiomalv/casmi-chebi-lmsd-structures",
     "yasunorim/casmi26-own-coconut-candidates"
   ],
