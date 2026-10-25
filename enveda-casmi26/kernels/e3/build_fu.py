@@ -43,29 +43,30 @@ code_a, md_a, meta_a = build(args_a)
 code_b, md_b, meta_b = build(args_b)
 assert meta_a.get("enable_gpu") == meta_b.get("enable_gpu") == "true", "both builds must be GPU builds"
 
-HEADER = r'''# --- ours (fusion orchestrator): this script's own inputs only ---
-import glob as _glob_mod
-_ALLOWED = set(%(allowed)r)
-_OTHER_SLUGS = set(%(other_slugs)r)
-def _keep(p):
-    p = str(p)
-    if not p.startswith('/kaggle/input/'):
-        return True
-    parts = p[len('/kaggle/input/'):].split('/')
-    if parts[0] == 'datasets' and len(parts) >= 3:
-        return parts[1] + '/' + parts[2] in _ALLOWED
-    return parts[0] not in _OTHER_SLUGS
-_orig_glob, _orig_iglob = _glob_mod.glob, _glob_mod.iglob
-def _glob(*a, **k):
-    return [p for p in _orig_glob(*a, **k) if _keep(p)]
-def _iglob(*a, **k):
-    return (p for p in _orig_iglob(*a, **k) if _keep(p))
-_glob_mod.glob, _glob_mod.iglob = _glob, _iglob
+HEADER = r'''# --- ours (fusion orchestrator): this script's own inputs only (all names kept inside a function) ---
+def _ours_fu_install_filter(allowed, other_slugs):
+    import glob as gm
+    og, oig = gm.glob, gm.iglob
+    def keep(p):
+        p = str(p)
+        if not p.startswith('/kaggle/input/'):
+            return True
+        parts = p[len('/kaggle/input/'):].split('/')
+        if parts[0] == 'datasets' and len(parts) >= 3:
+            return parts[1] + '/' + parts[2] in allowed
+        return parts[0] not in other_slugs
+    def g(*a, **k):
+        return [p for p in og(*a, **k) if keep(p)]
+    def ig(*a, **k):
+        return (p for p in oig(*a, **k) if keep(p))
+    gm.glob, gm.iglob = g, ig
+    print('ours: input filter', sorted(allowed), flush=True)
+_ours_fu_install_filter(set(%(allowed)r), set(%(other_slugs)r))
+del _ours_fu_install_filter
 try:
     from IPython.display import display
 except Exception:
     display = print
-print('ours: input filter', sorted(_ALLOWED), flush=True)
 '''
 
 
