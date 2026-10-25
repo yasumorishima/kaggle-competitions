@@ -1,14 +1,6 @@
-name: swe_agent
-model: gemma-4-31b-it-qat-w4a16-ct
-instruction: !include prompts/system.md
-tools:
-  - run_command
-  - read_file
-  - edit_file
-  - write_file
-  - get_status
-  - submit_patch
-  - get_code_neighbors
-  - search_similar_code
-  - get_code_subgraph
-generate_content_config: !include configs/sampling.yaml
+name: swe_two_stage
+agent_class: SequentialAgent
+description: A patcher that must edit early, then a reviewer with a fresh context that checks the edit against the issue, verifies, and submits.
+sub_agents:
+  - config_path: sub_agents/patcher.yaml
+  - config_path: sub_agents/reviewer.yaml

@@ -1,0 +1,12 @@
+name: patcher
+model: gemma-4-31b-it-qat-w4a16-ct
+description: Locate the cause and make the source edit, then hand off a short note.
+instruction: !include ../prompts/patcher.md
+generate_content_config: !include ../configs/sampling.yaml
+output_key: patch_note
+tools:
+  - run_command
+  - read_file
+  - edit_file
+  - write_file
+  - get_status

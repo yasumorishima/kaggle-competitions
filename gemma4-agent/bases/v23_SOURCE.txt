@@ -1,0 +1,4 @@
+v23 (submission/ from 10-25) = v21 (LB 0.18, g4v21-3; prompt from the public 0.24 notebook honghanhhh/gemma-4-baseline-lb-0-24, run 2026-10-18, plus our time guard and sibling-site checklist) restructured by us into two stages (ADK SequentialAgent, the shape the public 0.13 config used for explore->coder, reversed):
+  1. patcher (our prompt cut from v21 steps 1-3): must edit by call 12, finish by call 16, no tests, hands off a 4-line note (FILES/SPEC/CHECK/DOUBT) via output_key patch_note.
+  2. reviewer (our new prompt): include_contents none, sees only the issue and the note, reads get_status, git diff, reviews the diff against the issue, fixes, verifies (issue example + one -k run), submits.
+eval_config unchanged (28 calls, 8 min). v22 is saved in bases/v22.
