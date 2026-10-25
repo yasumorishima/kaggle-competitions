@@ -1,0 +1,13 @@
+name: reviewer
+model: gemma-4-31b-it-qat-w4a16-ct
+description: With a fresh context, check the edit against the issue, fix, verify, and submit.
+instruction: !include ../prompts/reviewer.md
+generate_content_config: !include ../configs/sampling.yaml
+include_contents: none
+tools:
+  - run_command
+  - read_file
+  - edit_file
+  - write_file
+  - get_status
+  - submit_patch

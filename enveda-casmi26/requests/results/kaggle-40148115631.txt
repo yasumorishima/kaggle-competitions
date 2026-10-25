@@ -1,0 +1,30 @@
+request: e3fu1-2
+run: 40148115631  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fu1  version: 2
+memo: Re-run of e3fu1-1 (two-pipeline fusion, ours: build_fu.py; A = base=f465 ownco=1 lfrag=1 = e3f465oc-1 0.467, B = base=v22 ownco=1 = e3v22ocg-1 0.465; reciprocal rank 1/(10+r), equal weights, InChIKey14 keys, A alone if B fails or runs late). e3fu1-1 failed before any output: our glob filter header used the global name _keep, which a base cell rebinds to a list, so both subprocesses died at 'import lightgbm' (no submission was made). Fixed by keeping the filter's names inside a function (tested with a script that rebinds _keep/_glob). Bases: sanpier 'Candidate-aware PubChem promotion 0.465' frozen pipeline (dmitriigluzdov v16 + sanpier fix) and ahmedberatozer casmi26-v22-n1-challenger. Effect size: fusion expected to change top-1 on 5-10% of molecules. Hypothesis: LB > 0.467. build_fu.py fu1 'base=f465 ownco=1 lfrag=1' 'base=v22 ownco=1'.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fu1
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-25 02:00:51.020000,"e3fu1-2: ours two-pipeline fusion (A = f465 + own COCONUT + lfrag, B = v22 + own COCONUT; reciprocal rank) [run 40148115631]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-25 01:17:35.793000,"e3f465nn-1: f465 base + ours (own COCONUT + lfrag) + sanpier neural rerank (port, w 0.25) [run 40146691992]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-24 02:52:33.963000,"e3f465pn-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 ownpcnp=1.5 ownco=1 lfrag=1) [run 40053649564]",SubmissionStatus.COMPLETE,0.461,
+
+output files:
+total 156
+drwxr-xr-x  2 runner runner   4096 Oct 25 02:00 .
+drwxrwxrwt 14 root   root     4096 Oct 25 02:00 ..
+-rw-r--r--  1 runner runner 129760 Oct 25 02:00 casmi26-e3fu1.log
+-rw-r--r--  1 runner runner  17710 Oct 25 02:00 submission.csv
+[{"stream_name":"stderr","time":6.558550166,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":6.55860219,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":7.464886803,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.464915097,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.464919962,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.464925614,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.092473069,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.092511065,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.092514684,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.092517494,"data":"0.00s - Note: Debugging will procee

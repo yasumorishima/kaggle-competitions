@@ -19,6 +19,16 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
 **LB（10-24 取り直し・3,582 チーム）：1 位 0.24・金 17 位＝0.22・銀 179 位＝0.20・銅 358 位＝0.18。自分 0.18（g4v21-3）。ただし 0.18 以上が 664 チームで、同点は提出の早い順＝実質 600 位台で銅の外。狙いは 0.20 以上。**
+**LB（10-25 00:1x 取り直し・3,680 チーム）：金 17 位＝0.22・銀 184 位＝0.20・銅 368 位＝0.18。自分 0.18（g4v21-3）＝0.18 に 485 チーム（217〜701 位）で、同点は提出の早い順＝銅の外の見込み。狙いは 0.20 以上。**
+- **g4v22-1＝0.13（10-24 確認）**：v21 に「残り 240 秒以上なら、変えたモジュールのテストファイル全体を 1 回回す」を足した版。v21 の 0.18 から −0.05（約 3 課題）。長い検証が 32k の文脈と時間を食い、編集の質が落ちたと読む。この方向（検証を足す）は打ち切る。
+- **10-25：g4v23-1 を提出（構造の違い）**。v23＝v21 を ADK の SequentialAgent で 2 段に分けた版（自前の構成・出典 `bases/v23_SOURCE.txt`、v22 は `bases/v22` に保存）。
+  - 1 段目 patcher（v21 の手順 1〜3）：12 回目までに必ず編集、16 回目までに FILES／SPEC／CHECK／DOUBT の短い申し送りを `output_key` で残す。テストは回さない。
+  - 2 段目 reviewer：`include_contents: none`＝issue と申し送りだけを見る新しい文脈。get_status と git diff を見て、issue と差分を突き合わせ（名前・文言・端の場合・同期／非同期の対）、直し、issue の例と `-k` 1 回で確かめて提出する。
+  - 仮説：長い 1 本の文脈で落ちる仕様の取りこぼしを、短い新しい文脈の点検が拾う。時間は増やさない。LB ≥ 0.20。効果量：約 58 課題で +2 課題以上が要る。
+- **10-26 の枠の準備（済）：LoRA が動くかの確認版 `bases/v24probe`**＝v21 そのまま＋根の agent に `adapter: main_lora`＋`adapters/main_lora`（60 層の q_proj に rank 8、B＝0 なので出力は土台と同じ）。
+  - LoRA の重み（14MB の safetensors）は repo に置かず、pack kernel の中で `train/make_zero_lora.py` が作る（印のファイル `zero_lora.txt` に rank を書く。`kernels/pack/build.py` を対応済み・手元で zip の中身を確認）。
+  - 形はモデルの config.json（Gemma4ForConditionalGeneration・hidden 5376・60 層・6 層ごとに full attention で head_dim 512）から決めた。HARNESS_README によれば、vLLM は見つけた adapter の最大 rank で `max_lora_rank` を決める（rank 8 なら KV の縮みは rank 128 より小さい見込み）。
+  - 出し方：`rm -r submission/* && cp -r bases/v24probe/* submission/ && python3 kernels/pack/build.py`、id は g4v24p-1。g4v23-1 の採点が終わってから（採点中は 400）。
 - **計画監査（fable・10-24・user 許可の 1 回）の要点と採否**：
   - 採る：**LoRA が動くかの確認を 10-26 の枠で出す**（rank 8 の極小 LoRA を載せた v21。完走するかだけを見る。adapter を載せると KV が縮み、32k 文脈の agent が動かない恐れがある）。完走しなければ 11-01 の LoRA 計画は止め、手元評価に回す。完走すれば、正解パッチ 129 件を短い軌跡に直した SFT を TPU で 11-01 に始める。
   - 採る：出す版は、時間切れ・パッチ無しを減らす構造の違いに限る（例：まずパッチを出してから、残り時間で直す二段構え）。prompt の文言の刻みは出さない。

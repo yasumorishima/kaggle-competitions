@@ -1,0 +1,73 @@
+request: e3f465nn-1
+run: 40146691992  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3f465nn  version: 1
+memo: Base: the pipeline embedded in sanpier (Saner Turhaner) 'Candidate-aware PubChem promotion 0.465' (frozen_0465.ipynb) = dmitriigluzdov 'CASMI 26: The Data Behind Spectra to Structures' v16 (public 0.464) + sanpier's candidate-specific rank-1 PubChem promotion (public 0.465), kernels/e3/base_f465.ipynb, unchanged except the cells marked ours. Ours: own COCONUT table into engine 2's pool (ownco) and learned peak credits in the fragment scorer (lfrag) = e3f465oc-1, LB 0.467, our best. New here (port, not ours): sanpier's neural rerank of the final 25 from 'PubChem + Neural025 - LB 0.466' (his spectrum-candidate dual encoder, dataset sanpier/casmi-spectrum-model-v1; baseline rank + neural rank reciprocal-rank fusion, weight 0.25, offset 3; candidate set kept), modules copied unchanged into kernels/e3/nn_port (its frozen pipeline is byte-identical to our base). Question: does a learned spectrum-candidate score (the 'ranker' direction of our 10-24 plan) still add on top of our own two parts? Public effect on the plain base was 0.465 -> 0.466 (about one molecule's partial ranks), so this is below the 2-molecule bar alone; it is the first test of the learned-ranker signal and the input for tomorrow's bundle with the two-pipeline fusion. Hypothesis: LB >= 0.468. build.py f465nn base=f465 ownco=1 lfrag=1 nn=0.25.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3f465nn
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-25 01:17:35.793000,"e3f465nn-1: f465 base + ours (own COCONUT + lfrag) + sanpier neural rerank (port, w 0.25) [run 40146691992]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-24 02:52:33.963000,"e3f465pn-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 ownpcnp=1.5 ownco=1 lfrag=1) [run 40053649564]",SubmissionStatus.COMPLETE,0.461,
+submission.csv,2026-10-24 02:17:16.923000,"e3f465bt-1: f465 base (dmitriigluzdov v16 + sanpier fix, public 0.465) + ours (base=f465 bt=1 ownco=1 lfrag=1) [run 40051153745]",SubmissionStatus.COMPLETE,0.447,
+
+output files:
+total 1204
+drwxr-xr-x 12 runner runner   4096 Oct 25 01:17 .
+drwxrwxrwt 14 root   root     4096 Oct 25 01:15 ..
+-rw-r--r--  1 runner runner  17309 Oct 25 01:15 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 25 01:15 candidate_audit.csv
+-rw-r--r--  1 runner runner   2577 Oct 25 01:15 candidate_audit.json
+-rw-r--r--  1 runner runner  41005 Oct 25 01:17 casmi26-e3f465nn.log
+-rw-r--r--  1 runner runner 193458 Oct 25 01:15 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9848 Oct 25 01:15 e004_verification.json
+-rw-r--r--  1 runner runner 138382 Oct 25 01:15 effective_query_spectra.parquet
+drwxr-xr-x  3 runner runner   4096 Oct 25 01:15 eng
+-rw-r--r--  1 runner runner  29968 Oct 25 01:15 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 25 01:15 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 25 01:15 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Oct 25 01:15 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Oct 25 01:15 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Oct 25 01:15 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:16 external_reference_xvqkt4c0
+-rw-r--r--  1 runner runner  12857 Oct 25 01:16 frag_rescore.py
+-rw-r--r--  1 runner runner  29230 Oct 25 01:16 frozen_candidate_evidence.parquet
+-rw-r--r--  1 runner runner    211 Oct 25 01:16 frozen_run_info.json
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:16 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:16 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 25 01:16 n1_work
+-rw-r--r--  1 runner runner  42002 Oct 25 01:16 neural_candidate_features.parquet
+-rw-r--r--  1 runner runner      2 Oct 25 01:16 neural_candidate_features.parquet.errors.json
+-rw-r--r--  1 runner runner  13653 Oct 25 01:16 neural_rerank_audit.csv
+-rw-r--r--  1 runner runner    530 Oct 25 01:16 neural_submission_report.json
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:16 nn_code
+drwxr-xr-x  6 runner runner   4096 Oct 25 01:16 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 25 01:16 ours_lfrag.py
+-rw-r--r--  1 runner runner  72500 Oct 25 01:16 pc_lists.json
+-rw-r--r--  1 runner runner   4856 Oct 25 01:16 pc_runner.py
+-rw-r--r--  1 runner runner  16124 Oct 25 01:16 probe_core2.py
+-rw-r--r--  1 runner runner      1 Oct 25 01:16 pubchem_promotion_audit.csv
+-rw-r--r--  1 runner runner    231 Oct 25 01:16 rank2_overlay.json
+-rw-r--r--  1 runner runner    345 Oct 25 01:16 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:16 smoke_comp
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission.csv
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission_baseline0465.csv
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission_before_nn.csv
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission_e006_control.csv
+-rw-r--r--  1 runner runner  17309 Oct 25 01:16 submission_reference.csv
+-rw-r--r--  1 runner runner   7334 Oct 25 01:16 v43_execution_receipt.json
+-rw-r--r--  1 runner runner 143355 Oct 25 01:16 v43_mounted_input_hashes.json
+drwxr-xr-x  4 runner runner   4096 Oct 25 01:16 v43_v4code
+drwxr-xr-x  2 runner runner   4096 Oct 25 01:17 work
+[{"stream_name":"stderr","time":6.926314757,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":6.926397638,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":7.904782395,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.9048105589999995,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.904815714,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.904819992,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.536243334,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.536273707,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.536279238,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.536283013,"data":"0.00s - Note: Debugging wil

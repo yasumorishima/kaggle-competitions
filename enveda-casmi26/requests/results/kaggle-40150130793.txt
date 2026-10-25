@@ -1,0 +1,30 @@
+request: e3fu2-1
+run: 40150130793  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3fu2  version: 1
+memo: Bundle of today's two new parts (the third cell of an ON/OFF square whose base e3f465oc-1 = 0.467 is known): e3fu1-1 = fusion only, e3f465nn-1 = neural only, this = both. Ours: two-pipeline fusion (build_fu.py: A and B run as subprocess scripts, each seeing only its own datasets, /kaggle/working cleaned between them, per-molecule reciprocal-rank fusion 1/(10+r) of the two top-25 lists, equal weights, ties keep A's order; B dropped if it fails or would pass 8 h 35 min). A = build.py base=f465 ownco=1 lfrag=1 nn=0.25 (base: sanpier 'Candidate-aware PubChem promotion 0.465' frozen pipeline = dmitriigluzdov v16 + sanpier fix; ours: own COCONUT + lfrag; port, not ours: sanpier's neural rerank of the final 25 from 'PubChem + Neural025 - LB 0.466', dataset sanpier/casmi-spectrum-model-v1). B = build.py base=v22 ownco=1 (base: ahmedberatozer casmi26-v22-n1-challenger; ours: own COCONUT; e3v22ocg-1 = 0.465). Effect size: fusion expected to change top-1 on 5-10% of molecules, neural about one molecule's partial ranks. Hypothesis: LB > max(e3fu1-1, e3f465nn-1) if the two parts add. build_fu.py fu2 'base=f465 ownco=1 lfrag=1 nn=0.25' 'base=v22 ownco=1'.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3fu2
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-25 02:41:02.737000,"e3fu2-1: ours two-pipeline fusion with A = f465 + own COCONUT + lfrag + sanpier neural rerank (port), B = v22 + own COCONUT [run 40150130793]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-25 02:00:51.020000,"e3fu1-2: ours two-pipeline fusion (A = f465 + own COCONUT + lfrag, B = v22 + own COCONUT; reciprocal rank) [run 40148115631]",SubmissionStatus.PENDING,,
+submission.csv,2026-10-25 01:17:35.793000,"e3f465nn-1: f465 base + ours (own COCONUT + lfrag) + sanpier neural rerank (port, w 0.25) [run 40146691992]",SubmissionStatus.PENDING,,
+
+output files:
+total 160
+drwxr-xr-x  2 runner runner   4096 Oct 25 02:41 .
+drwxrwxrwt 14 root   root     4096 Oct 25 02:41 ..
+-rw-r--r--  1 runner runner 133938 Oct 25 02:41 casmi26-e3fu2.log
+-rw-r--r--  1 runner runner  17710 Oct 25 02:41 submission.csv
+[{"stream_name":"stderr","time":7.631962488,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":7.632003842,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":8.597008658,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.597034328,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.597039991,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.597044166,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":9.256720606,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.256763404,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.256768977,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.256772498,"data":"0.00s - Note: Debugging will proce
