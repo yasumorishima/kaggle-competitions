@@ -1,0 +1,7 @@
+Port (not ours): Saner Turhaner (sanpier), "PubChem + Neural025 - LB 0.466"
+(https://www.kaggle.com/code/sanpier/pubchem-neural025-lb-0-466, pulled 2026-10-25 via kernels/pull), the five helper
+modules of its MODULES dict, unchanged: export_evidence.py (final-25 candidate evidence from the frozen pipeline's scope),
+neural_scores.py (scores each candidate against every query spectrum with the dataset sanpier/casmi-spectrum-model-v1,
+final_model.pt), submission.py + ranking.py (baseline rank + neural rank reciprocal-rank fusion, candidate set kept),
+bundle.py (finds and hash-checks the model bundle). The frozen pipeline it runs is byte-identical to our base_f465.ipynb
+(sha256 aa1a43cd...8743). Its public 0.466 recipe is weight 0.25, offset 3.0.

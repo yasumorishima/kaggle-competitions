@@ -945,6 +945,33 @@ if TRUE_SUBMISSION or os.environ.get("ARC_OURS_WATCH_ALWAYS") == "1":
 """
     cells.insert(iL + 1, {"cell_type": "code", "metadata": {}, "source": WATCH, "outputs": [], "execution_count": None})
 
+# ---- pcwait=1 (ours, 10-25): the base starts a 3-thread read of the 185 GB model files 60 s after the server launch,
+# beside the server's own checkpoint prefetch and weight load (both read the same files from the same disk). The server
+# was ready only after about 25 min in our runs. With pcwait the precache thread first waits for /health (up to 60 min),
+# so the weight load has the disk to itself; after that the read only re-warms the page cache.
+if opts.get("pcwait", "0") == "1":
+    iP = next(i for i, c in enumerate(cells) if "precache_model_thread.start()" in "".join(c["source"]))
+    old = "precache_model_thread.start()"
+    new = ("# ours (pcwait): the model precache waits for the server's /health first\n"
+           "def _ours_pc_after_ready():\n"
+           "    import time as _t, urllib.request as _u\n"
+           "    _t0 = _t.time()\n"
+           "    while _t.time() - _t0 < 60 * 60:\n"
+           "        try:\n"
+           "            with _u.urlopen(f'http://127.0.0.1:{SERVED_MODEL_PORT}/health', timeout=5) as _r:\n"
+           "                if _r.status == 200:\n"
+           "                    break\n"
+           "        except Exception:\n"
+           "            pass\n"
+           "        _t.sleep(10)\n"
+           "    print(f'ours pcwait: precache starts {int(_t.time() - _t0)}s after launch', flush=True)\n"
+           "    precache(MODEL_DIR, DRAFT_MODEL_DIR, threads=3)\n"
+           "precache_model_thread = threading.Thread(target=_ours_pc_after_ready, daemon=True)\n"
+           "precache_model_thread.start()")
+    src_ = "".join(cells[iP]["source"])
+    assert src_.count(old) == 1
+    cells[iP]["source"] = src_.replace(old, new)
+
 cells[0]["source"] = ("# arc3 a2 (yasunorim)\n\nBase: the ARC-AGI-3 Milestone 2 solution by dfranzen "
                       "(https://www.kaggle.com/code/dfranzen/arc-agi-3-milestone-2-solution, built on Tufa Labs' Duck "
                       "harness), unchanged. Ours: a run deadline that respects the 9-hour limit, and a level dossier "
@@ -958,4 +985,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "pcwait", opts.get("pcwait", "0"))

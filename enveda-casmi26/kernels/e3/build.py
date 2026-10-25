@@ -132,6 +132,7 @@ ownpcnp = _arg("ownpcnp", 0.0)        # ours (10-22), > 0: own PubChem tier (>= 
 bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 n1b = _arg("n1b", 0.0)              # ours (10-23), S > 0: N1 / challenger GLACIER proxy budget on the scoring rerun (base 1,200 s; for CPU kernels)
 icepar = _arg("icepar", 0, int)       # ours (10-23), N > 1: ICEBERG in N parallel CPU runner processes (ours_icepar.py; same budget)
+nnw = _arg("nn", 0.0)              # port (10-25), W > 0: sanpier neural rerank of the final 25 (casmi-spectrum-model-v1), RRF weight W, offset 3 (nn_port/)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
 if gg:
@@ -1006,7 +1007,53 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                     f"{' (only where neither GLACIER nor ICEBERG scored; anchors = the scored molecules)' if txcov == 'blind' else ''}. " if txl > 0 else "")
                  + (f"Ours (CPU): the base's ICEBERG budget raised from 5400 s to {iceb} s so the CPU scores more molecules. " if iceb > 0 else "")
                  + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 and bfrag == 0 and not lfrag and fins == 0 else "")
+                 + (f"Ported (not ours): sanpier's neural rerank of the final 25 ([PubChem + Neural025 - LB 0.466](https://www.kaggle.com/code/sanpier/pubchem-neural025-lb-0-466), "
+                    f"model dataset sanpier/casmi-spectrum-model-v1), reciprocal-rank weight {nnw}, offset 3, as the last step. " if nnw > 0 else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
+if nnw > 0:
+    assert base == "f465", "nn ports sanpier's neural rerank, written for the f465 frozen pipeline (same sha256)"
+    _nnm = {f: open(os.path.join(HERE, "nn_port", f), encoding="utf-8").read()
+            for f in ("export_evidence.py", "neural_scores.py", "submission.py", "ranking.py", "bundle.py")}
+    NN_CELL = ("# ==== port (not ours; build.py nn): sanpier 'PubChem + Neural025 - LB 0.466' neural rerank of the final 25 ====\n"
+               "# Modules copied unchanged (enveda-casmi26/kernels/e3/nn_port/SOURCE.txt). Runs after every base rule and every\n"
+               "# cell marked ours; any failure keeps the submission as it was.\n"
+               "import os as _nn_os, sys as _nn_sys, json as _nn_json, shutil as _nn_sh, subprocess as _nn_sp, gc as _nn_gc\n"
+               "from pathlib import Path as _NNP\n"
+               f"NN_MODULES = {_nnm!r}\n"
+               "NN_PINS = {'features.py': 'a97ad9b3ab3711517864d56e497e1672cb29bb05683c72b52db9f9b0a17b1455', "
+               "'model.py': '2547418857386d1c2513fd1ab6c70961e6a96e73d9d495bbfe3052197e69dc39', "
+               "'config.json': '563fb2a2a81ca48ea094f9ab78c157a48a6e9a5503e85e6ce8f0fb3615c1cc03', "
+               "'final_model.pt': '44436b2daec64373e66f9120dd2389c24fc83dd9430ebeeac18e3cb49dcb9642'}\n"
+               f"NN_WEIGHT, NN_OFFSET = {nnw!r}, 3.0\n"
+               "_nn_root = _NNP('/kaggle/working'); _nn_code = _nn_root / 'nn_code'; _nn_code.mkdir(exist_ok=True)\n"
+               "_nn_sh.copy2(_nn_root / 'submission.csv', _nn_root / 'submission_before_nn.csv')\n"
+               "try:\n"
+               "    for _k, _v in NN_MODULES.items():\n"
+               "        (_nn_code / _k).write_text(_v)\n"
+               "    _nn_sys.path.insert(0, str(_nn_code))\n"
+               "    from export_evidence import export as _nn_export\n"
+               "    _nn_export(globals(), _nn_root)\n"
+               "    from bundle import find_bundle as _nn_find\n"
+               "    _nn_bundle = _nn_find('/kaggle/input', _nn_root, NN_PINS)\n"
+               "    try:\n"
+               "        import torch as _nn_t; _nn_gc.collect(); _nn_t.cuda.empty_cache()\n"
+               "    except Exception:\n"
+               "        pass\n"
+               "    _nn_r = _nn_sp.run([_nn_sys.executable, str(_nn_code / 'neural_scores.py'), str(_nn_bundle), 'final_model.pt',\n"
+               "                        str(_nn_root / 'frozen_candidate_evidence.parquet'), str(_nn_root / 'effective_query_spectra.parquet'),\n"
+               "                        str(_nn_root / 'neural_candidate_features.parquet'), 'cuda'], cwd=str(_nn_root),\n"
+               "                       capture_output=True, text=True, env={**_nn_os.environ, 'PYTHONPATH': str(_nn_code)})\n"
+               "    print(_nn_r.stdout[-3000:], _nn_r.stderr[-3000:], flush=True)\n"
+               "    assert _nn_r.returncode == 0, 'neural scoring failed'\n"
+               "    from submission import apply as _nn_apply\n"
+               "    NN_REPORT = _nn_apply(_nn_root / 'neural_candidate_features.parquet', _nn_root / 'submission_baseline0465.csv',\n"
+               "                          _nn_root / 'submission.csv', weight=NN_WEIGHT, offset=NN_OFFSET)\n"
+               "    print('NN_RERANK', _nn_json.dumps({k: NN_REPORT[k] for k in ('changed_rows', 'changed_top1', 'rows')}), flush=True)\n"
+               "except Exception as _nn_e:\n"
+               "    import traceback; traceback.print_exc()\n"
+               "    _nn_sh.copy2(_nn_root / 'submission_before_nn.csv', _nn_root / 'submission.csv')\n"
+               "    print('NN_RERANK failed, submission kept as before:', repr(_nn_e), flush=True)\n")
+    cells.append(code_cell(NN_CELL))
 for c in cells:
     if c["cell_type"] == "code":
         c["outputs"], c["execution_count"] = [], None
@@ -1034,11 +1081,11 @@ if base == "f465":   # dmitriigluzdov's five datasets are self-contained; no oth
     meta["dataset_sources"] = ["dmitriigluzdov/casmi26-fold-safe-fpnet", "dmitriigluzdov/casmi26-natural-product-knowledge-table",
                                "dmitriigluzdov/casmi26-natural-product-panel-benchmark", "dmitriigluzdov/casmi26-pubchem-popularity-prior",
                                "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets"] + (
-        ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else [])
+        ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else []) + (["sanpier/casmi-spectrum-model-v1"] if nnw > 0 else [])
     meta["kernel_sources"] = []
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "cpu", cpu)
