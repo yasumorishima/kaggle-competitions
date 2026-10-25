@@ -1,0 +1,62 @@
+request: g4v23-1
+run: 40145908917  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 23
+memo: v23 = structural change on v21 (LB 0.18, g4v21-3; public 0.24 prompt honghanhhh/gemma-4-baseline-lb-0-24 run 2026-10-18 + our time guard + our sibling-site checklist): ours, two stages in an ADK SequentialAgent. Stage 1 patcher (v21 steps 1-3) must edit by call 12 and hand off a FILES/SPEC/CHECK/DOUBT note by call 16, no tests. Stage 2 reviewer starts with a fresh context (include_contents none: only the issue and the note), reads get_status and git diff, reviews the diff against the issue (exact names and messages, edge cases, sync/async twins), fixes, verifies (issue example + one -k run), submits. g4v22-1 (v21 + whole-file test run) scored 0.13: longer verification in a 32k context hurt. Hypothesis: a short fresh-context review catches spec misses that the long single context loses, without extra time; LB >= 0.20 (silver 0.20, bronze 0.18 at rank 368 of 3,680 with 485 ties). Effect size: +2 tasks of ~58 needed to show. bases/v23_SOURCE.txt.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 23 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      289  2026-10-25 00:14   agent.yaml
+      119  2026-10-25 00:14   configs/sampling.yaml
+       94  2026-10-25 00:14   eval_config.yaml
+     7603  2026-10-25 00:14   prompts/patcher.md
+     3768  2026-10-25 00:14   prompts/reviewer.md
+      340  2026-10-25 00:14   sub_agents/patcher.yaml
+      369  2026-10-25 00:14   sub_agents/reviewer.yaml
+---------                     -------
+    12582                     7 files
+agent.yaml 289
+configs/sampling.yaml 119
+eval_config.yaml 94
+prompts/patcher.md 7603
+prompts/reviewer.md 3768
+sub_agents/patcher.yaml 340
+sub_agents/reviewer.yaml 369
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 294334 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-10-25 00:15:40.557000,g4v23-1: v21 (0.18) split by us into patcher -> fresh-context reviewer (SequentialAgent) [run 40145908917],SubmissionStatus.PENDING,,
+submission.zip,2026-10-24 00:15:11.250000,g4v22-1: v21 (0.18) + our time-gated whole-file regression check [run 40043936191],SubmissionStatus.COMPLETE,0.13,
+submission.zip,2026-10-23 00:13:02.307000,g4v21-3: public 0.24 prompt (issue-example check) inside the time budget + our time guard + sibling-site checklist (resend after platform rerun error) [run 39876636080],SubmissionStatus.COMPLETE,0.18,
+
+output files:
+total 20
+drwxr-xr-x  2 runner runner 4096 Oct 25 00:15 .
+drwxrwxrwt 14 root   root   4096 Oct 25 00:15 ..
+-rw-r--r--  1 runner runner 1450 Oct 25 00:15 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 6851 Oct 25 00:15 submission.zip
+[{"stream_name":"stdout","time":1.702939161,"data":"agent.yaml 289\n"}
+,{"stream_name":"stdout","time":1.704277143,"data":"configs/sampling.yaml 119\n"}
+,{"stream_name":"stdout","time":1.704304362,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":1.704308985,"data":"prompts/patcher.md 7603\n"}
+,{"stream_name":"stdout","time":1.704312952,"data":"prompts/reviewer.md 3768\n"}
+,{"stream_name":"stdout","time":1.704315684,"data":"sub_agents/patcher.yaml 340\n"}
+,{"stream_name":"stdout","time":1.704318166,"data":"sub_agents/reviewer.yaml 369\n"}
+,{"stream_name":"stdout","time":1.704320692,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":5.339247605,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":5.339277285,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":5.94759103,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":5.947625294,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":8.687296687,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":10.705757796,"data":"[NbConvertApp] Writing 294334 bytes to __results__.html\n"}
+]
