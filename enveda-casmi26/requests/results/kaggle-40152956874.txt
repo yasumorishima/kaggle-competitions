@@ -1,0 +1,12 @@
+request: arcout-a2lw-1
+run: 40152956874  status: success  action: output  dir: enveda-casmi26/tools/arcout  submit: no
+kernel: yasunorim/arc3-a2lw  version: 
+memo: Helper for arc-agi-3 (the ARC workflow has no output action): fetch serve.log of yasunorim/arc3-a2lw's commit run to see whether the SGLang server ever became ready and how long its load took (the commit's benchmark gave up after the 12 + 15 min waits).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 18 files
+got serve.log 22969
+copied 1 files to enveda-casmi26/requests/results/out-arcout-a2lw-1
+
+output files:
