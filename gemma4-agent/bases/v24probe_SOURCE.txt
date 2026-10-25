@@ -1,0 +1,6 @@
+v24probe (prepared 10-25 for the 10-26 slot; plan audit 10-24) = v21 (LB 0.18, g4v21-3) unchanged + `adapter: main_lora`
+on the root agent + adapters/main_lora = a rank-8 LoRA on q_proj of the 60 text layers with B = 0 (output identical to
+the base model), generated inside the pack kernel by train/make_zero_lora.py (the marker adapters/main_lora/zero_lora.txt
+holds the rank). Question: does vLLM start with LoRA enabled (max_lora_rank 8) and does the hidden run finish inside 12 h
+with the smaller KV cache? If it scores near 0.18, the 11-01 LoRA SFT plan goes ahead; if it errors or times out, it stops.
+To submit: rm -r submission/* && cp -r bases/v24probe/* submission/ && python3 kernels/pack/build.py.
