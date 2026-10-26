@@ -1,0 +1,304 @@
+{
+  "passed": true,
+  "release": "2026-04-13",
+  "tables": {
+    "changes": {
+      "pubchem_candidates.parquet": {
+        "rows": 1939476,
+        "changes": {
+          "molecule": 0,
+          "tier_row": 0,
+          "partial_score": 0,
+          "fpnet_score": 0,
+          "connectivity": 0,
+          "scorer_key": 0,
+          "is_truth": 0,
+          "in_pool": 0,
+          "log_substances": 0,
+          "log_pubmed": 0,
+          "log_patents": 0,
+          "np_flags": 820,
+          "cid": 0
+        },
+        "schema_equal_including_metadata": true
+      },
+      "pubchem_signals.parquet": {
+        "rows": 1939476,
+        "changes": {
+          "molecule": 0,
+          "tier_row": 0,
+          "candidate_row": 0,
+          "lotus_refs": 10314,
+          "pubchemlite_member": 0,
+          "lsid": 0,
+          "lpmid": 0,
+          "np": 820,
+          "src_mask": 0,
+          "pop": 0,
+          "np_member": 40,
+          "spectral_source": 0,
+          "prior_v10": 10314,
+          "same_formula": 0
+        },
+        "schema_equal_including_metadata": true
+      },
+      "pubchemlite_annotations.parquet": {
+        "rows": 385760,
+        "changes": {
+          "pubchemlite_row": 0,
+          "candidate_key": 0,
+          "ik14": 0,
+          "tier_row": 0,
+          "tier_match_count": 0,
+          "pool_row": 0,
+          "cid": 0,
+          "lsid": 0,
+          "lpmid": 0,
+          "lpatent": 0,
+          "np": 580,
+          "src_mask": 0,
+          "n_depositors": 0,
+          "n_vendors": 0,
+          "lmesh": 0,
+          "lotus_refs": 3064
+        },
+        "schema_equal_including_metadata": true
+      },
+      "panel_difficulty.parquet": {
+        "rows": 250,
+        "changes": {
+          "molecule": 0,
+          "formula": 0,
+          "tier_window_rows": 0,
+          "tier_window_identities": 0,
+          "same_formula_window_rows": 0,
+          "same_formula_window_identities": 0,
+          "same_formula_decoy_identities": 0,
+          "truth_in_tier_window": 0,
+          "truth_in_same_formula_window": 0,
+          "pool_window_rows": 0,
+          "n_query_spectra": 0,
+          "n_reference_spectra_elsewhere": 0,
+          "reference_spectrum_elsewhere": 0,
+          "reference_libraries": 0,
+          "np_pathway": 8,
+          "np_superclass": 15,
+          "np_class": 14,
+          "partial_score_window_rank_min": 0,
+          "partial_score_window_rank_max": 0,
+          "partial_score_same_formula_rank_min": 0,
+          "partial_score_same_formula_rank_max": 0,
+          "fpnet_score_window_rank_min": 0,
+          "fpnet_score_window_rank_max": 0,
+          "fpnet_score_same_formula_rank_min": 0,
+          "fpnet_score_same_formula_rank_max": 0,
+          "ab_full_window_rank_min": 0,
+          "ab_full_window_rank_max": 0,
+          "ab_full_same_formula_rank_min": 0,
+          "ab_full_same_formula_rank_max": 0,
+          "fold0_full_window_rank_min": 0,
+          "fold0_full_window_rank_max": 0,
+          "fold0_full_same_formula_rank_min": 0,
+          "fold0_full_same_formula_rank_max": 0,
+          "ab_partial_window_rank_min": 0,
+          "ab_partial_window_rank_max": 0,
+          "ab_partial_same_formula_rank_min": 0,
+          "ab_partial_same_formula_rank_max": 0,
+          "fold0_partial_window_rank_min": 0,
+          "fold0_partial_window_rank_max": 0,
+          "fold0_partial_same_formula_rank_min": 0,
+          "fold0_partial_same_formula_rank_max": 0,
+          "popularity_window_rank_min": 0,
+          "popularity_window_rank_max": 0,
+          "popularity_same_formula_rank_min": 0,
+          "popularity_same_formula_rank_max": 0,
+          "prior_v10_window_rank_min": 1,
+          "prior_v10_window_rank_max": 1,
+          "prior_v10_same_formula_rank_min": 1,
+          "prior_v10_same_formula_rank_max": 1,
+          "pool_reference_in_other_libraries_ranker_score_rank_min": 0,
+          "pool_reference_in_other_libraries_ranker_score_rank_max": 0,
+          "pool_reference_in_other_libraries_lib_max_rank_min": 0,
+          "pool_reference_in_other_libraries_lib_max_rank_max": 0,
+          "pool_reference_in_other_libraries_popularity_rank_min": 0,
+          "pool_reference_in_other_libraries_popularity_rank_max": 0,
+          "pool_structure_in_pool_no_reference_ranker_score_rank_min": 0,
+          "pool_structure_in_pool_no_reference_ranker_score_rank_max": 0,
+          "pool_structure_in_pool_no_reference_lib_max_rank_min": 0,
+          "pool_structure_in_pool_no_reference_lib_max_rank_max": 0,
+          "pool_structure_in_pool_no_reference_popularity_rank_min": 0,
+          "pool_structure_in_pool_no_reference_popularity_rank_max": 0,
+          "pool_structure_removed_from_pool_ranker_score_rank_min": 0,
+          "pool_structure_removed_from_pool_ranker_score_rank_max": 0,
+          "pool_structure_removed_from_pool_lib_max_rank_min": 0,
+          "pool_structure_removed_from_pool_lib_max_rank_max": 0,
+          "pool_structure_removed_from_pool_popularity_rank_min": 0,
+          "pool_structure_removed_from_pool_popularity_rank_max": 0
+        },
+        "schema_equal_including_metadata": true
+      }
+    },
+    "checks": {
+      "old_np_flags_match_old_array": true,
+      "old_prior_float32_exact": true,
+      "old_label_reconstruction": {
+        "np_pathway": 0,
+        "np_superclass": 0,
+        "np_class": 0
+      },
+      "old_prior_difficulty_ranks_exact": true,
+      "class_present_old": 195,
+      "class_present_new": 200
+    },
+    "old_knowledge_sha256": "3cc89e29f7686b7d2a24b5c20e3e8cd1c07129ad47fdd8ef83bddf48be3fa46f",
+    "new_knowledge_sha256": "6ccb833e47d88715fca1d614b05cae92fa333fa388ae1d64226f2695a62081aa"
+  },
+  "persisted_tables": {
+    "pubchem_candidates.parquet": {
+      "schema_including_metadata_exact": true,
+      "recorded_value_changes_verified_after_write": true,
+      "rows": 1939476
+    },
+    "pubchem_signals.parquet": {
+      "schema_including_metadata_exact": true,
+      "recorded_value_changes_verified_after_write": true,
+      "rows": 1939476
+    },
+    "pubchemlite_annotations.parquet": {
+      "schema_including_metadata_exact": true,
+      "recorded_value_changes_verified_after_write": true,
+      "rows": 385760
+    },
+    "panel_difficulty.parquet": {
+      "schema_including_metadata_exact": true,
+      "recorded_value_changes_verified_after_write": true,
+      "rows": 250
+    }
+  },
+  "prior_replay": {
+    "old_recorded_json_exact": true,
+    "old_per_query_exact": true,
+    "old_csv_values_exact": true,
+    "table": {
+      "prior_rule_per_query.parquet": {
+        "rows": 1250,
+        "changes": {
+          "molecule": 0,
+          "rule": 0,
+          "mrr25": 16,
+          "truth_present": 0,
+          "identities": 0
+        },
+        "schema_equal_including_metadata": true
+      }
+    }
+  },
+  "fpnet_replay": {
+    "old_per_query_changes": {
+      "molecule": 0,
+      "weight": 0,
+      "mode": 0,
+      "rank": 0,
+      "mrr": 129,
+      "top1": 0,
+      "truth_shortlisted": 0,
+      "shortlist": 0,
+      "top_identity": 0,
+      "S": 320,
+      "top_pop": 307
+    },
+    "old_per_query_float_max_abs": {
+      "weight": 0.0,
+      "mrr": 6.938893903907228e-17,
+      "S": 1.7763568394002505e-15,
+      "top_pop": 3.552713678800501e-15
+    },
+    "old_gate_changes": {
+      "molecule": 0,
+      "weight": 0,
+      "mode": 0,
+      "fz_top": 318,
+      "best_pool_fz": 0,
+      "rel": 510,
+      "S": 304,
+      "top_pop": 266,
+      "promote": 0,
+      "aggressive": 0,
+      "top_identity": 0,
+      "truth_rank": 0
+    },
+    "old_gate_float_max_abs": {
+      "weight": 0.0,
+      "fz_top": 2.2737367544323206e-13,
+      "best_pool_fz": 0.0,
+      "rel": 2.2737367544323206e-13,
+      "S": 1.7763568394002505e-15,
+      "top_pop": 3.552713678800501e-15
+    },
+    "unresolved_visited_rows": 0,
+    "new_identity_rows": 8,
+    "new_identity_scorer_sha256": "99474f23d8a67040b0c0f8c70e73592a6f7f656f50103e350ca473451e2169f1",
+    "new_identity_source": "Exact immutable tier SMILES and stored pool keys from the original public popularity CSV; RDKit 2026.03.3",
+    "original_pool_flags_reconstructed_from_public_csv": true,
+    "identity_resolution_resumed_from_checkpoint": true,
+    "old_saved_summary_reproduced": true,
+    "old_saved_summary_bitwise_exact": false,
+    "old_summary_serialization_max_abs_error": 1.1102230246251565e-16,
+    "unchanged_summary_fields_preserved_exactly": true,
+    "new_per_query_changes": {
+      "molecule": 0,
+      "weight": 0,
+      "mode": 0,
+      "rank": 1,
+      "mrr": 1,
+      "top1": 0,
+      "truth_shortlisted": 0,
+      "shortlist": 43,
+      "top_identity": 0,
+      "S": 687,
+      "top_pop": 894
+    },
+    "new_gate_changes": {
+      "molecule": 0,
+      "weight": 0,
+      "mode": 0,
+      "fz_top": 0,
+      "best_pool_fz": 0,
+      "rel": 0,
+      "S": 572,
+      "top_pop": 783,
+      "promote": 1,
+      "aggressive": 0,
+      "top_identity": 0,
+      "truth_rank": 1
+    },
+    "fp_only_ranking_cells_exact": true
+  },
+  "historical_pubchem": {
+    "all_original_variants_and_paired_intervals_exact": true,
+    "ranking_variants_old_new_exact": true,
+    "only_NP_diagnostics_depend_on_refresh": true
+  },
+  "main_scenario_numeric_fields_exact": 246,
+  "nested_folds_files_checked": 13,
+  "nested_folds_lotus_dependencies": 0,
+  "source_predictions_and_identities_unchanged": {
+    "panel.parquet": "93469d9bd7e51f9e0c2e891f59844a1ffc56c0921035110495b598c9b4e52eb3",
+    "panel_logits.npz": "383e4d9aaaecd8bda1277851064cce840887b733c48477ce5099b71b0152403d",
+    "panel_fpnet_scores.parquet": "e06f88459ae088932d45e93eefe7dceff68bd9f80e34f73601b2639946215226",
+    "panel_metric_identities.parquet": "4b8f5d342dea2845bed6dbaa8c790fd84b59f446d1f5af6b0e94ef79e4c6aa68",
+    "identity_audit.json": "99a0350ec9b0e967e4d60154f3598c46d07f6b4ff3aa2257eeda1a78210d5dda",
+    "main_candidates.parquet": "63854375ebd0f3242e31e31069363b497f1fd80a2bfcb3222ee69a848e74ae67",
+    "panel_same_formula.parquet": "b7442441146f227f2db7e4a5dee458cd173d8304641080b69c87dbc0a5c3d7c7",
+    "panel_tier_formulas.parquet": "29069629e529a9aa44d07ccfcfcd745eb27d26526d8191dff2136cee9a2be703",
+    "panel_truth_formula.parquet": "814f7acd3dd0b13ca52d0f9c88959c618091779ccd2296c075385903cd33ac7c"
+  },
+  "limitations": [
+    "All 250 panel molecules are documented natural products; no hidden-test improvement is established.",
+    "Original 499-polarity-group pool-window results and the historical merge raw-pool margins lack per-query outputs in the authorized copies. Their source code and every consumed input field are unchanged; deterministic dependency equivalence is established, but a separate historical model-inference/raw-margin rerun is not claimed.",
+    "The historical manifests remain dated snapshot records. CHANGED_FILES.json is the authority for this overlay. README and TECHNICAL_NOTES are deliberately not rewritten; apply CARD_CHANGES.md.",
+    "The frozen LOTUS source and knowledge-table scorer-key compatibility corrections are inherited from the validated upstream overlay. Original public candidate identities and predictions remain pinned; newly visited rows are delivered in a separate exact-identity supplement."
+  ],
+  "cards_written": false,
+  "staged_byte_scan": "Every staged byte must be free of cluster paths and the prohibited identifier; checked after serialization."
+}

@@ -1,0 +1,54 @@
+{
+  "protocol": "all public PubChem candidates with exact truth formula; maximum score per scorer_key, fallback raw connectivity; analytical exact ties; no pool exclusion, spectral score or shortlist",
+  "denominator": 250,
+  "missing_truth_zero": true,
+  "weights": {
+    "spectral_source": 0.5,
+    "np_member": 1.0,
+    "log1p_lotus_refs": 0.5
+  },
+  "pop_lam_in_notebook": 0.15,
+  "pop_lam_in_this_evaluation": "not applied: a positive scalar does not change prior-only ranks",
+  "prior_v10_precision": "float32 operations as in the notebook; float16 documentation inputs; float64 log1p counts rounded to float32 before weighting",
+  "no_training": true,
+  "hidden_test_claim": false,
+  "candidate_rows": 1939476,
+  "same_formula_rows": 818810,
+  "summary": [
+    {
+      "rule": "documentation",
+      "queries": 250,
+      "truth_present": 246,
+      "mrr25": 0.8034484126984126,
+      "delta_documentation": 0.0
+    },
+    {
+      "rule": "documentation + spectral",
+      "queries": 250,
+      "truth_present": 246,
+      "mrr25": 0.8086112554112554,
+      "delta_documentation": 0.005162842712842841
+    },
+    {
+      "rule": "documentation + spectral + NP",
+      "queries": 250,
+      "truth_present": 246,
+      "mrr25": 0.8134809523809524,
+      "delta_documentation": 0.01003253968253981
+    },
+    {
+      "rule": "v10 composite prior",
+      "queries": 250,
+      "truth_present": 246,
+      "mrr25": 0.8309333333333333,
+      "delta_documentation": 0.027484920634920695
+    },
+    {
+      "rule": "LOTUS references only",
+      "queries": 250,
+      "truth_present": 246,
+      "mrr25": 0.6243328302833585,
+      "delta_documentation": -0.1791155824150541
+    }
+  ]
+}

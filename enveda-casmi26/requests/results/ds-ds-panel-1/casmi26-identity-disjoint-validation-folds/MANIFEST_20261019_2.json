@@ -1,0 +1,46 @@
+{
+ "dataset": "casmi26-identity-disjoint-validation-folds",
+ "version_date": "2026-10-19",
+ "new_or_changed": [
+  {
+   "file": "README.md",
+   "bytes": 4557,
+   "sha256": "44d5f257fdbd15dc2daaceadb079f8df17a5235c85e83dae56640a582a861f8e"
+  },
+  {
+   "file": "SPLIT_METHOD.json",
+   "bytes": 1415,
+   "sha256": "058952c7968cde06ae3906bbd46778a2bbce53e2533456eca6c41a6455591f08"
+  },
+  {
+   "file": "TECHNICAL_NOTES.md",
+   "bytes": 16681,
+   "sha256": "2c7483a9cc2089113897d3ff25f41bd90783f5198be6cc890b6dea5065da93cc"
+  },
+  {
+   "file": "analogue_domain_summary.parquet",
+   "bytes": 7732,
+   "sha256": "c02d3b84b030217ad14854465eaac60f887a28cb21998af4f4f62fc204915952"
+  },
+  {
+   "file": "spectra_splits.parquet",
+   "bytes": 9272714,
+   "sha256": "518be062cfa33077cc2b145fe03a61c62be3ccbd0a2675edbd07d1ac78775235"
+  },
+  {
+   "file": "split_categories.csv",
+   "bytes": 4223,
+   "sha256": "16d801c4aa3ff7d3a217df37bfebfcb29334aee57310dfa14f471351f1bbbaf0"
+  },
+  {
+   "file": "split_summary.parquet",
+   "bytes": 10206,
+   "sha256": "f03e9aa6c8cd34e83273b568ebaa84b9b48dcbeab2a5c7a35ca20c927e164090"
+  },
+  {
+   "file": "structure_splits.parquet",
+   "bytes": 6302907,
+   "sha256": "05498719c7564cedd673bfd954191452dbc211dd0b31a9825357fa191325e92f"
+  }
+ ]
+}

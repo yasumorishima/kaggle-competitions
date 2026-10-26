@@ -1,0 +1,164 @@
+request: a2pw-sub1
+run: 40248294937  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: yes
+kernel: yasunorim/arc3-a2pw  version: 1
+memo: A2 robustness part on LB (bundle step). Base: dfranzen's ARC-AGI-3 Milestone-2 notebook (Tufa Labs' Duck harness), kernels/m2base. Ours: a2lw (deadline + level dossier v2 + RESET + failure ledger + server watch; LB 25.79, the server came up) with the watch extended from 40 to 90 min (watchmin=90; the 10-25 commit serve.log showed the weights take ~55 min to load from the model store at ~50 MB/s) and pcwait (new, ours: the 185 GB model precache waits until /health passes so it does not compete with the server for disk bandwidth). Hypothesis: startup always finishes inside the watch and earlier, so all games get the full time budget; LB > 28.81 (a2rs, our best) toward bronze 30.92. Effect size: removes the 0.00 failure mode (a2lg) and ~1 h of lost game time if startup was late in a2lw. build.py a2pw dossier=2 reset=1 ledger=1 turnlog=1 fast=1 watch=1 watchmin=90 pcwait=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2pw
+==> /tmp/kout/arc3-a2pw.log <==
+090.452403682,"data":"[sys] RAM 103.2/176.9 | swap none | proc 0.3 GB, 62 threads, 65 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1210.472318058,"data":"[sys] RAM 103.2/176.9 | swap none | proc 0.3 GB, 62 threads, 65 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1330.498099583,"data":"[sys] RAM 103.2/176.9 | swap none | proc 0.3 GB, 62 threads, 65 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1332.242691566,"data":"benchmark: regenerated diagnostics in /kaggle/working in 0.38s\n"}
+,{"stream_name":"stdout","time":1332.242719936,"data":"benchmark: duck-harness-kaggle\n"}
+,{"stream_name":"stdout","time":1332.242722006,"data":"solver:    duck-harness\n"}
+,{"stream_name":"stdout","time":1332.242723286,"data":"games:     1\n"}
+,{"stream_name":"stdout","time":1332.242724306,"data":"passes:    1\n"}
+,{"stream_name":"stdout","time":1332.242725226,"data":"runs:      1 (won: 0)\n"}
+,{"stream_name":"stdout","time":1332.242726186,"data":"started:   2026-10-26 01:03:06\n"}
+,{"stream_name":"stdout","time":1332.242727216,"data":"ended:     in progress\n"}
+,{"stream_name":"stdout","time":1332.242728156,"data":"mean score:    0.00\n"}
+,{"stream_name":"stdout","time":1332.242729076,"data":"median score:  0.00\n"}
+,{"stream_name":"stdout","time":1332.242730006,"data":"total actions: 1\n"}
+,{"stream_name":"stdout","time":1332.242730966,"data":"total tokens:  0\n"}
+,{"stream_name":"stdout","time":1332.242748646,"data":"generated tokens/sec: 0.00 (job wallclock)\n"}
+,{"stream_name":"stdout","time":1332.242749676,"data":"total wallclock: 0.1s\n"}
+,{"stream_name":"stdout","time":1332.242750406,"data":"\n"}
+,{"stream_name":"stdout","time":1332.242751116,"data":"per-game (mean across passes):\n"}
+,{"stream_name":"stdout","time":1332.242751876,"data":"  ft09-0d8bbf25: score=0.00, levels=0.0/6, actions=1, tokens=0\n"}
+,{"stream_name":"stdout","time":1332.242752646,"data":"\n"}
+,{"stream_name":"stdout","time":1450.517006703,"data":"[sys] RAM 103.2/176.9 | swap none | proc 0.3 GB, 62 threads, 66 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1570.548025936,"data":"[sys] RAM 103.2/176.9 | swap none | proc 0.3 GB, 62 threads, 66 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stderr","time":1632.585577732,"data":"analyzer request failed at action 2: HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError('\u003curllib3.connection.HTTPConnection object at 0x7e19f457bc80\u003e: Failed to establish a new connection: [Errno 111] Connection refused'))\n"}
+,{"stream_name":"stderr","time":1632.585599992,"data":"\n"}
+,{"stream_name":"stderr","time":1632.585601892,"data":"analyzer request failed at action 2: HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError('\u003curllib3.connection.HTTPConnection object at 0x7e19f457bc80\u003e: Failed to establish a new connection: [Errno 111] Connection refused'))\n"}
+,{"stream_name":"stdout","time":1632.780005996,"data":"[finished] ft09-0d8bbf25 state=gave_up level=0/6 score=0.00 actions=1 tokens=0 per-level=1/43,0/12,0/23,0/28,0/65,0/37 note=\"tokens=0\"\n"}
+,{"stream_name":"stdout","time":1633.575414362,"data":"benchmark: regenerated diagnostics in /kaggle/working in 0.79s\n"}
+,{"stream_name":"stdout","time":1633.575436522,"data":"benchmark: duck-harness-kaggle\n"}
+,{"stream_name":"stdout","time":1633.575438122,"data":"solver:    duck-harness\n"}
+,{"stream_name":"stdout","time":1633.575439212,"data":"games:     1\n"}
+,{"stream_name":"stdout","time":1633.575440242,"data":"passes:    1\n"}
+,{"stream_name":"stdout","time":1633.575441192,"data":"runs:      1 (won: 0)\n"}
+,{"stream_name":"stdout","time":1633.575442162,"data":"started:   2026-10-26 01:03:06\n"}
+,{"stream_name":"stdout","time":1633.575443182,"data":"ended:     2026-10-26 01:18:08\n"}
+,{"stream_name":"stdout","time":1633.575444132,"data":"duration:  15m 1s\n"}
+,{"stream_name":"stdout","time":1633.575445062,"data":"mean score:    0.00\n"}
+,{"stream_name":"stdout","time":1633.575446082,"data":"median score:  0.00\n"}
+,{"stream_name":"stdout","time":1633.575447022,"data":"total actions: 1\n"}
+,{"stream_name":"stdout","time":1633.575448072,"data":"total tokens:  0\n"}
+,{"stream_name":"stdout","time":1633.575449062,"data":"generated tokens/sec: 0.00 (job wallclock)\n"}
+,{"stream_name":"stdout","time":1633.575450072,"data":"total wallclock: 901.0s\n"}
+,{"stream_name":"stdout","time":1633.575451042,"data":"\n"}
+,{"stream_name":"stdout","time":1633.575452012,"data":"per-game (mean across passes):\n"}
+,{"stream_name":"stdout","time":1633.575452982,"data":"  ft09-0d8bbf25: score=0.00, levels=0.0/6, actions=1, tokens=0\n"}
+,{"stream_name":"stdout","time":1633.575453982,"data":"\n"}
+,{"stream_name":"stdout","time":1633.575454922,"data":"diagnostics: /kaggle/working/diagnostics.html\n"}
+,{"stream_name":"stderr","time":1634.490759511,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":1634.490788281,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stderr","time":1634.490790341,"data":"\n"}
+,{"stream_name":"stderr","time":1634.490791291,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":1634.490792301,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stdout","time":1634.521941911,"data":"ours diag: server logs ['/kaggle/working/serve.log']\n"}
+,{"stream_name":"stdout","time":1634.521951101,"data":"ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached\n"}
+,{"stream_name":"stdout","time":1634.521952181,"data":"ours diag:    0       0   0.0    0.0    0.00       0.0            0              0\n"}
+,{"stream_name":"stdout","time":1634.521953121,"data":"ours diag: gate {'enqueued': 1, 'blocked': 0, 'blocked_ms': 0, 'handover_ms': 0}\n"}
+,{"stream_name":"stdout","time":1634.521953901,"data":"ours diag: retry {'retries': 0, 'levels_after': 0, 'fresh_admits': 0}\n"}
+,{"stream_name":"stdout","time":1634.521954761,"data":"ours diag: turns ft09 turns=1 exec=0 acts=0 tok=0 levels=0 | L1~:1t/0a/0.0k\n"}
+,{"stream_name":"stdout","time":1634.522182131,"data":"ours diag: turns total {'games': 1, 'turns': 1, 'acts': 0, 'tok': 0, 'levels': 0, 'tok_solved': 0, 'tok_solved2': 0, 'levels2': 0} tok/level=0 tok/solved-level=0 tok/solved-level(L\u003e=2)=0 acts/level=0  ('~' = level not completed)\n"}
+,{"stream_name":"stderr","time":1636.601571828,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":1636.601590468,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":1636.782907531,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":1636.782913111,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":1637.578735397,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":1637.733696267,"data":"[NbConvertApp] Writing 1248210 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":1638.931306054,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":1639.966658015,"data":"[NbConvertApp] Writing 2904783 bytes to __results__.html\n"}
+]
+==> /tmp/kout/serve.log <==
+readpool_count': 2, 'kt_num_gpu_experts': None, 'kt_max_deferred_experts_per_token': None, 'dllm_algorithm': None, 'dllm_algorithm_config': None, 'dllm_fdfo': True, 'disaggregation_mode': 'null', 'disaggregation_transfer_backend': 'mooncake', 'disaggregation_bootstrap_port': 8998, 'disaggregation_ib_device': None, 'disaggregation_decode_enable_radix_cache': False, 'disaggregation_decode_enable_offload_kvcache': False, 'disaggregation_decode_retraction_backup': None, 'num_reserved_decode_tokens': 512, 'disaggregation_decode_extra_slots': None, 'disaggregation_decode_polling_interval': 1, 'optimistic_prefill_attempts': 0, 'encoder_only': False, 'language_only': False, 'language_model_only': False, 'encoder_transfer_backend': 'zmq_to_scheduler', 'encoder_urls': [], 'encoder_bootstrap_port': 8997, 'encoder_register_urls': [], 'enable_adaptive_dispatch_to_encoder': False, 'enable_pdmux': False, 'pdmux_config_path': None, 'sm_group_num': 8, 'startup_weight_load_mode': 'serial', 'custom_weight_loader': [], 'weight_loader_disable_mmap': False, 'weight_loader_prefetch_checkpoints': True, 'weight_loader_prefetch_num_threads': 4, 'weight_loader_drop_cache_after_load': True, 'remote_instance_weight_loader_seed_instance_ip': None, 'remote_instance_weight_loader_seed_instance_service_port': None, 'remote_instance_weight_loader_send_weights_group_ports': None, 'remote_instance_weight_loader_backend': 'nccl', 'remote_instance_weight_loader_start_seed_via_transfer_engine': False, 'engine_info_bootstrap_port': 6789, 'modelexpress_config': None, 'download_dir': None, 'model_checksum': None, 'delete_ckpt_after_loading': False, 'decrypted_config_file': None, 'decrypted_draft_config_file': None, 'checkpoint_engine_wait_weights_before_ready': False, 'enable_prefill_delayer': False, 'prefill_delayer_max_delay_passes': 30, 'prefill_delayer_token_usage_low_watermark': None, 'prefill_delayer_forward_passes_buckets': None, 'prefill_delayer_wait_seconds_buckets': None, 'prefill_delayer_queue_min_ratio': None, 'prefill_delayer_max_delay_ms': None, 'min_free_slots_delay': None, 'enable_deterministic_inference': False, 'rl_on_policy_target': None, 'kv_canary': 'none', 'kv_canary_real_data': 'none', 'kv_canary_sweep_interval': 0, 'enable_dynamic_batch_tokenizer': False, 'dynamic_batch_tokenizer_batch_size': 32, 'dynamic_batch_tokenizer_batch_timeout': 0.002, 'enable_tokenizer_batch_encode': False, 'disable_tokenizer_batch_decode': False, 'debug_tensor_dump_output_folder': None, 'debug_tensor_dump_layers': None, 'debug_tensor_dump_input_file': None, 'enable_memory_saver': False, 'enable_weights_cpu_backup': False, 'enable_draft_weights_cpu_backup': False, 'enable_custom_logit_processor': False, 'enable_return_hidden_states': False, 'return_hidden_states_mode': None, 'enable_return_routed_experts': False, 'enable_return_indexer_topk': False, 'disable_outlines_disk_cache': False, 'enable_mis': False, 'weight_cache_mode': 'off', 'weight_cache_socket': None, 'weight_cache_timeout': 1800, 'forward_hooks': None, 'msprobe_dump_config': None}
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-26 00:52:42] Multimodal data loading enabled with 16 worker threads (auto).
+[2026-10-26 00:52:42] SM120 low-M BF16 GEMM path enabled
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-26 00:52:42] Init torch distributed begin.
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-26 00:52:45] Multimodal data loading enabled with 16 worker threads (auto).
+[2026-10-26 00:52:47] Multimodal processor concurrency enabled with 2 isolated worker threads (auto).
+[2026-10-26 00:52:47] Loading chat template from argument: /kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1/chat_template.jinja
+[2026-10-26 00:52:47] Detected user specified Jinja chat template with content format: openai
+[2026-10-26 00:52:47] Auto-detected template features: reasoning_config=ReasoningToggleConfig(toggle_param='enable_thinking', default_enabled=True, special_case=None, effort_kwarg=None), reasoning_parser=qwen3, tool_call_parser=qwen3_coder
+[W1026 00:52:50.773147260 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[2026-10-26 00:52:52] Init torch distributed ends. elapsed=9.83 s, mem usage=0.09 GB
+[2026-10-26 00:52:52] Load weight begin. avail mem=94.17 GB
+[2026-10-26 00:52:52] Multimodal attention backend not set. Use triton_attn.
+[2026-10-26 00:52:52] Using triton_attn as multimodal attention backend.
+[2026-10-26 00:52:52] AutoRound GPTQ config does not specify lm_head_quantized, desc_act, dynamic, checkpoint_format, true_sequential, static_groups; using SGLang defaults {'lm_head_quantized': False, 'desc_act': False, 'dynamic': {}, 'checkpoint_format': '', 'true_sequential': False, 'static_groups': False}.
+[2026-10-26 00:52:52] FlashInfer TRTLLM MoE deferred finalize is disabled (moe_runner_backend=auto, quant_method=GPTQMarlinMoEMethod).
+[2026-10-26 00:53:02] using attn output gate!
+Loading safetensors checkpoint shards:   0% Completed | 0/38 [00:00<?, ?it/s][2026-10-26 00:53:03] Checkpoint prefetch: one-shard lookahead in loader order (38 shards, up to 4 range-reader threads per shard)
+Loading safetensors checkpoint shards:   3% Completed | 1/38 [00:24<14:50, 24.08s/it]Loading safetensors checkpoint shards:   5% Completed | 2/38 [01:08<21:27, 35.76s/it]Loading safetensors checkpoint shards:   8% Completed | 3/38 [01:50<22:42, 38.94s/it]Loading safetensors checkpoint shards:  11% Completed | 4/38 [02:33<23:00, 40.61s/it]Loading safetensors checkpoint shards:  13% Completed | 5/38 [03:17<22:51, 41.57s/it]Loading safetensors checkpoint shards:  16% Completed | 6/38 [03:58<22:10, 41.59s/it]Loading safetensors checkpoint shards:  18% Completed | 7/38 [04:39<21:22, 41.36s/it]Loading safetensors checkpoint shards:  21% Completed | 8/38 [05:21<20:45, 41.50s/it]Loading safetensors checkpoint shards:  24% Completed | 9/38 [06:02<19:58, 41.31s/it]Loading safetensors checkpoint shards:  26% Completed | 10/38 [06:42<19:08, 41.04s/it]Loading safetensors checkpoint shards:  29% Completed | 11/38 [07:24<18:31, 41.16s/it]Loading safetensors checkpoint shards:  32% Completed | 12/38 [08:06<17:57, 41.46s/it]Loading safetensors checkpoint shards:  34% Completed | 13/38 [12:14<43:17, 103.92s/it]Loading safetensors checkpoint shards:  37% Completed | 14/38 [15:06<49:52, 124.67s/it]Loading safetensors checkpoint shards:  42% Completed | 16/38 [15:45<27:51, 75.96s/it] Loading safetensors checkpoint shards:  45% Completed | 17/38 [18:03<31:57, 91.32s/it]Loading safetensors checkpoint shards:  47% Completed | 18/38 [21:02<38:04, 114.25s/it]Loading safetensors checkpoint shards:  50% Completed | 19/38 [23:52<40:59, 129.46s/it]Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-10-26 01:19:15.037000,a2pw-sub1: a2lw (deadline + dossier v2 + RESET + ledger + watch) + our 90-min watch and precache-after-ready [run 40248294937],SubmissionStatus.PENDING,,
+submission.parquet,2026-10-25 00:58:08.843000,a2lw-sub1: a2lg (base + deadline + dossier v2 + RESET + failure ledger) + our server watch/relaunch in the rerun [run 40145785754],SubmissionStatus.COMPLETE,25.79,
+submission.parquet,2026-10-24 00:52:29.997000,a2lg-sub1: a2rs (base + deadline + dossier v2 + RESET) + our failure ledger (exact failed action lists per level) [run 40043759522],SubmissionStatus.COMPLETE,0.00,
+
+output files:
+total 716
+drwxr-xr-x  7 runner runner   4096 Oct 26 01:19 .
+drwxrwxrwt 14 root   root     4096 Oct 26 01:19 ..
+-rw-r--r--  1 runner runner  58324 Oct 26 01:19 .per_game_cards.pkl
+-rw-r--r--  1 runner runner  32611 Oct 26 01:19 arc3-a2pw.log
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:19 artifacts
+-rw-r--r--  1 runner runner   1230 Oct 26 01:19 benchmark.json
+-rw-r--r--  1 runner runner 517897 Oct 26 01:19 diagnostics.html
+-rw-r--r--  1 runner runner    434 Oct 26 01:19 games.pkl
+-rw-r--r--  1 runner runner    356 Oct 26 01:19 git_status.txt
+-rw-r--r--  1 runner runner   9104 Oct 26 01:19 intermediate_states.pkl
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:19 movies
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:19 prompts
+-rw-r--r--  1 runner runner  26400 Oct 26 01:19 requests.jsonl
+-rw-r--r--  1 runner runner  23141 Oct 26 01:19 serve.log
+-rw-r--r--  1 runner runner   1902 Oct 26 01:19 solver.pkl
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:19 solver_analysis
+-rw-r--r--  1 runner runner   2648 Oct 26 01:19 submission.parquet
+-rw-r--r--  1 runner runner    419 Oct 26 01:19 summary.txt
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:19 transcripts
+==> /tmp/kout/arc3-a2pw.log <==
+[{"stream_name":"stderr","time":4.259609735,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.259632025,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.259633895,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.259635065,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":4.568805281,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.568825951,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.568827591,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.568828701,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":5.369472275,"data":"Writing /kaggle/harness-changes.patch\n"}
+,{"stream_name":"stderr","time":6.701144277,"data":"Checking patch ARC3-Inference/inference/agent/action_names.py...\n"}
+,{"stream_name":"stderr","time":6.701161367,"data":"Checking patch ARC3-Inference/inference/agent/noop_repeat_guard.py...\n"}
+,{"stream_name":"stderr","time":6.701163157,"data":"Checking patch ARC3-Inference/inference/agent/p
+==> /tmp/kout/serve.log <==
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-26 00:52:32] Breakable CUDA graph is incompatible with multimodal model; disabling prefill CUDA graph.
+[2026-10-26 00:52:32] Setting page size to 64 for compressed QSA (full//ratio compressed addressing).
+[2026-10-26 00:52:33] Attention backend not specified. Use flashinfer backend by default.
+[2026-10-26 00:52:33] Successfully imported FlashInfer mamba module
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-10-26 00:52:33] DeepSeek MTP does not require setting speculative_draft_model_path.
+[2026-10-26 00:52:34] server_args={'model_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_mode': 'auto', 'tokenizer_backend': 'huggingface', 'tokenizer_worker_num': 1, 'detokenizer_worker_num': 1, 'skip_tokenizer_init': False, 'load_format': 'safetensors', 'model_loader_ext

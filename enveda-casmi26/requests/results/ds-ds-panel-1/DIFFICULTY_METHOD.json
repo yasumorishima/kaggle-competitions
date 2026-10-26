@@ -1,0 +1,23 @@
+{
+  "rows": 250,
+  "columns": 67,
+  "panel_order_equal": true,
+  "truth_with_other_reference": 250,
+  "reference_lookup": "exact (inchikey14, normalized_smiles) source-structure match, then scorer_key; no first-row alias fallback",
+  "np_class_present": 200,
+  "same_formula_window_median_identities": 859.0,
+  "rank_semantics": "For each score separately: maximum score per cached identity, descending order; rank_min=1+number strictly higher, rank_max=number greater than or equal. Null when truth has no finite score. Cached scorer_key falls back to connectivity exactly as the public benchmark; unvisited rows are not silently canonicalized.",
+  "reference_semantics": "Exact scorer key in public competition training spectra outside ingest_lib enveda-np-examples; counts include aliases. This is an observed reference-library label, not a claim of clean model training.",
+  "inputs": {
+    "casmi26-natural-product-panel-benchmark/panel.parquet": "93469d9bd7e51f9e0c2e891f59844a1ffc56c0921035110495b598c9b4e52eb3",
+    "casmi26-natural-product-panel-benchmark/pubchem_candidates.parquet": "ac4d057c6772b5d276237a7fd6f5148b5eda39b2eec1c5bb09a2606166a368f3",
+    "casmi26-natural-product-panel-benchmark/panel_fpnet_scores.parquet": "e06f88459ae088932d45e93eefe7dceff68bd9f80e34f73601b2639946215226",
+    "casmi26-natural-product-panel-benchmark/main_candidates.parquet": "63854375ebd0f3242e31e31069363b497f1fd80a2bfcb3222ee69a848e74ae67",
+    "casmi26-natural-product-panel-benchmark/panel_same_formula.parquet": "b7442441146f227f2db7e4a5dee458cd173d8304641080b69c87dbc0a5c3d7c7",
+    "casmi26-natural-product-knowledge-table/natural_products.parquet": "6ccb833e47d88715fca1d614b05cae92fa333fa388ae1d64226f2695a62081aa"
+  },
+  "file": {
+    "bytes": 75661,
+    "sha256": "2e29797046cddc22245fc6e46778c98fb1032137eb4009bf86df6a7371bec3ec"
+  }
+}

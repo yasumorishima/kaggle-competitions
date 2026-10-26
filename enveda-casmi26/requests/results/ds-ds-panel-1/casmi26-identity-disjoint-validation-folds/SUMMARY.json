@@ -1,0 +1,68 @@
+{
+ "train_sha256": "9423f90ec08b941a9646b535bf0606183e86ff0c5a297978f5a70693d41bcd98",
+ "train_rows": 2539608,
+ "structures": 277566,
+ "scorer_identities": 274195,
+ "stored_keys": 275810,
+ "identity_groups": 274184,
+ "scaffold_groups": 140160,
+ "alias_rows": 4467,
+ "seed": 20260930,
+ "folds": 5,
+ "rdkit": "2026.03.3",
+ "fold_identity": {
+  "0": {
+   "structures": 55514,
+   "spectra": 511832,
+   "enveda_structures": 36638
+  },
+  "1": {
+   "structures": 55514,
+   "spectra": 507768,
+   "enveda_structures": 36639
+  },
+  "2": {
+   "structures": 55514,
+   "spectra": 506894,
+   "enveda_structures": 36639
+  },
+  "3": {
+   "structures": 55512,
+   "spectra": 512086,
+   "enveda_structures": 36638
+  },
+  "4": {
+   "structures": 55512,
+   "spectra": 501028,
+   "enveda_structures": 36638
+  }
+ },
+ "fold_scaffold": {
+  "0": {
+   "structures": 55514,
+   "spectra": 509519,
+   "enveda_structures": 34970
+  },
+  "1": {
+   "structures": 55514,
+   "spectra": 507431,
+   "enveda_structures": 36629
+  },
+  "2": {
+   "structures": 55514,
+   "spectra": 506259,
+   "enveda_structures": 37224
+  },
+  "3": {
+   "structures": 55512,
+   "spectra": 506636,
+   "enveda_structures": 37395
+  },
+  "4": {
+   "structures": 55512,
+   "spectra": 509763,
+   "enveda_structures": 36974
+  }
+ },
+ "largest_scaffold_group": 7715
+}

@@ -1,0 +1,63 @@
+request: e3f465fp-1
+run: 40248810139  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3f465fp  version: 1
+memo: Base: the pipeline embedded in sanpier's 'Candidate-aware PubChem promotion 0.465' (frozen_0465 = dmitriigluzdov 'CASMI 26: The Data Behind Spectra to Structures' v16 + sanpier's rank-1 PubChem promotion), kernels/e3/base_f465.ipynb, + ours own COCONUT + lfrag (e3f465oc-1, LB 0.467, our best). New part (ours, 10-26): fold-safe FPNet ensemble. dmitriigluzdov/casmi26-fold-safe-fpnet holds 5 FPNets, each trained without one identity-disjoint fold (68% top-1 on never-seen molecules vs 97% seen); the base uses fold0 alone in the PubChem channel and full1 alone in the engine. fpe=1 (this version): PubChem channel logits = A, B (1/3 each) + mean of the 5 fold models (1/3); ebe=1: engine FP bank = full1 (1/2) + mean of the 5 fold models (1/2). Why: the 10-25 ON/OFF square (neural rerank 0.467, two-pipeline fusion 0.466, both 0.466) showed the overlay is saturated (also cosmorin's gap analysis: rank 1 is 0.504, the gap is upstream in the spectrum model); the neural rerank at offset 1-3 can never change rank 1, while the FPNet decides rank 1 for library-less molecules (hidden test = never-seen Enveda NPs, where FPNet top-1 is 42% unseen vs 89% seen). Averaging independently trained models lowers prediction variance on unseen spectra. Hypothesis: LB >= 0.470. Effect size: the PubChem channel enters the final list through the gate / promotion for library-weak molecules; top-1 changes expected in 2-3% of molecules (8-12 of 400). This version is the split of the bundle e3f465fe-1 (fpe + ebe): fpe only (the engine keeps full1 alone, so its ranker sees the same feature scale it was trained on). With e3f465oc-1 (neither) and e3f465fe-1 (both) it reads which half moves. build.py f465fp base=f465 ownco=1 lfrag=1 fpe=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3f465fp
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-26 01:16:35.407000,e3f465fp-1: f465 + own COCONUT + lfrag (0.467) + our fold-safe FPNet ensemble in the PubChem channel only [run 40248810139],SubmissionStatus.PENDING,,
+submission.csv,2026-10-26 00:50:49.087000,e3f465fe-1: f465 + own COCONUT + lfrag (0.467) + our fold-safe FPNet ensemble in the PubChem channel and the engine [run 40248783415],SubmissionStatus.PENDING,,
+submission.csv,2026-10-25 02:41:02.737000,"e3fu2-1: ours two-pipeline fusion with A = f465 + own COCONUT + lfrag + sanpier neural rerank (port), B = v22 + own COCONUT [run 40150130793]",SubmissionStatus.COMPLETE,0.466,
+
+output files:
+total 916
+drwxr-xr-x 11 runner runner   4096 Oct 26 01:16 .
+drwxrwxrwt 14 root   root     4096 Oct 26 01:14 ..
+-rw-r--r--  1 runner runner  17309 Oct 26 01:14 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 26 01:14 candidate_audit.csv
+-rw-r--r--  1 runner runner   2579 Oct 26 01:14 candidate_audit.json
+-rw-r--r--  1 runner runner  37051 Oct 26 01:16 casmi26-e3f465fp.log
+-rw-r--r--  1 runner runner 193469 Oct 26 01:14 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9850 Oct 26 01:14 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 26 01:14 eng
+-rw-r--r--  1 runner runner  29968 Oct 26 01:14 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 26 01:14 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 26 01:14 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Oct 26 01:14 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Oct 26 01:14 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Oct 26 01:14 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:15 external_reference_oc2ihn8t
+-rw-r--r--  1 runner runner  12857 Oct 26 01:15 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:15 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:15 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 26 01:15 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 26 01:15 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 26 01:15 ours_lfrag.py
+-rw-r--r--  1 runner runner  72511 Oct 26 01:15 pc_lists.json
+-rw-r--r--  1 runner runner   5443 Oct 26 01:15 pc_runner.py
+-rw-r--r--  1 runner runner  16124 Oct 26 01:15 probe_core2.py
+-rw-r--r--  1 runner runner      1 Oct 26 01:15 pubchem_promotion_audit.csv
+-rw-r--r--  1 runner runner    231 Oct 26 01:15 rank2_overlay.json
+-rw-r--r--  1 runner runner    345 Oct 26 01:15 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:15 smoke_comp
+-rw-r--r--  1 runner runner  17309 Oct 26 01:15 submission.csv
+-rw-r--r--  1 runner runner  17309 Oct 26 01:15 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17309 Oct 26 01:15 submission_e006_control.csv
+-rw-r--r--  1 runner runner  17309 Oct 26 01:15 submission_reference.csv
+-rw-r--r--  1 runner runner   7336 Oct 26 01:15 v43_execution_receipt.json
+-rw-r--r--  1 runner runner 143355 Oct 26 01:15 v43_mounted_input_hashes.json
+drwxr-xr-x  4 runner runner   4096 Oct 26 01:15 v43_v4code
+drwxr-xr-x  2 runner runner   4096 Oct 26 01:16 work
+[{"stream_name":"stderr","time":5.441573135,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":5.44161637,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":6.18866877,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.188694049,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.188698999,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.18870311,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.73346424,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.733492149,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.733497307,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.7335367250000004,"data":"0.00s - Note: Debugging will pr

@@ -1,0 +1,70 @@
+{
+ "task": "Rank of the true structure among the pool structures within 10 ppm of its mass, scored by f.z of the fingerprint model alone; all spectra (up to 8) of one structure and polarity are merged into one query.",
+ "panel": "enveda-np-examples: 499 (structure, polarity) queries of the 250 panel molecules",
+ "training_sample": "3,000 (structure, polarity) queries drawn from the other training structures (seed 12345)",
+ "models": [
+  {
+   "name": "FPNet A (main engine of the v4 pipeline)",
+   "checkpoint": "casmi26-v4b-models/fpnet_0.pt",
+   "trained_on_panel": false,
+   "panel": {
+    "n": 499,
+    "mrr25": 0.5814555808239129,
+    "top1": 0.42084168336673344,
+    "top5": 0.7995991983967936,
+    "top25": 0.9519038076152304,
+    "median_window": 54.0
+   },
+   "training_sample": {
+    "n": 3000,
+    "mrr25": 0.9341618893820492,
+    "top1": 0.8896666666666667,
+    "top5": 0.9873333333333333,
+    "top25": 0.9963333333333333,
+    "median_window": 93.0
+   }
+  },
+  {
+   "name": "FPNet A+B (PubChem channel)",
+   "checkpoint": "casmi26-v3-models/fpnet_0.pt + fpnet_1.pt",
+   "trained_on_panel": false,
+   "panel": {
+    "n": 499,
+    "mrr25": 0.5891903693606946,
+    "top1": 0.4288577154308617,
+    "top5": 0.8016032064128257,
+    "top25": 0.9559118236472945,
+    "median_window": 54.0
+   },
+   "training_sample": {
+    "n": 3000,
+    "mrr25": 0.9407839037371647,
+    "top1": 0.9013333333333333,
+    "top5": 0.989,
+    "top25": 0.997,
+    "median_window": 93.0
+   }
+  },
+  {
+   "name": "FPNet full1 (trained on all folds)",
+   "checkpoint": "casmi26-fpnet-full1/fpnet_full1.pt",
+   "trained_on_panel": true,
+   "panel": {
+    "n": 499,
+    "mrr25": 0.927828567351421,
+    "top1": 0.8917835671342685,
+    "top5": 0.9799599198396793,
+    "top25": 0.9979959919839679,
+    "median_window": 54.0
+   },
+   "training_sample": {
+    "n": 3000,
+    "mrr25": 0.9379290060521407,
+    "top1": 0.896,
+    "top5": 0.9876666666666667,
+    "top25": 0.997,
+    "median_window": 93.0
+   }
+  }
+ ]
+}

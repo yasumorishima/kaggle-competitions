@@ -1,0 +1,104 @@
+axis,id,label,mask_bit,instrument_family
+library,0,drug_plus,1,
+library,1,enveda-180,2,
+library,2,enveda-np-examples,4,
+library,3,gnps,8,
+library,4,masaryk,16,
+library,5,massbank,32,
+library,6,mona,64,
+library,7,msdial,128,
+library,8,pluskal_ms2,256,
+library,9,riken,512,
+library,10,spectraverse,1024,
+instrument_type,0,,,unknown
+instrument_type,1,APCI-ITFT,,Orbitrap/FT hybrid
+instrument_type,2,APCI-ITTOF,,ion trap
+instrument_type,3,DIRECT INFUSION NANOESI-ION TRAP,,ion trap
+instrument_type,4,ESI-FT,,FT other
+instrument_type,5,ESI-ITFT,,Orbitrap/FT hybrid
+instrument_type,6,ESI-ITTOF,,ion trap
+instrument_type,7,ESI-QFT,,Orbitrap/FT hybrid
+instrument_type,8,ESI-QQ,,triple quadrupole
+instrument_type,9,ESI-QTOF,,QTOF
+instrument_type,10,ESI-TOF,,TOF other
+instrument_type,11,FAB-BE,,other
+instrument_type,12,FAB-EBEB,,other
+instrument_type,13,Flow-injection QqQ/MS,,triple quadrupole
+instrument_type,14,GC-APCI-QTOF,,QTOF
+instrument_type,15,GC-EI-Q,,other
+instrument_type,16,Hybrid FT,,FT other
+instrument_type,17,Hybrid Ft,,FT other
+instrument_type,18,Ion Trap,,ion trap
+instrument_type,19,LC-APCI-ITFT,,Orbitrap/FT hybrid
+instrument_type,20,LC-APCI-QFT,,Orbitrap/FT hybrid
+instrument_type,21,LC-APPI-QQ,,triple quadrupole
+instrument_type,22,LC-ESI-FT,,FT other
+instrument_type,23,LC-ESI-HRMS,,other
+instrument_type,24,LC-ESI-HRMS-FT,,FT other
+instrument_type,25,LC-ESI-IT,,ion trap
+instrument_type,26,LC-ESI-ITFT,,Orbitrap/FT hybrid
+instrument_type,27,LC-ESI-ITTOF,,ion trap
+instrument_type,28,LC-ESI-Orbitrap,,Orbitrap/FT hybrid
+instrument_type,29,LC-ESI-Q,,other
+instrument_type,30,LC-ESI-Q-Orbitrap,,Orbitrap/FT hybrid
+instrument_type,31,LC-ESI-QEHF,,Orbitrap/FT hybrid
+instrument_type,32,LC-ESI-QFT,,Orbitrap/FT hybrid
+instrument_type,33,LC-ESI-QIT,,ion trap
+instrument_type,34,LC-ESI-QQ,,triple quadrupole
+instrument_type,35,LC-ESI-QQQ,,triple quadrupole
+instrument_type,36,LC-ESI-QTOF,,QTOF
+instrument_type,37,LC-ESI-TOF,,TOF other
+instrument_type,38,LC-Orbitrap MS,,Orbitrap/FT hybrid
+instrument_type,39,LC-Orbitrap MSLC-Orbitrap MS,,Orbitrap/FT hybrid
+instrument_type,40,LC-Q-TOF/MS,,QTOF
+instrument_type,41,LC-QTOF,,QTOF
+instrument_type,42,LIT,,other
+instrument_type,43,Linear Ion Trap,,ion trap
+instrument_type,44,MALDI-QIT,,ion trap
+instrument_type,45,MALDI-QITTOF,,ion trap
+instrument_type,46,MALDI-TOFTOF,,TOF other
+instrument_type,47,Maxis HD qTOF,,QTOF
+instrument_type,48,Maxis II HD Q-TOF Bruker,,QTOF
+instrument_type,49,N/A,,other
+instrument_type,50,Orbitrap,,Orbitrap/FT hybrid
+instrument_type,51,Q Exactive Focus Hybrid Quadrupole Orbitrap Mass Spectrometer (Thermo Fisher Scientific),,Orbitrap/FT hybrid
+instrument_type,52,Q Exactive HF,,Orbitrap/FT hybrid
+instrument_type,53,Q-Exactive,,Orbitrap/FT hybrid
+instrument_type,54,Q-Exactive Plus,,Orbitrap/FT hybrid
+instrument_type,55,Q-Exactive Plus Orbitrap Res 14k,,Orbitrap/FT hybrid
+instrument_type,56,Q-Exactive Plus Orbitrap Res 70k,,Orbitrap/FT hybrid
+instrument_type,57,Q-TOF,,QTOF
+instrument_type,58,QIT,,ion trap
+instrument_type,59,QIT-FT,,ion trap
+instrument_type,60,QQQ,,triple quadrupole
+instrument_type,61,QTOF,,QTOF
+instrument_type,62,QqQ,,triple quadrupole
+instrument_type,63,Qtof,,QTOF
+instrument_type,64,Quattro_QQQ:10eV,,triple quadrupole
+instrument_type,65,Quattro_QQQ:25eV,,triple quadrupole
+instrument_type,66,Quattro_QQQ:40eV,,triple quadrupole
+instrument_type,67,SI-BE,,other
+instrument_type,68,"SYNAPT QTOF, Waters",,QTOF
+instrument_type,69,Thermo LTQ,,ion trap
+instrument_type,70,ToF,,TOF other
+instrument_type,71,Waters SYNAPT,,QTOF
+instrument_type,72,impact HD,,other
+instrument_type,73,in source CID,,other
+instrument_type,74,iontrap,,ion trap
+instrument_type,75,nan,,unknown
+instrument_type,76,orbitrap,,Orbitrap/FT hybrid
+instrument_type,77,qTOF,,QTOF
+instrument_type,78,qToF,,QTOF
+instrument_type,79,qTof,,QTOF
+instrument_type,80,qtof,,QTOF
+instrument_type,81,timsTOF,,timsTOF
+instrument_type,82,unknown,,unknown
+instrument_family,0,FT other,1,
+instrument_family,1,Orbitrap/FT hybrid,2,
+instrument_family,2,QTOF,4,
+instrument_family,3,TOF other,8,
+instrument_family,4,ion trap,16,
+instrument_family,5,other,32,
+instrument_family,6,timsTOF,64,
+instrument_family,7,triple quadrupole,128,
+instrument_family,8,unknown,256,

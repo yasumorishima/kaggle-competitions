@@ -1,0 +1,343 @@
+{
+  "dataset": "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
+  "files": {
+    "ATTRIBUTION.md": {
+      "bytes": 1150,
+      "sha256": "3da83ddc2bd1ca652e9ad613ab9c900193e944e30d63aeab4db1af46ccbee91f"
+    },
+    "FILE_DESCRIPTIONS.json": {
+      "bytes": 8834,
+      "sha256": "a135a4fe077acfc04f495558062f4d8be7187beef3f55f338242e68d239445ab"
+    },
+    "PANEL_REPLAY_PUBLIC.json": {
+      "bytes": 12742,
+      "sha256": "7c0a6839986feaae751bc69a60cfdffffb5702313a2027e9d08c3cabaeddc719"
+    },
+    "README.md": {
+      "bytes": 12450,
+      "sha256": "43c5f5f8203aef5c61e7e063a985be50891db59db674d99cc6a70680d8aded24"
+    },
+    "SOURCE_CHECK_20261019.md": {
+      "bytes": 1393,
+      "sha256": "66e20e11858f855cecb39ed1e947c10828214bd5dc762bf9c797cb00904d3b4e"
+    },
+    "SUMMARY.json": {
+      "bytes": 188,
+      "sha256": "d6db82749b9e71a00066313e756d388ffbc1a61fafeeb766449cabc37715f63b"
+    },
+    "VALIDATION_20261019.json": {
+      "bytes": 2715,
+      "sha256": "ffa6ee3eefa680ef28ccd7565e03d4ba6b8c7286f765aab637e6f7afed578e54"
+    },
+    "aligned_public_priors.py": {
+      "bytes": 1178,
+      "sha256": "89873c7312c16be2180d44bb9eb3c4e9ce19c821e74ab92bb41666ea0c0f9248"
+    },
+    "casmi26-identity-disjoint-validation-folds/README.md": {
+      "bytes": 4354,
+      "sha256": "8fa67555aedccf085f71aa82e76dd158fdd73341518b91e639cb90a18c070dce"
+    },
+    "casmi26-identity-disjoint-validation-folds/SUMMARY.json": {
+      "bytes": 1299,
+      "sha256": "d01e89f166e9daef483262f9f05d74d3b94138f6842437ac72c3e08933e2b057"
+    },
+    "casmi26-identity-disjoint-validation-folds/build_folds.py": {
+      "bytes": 8031,
+      "sha256": "b837474eccf3922c8517c00bce0166edd34e53115e43298696381b52e05e38e4"
+    },
+    "casmi26-identity-disjoint-validation-folds/spectra_folds.parquet": {
+      "bytes": 23678772,
+      "sha256": "68446abc365cd0a175c8fcf8081828989e92a65d3493312848792d3465d91403",
+      "rows": 2539608,
+      "dtypes": {
+        "row": "int32",
+        "inchikey14": "large_string",
+        "identity_group": "int32",
+        "fold_identity": "int8",
+        "fold_scaffold": "int8"
+      }
+    },
+    "casmi26-identity-disjoint-validation-folds/structures.parquet": {
+      "bytes": 23795229,
+      "sha256": "7c16c4968a15956e94eba58e3ff94d4a6c2f6899b10a2f2824047601a46bd6c8",
+      "rows": 277566,
+      "dtypes": {
+        "inchikey14": "large_string",
+        "scorer_key": "large_string",
+        "alias": "bool",
+        "smiles": "large_string",
+        "formula": "large_string",
+        "mono_mass": "double",
+        "n_heavy": "int64",
+        "scaffold": "large_string",
+        "identity_group": "int64",
+        "scaffold_group": "int64",
+        "fold_identity": "int8",
+        "fold_scaffold": "int8",
+        "n_spectra": "int64",
+        "n_enveda_spectra": "int64",
+        "n_pos": "int64",
+        "libs": "large_string"
+      }
+    },
+    "dataset-metadata.json": {
+      "bytes": 12915,
+      "sha256": "53b9a0a199b13f37a1b33d3b4396900b5b41d991b552c4f2728709033882811b"
+    },
+    "fpnet_window_eval.py": {
+      "bytes": 3791,
+      "sha256": "3f4b99080516bd19688b6517ece4db4acc8052367eb4a628c81ef2569dc07005"
+    },
+    "gate_diagnostics.csv": {
+      "bytes": 365797,
+      "sha256": "07bf47a47b5119e9a6dc0e7e61654c9e4db366a71e5249002f5533ca47311836"
+    },
+    "gate_eval.py": {
+      "bytes": 4731,
+      "sha256": "6981fcc607f3a37f312c7444f318cde3d9c24fd0dc1d44ede4f2646d388bb44f"
+    },
+    "identity_audit.json": {
+      "bytes": 41499,
+      "sha256": "99a0350ec9b0e967e4d60154f3598c46d07f6b4ff3aa2257eeda1a78210d5dda"
+    },
+    "main_candidates.parquet": {
+      "bytes": 1639248,
+      "sha256": "63854375ebd0f3242e31e31069363b497f1fd80a2bfcb3222ee69a848e74ae67",
+      "rows": 89418,
+      "dtypes": {
+        "scenario": "dictionary<values=string, indices=int8, ordered=0>",
+        "molecule": "dictionary<values=string, indices=int16, ordered=0>",
+        "rank": "int64",
+        "candidate_key": "large_string",
+        "ranker_score": "float",
+        "formula": "large_string",
+        "pool_row": "int64",
+        "popularity": "float",
+        "pool_source": "int8",
+        "is_truth": "bool",
+        "lib_max": "float"
+      }
+    },
+    "main_eval.py": {
+      "bytes": 8183,
+      "sha256": "c964f41bd119714c42457e55c1413e0d047bb74f6d1886a6ac128d05eae5f833"
+    },
+    "main_tables.py": {
+      "bytes": 6758,
+      "sha256": "5fe5a58df457499b4a858e5a4b8e286af98b61e0ef7b3c4efe139bfeef6b0423"
+    },
+    "merge_eval.py": {
+      "bytes": 6323,
+      "sha256": "84987a423f675b8e5bfa6fc81dfc01cb17a3b76145f5f8c7581bf4f4851979c6"
+    },
+    "np_eval.py": {
+      "bytes": 8643,
+      "sha256": "0e6ef7e99425371ad2d0dbed7fac2678070332d6082efd9eba413a3ccb6232a2"
+    },
+    "np_poolfz.py": {
+      "bytes": 3554,
+      "sha256": "8507129d86e2836921d25bf899991340d2441b331c75d39fb519ce7b0daad3fd"
+    },
+    "np_tables.py": {
+      "bytes": 8155,
+      "sha256": "ef73cac738ebd5dce839b16144e663edd5e27967e810d9d84c63585e26a9e736"
+    },
+    "panel.parquet": {
+      "bytes": 23269,
+      "sha256": "93469d9bd7e51f9e0c2e891f59844a1ffc56c0921035110495b598c9b4e52eb3",
+      "rows": 250,
+      "dtypes": {
+        "molecule": "large_string",
+        "measured_neutral_mass": "double",
+        "true_mass": "double",
+        "mass_error_ppm": "double",
+        "n_spectra": "int64",
+        "n_sid": "int64",
+        "adducts": "large_string",
+        "modes": "large_string",
+        "n_pubchem_window": "int64",
+        "n_truth_rows_pubchem": "int64",
+        "in_coconut": "bool",
+        "n_pool_window": "int64",
+        "truth_pool_rank_fpnet": "int64"
+      }
+    },
+    "panel_fpnet_per_molecule.csv": {
+      "bytes": 270090,
+      "sha256": "3f0fb337dd8014e07639973a56eaf2e8d4a86e83ae1c7c15663480eabe621ee6"
+    },
+    "panel_fpnet_scores.parquet": {
+      "bytes": 51937874,
+      "sha256": "e06f88459ae088932d45e93eefe7dceff68bd9f80e34f73601b2639946215226",
+      "rows": 1939476,
+      "dtypes": {
+        "molecule": "dictionary<values=string, indices=int16, ordered=0>",
+        "tier_row": "int64",
+        "candidate_row": "int32",
+        "ab_full": "float",
+        "fold0_full": "float",
+        "ab_partial": "float",
+        "fold0_partial": "float"
+      }
+    },
+    "panel_logits.npz": {
+      "bytes": 20466740,
+      "sha256": "383e4d9aaaecd8bda1277851064cce840887b733c48477ce5099b71b0152403d"
+    },
+    "panel_metric_identities.parquet": {
+      "bytes": 926118,
+      "sha256": "4b8f5d342dea2845bed6dbaa8c790fd84b59f446d1f5af6b0e94ef79e4c6aa68",
+      "rows": 49319,
+      "dtypes": {
+        "candidate_row": "int32",
+        "molecule": "large_string",
+        "tier_row": "int64",
+        "scorer_key": "large_string",
+        "in_original_pool": "bool",
+        "in_replay_pool": "bool"
+      }
+    },
+    "panel_same_formula.parquet": {
+      "bytes": 8342392,
+      "sha256": "b7442441146f227f2db7e4a5dee458cd173d8304641080b69c87dbc0a5c3d7c7",
+      "rows": 1939476,
+      "dtypes": {
+        "molecule": "large_string",
+        "tier_row": "int64",
+        "same_formula": "bool"
+      }
+    },
+    "panel_tier_formulas.parquet": {
+      "bytes": 8209234,
+      "sha256": "29069629e529a9aa44d07ccfcfcd745eb27d26526d8191dff2136cee9a2be703",
+      "rows": 1875318,
+      "dtypes": {
+        "tier_row": "int64",
+        "formula": "large_string"
+      }
+    },
+    "panel_truth_formula.parquet": {
+      "bytes": 7962,
+      "sha256": "814f7acd3dd0b13ca52d0f9c88959c618091779ccd2296c075385903cd33ac7c",
+      "rows": 250,
+      "dtypes": {
+        "molecule": "large_string",
+        "formula": "large_string"
+      }
+    },
+    "prior_replay.json": {
+      "bytes": 1686,
+      "sha256": "ef87576e2b88ceb91e1385e95ea37a355b74e2b8f161a10cb857f6894099f349"
+    },
+    "prior_rule_per_query.parquet": {
+      "bytes": 11658,
+      "sha256": "a47c2b1b266ed3380c72196a402b3a749f915f5f969850328f27f907564db472",
+      "rows": 1250,
+      "dtypes": {
+        "molecule": "large_string",
+        "rule": "large_string",
+        "mrr25": "double",
+        "truth_present": "bool",
+        "identities": "int64"
+      }
+    },
+    "prior_rule_summary.csv": {
+      "bytes": 386,
+      "sha256": "2b527405e112b271001d4b3d31d71975a24d63f1e336dd86a3ec93b1a1dfbc6a"
+    },
+    "pubchem_candidates.parquet": {
+      "bytes": 76440916,
+      "sha256": "be20481af52e2b7485ed204685d88b71271bdc6a34a51c30c1745be1d42d1666",
+      "rows": 1939476,
+      "dtypes": {
+        "molecule": "dictionary<values=string, indices=int16, ordered=0>",
+        "tier_row": "int64",
+        "partial_score": "float",
+        "fpnet_score": "float",
+        "connectivity": "large_string",
+        "scorer_key": "large_string",
+        "is_truth": "bool",
+        "in_pool": "bool",
+        "log_substances": "float",
+        "log_pubmed": "float",
+        "log_patents": "float",
+        "np_flags": "uint8",
+        "cid": "int32"
+      }
+    },
+    "pubchem_signals.parquet": {
+      "bytes": 22547350,
+      "sha256": "d8cc2df0bb2bed4259b7b8850508ebcd8ccf7c4158e33d10eca7c05df7b2785a",
+      "rows": 1939476,
+      "dtypes": {
+        "molecule": "large_string",
+        "tier_row": "int64",
+        "candidate_row": "int32",
+        "lotus_refs": "uint16",
+        "pubchemlite_member": "bool",
+        "lsid": "halffloat",
+        "lpmid": "halffloat",
+        "np": "uint8",
+        "src_mask": "uint16",
+        "pop": "float",
+        "np_member": "bool",
+        "spectral_source": "bool",
+        "prior_v10": "float",
+        "same_formula": "bool"
+      }
+    },
+    "pubchemlite_annotations.parquet": {
+      "bytes": 20691645,
+      "sha256": "ab99875f69cd017edc164365c5a554cb6304b5360be2c0547a1651cfd8e641d1",
+      "rows": 385760,
+      "dtypes": {
+        "pubchemlite_row": "int32",
+        "candidate_key": "large_string",
+        "ik14": "large_string",
+        "tier_row": "int64",
+        "tier_match_count": "int32",
+        "pool_row": "int32",
+        "cid": "int32",
+        "lsid": "halffloat",
+        "lpmid": "halffloat",
+        "lpatent": "halffloat",
+        "np": "uint8",
+        "src_mask": "uint16",
+        "n_depositors": "uint16",
+        "n_vendors": "uint16",
+        "lmesh": "halffloat",
+        "lotus_refs": "uint16"
+      }
+    },
+    "replay_public_priors.py": {
+      "bytes": 4283,
+      "sha256": "a6d1667f55b3778a5b89d2e1cc5b381b34637d783be01a79f00e6fdaa527f30c"
+    },
+    "results_fingerprint_seen_unseen.json": {
+      "bytes": 1989,
+      "sha256": "47a8c1f664417606df7ed791a45e78dc99c715535201ff6fc540c02bdd24cfd3"
+    },
+    "results_main_channel.json": {
+      "bytes": 10781,
+      "sha256": "22900fd5fa4b9307f3de66dd7ccf921da76d5882a2ea332778e131013678a53c"
+    },
+    "results_merge_rules.json": {
+      "bytes": 3494,
+      "sha256": "49f7e2db24de942d43e5f19141539667e1ae00396c7420dab715db70ffea0af9"
+    },
+    "results_pubchem_channel.json": {
+      "bytes": 6358,
+      "sha256": "f621c777c5f7547fddb923b7e8ea266283454241d46d165e06a4cd432dc89dc1"
+    },
+    "summarize_panel_fpnet.py": {
+      "bytes": 2015,
+      "sha256": "61e7a8ec23313ec0bc460ebbeb9d25adcf6261172609a5aeeff3ea42018007b1"
+    }
+  },
+  "validation": "VALIDATION_20261019.json",
+  "tags": [
+    "chemistry",
+    "biology",
+    "machine learning"
+  ]
+}

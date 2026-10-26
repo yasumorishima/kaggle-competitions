@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "dataset": "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
+  "unchanged_source_files_verified_by_inode_and_size": 22,
+  "source_stage": "build/build/casmi26-natural-product-panel-benchmark",
+  "runtime_cache_excluded": [],
+  "source_files_replaced": [
+    "README.md",
+    "dataset-metadata.json"
+  ],
+  "alignment_validation": {
+    "passed": true,
+    "tier_rows_checked": 105875489,
+    "tier_rows_matched_to_knowledge": 585385,
+    "tier_rows_with_lotus_refs": 575420,
+    "lotus_log_prior_max_abs_error": 0.0,
+    "knowledge_rows_checked": 152717,
+    "pubchemlite_rows_checked": 385760,
+    "panel_rows_checked": 1939476,
+    "pubchemlite_tier_matched": 332883,
+    "knowledge_pool_flag_disagreements": 8,
+    "old_documentation_benchmark_reproduced": 0.8034484126984126,
+    "elapsed_seconds": 37.7067666053772,
+    "method": "independent hash-index scan of all tier rows; exact indexed equality for every cache row; all unmatched documentation rows zero; original log-prior precision preserved",
+    "new_files": {
+      "casmi26-pubchem-popularity-prior/pc_lotus_refs.npy": {
+        "bytes": 211751106,
+        "sha256": "7edcd7c44b1dbe282d276ef88de53a437dc8edb6629440fe4406585438470117"
+      },
+      "casmi26-pubchem-popularity-prior/pool_lotus_refs.npy": {
+        "bytes": 1421530,
+        "sha256": "5031550142e42a1e7c48695fe01e404c6cd097f8650be0377d68031a0695b62a"
+      },
+      "casmi26-pubchem-popularity-prior/pubchemlite_annotations.parquet": {
+        "bytes": 20691645,
+        "sha256": "ab99875f69cd017edc164365c5a554cb6304b5360be2c0547a1651cfd8e641d1"
+      },
+      "casmi26-natural-product-knowledge-table/candidate_joins.parquet": {
+        "bytes": 7019710,
+        "sha256": "192b99074582dc552b09ec029daf4937ccf97e579205ce428545104a0d232d53"
+      },
+      "casmi26-natural-product-panel-benchmark/pubchem_signals.parquet": {
+        "bytes": 22547350,
+        "sha256": "d8cc2df0bb2bed4259b7b8850508ebcd8ccf7c4158e33d10eca7c05df7b2785a"
+      }
+    }
+  },
+  "split_audit": null,
+  "public_panel_prediction_validation": {
+    "candidate_rows": 1939476,
+    "logit_molecules": 250,
+    "logit_bits": 10226,
+    "finite_candidate_rows": 1939377,
+    "nan_candidate_rows": 99,
+    "exact_identity_rows": 49319,
+    "exact_identity_molecules": 246,
+    "cached_summary_and_bootstrap_reproduced": true,
+    "split_audit": "SPLIT_AUDIT.json"
+  },
+  "hashes": "All final files are pinned in MANIFEST_DS5.json; that manifest is pinned by the release report.",
+  "source_payload_refresh": false,
+  "public_data_only": true,
+  "snapshot_scope": "Historical 2026-10-19 source snapshot. Counts and hashes below describe that snapshot, not the LOTUS 2026-04-13 overlay.",
+  "superseded_for_current_payload_by": "VALIDATION_20261020.json"
+}

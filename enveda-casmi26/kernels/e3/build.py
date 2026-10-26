@@ -132,6 +132,8 @@ ownpcnp = _arg("ownpcnp", 0.0)        # ours (10-22), > 0: own PubChem tier (>= 
 bt = _arg("bt", 0, int)               # ours (10-22), 1: biotransformation neighbours of pool / training structures at the test masses join engine 2's pool (ours_bt.py)
 n1b = _arg("n1b", 0.0)              # ours (10-23), S > 0: N1 / challenger GLACIER proxy budget on the scoring rerun (base 1,200 s; for CPU kernels)
 icepar = _arg("icepar", 0, int)       # ours (10-23), N > 1: ICEBERG in N parallel CPU runner processes (ours_icepar.py; same budget)
+fpe = _arg("fpe", 0, int)             # ours (10-26), 1: f465 PubChem channel FPNet = A, B + mean of the 5 fold-safe FPNets (was fold0 alone)
+ebe = _arg("ebe", 0, int)             # ours (10-26), 1: f465 engine FP bank = fpnet_full1 (1/2) + mean of the 5 fold-safe FPNets (1/2)
 nnw = _arg("nn", 0.0)              # port (10-25), W > 0: sanpier neural rerank of the final 25 (casmi-spectrum-model-v1), RRF weight W, offset 3 (nn_port/)
 ownco = _arg("ownco", 0, int)         # ours (10-21), 1: our own COCONUT table (yasunorim/casmi26-own-coconut-candidates) adds its structures not yet in engine 2's pool
 gg = _arg("gg", 0, int)               # v15 only, 1: saddamaditya's group-gap fragment step (a451 cells 32-33, Apache-2.0) ported in
@@ -913,6 +915,43 @@ print('ours MMP', 'ON' if MMP_ON else 'OFF', OURS_MCFG, f'{{time.time()-T0:.0f}}
     _ib = find_cell("'''all molecules -> base lists")
     cells.insert(_ib + 1, code_cell("# ==== ours (yasunorim): MMP summary ====\nif MMP_ON:\n    print('MMP stats', ours_mmp.STATS, flush=True)\n"))
 
+if fpe or ebe:   # F. ours (10-26): fold-safe FPNet ensemble (dmitriigluzdov/casmi26-fold-safe-fpnet holds 5 models, each
+    # trained without one identity-disjoint fold and without the NP panel; the base uses only fold0)
+    assert base == "f465", "fpe / ebe are written for the f465 frozen pipeline"
+    if fpe:
+        _hits = [i for i, c in enumerate(cells) if c["cell_type"] == "code" and "bank = fpnet.ModelBank(models + [fold0], device=dev)" in src(i)]
+        assert len(_hits) == 1, _hits
+        _c = src(_hits[0])
+        _old = "    bank = fpnet.ModelBank(models + [fold0], device=dev)\\n"
+        assert _c.count(_old) == 1, "fpe anchor"
+        _new = (_old
+                + "    try:  # ours (yasunorim, 10-26): fold0 alone -> mean of the 5 fold-safe FPNets (A, B keep 1/3 each)\\n"
+                + "        _of = sorted(glob.glob(os.path.join(os.path.dirname(fold0), \"fpnet_fold[0-4].pt\")))\\n"
+                + "        assert len(_of) == 5, _of\\n"
+                + "        _fm = [fpnet.load_model(p, dev) for p in _of]\\n"
+                + "        assert all(m.nbits == bank.nbits for m in _fm)\\n"
+                + "        bank.models = [bank.models[0]] * 5 + [bank.models[1]] * 5 + _fm\\n"
+                + "        print(\"ours fpe: PubChem FPNet = A, B + mean of 5 fold-safe models\", flush=True)\\n"
+                + "    except Exception as _fe:\\n"
+                + "        print(\"ours fpe skipped:\", repr(_fe), flush=True)\\n")
+        cells[_hits[0]]["source"] = _c.replace(_old, _new)
+    if ebe:
+        _ic = find_cell("'''v1 engine exactly as in v3.6")
+        _c = src(_ic)
+        _old = "bank = fpnet.ModelBank([_FULL[0] if _FULL else os.path.join(V4MOD, 'fpnet_0.pt')], device=dev)\n"
+        assert _c.count(_old) == 1, "ebe anchor"
+        _new = (_old
+                + "try:  # ours (yasunorim, 10-26): engine FP bank = full1 (1/2) + mean of the 5 fold-safe FPNets (1/2)\n"
+                + "    _of = sorted(glob.glob(str(FOLD / 'fpnet_fold[0-4].pt')))\n"
+                + "    assert _FULL and len(_of) == 5, _of\n"
+                + "    _fm = [fpnet.load_model(p, dev) for p in _of]\n"
+                + "    assert all(m.nbits == bank.nbits for m in _fm)\n"
+                + "    bank.models = [bank.models[0]] * 5 + _fm\n"
+                + "    print('ours ebe: engine FP bank = full1 + mean of 5 fold-safe models', flush=True)\n"
+                + "except Exception as _fe:\n"
+                + "    print('ours ebe skipped:', repr(_fe), flush=True)\n")
+        cells[_ic]["source"] = _c.replace(_old, _new)
+
 # Z. last cell (every build): drop the ICEBERG site tree from /kaggle/working. It holds > 500 files, and the kernel
 # output listing is paged at 500, so the workflow's `kaggle kernels output` never reached submission.csv
 # (e3mmp100c-2, 10-14). Only scratch directories go; submission.csv and the audit files stay.
@@ -1009,6 +1048,9 @@ cells.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
                  + ("This build adds nothing (reference run). " if denovo == 0 and mmp == 0 and fgap == 0 and nl == 0 and fp2gap == 0 and npl == 0 and txl == 0 and iceb == 0 and bfrag == 0 and not lfrag and fins == 0 else "")
                  + (f"Ported (not ours): sanpier's neural rerank of the final 25 ([PubChem + Neural025 - LB 0.466](https://www.kaggle.com/code/sanpier/pubchem-neural025-lb-0-466), "
                     f"model dataset sanpier/casmi-spectrum-model-v1), reciprocal-rank weight {nnw}, offset 3, as the last step. " if nnw > 0 else "")
+                 + ("Ours (fpe=1): the PubChem channel's fingerprint logits use the mean of the five fold-safe FPNets "
+                    "(dmitriigluzdov/casmi26-fold-safe-fpnet, each trained without one identity-disjoint fold) instead of fold0 alone. " if fpe else "")
+                 + ("Ours (ebe=1): the engine's FP bank averages fpnet_full1 (1/2) with the mean of the five fold-safe FPNets (1/2). " if ebe else "")
                  + "Built by enveda-casmi26/kernels/e3/build.py in github.com/yasumorishima/kaggle-competitions."})
 if nnw > 0:
     assert base == "f465", "nn ports sanpier's neural rerank, written for the f465 frozen pipeline (same sha256)"
@@ -1088,4 +1130,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
