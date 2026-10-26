@@ -1,0 +1,52 @@
+request: ds-panel-1
+run: 40248492444  status: success  action: dsfiles  dir: enveda-casmi26/requests  submit: no
+kernel:   version: 
+memo: Read dmitriigluzdov's natural-product panel benchmark and identity-disjoint folds docs/code (text only) to design a leak-free ranker retrain (10-24 audit part).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Dataset URL: https://www.kaggle.com/datasets/dmitriigluzdov/casmi26-natural-product-panel-benchmark
+License(s): other
+got panel_fpnet_per_molecule.csv 269574
+got results_pubchem_channel.json 6358
+got prior_replay.json 1685
+got replay_public_priors.py 4283
+got VALIDATION_20261020.json 11387
+got results_main_channel.json 10781
+got aligned_public_priors.py 1178
+got results_merge_rules.json 3494
+got gate_eval.py 4731
+got LOTUS_REFRESH.json 16926
+got CHANGED_FILES.json 4528
+got np_eval.py 8643
+got DIFFICULTY_METHOD.json 1848
+got np_tables.py 8155
+got np_poolfz.py 3554
+got results_fingerprint_seen_unseen.json 1989
+got main_eval.py 8183
+got SUMMARY.json 188
+got VALIDATION_20261019.json 2791
+got FILE_DESCRIPTIONS.json 5532
+got summarize_panel_fpnet.py 2015
+got TECHNICAL_NOTES.md 51233
+got merge_eval.py 6323
+got ATTRIBUTION.md 1150
+got gate_diagnostics.csv 364864
+got SOURCE_CHECK_20261019.md 1779
+got identity_audit.json 41499
+got README.md 8808
+got PANEL_REPLAY_PUBLIC.json 13121
+got fpnet_window_eval.py 3791
+got prior_rule_summary.csv 385
+got MANIFEST_20261019_2.json 2355
+got MANIFEST_20261019.json 11268
+got main_tables.py 6758
+got casmi26-identity-disjoint-validation-folds/SPLIT_METHOD.json 1415
+got casmi26-identity-disjoint-validation-folds/SUMMARY.json 1299
+got casmi26-identity-disjoint-validation-folds/TECHNICAL_NOTES.md 16681
+got casmi26-identity-disjoint-validation-folds/build_folds.py 8031
+got casmi26-identity-disjoint-validation-folds/split_categories.csv 4223
+got casmi26-identity-disjoint-validation-folds/README.md 5396
+got casmi26-identity-disjoint-validation-folds/MANIFEST_20261019_2.json 1262
+copied 41 files
+
+output files:

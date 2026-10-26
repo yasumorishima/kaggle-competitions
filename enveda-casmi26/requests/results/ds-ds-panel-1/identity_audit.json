@@ -1,0 +1,1724 @@
+[
+  {
+    "molecule": "AAWZDTNXLSGCEK",
+    "unique_smiles": 140,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 246
+  },
+  {
+    "molecule": "ACNHBCIZLNNLRS",
+    "unique_smiles": 63,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 15,
+    "rows_keyed": 74
+  },
+  {
+    "molecule": "ACWBQPMHZXGDFX",
+    "unique_smiles": 36,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 39
+  },
+  {
+    "molecule": "ADEBPBSSDYVVLD",
+    "unique_smiles": 40,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 4,
+    "rows_keyed": 45
+  },
+  {
+    "molecule": "AGOYDEPGAOXOCK",
+    "unique_smiles": 112,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 122,
+    "rows_keyed": 191
+  },
+  {
+    "molecule": "AIONOLUJZLIMTK",
+    "unique_smiles": 177,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 235
+  },
+  {
+    "molecule": "AMOGMTLMADGEOQ",
+    "unique_smiles": 133,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 138,
+    "rows_keyed": 238
+  },
+  {
+    "molecule": "ANJTVLIZGCUXLD",
+    "unique_smiles": 70,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 79
+  },
+  {
+    "molecule": "APAJFZPFBHMFQR",
+    "unique_smiles": 51,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 51
+  },
+  {
+    "molecule": "AQCHWTWZEMGIFD",
+    "unique_smiles": 46,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 53
+  },
+  {
+    "molecule": "ASUTZQLVASHGKV",
+    "unique_smiles": 133,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 22,
+    "rows_keyed": 177
+  },
+  {
+    "molecule": "ATBZZQPALSPNMF",
+    "unique_smiles": 61,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 67
+  },
+  {
+    "molecule": "AUVVAXYIELKVAI",
+    "unique_smiles": 71,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 25,
+    "rows_keyed": 96
+  },
+  {
+    "molecule": "BBMULGJBVDDDNI",
+    "unique_smiles": 110,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 46,
+    "rows_keyed": 167
+  },
+  {
+    "molecule": "BDCDNTVZSILEOY",
+    "unique_smiles": 133,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 20,
+    "rows_keyed": 217
+  },
+  {
+    "molecule": "BHQCQFFYRZLCQQ",
+    "unique_smiles": 293,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 239,
+    "rows_keyed": 546
+  },
+  {
+    "molecule": "BJRNKVDFDLYUGJ",
+    "unique_smiles": 77,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 38,
+    "rows_keyed": 149
+  },
+  {
+    "molecule": "BLGXFZZNTVWLAY",
+    "unique_smiles": 145,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 64,
+    "rows_keyed": 326
+  },
+  {
+    "molecule": "BMLIIPOXVWESJG",
+    "unique_smiles": 146,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 24,
+    "rows_keyed": 250
+  },
+  {
+    "molecule": "BXNJHAXVSOCGBA",
+    "unique_smiles": 61,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 61
+  },
+  {
+    "molecule": "CEUORZQYGODEFX",
+    "unique_smiles": 50,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 57
+  },
+  {
+    "molecule": "CGIGDMFJXJATDK",
+    "unique_smiles": 48,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 59
+  },
+  {
+    "molecule": "CHERCCPWQNZOOH",
+    "unique_smiles": 62,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 2,
+    "rows_keyed": 62
+  },
+  {
+    "molecule": "CJDRUOGAGYHKKD",
+    "unique_smiles": 149,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 141,
+    "rows_keyed": 305
+  },
+  {
+    "molecule": "CJHYKSSBQRABTM",
+    "unique_smiles": 201,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 19,
+    "rows_keyed": 343
+  },
+  {
+    "molecule": "CKEXCBVNKRHAMX",
+    "unique_smiles": 158,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 245
+  },
+  {
+    "molecule": "CLEXYFLHGFJONT",
+    "unique_smiles": 91,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 149
+  },
+  {
+    "molecule": "CMKFQVZJOWHHDV",
+    "unique_smiles": 91,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 152
+  },
+  {
+    "molecule": "CRSFLLTWRCYNNX",
+    "unique_smiles": 99,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 21,
+    "rows_keyed": 150
+  },
+  {
+    "molecule": "CTRLABGOLIVAIY",
+    "unique_smiles": 76,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 84
+  },
+  {
+    "molecule": "CWVRJTMFETXNAD",
+    "unique_smiles": 95,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 82,
+    "rows_keyed": 208
+  },
+  {
+    "molecule": "CZMRCDWAGMRECN",
+    "unique_smiles": 526,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 169,
+    "rows_keyed": 2050
+  },
+  {
+    "molecule": "DATAGRPVKZEWHA",
+    "unique_smiles": 101,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 141
+  },
+  {
+    "molecule": "DBEPLOCGEIEOCV",
+    "unique_smiles": 100,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 149
+  },
+  {
+    "molecule": "DFMAXQKDIGCMTL",
+    "unique_smiles": 71,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 75
+  },
+  {
+    "molecule": "DOFJNFPSMUCECH",
+    "unique_smiles": 76,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 82
+  },
+  {
+    "molecule": "DOUMFZQKYFQNTF",
+    "unique_smiles": 69,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 103
+  },
+  {
+    "molecule": "DUXQKCCELUKXOE",
+    "unique_smiles": 134,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 25,
+    "rows_keyed": 213
+  },
+  {
+    "molecule": "DVGGLGXQSFURLP",
+    "unique_smiles": 163,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 34,
+    "rows_keyed": 308
+  },
+  {
+    "molecule": "DVSZTYJRXBBIFA",
+    "unique_smiles": 245,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 440,
+    "rows_keyed": 540
+  },
+  {
+    "molecule": "DWTTZBARDOXEAM",
+    "unique_smiles": 73,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 8,
+    "rows_keyed": 90
+  },
+  {
+    "molecule": "DXDRHHKMWQZJHT",
+    "unique_smiles": 89,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 135
+  },
+  {
+    "molecule": "FBPFZTCFMRRESA",
+    "unique_smiles": 75,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 29,
+    "rows_keyed": 105
+  },
+  {
+    "molecule": "FBWWXAGANVJTLU",
+    "unique_smiles": 307,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 522
+  },
+  {
+    "molecule": "FELGMEQIXOGIFQ",
+    "unique_smiles": 57,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 60
+  },
+  {
+    "molecule": "FFGPTBGBLSHEPO",
+    "unique_smiles": 50,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 50
+  },
+  {
+    "molecule": "FSNCEEGOMTYXKY",
+    "unique_smiles": 73,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 84
+  },
+  {
+    "molecule": "FTVWIRXFELQLPI",
+    "unique_smiles": 126,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 4,
+    "rows_keyed": 189
+  },
+  {
+    "molecule": "FVYXIJYOAGAUQK",
+    "unique_smiles": 79,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 122
+  },
+  {
+    "molecule": "FXNFHKRTJBSTCS",
+    "unique_smiles": 112,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 119
+  },
+  {
+    "molecule": "GBOGMAARMMDZGR",
+    "unique_smiles": 107,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 57,
+    "rows_keyed": 201
+  },
+  {
+    "molecule": "GBXSMTUPTTWBMN",
+    "unique_smiles": 96,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 22,
+    "rows_keyed": 129
+  },
+  {
+    "molecule": "GFNANZIMVAIWHM",
+    "unique_smiles": 92,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 67,
+    "rows_keyed": 170
+  },
+  {
+    "molecule": "GGJRAQULURVTAJ",
+    "unique_smiles": 137,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 13,
+    "rows_keyed": 264
+  },
+  {
+    "molecule": "GGXICVAJURFBLW",
+    "unique_smiles": 114,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 48,
+    "rows_keyed": 195
+  },
+  {
+    "molecule": "GMBQZIIUCVWOCD",
+    "unique_smiles": 483,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 192,
+    "rows_keyed": 1035
+  },
+  {
+    "molecule": "GRBXNADBNJGZRK",
+    "unique_smiles": 233,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 10,
+    "rows_keyed": 358
+  },
+  {
+    "molecule": "GYSCAQFHASJXRS",
+    "unique_smiles": 59,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 21,
+    "rows_keyed": 82
+  },
+  {
+    "molecule": "GZSOSUNBTXMUFQ",
+    "unique_smiles": 274,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 499
+  },
+  {
+    "molecule": "GZYPWOGIYAIIPV",
+    "unique_smiles": 131,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 56,
+    "rows_keyed": 166
+  },
+  {
+    "molecule": "HDACQVRGBOVJII",
+    "unique_smiles": 93,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 49,
+    "rows_keyed": 139
+  },
+  {
+    "molecule": "HDOVUKNUBWVHOX",
+    "unique_smiles": 54,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 61
+  },
+  {
+    "molecule": "HELXLJCILKEWJH",
+    "unique_smiles": 88,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 46,
+    "rows_keyed": 126
+  },
+  {
+    "molecule": "HEYZWPRKKUGDCR",
+    "unique_smiles": 114,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 30,
+    "rows_keyed": 193
+  },
+  {
+    "molecule": "HGJXAVROWQLCTP",
+    "unique_smiles": 102,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 36,
+    "rows_keyed": 139
+  },
+  {
+    "molecule": "HHJUWIANJFBDHT",
+    "unique_smiles": 64,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 33,
+    "rows_keyed": 81
+  },
+  {
+    "molecule": "HPNSFSBZBAHARI",
+    "unique_smiles": 68,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 102
+  },
+  {
+    "molecule": "HSHNITRMYYLLCV",
+    "unique_smiles": 75,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 83
+  },
+  {
+    "molecule": "HSMPDPBYAYSOBC",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 61
+  },
+  {
+    "molecule": "HUSISCNTLUEZCN",
+    "unique_smiles": 60,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 27,
+    "rows_keyed": 90
+  },
+  {
+    "molecule": "HYBRYAPKQCZIAE",
+    "unique_smiles": 115,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 150
+  },
+  {
+    "molecule": "HYFHYPWGAURHIV",
+    "unique_smiles": 81,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 29,
+    "rows_keyed": 123
+  },
+  {
+    "molecule": "IECPWNUMDGFDKC",
+    "unique_smiles": 216,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 104,
+    "rows_keyed": 345
+  },
+  {
+    "molecule": "IEDVJHCEMCRBQM",
+    "unique_smiles": 43,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 51
+  },
+  {
+    "molecule": "IFIQVSCCFRXSJV",
+    "unique_smiles": 276,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 37,
+    "rows_keyed": 501
+  },
+  {
+    "molecule": "IKGXIBQEEMLURG",
+    "unique_smiles": 430,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 126,
+    "rows_keyed": 896
+  },
+  {
+    "molecule": "IKIIZLYTISPENI",
+    "unique_smiles": 118,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 36,
+    "rows_keyed": 197
+  },
+  {
+    "molecule": "IKMDFBPHZNJCSN",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 60
+  },
+  {
+    "molecule": "ILEDWLMCKZNDJK",
+    "unique_smiles": 55,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 55
+  },
+  {
+    "molecule": "IOUVKUPGCMBWBT",
+    "unique_smiles": 145,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 31,
+    "rows_keyed": 222
+  },
+  {
+    "molecule": "IPVQLZZIHOAWMC",
+    "unique_smiles": 71,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 56,
+    "rows_keyed": 117
+  },
+  {
+    "molecule": "IQHUITKNHOKGFC",
+    "unique_smiles": 92,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 10,
+    "rows_keyed": 133
+  },
+  {
+    "molecule": "IVOMOUWHDPKRLL",
+    "unique_smiles": 60,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 29,
+    "rows_keyed": 89
+  },
+  {
+    "molecule": "IYGYMKDQCDOMRE",
+    "unique_smiles": 72,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 8,
+    "rows_keyed": 93
+  },
+  {
+    "molecule": "JDUWHZOLEDOQSR",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 0,
+    "rows_keyed": 62
+  },
+  {
+    "molecule": "JUVIOZPCNVVQFO",
+    "unique_smiles": 108,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 14,
+    "rows_keyed": 131
+  },
+  {
+    "molecule": "JXLYSJRDGCGARV",
+    "unique_smiles": 121,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 74,
+    "rows_keyed": 190
+  },
+  {
+    "molecule": "JXSVIVRDWWRQRT",
+    "unique_smiles": 488,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 84,
+    "rows_keyed": 835
+  },
+  {
+    "molecule": "JYGXADMDTFJGBT",
+    "unique_smiles": 181,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 92,
+    "rows_keyed": 322
+  },
+  {
+    "molecule": "JYXSWDCPHRTYGU",
+    "unique_smiles": 443,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 40,
+    "rows_keyed": 962
+  },
+  {
+    "molecule": "KBDSLGBFQAGHBE",
+    "unique_smiles": 107,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 63,
+    "rows_keyed": 171
+  },
+  {
+    "molecule": "KKRXDNYRUZGPFM",
+    "unique_smiles": 43,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 44
+  },
+  {
+    "molecule": "KLLGGGQNRTVBSU",
+    "unique_smiles": 113,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 14,
+    "rows_keyed": 284
+  },
+  {
+    "molecule": "KLWSYWJRTXQLGN",
+    "unique_smiles": 74,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 20,
+    "rows_keyed": 98
+  },
+  {
+    "molecule": "KPYSYYIEGFHWSV",
+    "unique_smiles": 97,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 128
+  },
+  {
+    "molecule": "KQNZDYYTLMIZCT",
+    "unique_smiles": 110,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 87,
+    "rows_keyed": 245
+  },
+  {
+    "molecule": "KSQNKZMAMGACTL",
+    "unique_smiles": 66,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 71
+  },
+  {
+    "molecule": "KTGFOCFYOZQVRJ",
+    "unique_smiles": 106,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 126
+  },
+  {
+    "molecule": "KTZNZCYTXQYEHT",
+    "unique_smiles": 72,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 89
+  },
+  {
+    "molecule": "KWBPKUMWVXUSCA",
+    "unique_smiles": 113,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 42,
+    "rows_keyed": 188
+  },
+  {
+    "molecule": "KYWSCMDFVARMPN",
+    "unique_smiles": 224,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 60,
+    "rows_keyed": 356
+  },
+  {
+    "molecule": "LESXFEZIFXFIQR",
+    "unique_smiles": 114,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 174
+  },
+  {
+    "molecule": "LLQCRTZROWMVOL",
+    "unique_smiles": 377,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 16,
+    "rows_keyed": 665
+  },
+  {
+    "molecule": "LPMXVESGRSUGHW",
+    "unique_smiles": 105,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 131,
+    "rows_keyed": 196
+  },
+  {
+    "molecule": "LSQZJLSUYDQPKJ",
+    "unique_smiles": 72,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 45,
+    "rows_keyed": 120
+  },
+  {
+    "molecule": "LVVKXRQZSRUVPY",
+    "unique_smiles": 123,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 171
+  },
+  {
+    "molecule": "LXNHXLLTXMVWPM",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 63
+  },
+  {
+    "molecule": "LZFZMUMEGBBDTC",
+    "unique_smiles": 72,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 14,
+    "rows_keyed": 102
+  },
+  {
+    "molecule": "MALFODICFSIXPO",
+    "unique_smiles": 82,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 30,
+    "rows_keyed": 129
+  },
+  {
+    "molecule": "MATGKVZWFZHCLI",
+    "unique_smiles": 124,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 7,
+    "rows_keyed": 194
+  },
+  {
+    "molecule": "MBNGWHIJMBWFHU",
+    "unique_smiles": 148,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 168
+  },
+  {
+    "molecule": "MBRLOUHOWLUMFF",
+    "unique_smiles": 68,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 80
+  },
+  {
+    "molecule": "MFWNKCLOYSRHCJ",
+    "unique_smiles": 59,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 78
+  },
+  {
+    "molecule": "MGJLSBDCWOSMHL",
+    "unique_smiles": 110,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 24,
+    "rows_keyed": 171
+  },
+  {
+    "molecule": "MKUXAQIIEYXACX",
+    "unique_smiles": 42,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 44
+  },
+  {
+    "molecule": "MSUDDHFTWMZEIJ",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 0,
+    "rows_keyed": 75
+  },
+  {
+    "molecule": "MXYUKLILVYORSK",
+    "unique_smiles": 72,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 101
+  },
+  {
+    "molecule": "NDUAXKHGCJIYEQ",
+    "unique_smiles": 138,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 168,
+    "rows_keyed": 233
+  },
+  {
+    "molecule": "NGSWKAQJJWESNS",
+    "unique_smiles": 97,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 147
+  },
+  {
+    "molecule": "NODILNFGTFIURN",
+    "unique_smiles": 128,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 71,
+    "rows_keyed": 222
+  },
+  {
+    "molecule": "NTBUBTCXACOEEC",
+    "unique_smiles": 110,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 124
+  },
+  {
+    "molecule": "NWBJYWHLCVSVIJ",
+    "unique_smiles": 50,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 50
+  },
+  {
+    "molecule": "NYHBQMYGNKIUIF",
+    "unique_smiles": 118,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 45,
+    "rows_keyed": 236
+  },
+  {
+    "molecule": "OGWKCGZFUXNPDA",
+    "unique_smiles": 87,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 125
+  },
+  {
+    "molecule": "OIGNJSKKLXVSLS",
+    "unique_smiles": 166,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 63,
+    "rows_keyed": 280
+  },
+  {
+    "molecule": "OQIQSTLJSLGHID",
+    "unique_smiles": 102,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 7,
+    "rows_keyed": 109
+  },
+  {
+    "molecule": "ORJVQPIHKOARKV",
+    "unique_smiles": 65,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 72
+  },
+  {
+    "molecule": "OZWKMVRBQXNZKK",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 62
+  },
+  {
+    "molecule": "PCZOHLXUXFIOCF",
+    "unique_smiles": 191,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 99,
+    "rows_keyed": 335
+  },
+  {
+    "molecule": "PFTAWBLQPZVEMU",
+    "unique_smiles": 117,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 12,
+    "rows_keyed": 161
+  },
+  {
+    "molecule": "PHLBKPHSAVXXEF",
+    "unique_smiles": 51,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 54
+  },
+  {
+    "molecule": "PLAPMLGJVGLZOV",
+    "unique_smiles": 434,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 26,
+    "rows_keyed": 789
+  },
+  {
+    "molecule": "PNVNVHUZROJLTJ",
+    "unique_smiles": 57,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 68
+  },
+  {
+    "molecule": "PRAUVHZJPXOEIF",
+    "unique_smiles": 318,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 51,
+    "rows_keyed": 548
+  },
+  {
+    "molecule": "PSIFNNKUMBGKDQ",
+    "unique_smiles": 63,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 64
+  },
+  {
+    "molecule": "PZPPOCZWRGNKIR",
+    "unique_smiles": 67,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 36,
+    "rows_keyed": 103
+  },
+  {
+    "molecule": "QAIPRVGONGVQAS",
+    "unique_smiles": 94,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 119
+  },
+  {
+    "molecule": "QANMHLXAZMSUEX",
+    "unique_smiles": 45,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 45
+  },
+  {
+    "molecule": "QCHFTSOMWOSFHM",
+    "unique_smiles": 54,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 65
+  },
+  {
+    "molecule": "QEVHRUUCFGRFIF",
+    "unique_smiles": 75,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 43,
+    "rows_keyed": 110
+  },
+  {
+    "molecule": "QGXBDMJGAMFCBF",
+    "unique_smiles": 229,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 127,
+    "rows_keyed": 509
+  },
+  {
+    "molecule": "QIVBCDIJIAJPQS",
+    "unique_smiles": 73,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 89
+  },
+  {
+    "molecule": "QJPCKAJTLHDNCS",
+    "unique_smiles": 349,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 24,
+    "rows_keyed": 778
+  },
+  {
+    "molecule": "QKXGRPHIBLICSC",
+    "unique_smiles": 114,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 218
+  },
+  {
+    "molecule": "QPCYNIYZPDJCMB",
+    "unique_smiles": 70,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 90
+  },
+  {
+    "molecule": "QQTZGKRXYRFKIF",
+    "unique_smiles": 88,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 2,
+    "rows_keyed": 113
+  },
+  {
+    "molecule": "QXKHYNVANLEOEG",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 61
+  },
+  {
+    "molecule": "QYIYFLOTGYLRGG",
+    "unique_smiles": 70,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 20,
+    "rows_keyed": 92
+  },
+  {
+    "molecule": "RCFGIEPQSDGMJJ",
+    "unique_smiles": 89,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 5,
+    "rows_keyed": 130
+  },
+  {
+    "molecule": "RFDAIACWWDREDC",
+    "unique_smiles": 101,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 86,
+    "rows_keyed": 174
+  },
+  {
+    "molecule": "RGNXWPVNPFAADO",
+    "unique_smiles": 101,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 116
+  },
+  {
+    "molecule": "RHMXXJGYXNZAPX",
+    "unique_smiles": 119,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 126
+  },
+  {
+    "molecule": "RHVWQVSLVMXMBR",
+    "unique_smiles": 123,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 256
+  },
+  {
+    "molecule": "RKUNBYITZUJHSG",
+    "unique_smiles": 76,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 105
+  },
+  {
+    "molecule": "RMMXLENWKUUMAY",
+    "unique_smiles": 55,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 56
+  },
+  {
+    "molecule": "RNKMOGIPOMVCHO",
+    "unique_smiles": 93,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 128
+  },
+  {
+    "molecule": "RODXRVNMMDRFIK",
+    "unique_smiles": 83,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 89
+  },
+  {
+    "molecule": "RONZAEMNMFQXRA",
+    "unique_smiles": 73,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 82
+  },
+  {
+    "molecule": "RTIXKCRFFJGDFG",
+    "unique_smiles": 102,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 119
+  },
+  {
+    "molecule": "RUDATBOHQWOJDD",
+    "unique_smiles": 350,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 272,
+    "rows_keyed": 776
+  },
+  {
+    "molecule": "RWQKHEORZBHNRI",
+    "unique_smiles": 73,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 95
+  },
+  {
+    "molecule": "RXGUTQNKCXHALN",
+    "unique_smiles": 66,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 77
+  },
+  {
+    "molecule": "RXPRRQLKFXBCSJ",
+    "unique_smiles": 206,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 16,
+    "rows_keyed": 418
+  },
+  {
+    "molecule": "RYHLQSVMWLBCJO",
+    "unique_smiles": 102,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 133
+  },
+  {
+    "molecule": "RYMZZMVNJRMUDD",
+    "unique_smiles": 189,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 79,
+    "rows_keyed": 337
+  },
+  {
+    "molecule": "RYYVLZVUVIJVGH",
+    "unique_smiles": 59,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 60
+  },
+  {
+    "molecule": "RZGFUGXQKMEMOO",
+    "unique_smiles": 88,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 13,
+    "rows_keyed": 152
+  },
+  {
+    "molecule": "RZJQGNCSTQAWON",
+    "unique_smiles": 44,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 48
+  },
+  {
+    "molecule": "SDIVYZXRQHWCKF",
+    "unique_smiles": 69,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 70
+  },
+  {
+    "molecule": "SEEGHKWOBVVBTQ",
+    "unique_smiles": 162,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 31,
+    "rows_keyed": 255
+  },
+  {
+    "molecule": "SGEWCQFRYRRZDC",
+    "unique_smiles": 332,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 33,
+    "rows_keyed": 677
+  },
+  {
+    "molecule": "SHIBSTMRCDJXLN",
+    "unique_smiles": 322,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 63,
+    "rows_keyed": 742
+  },
+  {
+    "molecule": "SLYDIPAXCVVRNY",
+    "unique_smiles": 85,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 37,
+    "rows_keyed": 134
+  },
+  {
+    "molecule": "SPJFYYJXNPEZDW",
+    "unique_smiles": 47,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 7,
+    "rows_keyed": 60
+  },
+  {
+    "molecule": "SQFSKOYWJBQGKQ",
+    "unique_smiles": 121,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 126
+  },
+  {
+    "molecule": "SQOJOAFXDQDRGF",
+    "unique_smiles": 227,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 128,
+    "rows_keyed": 447
+  },
+  {
+    "molecule": "STECJAGHUSJQJN",
+    "unique_smiles": 100,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 53,
+    "rows_keyed": 187
+  },
+  {
+    "molecule": "STZYTFJPGGDRJD",
+    "unique_smiles": 63,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 32,
+    "rows_keyed": 76
+  },
+  {
+    "molecule": "SUBDBMMJDZJVOS",
+    "unique_smiles": 59,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 74
+  },
+  {
+    "molecule": "SYNOVMDJYWJCON",
+    "unique_smiles": 64,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 4,
+    "rows_keyed": 72
+  },
+  {
+    "molecule": "TWDKBDSVUUKABK",
+    "unique_smiles": 63,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 5,
+    "rows_keyed": 78
+  },
+  {
+    "molecule": "TZBJGXHYKVUXJN",
+    "unique_smiles": 98,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 111
+  },
+  {
+    "molecule": "TZJALUIVHRYQQB",
+    "unique_smiles": 113,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 44,
+    "rows_keyed": 179
+  },
+  {
+    "molecule": "UEDUENGHJMELGK",
+    "unique_smiles": 146,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 103,
+    "rows_keyed": 232
+  },
+  {
+    "molecule": "UIDGLYUNOUKLBM",
+    "unique_smiles": 316,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 575
+  },
+  {
+    "molecule": "UIKROCXWUNQSPJ",
+    "unique_smiles": 65,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 77
+  },
+  {
+    "molecule": "ULGZDMOVFRHVEP",
+    "unique_smiles": 146,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 173,
+    "rows_keyed": 266
+  },
+  {
+    "molecule": "UOZZDEYFDFKHQS",
+    "unique_smiles": 209,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 176,
+    "rows_keyed": 354
+  },
+  {
+    "molecule": "UPALKCDWIDYZDP",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 5,
+    "rows_keyed": 63
+  },
+  {
+    "molecule": "URFCJEUYXNAHFI",
+    "unique_smiles": 108,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 156
+  },
+  {
+    "molecule": "UYRHHBXYXSYGHA",
+    "unique_smiles": 54,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 54
+  },
+  {
+    "molecule": "UZKQTCBAMSWPJD",
+    "unique_smiles": 55,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 75
+  },
+  {
+    "molecule": "VAOCPAMSLUNLGC",
+    "unique_smiles": 46,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 49
+  },
+  {
+    "molecule": "VGEREEWJJVICBM",
+    "unique_smiles": 86,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 109
+  },
+  {
+    "molecule": "VGLABFRUPBCSOM",
+    "unique_smiles": 130,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 330
+  },
+  {
+    "molecule": "VHBFFQKBGNRLFZ",
+    "unique_smiles": 68,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 84
+  },
+  {
+    "molecule": "VNONINPVFQTJOC",
+    "unique_smiles": 169,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 76,
+    "rows_keyed": 280
+  },
+  {
+    "molecule": "VRSRXLJTYQVOHC",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 83
+  },
+  {
+    "molecule": "WCGUUGGRBIKTOS",
+    "unique_smiles": 726,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 117,
+    "rows_keyed": 1380
+  },
+  {
+    "molecule": "WIONIXOBNMDJFJ",
+    "unique_smiles": 48,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 59
+  },
+  {
+    "molecule": "WJXSWCUQABXPFS",
+    "unique_smiles": 80,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 81
+  },
+  {
+    "molecule": "WMBWREPUVVBILR",
+    "unique_smiles": 66,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 85
+  },
+  {
+    "molecule": "WOXKDUGGOYFFRN",
+    "unique_smiles": 57,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 67
+  },
+  {
+    "molecule": "WQMLFJWIKARBFW",
+    "unique_smiles": 162,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 38,
+    "rows_keyed": 259
+  },
+  {
+    "molecule": "WSQWAMGRHJQANC",
+    "unique_smiles": 143,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 176
+  },
+  {
+    "molecule": "WTDRDQBEARUVNC",
+    "unique_smiles": 86,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 113
+  },
+  {
+    "molecule": "WYJAPUKIYAZSEM",
+    "unique_smiles": 138,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 9,
+    "rows_keyed": 281
+  },
+  {
+    "molecule": "WYYCRMBIYYRAEW",
+    "unique_smiles": 141,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 48,
+    "rows_keyed": 257
+  },
+  {
+    "molecule": "XEVQXKKKAVVSMW",
+    "unique_smiles": 67,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 8,
+    "rows_keyed": 95
+  },
+  {
+    "molecule": "XFZJEEAOWLFHDH",
+    "unique_smiles": 161,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 54,
+    "rows_keyed": 309
+  },
+  {
+    "molecule": "XGYIMTFOTBMPFP",
+    "unique_smiles": 110,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 27,
+    "rows_keyed": 197
+  },
+  {
+    "molecule": "XHCADAYNFIFUHF",
+    "unique_smiles": 105,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 30,
+    "rows_keyed": 198
+  },
+  {
+    "molecule": "XJLATMLVMSFZBN",
+    "unique_smiles": 52,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 13,
+    "rows_keyed": 58
+  },
+  {
+    "molecule": "XJQPQKLURWNAAH",
+    "unique_smiles": 46,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 46
+  },
+  {
+    "molecule": "XKLMZUWKNUAPSZ",
+    "unique_smiles": 51,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 61
+  },
+  {
+    "molecule": "XNMUPDICNYMLBM",
+    "unique_smiles": 142,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 41,
+    "rows_keyed": 296
+  },
+  {
+    "molecule": "XNXXZRQPTAQILV",
+    "unique_smiles": 93,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 12,
+    "rows_keyed": 129
+  },
+  {
+    "molecule": "XOJVHLIYNSOZOO",
+    "unique_smiles": 163,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 24,
+    "rows_keyed": 302
+  },
+  {
+    "molecule": "XQCGNURMLWFQJR",
+    "unique_smiles": 173,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 47,
+    "rows_keyed": 298
+  },
+  {
+    "molecule": "XQYZDYMELSJDRZ",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 62
+  },
+  {
+    "molecule": "XRWQBDJPMXRDOQ",
+    "unique_smiles": 189,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 22,
+    "rows_keyed": 330
+  },
+  {
+    "molecule": "XUCIJNAGGSZNQT",
+    "unique_smiles": 94,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 55,
+    "rows_keyed": 154
+  },
+  {
+    "molecule": "XUFQPHANEAPEMJ",
+    "unique_smiles": 42,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 4,
+    "rows_keyed": 50
+  },
+  {
+    "molecule": "XVPBINOPNYFXID",
+    "unique_smiles": 119,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 30,
+    "rows_keyed": 203
+  },
+  {
+    "molecule": "XYYAFLHHHZVPRN",
+    "unique_smiles": 80,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 7,
+    "rows_keyed": 107
+  },
+  {
+    "molecule": "XZTUSOXSLKTKJQ",
+    "unique_smiles": 258,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 72,
+    "rows_keyed": 587
+  },
+  {
+    "molecule": "YGPSJZOEDVAXAB",
+    "unique_smiles": 85,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 106
+  },
+  {
+    "molecule": "YKJYKKNCCRKFSL",
+    "unique_smiles": 61,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 14,
+    "rows_keyed": 72
+  },
+  {
+    "molecule": "YKPUWZUDDOIDPM",
+    "unique_smiles": 53,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 66
+  },
+  {
+    "molecule": "YKRGDOXKVOZESV",
+    "unique_smiles": 167,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 83,
+    "rows_keyed": 286
+  },
+  {
+    "molecule": "YLHIVIHHVKLKEI",
+    "unique_smiles": 433,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 107,
+    "rows_keyed": 769
+  },
+  {
+    "molecule": "YRRAGUMVDQQZIY",
+    "unique_smiles": 56,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 59
+  },
+  {
+    "molecule": "YWJXCIXBAKGUKZ",
+    "unique_smiles": 65,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 37,
+    "rows_keyed": 102
+  },
+  {
+    "molecule": "YZMKFMIZNSOPSN",
+    "unique_smiles": 114,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 21,
+    "rows_keyed": 145
+  },
+  {
+    "molecule": "ZABDAGALHQDSEU",
+    "unique_smiles": 128,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 56,
+    "rows_keyed": 213
+  },
+  {
+    "molecule": "ZBHUUXLHDOUMKM",
+    "unique_smiles": 93,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 3,
+    "rows_keyed": 124
+  },
+  {
+    "molecule": "ZFXYFBGIUFBOJW",
+    "unique_smiles": 132,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 390
+  },
+  {
+    "molecule": "ZGLXUQQMLLIKAN",
+    "unique_smiles": 99,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 18,
+    "rows_keyed": 142
+  },
+  {
+    "molecule": "ZHSOTLOTTDYIIK",
+    "unique_smiles": 51,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 6,
+    "rows_keyed": 58
+  },
+  {
+    "molecule": "ZJTJUVIJVLLGSP",
+    "unique_smiles": 50,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 50
+  },
+  {
+    "molecule": "ZKLPARSLTMPFCP",
+    "unique_smiles": 58,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 5,
+    "rows_keyed": 70
+  },
+  {
+    "molecule": "ZNJFBWYDHIGLCU",
+    "unique_smiles": 59,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 19,
+    "rows_keyed": 84
+  },
+  {
+    "molecule": "ZRJBHWIHUMBLCN",
+    "unique_smiles": 51,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 22,
+    "rows_keyed": 69
+  },
+  {
+    "molecule": "ZTHLHHDJRXJGRX",
+    "unique_smiles": 103,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 106
+  },
+  {
+    "molecule": "ZWYQUVBAZLHTHP",
+    "unique_smiles": 91,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 123,
+    "rows_keyed": 188
+  },
+  {
+    "molecule": "ZZVUWRFHKOJYTH",
+    "unique_smiles": 52,
+    "nonempty_original_key_mismatches": [],
+    "pool_membership_changes": 1,
+    "rows_keyed": 60
+  }
+]

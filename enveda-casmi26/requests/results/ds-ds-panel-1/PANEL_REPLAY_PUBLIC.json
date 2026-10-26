@@ -1,0 +1,514 @@
+{
+  "producer": "Public cached panel replay; measurements reused without spectrum or fingerprint inference",
+  "source_report_sha256": "45fd34f8540a1058848a9468baf1f59b46cdf09fcf9fcac5346a5d3ea6df11cb",
+  "protocol": "original molecule_logits / first 16 spectra; measured 10ppm table; ECFP4 top5000 union pop200; full-score population z; v10 pop .15 with source .5, NP1, LOTUS .5ln(1+refs); pool excluded except truth; scored-identity collapse",
+  "predeclared_weights": [
+    0.0,
+    0.2,
+    0.3333333333333333,
+    0.5,
+    1.0
+  ],
+  "bootstrap": {
+    "seed": 20261019,
+    "replicates": 20000,
+    "unit": "molecule",
+    "interval": "percentile 95% paired delta"
+  },
+  "public_input_sha256": {
+    "panel": "93469d9bd7e51f9e0c2e891f59844a1ffc56c0921035110495b598c9b4e52eb3",
+    "candidates": "ac4d057c6772b5d276237a7fd6f5148b5eda39b2eec1c5bb09a2606166a368f3",
+    "bits": "c3869e86449d6fed6e79e9655f8a7d35bd55c3138ecddfc1dae5072627e78677",
+    "fold0": "ddf6eaaa8e541a16e3f0357ed30f0346e529054f75d5619aedb6024dcb1bd7f0"
+  },
+  "baseline_cached_score_max_abs_difference": 0.0029296875,
+  "summaries": [
+    {
+      "mode": "fp_only",
+      "weight": 0.0,
+      "n": 250,
+      "mrr25": 0.5119767131673311,
+      "top1": 0.4,
+      "truth_shortlisted": 0.98,
+      "mrr_ci95": [
+        0.4595475228375743,
+        0.5650416456236362
+      ],
+      "delta_mrr": 0.0,
+      "delta_mrr_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_mrr": 0,
+      "worse_mrr": 0,
+      "top1_ci95": [
+        0.34,
+        0.46
+      ],
+      "delta_top1": 0.0,
+      "delta_top1_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_top1": 0,
+      "worse_top1": 0,
+      "top1_identity_changed": 0
+    },
+    {
+      "mode": "fp_only",
+      "weight": 0.2,
+      "n": 250,
+      "mrr25": 0.5124989570637853,
+      "top1": 0.4,
+      "truth_shortlisted": 0.98,
+      "mrr_ci95": [
+        0.46010464208528573,
+        0.5656899236776444
+      ],
+      "delta_mrr": 0.0005222438964544229,
+      "delta_mrr_ci95": [
+        -0.0008161069705148649,
+        0.0022450081366002395
+      ],
+      "improved_mrr": 7,
+      "worse_mrr": 10,
+      "top1_ci95": [
+        0.34,
+        0.46
+      ],
+      "delta_top1": 0.0,
+      "delta_top1_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_top1": 0,
+      "worse_top1": 0,
+      "top1_identity_changed": 3
+    },
+    {
+      "mode": "fp_only",
+      "weight": 0.3333333333333333,
+      "n": 250,
+      "mrr25": 0.5145327360299173,
+      "top1": 0.4,
+      "truth_shortlisted": 0.98,
+      "mrr_ci95": [
+        0.461866358754092,
+        0.5673664393754119
+      ],
+      "delta_mrr": 0.00255602286258633,
+      "delta_mrr_ci95": [
+        0.00019359760380658253,
+        0.005447476228449909
+      ],
+      "improved_mrr": 11,
+      "worse_mrr": 10,
+      "top1_ci95": [
+        0.34,
+        0.46
+      ],
+      "delta_top1": 0.0,
+      "delta_top1_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_top1": 0,
+      "worse_top1": 0,
+      "top1_identity_changed": 7
+    },
+    {
+      "mode": "fp_only",
+      "weight": 0.5,
+      "n": 250,
+      "mrr25": 0.5136407834804403,
+      "top1": 0.396,
+      "truth_shortlisted": 0.98,
+      "mrr_ci95": [
+        0.46133030616396065,
+        0.5662976115469831
+      ],
+      "delta_mrr": 0.001664070313109215,
+      "delta_mrr_ci95": [
+        -0.006173075045155707,
+        0.009026549370283916
+      ],
+      "improved_mrr": 18,
+      "worse_mrr": 15,
+      "top1_ci95": [
+        0.336,
+        0.456
+      ],
+      "delta_top1": -0.004,
+      "delta_top1_ci95": [
+        -0.02,
+        0.008
+      ],
+      "improved_top1": 1,
+      "worse_top1": 2,
+      "top1_identity_changed": 19
+    },
+    {
+      "mode": "fp_only",
+      "weight": 1.0,
+      "n": 250,
+      "mrr25": 0.2881597805050127,
+      "top1": 0.172,
+      "truth_shortlisted": 0.94,
+      "mrr_ci95": [
+        0.24484175753666695,
+        0.33351188590013353
+      ],
+      "delta_mrr": -0.22381693266231834,
+      "delta_mrr_ci95": [
+        -0.2674754050882487,
+        -0.17997876555436312
+      ],
+      "improved_mrr": 26,
+      "worse_mrr": 138,
+      "top1_ci95": [
+        0.128,
+        0.22
+      ],
+      "delta_top1": -0.228,
+      "delta_top1_ci95": [
+        -0.284,
+        -0.172
+      ],
+      "improved_top1": 4,
+      "worse_top1": 61,
+      "top1_identity_changed": 180
+    },
+    {
+      "mode": "stored_v10_prior",
+      "weight": -1.0,
+      "n": 250,
+      "mrr25": 0.9615714285714285,
+      "top1": 0.956,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.9372357142857143,
+        0.9823333333333333
+      ],
+      "top1_ci95": [
+        0.928,
+        0.98
+      ]
+    },
+    {
+      "mode": "v10_prior",
+      "weight": 0.0,
+      "n": 250,
+      "mrr25": 0.9615714285714285,
+      "top1": 0.956,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.9372357142857143,
+        0.9823333333333333
+      ],
+      "delta_mrr": 0.0,
+      "delta_mrr_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_mrr": 0,
+      "worse_mrr": 0,
+      "top1_ci95": [
+        0.928,
+        0.98
+      ],
+      "delta_top1": 0.0,
+      "delta_top1_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_top1": 0,
+      "worse_top1": 0,
+      "top1_identity_changed": 0
+    },
+    {
+      "mode": "v10_prior",
+      "weight": 0.2,
+      "n": 250,
+      "mrr25": 0.9622380952380952,
+      "top1": 0.956,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.9382380952380952,
+        0.9826666666666667
+      ],
+      "delta_mrr": 0.0006666666666666668,
+      "delta_mrr_ci95": [
+        0.0,
+        0.002
+      ],
+      "improved_mrr": 1,
+      "worse_mrr": 0,
+      "top1_ci95": [
+        0.928,
+        0.98
+      ],
+      "delta_top1": 0.0,
+      "delta_top1_ci95": [
+        0.0,
+        0.0
+      ],
+      "improved_top1": 0,
+      "worse_top1": 0,
+      "top1_identity_changed": 0
+    },
+    {
+      "mode": "v10_prior",
+      "weight": 0.3333333333333333,
+      "n": 250,
+      "mrr25": 0.9648,
+      "top1": 0.96,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.9416,
+        0.9848
+      ],
+      "delta_mrr": 0.0032285714285714296,
+      "delta_mrr_ci95": [
+        0.0,
+        0.009123809523809527
+      ],
+      "improved_mrr": 3,
+      "worse_mrr": 0,
+      "top1_ci95": [
+        0.936,
+        0.984
+      ],
+      "delta_top1": 0.004,
+      "delta_top1_ci95": [
+        0.0,
+        0.012
+      ],
+      "improved_top1": 1,
+      "worse_top1": 0,
+      "top1_identity_changed": 1
+    },
+    {
+      "mode": "v10_prior",
+      "weight": 0.5,
+      "n": 250,
+      "mrr25": 0.9653333333333334,
+      "top1": 0.96,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.9423333333333332,
+        0.985
+      ],
+      "delta_mrr": 0.0037619047619047623,
+      "delta_mrr_ci95": [
+        0.0,
+        0.01019047619047619
+      ],
+      "improved_mrr": 3,
+      "worse_mrr": 0,
+      "top1_ci95": [
+        0.936,
+        0.984
+      ],
+      "delta_top1": 0.004,
+      "delta_top1_ci95": [
+        0.0,
+        0.012
+      ],
+      "improved_top1": 1,
+      "worse_top1": 0,
+      "top1_identity_changed": 1
+    },
+    {
+      "mode": "v10_prior",
+      "weight": 1.0,
+      "n": 250,
+      "mrr25": 0.9114683982683982,
+      "top1": 0.892,
+      "truth_shortlisted": 0.984,
+      "mrr_ci95": [
+        0.8767064935064935,
+        0.9423940909090909
+      ],
+      "delta_mrr": -0.0501030303030303,
+      "delta_mrr_ci95": [
+        -0.07938898268398269,
+        -0.022504761904761906
+      ],
+      "improved_mrr": 3,
+      "worse_mrr": 21,
+      "top1_ci95": [
+        0.852,
+        0.928
+      ],
+      "delta_top1": -0.064,
+      "delta_top1_ci95": [
+        -0.1,
+        -0.028
+      ],
+      "improved_top1": 3,
+      "worse_top1": 19,
+      "top1_identity_changed": 25
+    }
+  ],
+  "notebook_summary": [
+    {
+      "protocol": "fp_only",
+      "fold0 weight": 0.0,
+      "molecules": 250,
+      "MRR@25": 0.5119767131673311,
+      "top-1": 0.4,
+      "delta MRR": 0.0,
+      "delta MRR 95% low": 0.0,
+      "delta MRR 95% high": 0.0
+    },
+    {
+      "protocol": "fp_only",
+      "fold0 weight": 0.2,
+      "molecules": 250,
+      "MRR@25": 0.5124989570637853,
+      "top-1": 0.4,
+      "delta MRR": 0.0005222438964544229,
+      "delta MRR 95% low": -0.0008161069705148649,
+      "delta MRR 95% high": 0.0022450081366002395
+    },
+    {
+      "protocol": "fp_only",
+      "fold0 weight": 0.3333333333333333,
+      "molecules": 250,
+      "MRR@25": 0.5145327360299173,
+      "top-1": 0.4,
+      "delta MRR": 0.00255602286258633,
+      "delta MRR 95% low": 0.00019359760380658253,
+      "delta MRR 95% high": 0.005447476228449909
+    },
+    {
+      "protocol": "fp_only",
+      "fold0 weight": 0.5,
+      "molecules": 250,
+      "MRR@25": 0.5136407834804403,
+      "top-1": 0.396,
+      "delta MRR": 0.001664070313109215,
+      "delta MRR 95% low": -0.006173075045155707,
+      "delta MRR 95% high": 0.009026549370283916
+    },
+    {
+      "protocol": "fp_only",
+      "fold0 weight": 1.0,
+      "molecules": 250,
+      "MRR@25": 0.2881597805050127,
+      "top-1": 0.172,
+      "delta MRR": -0.22381693266231834,
+      "delta MRR 95% low": -0.2674754050882487,
+      "delta MRR 95% high": -0.17997876555436312
+    },
+    {
+      "protocol": "v10_prior",
+      "fold0 weight": 0.0,
+      "molecules": 250,
+      "MRR@25": 0.9615714285714285,
+      "top-1": 0.956,
+      "delta MRR": 0.0,
+      "delta MRR 95% low": 0.0,
+      "delta MRR 95% high": 0.0
+    },
+    {
+      "protocol": "v10_prior",
+      "fold0 weight": 0.2,
+      "molecules": 250,
+      "MRR@25": 0.9622380952380952,
+      "top-1": 0.956,
+      "delta MRR": 0.0006666666666666668,
+      "delta MRR 95% low": 0.0,
+      "delta MRR 95% high": 0.002
+    },
+    {
+      "protocol": "v10_prior",
+      "fold0 weight": 0.3333333333333333,
+      "molecules": 250,
+      "MRR@25": 0.9648,
+      "top-1": 0.96,
+      "delta MRR": 0.0032285714285714296,
+      "delta MRR 95% low": 0.0,
+      "delta MRR 95% high": 0.009123809523809527
+    },
+    {
+      "protocol": "v10_prior",
+      "fold0 weight": 0.5,
+      "molecules": 250,
+      "MRR@25": 0.9653333333333334,
+      "top-1": 0.96,
+      "delta MRR": 0.0037619047619047623,
+      "delta MRR 95% low": 0.0,
+      "delta MRR 95% high": 0.01019047619047619
+    },
+    {
+      "protocol": "v10_prior",
+      "fold0 weight": 1.0,
+      "molecules": 250,
+      "MRR@25": 0.9114683982683982,
+      "top-1": 0.892,
+      "delta MRR": -0.0501030303030303,
+      "delta MRR 95% low": -0.07938898268398269,
+      "delta MRR 95% high": -0.022504761904761906
+    }
+  ],
+  "files": {
+    "panel_fpnet_scores.parquet": {
+      "bytes": 51937874,
+      "sha256": "e06f88459ae088932d45e93eefe7dceff68bd9f80e34f73601b2639946215226"
+    },
+    "panel_logits.npz": {
+      "bytes": 20466740,
+      "sha256": "383e4d9aaaecd8bda1277851064cce840887b733c48477ce5099b71b0152403d"
+    },
+    "panel_fpnet_per_molecule.csv": {
+      "bytes": 269574,
+      "sha256": "9686d66b4f26612f1eefe186d2959309ee1f3a6e43d865fe32fd2cfc8c9242fe"
+    },
+    "panel.parquet": {
+      "bytes": 23269,
+      "sha256": "93469d9bd7e51f9e0c2e891f59844a1ffc56c0921035110495b598c9b4e52eb3"
+    },
+    "panel_metric_identities.parquet": {
+      "bytes": 926118,
+      "sha256": "4b8f5d342dea2845bed6dbaa8c790fd84b59f446d1f5af6b0e94ef79e4c6aa68"
+    },
+    "identity_audit.json": {
+      "bytes": 41499,
+      "sha256": "99a0350ec9b0e967e4d60154f3598c46d07f6b4ff3aa2257eeda1a78210d5dda"
+    },
+    "gate_diagnostics.csv": {
+      "bytes": 364864,
+      "sha256": "77fba33d3dcd91c657784d50d516ce959d6d2a848bf3ad45b6facdcf4f285f31"
+    },
+    "lotus_replay_identity_additions.parquet": {
+      "bytes": 4204,
+      "sha256": "0e07c9cf9d96ff865571b7083a2507eb785321c90c3672f86a530934a755d82f"
+    }
+  },
+  "validation": {
+    "candidate_rows": 1939476,
+    "logit_molecules": 250,
+    "logit_bits": 10226,
+    "finite_candidate_rows": 1939377,
+    "nan_candidate_rows": 99,
+    "exact_identity_rows": 49327,
+    "exact_identity_molecules": 246,
+    "cached_summary_and_bootstrap_reproduced": true,
+    "split_audit": "SPLIT_AUDIT.json",
+    "exact_identity_rows_original": 49319,
+    "exact_identity_rows_added": 8
+  },
+  "limitations": [
+    "Development panel of documented natural products; not hidden-test performance.",
+    "Public pool exclusion retains truth rows to simulate the no-reference setting.",
+    "Exact identity cache covers every row visited by the predeclared mixtures and gates, not every unvisited candidate.",
+    "Historical pool-window evaluation used 499 polarity groups; this uses 250 molecules.",
+    "A+B current logits may differ from the historically cached candidate scores; the measured discrepancy is reported.",
+    "No mixture is selected by this refresh; use the notebook version notes."
+  ],
+  "lotus_release": "2026-04-13",
+  "lotus_doi": "10.5281/zenodo.19360665",
+  "identity_additions": "lotus_replay_identity_additions.parquet",
+  "previous_panel_report_sha256": "90e8e64f0f5f4ef106aaf17ecd3c174bbc2650d1c557829a43701cbd4f0e65fd"
+}

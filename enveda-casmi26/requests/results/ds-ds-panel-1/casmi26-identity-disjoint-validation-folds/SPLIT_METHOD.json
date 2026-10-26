@@ -1,0 +1,37 @@
+{
+  "structures": 277566,
+  "spectra": 2539608,
+  "train_sha256": "9423f90ec08b941a9646b535bf0606183e86ff0c5a297978f5a70693d41bcd98",
+  "identity_groups": 274184,
+  "unique_fingerprints": 266158,
+  "unparseable_structure_rows": 0,
+  "clusters": 194357,
+  "largest_cluster_structure_rows": 8148,
+  "eligible_pair_comparisons": 29328478344,
+  "threshold_edges": 195770,
+  "method": "Exact connected components of all pairs of RDKit Morgan radius 2, 2048-bit, chirality-free binary fingerprints with Tanimoto >= 0.7, plus existing identity-group links. Exact popcount bounds prune impossible pairs. Duplicate fingerprints are merged before all-pairs search.",
+  "fold_assignment": "Seed 20261019, descending component size, random tie-break, greedily assign to smallest structure-count fold; no component is cut.",
+  "analogue_fold_structure_counts": [
+    55514,
+    55513,
+    55513,
+    55513,
+    55513
+  ],
+  "sample_queries_full_library": 160,
+  "sample_cross_fold_violations": 0,
+  "source_alignment": {
+    "structures.parquet": {
+      "sha256": "7c16c4968a15956e94eba58e3ff94d4a6c2f6899b10a2f2824047601a46bd6c8",
+      "rows": 277566
+    },
+    "spectra_folds.parquet": {
+      "sha256": "68446abc365cd0a175c8fcf8081828989e92a65d3493312848792d3465d91403",
+      "rows": 2539608
+    }
+  },
+  "library_categories": 11,
+  "raw_instrument_types": 83,
+  "instrument_families": 9,
+  "row_alignment_mismatches": 0
+}

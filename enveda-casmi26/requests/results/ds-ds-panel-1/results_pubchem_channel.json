@@ -1,0 +1,270 @@
+{
+ "summary": {
+  "panel": 250,
+  "non_coconut": 1,
+  "truth_in_window": 246,
+  "single_sid": 236,
+  "window_rows_median": 7000.5,
+  "window_conn_median": 5626.5,
+  "pass1_row_rank": {
+   "median": 70.5,
+   "le1000": 0.9146341463414634,
+   "le5000": 0.9959349593495935
+  },
+  "pass1_conn_rank": {
+   "median": 41.0,
+   "le1000": 0.9471544715447154,
+   "le5000": 1.0
+  },
+  "full_fz_rank": {
+   "median": 2.0,
+   "top1": 0.4065040650406504,
+   "le5": 0.6910569105691057,
+   "le25": 0.8130081300813008,
+   "le100": 0.9390243902439024
+  },
+  "truth_pop_percentile_median": 0.9972483055701857,
+  "truth_np_flag": 0.9959349593495935,
+  "window_np_flag_share_median": 0.02766266279378199
+ },
+ "variants": [
+  {
+   "name": "v18: N1=1000 rows",
+   "mrr25": 0.5104445826628166,
+   "recall25": 0.796,
+   "top1": 0.404,
+   "recall200": 0.884,
+   "in_shortlist": 0.9,
+   "mean_shortlist": 952.8739837398374,
+   "delta_vs_v19": -0.44088875067051675,
+   "ci95": [
+    -0.49672661580232635,
+    -0.38956027640485175
+   ],
+   "mrr25_single_sid": 0.514877077396393,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "v4i: N1=5000 rows",
+   "mrr25": 0.5116991795897975,
+   "recall25": 0.8,
+   "top1": 0.4,
+   "recall200": 0.936,
+   "in_shortlist": 0.98,
+   "mean_shortlist": 3845.0243902439024,
+   "delta_vs_v19": -0.43963415374353587,
+   "ci95": [
+    -0.48851435939219695,
+    -0.38694608569792793
+   ],
+   "mrr25_single_sid": 0.5162531805440893,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "v19: N1=5000 + pop 0.25 + union 200",
+   "mrr25": 0.9513333333333334,
+   "recall25": 0.976,
+   "top1": 0.932,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 3879.29674796748,
+   "delta_vs_v19": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mrr25_single_sid": 0.9590395480225989,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "N1=1000 + pop 0.25 + union 200",
+   "mrr25": 0.947,
+   "recall25": 0.972,
+   "top1": 0.928,
+   "recall200": 0.98,
+   "in_shortlist": 0.98,
+   "mean_shortlist": 1053.4105691056911,
+   "delta_vs_v19": -0.004333333333333333,
+   "ci95": [
+    -0.01633333333333333,
+    0.006
+   ],
+   "mrr25_single_sid": 0.9523305084745762,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "dedup N1=1000 conn",
+   "mrr25": 0.5142248437501984,
+   "recall25": 0.808,
+   "top1": 0.404,
+   "recall200": 0.908,
+   "in_shortlist": 0.932,
+   "mean_shortlist": 1253.7886178861788,
+   "delta_vs_v19": -0.43710848958313486,
+   "ci95": [
+    -0.4886817454385177,
+    -0.3848349831523676
+   ],
+   "mrr25_single_sid": 0.518881591260145,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "dedup N1=5000 conn",
+   "mrr25": 0.5112325129231308,
+   "recall25": 0.8,
+   "top1": 0.4,
+   "recall200": 0.94,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 4442.483739837398,
+   "delta_vs_v19": -0.4401008204102026,
+   "ci95": [
+    -0.4916088814014615,
+    -0.3885535997113745
+   ],
+   "mrr25_single_sid": 0.5157588302616034,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "dedup N1=5000 + pop 0.25 + union 200",
+   "mrr25": 0.9513333333333334,
+   "recall25": 0.976,
+   "top1": 0.932,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 4520.585365853659,
+   "delta_vs_v19": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mrr25_single_sid": 0.9590395480225989,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window, no prior",
+   "mrr25": 0.5112325129231308,
+   "recall25": 0.8,
+   "top1": 0.4,
+   "recall200": 0.94,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": -0.4401008204102026,
+   "ci95": [
+    -0.4913157229745845,
+    -0.3901024804022573
+   ],
+   "mrr25_single_sid": 0.5157588302616034,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window + pop 0.10",
+   "mrr25": 0.9037997557997558,
+   "recall25": 0.968,
+   "top1": 0.872,
+   "recall200": 0.976,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": -0.04753357753357754,
+   "ci95": [
+    -0.07344524420024419,
+    -0.022792710622710627
+   ],
+   "mrr25_single_sid": 0.9086861819912668,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window + pop 0.25",
+   "mrr25": 0.9513333333333334,
+   "recall25": 0.976,
+   "top1": 0.932,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "mrr25_single_sid": 0.9590395480225989,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window + pop 0.50",
+   "mrr25": 0.951,
+   "recall25": 0.984,
+   "top1": 0.924,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": -0.0003333333333333335,
+   "ci95": [
+    -0.01,
+    0.010666666666666666
+   ],
+   "mrr25_single_sid": 0.9572740112994351,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window + pop 1.00",
+   "mrr25": 0.9516666666666668,
+   "recall25": 0.984,
+   "top1": 0.928,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": 0.00033333333333333213,
+   "ci95": [
+    -0.013333333333333336,
+    0.014666666666666665
+   ],
+   "mrr25_single_sid": 0.9551553672316385,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full window + pop 2.00",
+   "mrr25": 0.9398888888888889,
+   "recall25": 0.984,
+   "top1": 0.908,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": -0.011444444444444446,
+   "ci95": [
+    -0.028891666666666673,
+    0.006666666666666665
+   ],
+   "mrr25_single_sid": 0.9426789077212806,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  },
+  {
+   "name": "full + (pop + patents) 0.25",
+   "mrr25": 0.941711111111111,
+   "recall25": 0.984,
+   "top1": 0.912,
+   "recall200": 0.984,
+   "in_shortlist": 0.984,
+   "mean_shortlist": 7883.6463414634145,
+   "delta_vs_v19": -0.009622222222222223,
+   "ci95": [
+    -0.02362277777777778,
+    0.0026694444444444296
+   ],
+   "mrr25_single_sid": 0.9467278719397364,
+   "mrr25_non_coconut": 1.0,
+   "delta_non_coconut": 0.0
+  }
+ ]
+}

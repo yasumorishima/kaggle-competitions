@@ -1,0 +1,9 @@
+{
+ "molecules": 250,
+ "spectra": 1184,
+ "truth_in_pubchem_window": 246,
+ "pubchem_candidate_rows": 1939476,
+ "main_candidate_rows": 89418,
+ "in_coconut": 249,
+ "single_structure_id": 236
+}

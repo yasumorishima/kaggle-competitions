@@ -1,0 +1,117 @@
+{
+  "dataset": "casmi26-natural-product-panel-benchmark",
+  "lotus_release": "2026-04-13",
+  "apply_as_overlay": true,
+  "retain_all_unlisted_baseline_files": true,
+  "manifest_self_hash_excluded": true,
+  "files": [
+    {
+      "file": "CARD_CHANGES.md",
+      "bytes": 4283,
+      "sha256": "90079107df2a63a6509ab16a3f4134d0fd61d34e8849384d2968fb61ad91d36a",
+      "previous_sha256": null
+    },
+    {
+      "file": "DIFFICULTY_METHOD.json",
+      "bytes": 1848,
+      "sha256": "25e531e821b9721366640146add4d020a5c5d6c8afab5081d21b5b491b3e4737",
+      "previous_sha256": "b03349218dd00b36b68e181e16e19164008f143ccd845df1906d889adae29a39"
+    },
+    {
+      "file": "FILE_DESCRIPTIONS.json",
+      "bytes": 5532,
+      "sha256": "a3e854d9af217f8dbe1e27be940adfd4765bd42240df5268ac055c9ff29f2141",
+      "previous_sha256": "b56f6df310b154fecbcb4e3458b14aa482f10acc29049cef6c02d99cacd96bef"
+    },
+    {
+      "file": "LOTUS_REFRESH.json",
+      "bytes": 16926,
+      "sha256": "e601a2a46d15a5a3be3059a34d740a31a7c9872cf21b7c2d8bc757da9faa4fbf",
+      "previous_sha256": null
+    },
+    {
+      "file": "PANEL_REPLAY_PUBLIC.json",
+      "bytes": 13121,
+      "sha256": "0f85f66547c22fa66d521e9b5d98ef330b818300c82248096b804ce6f0298525",
+      "previous_sha256": "90e8e64f0f5f4ef106aaf17ecd3c174bbc2650d1c557829a43701cbd4f0e65fd"
+    },
+    {
+      "file": "SOURCE_CHECK_20261019.md",
+      "bytes": 1779,
+      "sha256": "3ed13ceef9616c1cd9b0e6b57667de0345431cfc9717dcbd5db26277eb4fcc7f",
+      "previous_sha256": "aace993777bd139fb0faa5ba5f536b761ed59379c0e918e6602d462f2a44401e"
+    },
+    {
+      "file": "VALIDATION_20261019.json",
+      "bytes": 2791,
+      "sha256": "305dc2fb04d445af65e7f0ea6ba8c4f52de7bf6b9a17de28c117c22af05350bb",
+      "previous_sha256": "5e3984406f228c6b9c7b1a9d7141d72fdff8bd181b5a6ee5cf7dfe1e324ce3ed"
+    },
+    {
+      "file": "VALIDATION_20261020.json",
+      "bytes": 11387,
+      "sha256": "62310f65b7ce0cdd56dd90a3affd8a3aabc300fa626d35ce43b2e914538f9ff2",
+      "previous_sha256": null
+    },
+    {
+      "file": "gate_diagnostics.csv",
+      "bytes": 364864,
+      "sha256": "77fba33d3dcd91c657784d50d516ce959d6d2a848bf3ad45b6facdcf4f285f31",
+      "previous_sha256": "07bf47a47b5119e9a6dc0e7e61654c9e4db366a71e5249002f5533ca47311836"
+    },
+    {
+      "file": "lotus_replay_identity_additions.parquet",
+      "bytes": 4204,
+      "sha256": "0e07c9cf9d96ff865571b7083a2507eb785321c90c3672f86a530934a755d82f",
+      "previous_sha256": null
+    },
+    {
+      "file": "panel_difficulty.parquet",
+      "bytes": 75661,
+      "sha256": "2e29797046cddc22245fc6e46778c98fb1032137eb4009bf86df6a7371bec3ec",
+      "previous_sha256": "d16fc32aca710100728f2cdfb4d220f11c7a48992212ab5fd3a721e0e61cf5cc"
+    },
+    {
+      "file": "panel_fpnet_per_molecule.csv",
+      "bytes": 269574,
+      "sha256": "9686d66b4f26612f1eefe186d2959309ee1f3a6e43d865fe32fd2cfc8c9242fe",
+      "previous_sha256": "3f0fb337dd8014e07639973a56eaf2e8d4a86e83ae1c7c15663480eabe621ee6"
+    },
+    {
+      "file": "prior_replay.json",
+      "bytes": 1685,
+      "sha256": "445324f6111fd50dffd3b4f17e632946a31b5936d4a55bb4cfbf27a22b0dda20",
+      "previous_sha256": "ef87576e2b88ceb91e1385e95ea37a355b74e2b8f161a10cb857f6894099f349"
+    },
+    {
+      "file": "prior_rule_per_query.parquet",
+      "bytes": 9192,
+      "sha256": "fbbb18496a2e7874a03faa28ecec33b8ef8ab3bf5767f787dbcba6cd784ad7e4",
+      "previous_sha256": "a47c2b1b266ed3380c72196a402b3a749f915f5f969850328f27f907564db472"
+    },
+    {
+      "file": "prior_rule_summary.csv",
+      "bytes": 385,
+      "sha256": "0cda766ef21a825bc85eacece06f6d01a0fc1d9e9f3fa4abe053d2090e31ac1f",
+      "previous_sha256": "2b527405e112b271001d4b3d31d71975a24d63f1e336dd86a3ec93b1a1dfbc6a"
+    },
+    {
+      "file": "pubchem_candidates.parquet",
+      "bytes": 51122745,
+      "sha256": "ac4d057c6772b5d276237a7fd6f5148b5eda39b2eec1c5bb09a2606166a368f3",
+      "previous_sha256": "be20481af52e2b7485ed204685d88b71271bdc6a34a51c30c1745be1d42d1666"
+    },
+    {
+      "file": "pubchem_signals.parquet",
+      "bytes": 12726869,
+      "sha256": "0cdc19e8daa55d22d89f97760f7ea3d5b1814d5d63be9f66844050d4f6d1627e",
+      "previous_sha256": "d8cc2df0bb2bed4259b7b8850508ebcd8ccf7c4158e33d10eca7c05df7b2785a"
+    },
+    {
+      "file": "pubchemlite_annotations.parquet",
+      "bytes": 13570437,
+      "sha256": "7a054d9b5933f7bda90965f9671dac234c2bf2420435cd39c2e69177b6a0f15d",
+      "previous_sha256": "ab99875f69cd017edc164365c5a554cb6304b5360be2c0547a1651cfd8e641d1"
+    }
+  ]
+}
