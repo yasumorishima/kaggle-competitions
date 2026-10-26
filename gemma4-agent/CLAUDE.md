@@ -29,6 +29,8 @@ Kaggle `gemma-4-developer-agent`（Featured・メダルあり・**締切 2026-12
   - LoRA の重み（14MB の safetensors）は repo に置かず、pack kernel の中で `train/make_zero_lora.py` が作る（印のファイル `zero_lora.txt` に rank を書く。`kernels/pack/build.py` を対応済み・手元で zip の中身を確認）。
   - 形はモデルの config.json（Gemma4ForConditionalGeneration・hidden 5376・60 層・6 層ごとに full attention で head_dim 512）から決めた。HARNESS_README によれば、vLLM は見つけた adapter の最大 rank で `max_lora_rank` を決める（rank 8 なら KV の縮みは rank 128 より小さい見込み）。
   - 出し方：`rm -r submission/* && cp -r bases/v24probe/* submission/ && python3 kernels/pack/build.py`、id は g4v24p-1。g4v23-1 の採点が終わってから（採点中は 400）。
+- **10-26：g4v23-1＝点なし（"exceeded the allowed runtime"＝時間切れ）**。2 段の SequentialAgent は、2 段目が新しい文脈で読み直す分だけ 1 課題が長くなり、12 時間を越えたと読む。**2 段構成はここで打ち切る**（v22 の長い検証と合わせ、「時間を増やす部品」は 2 回とも負け）。
+  - **10-26 00:14：g4v24p-1（LoRA が動くかの確認版 v24probe）を提出**。仮説：LoRA を有効にした vLLM が起動し、時間内に完走して約 0.18。完走すれば 11-01 の LoRA の学習（SWE の軌跡で fine-tune）へ進む。落ちるか時間切れなら LoRA は止める。
 - **計画監査（fable・10-24・user 許可の 1 回）の要点と採否**：
   - 採る：**LoRA が動くかの確認を 10-26 の枠で出す**（rank 8 の極小 LoRA を載せた v21。完走するかだけを見る。adapter を載せると KV が縮み、32k 文脈の agent が動かない恐れがある）。完走しなければ 11-01 の LoRA 計画は止め、手元評価に回す。完走すれば、正解パッチ 129 件を短い軌跡に直した SFT を TPU で 11-01 に始める。
   - 採る：出す版は、時間切れ・パッチ無しを減らす構造の違いに限る（例：まずパッチを出してから、残り時間で直す二段構え）。prompt の文言の刻みは出さない。
