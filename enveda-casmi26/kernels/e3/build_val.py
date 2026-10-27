@@ -291,8 +291,8 @@ for (_m, _keys, _XF, _names, _sc, _lm, _pid) in _RKD:
     _X.append(np.asarray(_XF[_keep][:, [_pos[f] for f in RK_FEATS]], np.float32))
     for _r, _i in enumerate(_keep):
         _rows.append((_m, str(_keys[_i]), int(_lab[_i]), float(_sc[_i]), float(_lm), int(_pid[_i]), len(_keys)))
-_meta = pd.DataFrame(_rows, columns=['molecule_id', 'key', 'label', 'base_score', 'lib_max', 'pid', 'n_cand'])
-_meta['pop'] = np.where(_meta.pid >= 0, POOL_POP[np.maximum(_meta.pid.values, 0)], np.nan)
+_meta = pd.DataFrame(_rows, columns=['molecule_id', 'key', 'label', 'base_score', 'm_lib_max', 'm_pid', 'm_n_cand'])
+_meta['m_pop'] = np.where(_meta.m_pid >= 0, POOL_POP[np.maximum(_meta.m_pid.values, 0)], np.nan)
 _meta = _meta.join(pd.DataFrame(np.concatenate(_X), columns=RK_FEATS))
 _meta = _meta.merge(_tru[['molecule_id', 'cls']], on='molecule_id', how='left')
 _meta.to_parquet('/kaggle/working/rk_rows.parquet', index=False)

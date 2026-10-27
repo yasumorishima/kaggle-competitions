@@ -18,11 +18,11 @@ d = pd.read_parquet(os.path.join(sys.argv[1], "rk_rows.parquet"))
 d = d.drop_duplicates(["molecule_id", "key"]).reset_index(drop=True)
 mols = np.array(sorted(d.molecule_id.unique()))
 cls = d.groupby("molecule_id").cls.first()
-meta = {"molecule_id", "key", "label", "base_score", "lib_max", "pid", "n_cand", "pop", "cls"}
+meta = {"molecule_id", "key", "label", "base_score", "m_lib_max", "m_pid", "m_n_cand", "m_pop", "cls"}
 F = [c for c in d.columns if c not in meta]
 print("rows", len(d), "molecules", len(mols), "truth in rows", int(d.groupby("molecule_id").label.max().sum()),
       "features", len(F), "| c1", int((cls == "c1").sum()), "c2", int((cls == "c2").sum()))
-d["pop0"] = d["pop"].fillna(0.0)
+d["pop0"] = d["m_pop"].fillna(0.0)
 g = d.groupby("molecule_id").base_score
 d["z_base"] = (d.base_score - g.transform("mean")) / (g.transform("std") + 1e-9)
 
@@ -60,8 +60,8 @@ def cv(cols, seed=0, rounds=400):
 res = {}
 res["base"], rb = mrr(d.base_score.values)
 res["base+pop"], _ = mrr(d.z_base.values + 0.15 * d.pop0.values)
-for name, cols in (("new", F), ("new+base", F + ["base_score"]), ("new+pop", F + ["pop0", "lib_max"]),
-                   ("new+base+pop", F + ["base_score", "pop0", "lib_max"])):
+for name, cols in (("new", F), ("new+base", F + ["base_score"]), ("new+pop", F + ["pop0"]),
+                   ("new+base+pop", F + ["base_score", "pop0"])):
     p = np.mean([cv(cols, seed=s) for s in (0, 1)], axis=0)
     res[name], rn = mrr(p)
     gp = d.assign(p=p).groupby("molecule_id").p
