@@ -212,6 +212,8 @@ jobs:
               print("got", name, len(data))
           print("copied", n, "files to", dst)
           PY
+          # the run log is not in the output listing; the CLI writes it as <slug>.log next to the files
+          case "$OUTGLOB" in *.log) mkdir -p /tmp/klog && (kaggle kernels output "$ID" -p /tmp/klog -q >/dev/null 2>&1 || true); cp /tmp/klog/*.log "$dst"/ 2>/dev/null || true;; esac
           n=$(ls "$dst" | wc -l)
           test "$n" -gt 0 || { echo "::error::no file matched $OUTGLOB"; exit 1; }
           if [ -n "$POST" ]; then
