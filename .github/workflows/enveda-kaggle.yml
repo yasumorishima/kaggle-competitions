@@ -215,7 +215,7 @@ jobs:
           n=$(ls "$dst" | wc -l)
           test "$n" -gt 0 || { echo "::error::no file matched $OUTGLOB"; exit 1; }
           if [ -n "$POST" ]; then
-            pip install -q rdkit pandas numpy
+            pip install -q rdkit pandas numpy pyarrow lightgbm
             python "enveda-casmi26/$POST" "$dst" 2>&1 | tee -a /tmp/out.txt
           fi
 
