@@ -60,8 +60,9 @@ def cv(cols, seed=0, rounds=400):
 res = {}
 res["base"], rb = mrr(d.base_score.values)
 res["base+pop"], _ = mrr(d.z_base.values + 0.15 * d.pop0.values)
-for name, cols in (("new", F), ("new+base", F + ["base_score"]), ("new+pop", F + ["pop0"]),
-                   ("new+base+pop", F + ["base_score", "pop0"])):
+FMV = [c for c in F if not c.startswith("model_views")]
+print("model_views features", len(F) - len(FMV), ":", ", ".join(c for c in F if c.startswith("model_views"))[:600])
+for name, cols in (("new", F), ("new-mv", FMV), ("new-mv+pop", FMV + ["pop0"])):
     p = np.mean([cv(cols, seed=s) for s in (0, 1)], axis=0)
     res[name], rn = mrr(p)
     gp = d.assign(p=p).groupby("molecule_id").p
