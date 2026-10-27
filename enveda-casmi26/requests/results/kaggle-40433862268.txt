@@ -1,0 +1,132 @@
+request: out-rk0-3
+run: 40433862268  status: success  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 
+memo: Read why e3rk0-1 (leak-free ranker rows, val=800 valfold=0 rkdump=1) stopped after about 1 minute: print the tail of the kernel log.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 89 files
+copied 0 files to /tmp/kres
+== casmi26-e3rk0.log: 142 lines
+   64 files match MANIFEST.json; families ['derivation', 'frag2', 'analog_struct', 'model_views', 'fragnet'] 30s
+   Simulator RDKit wheel: /kaggle/input/datasets/dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets/casmi26-iceberg/wheels/rdkit-2025.3.6-cp312-cp312-manylinux_2_28_x86_64.whl.ice
+   VAL fold 0: enveda-180 molecules in the fold 36583 | folds file /kaggle/input/datasets/dmitriigluzdov/casmi26-natural-product-panel-benchmark/casmi26-identity-disjoint-validation-folds/structures.parquet
+   VAL fake test 800 molecules 2356 spectra | c1 400 c2 400 | train rows kept 2534564 123s
+   E004_PREFLIGHT {"runtime_input_path": "/tmp/valcomp", "python": "3.12.13", "rdkit": "2026.03.3", "gpu": "Tesla T4\nTesla T4"}
+   RERUN True | sig 12b132bb9a2c05c94d741c3940f24278 | COMP /tmp/valcomp | ICE_BUDGET 5400
+   rg 0: 199231 spectra, 12218419 peaks, total peaks 12218419, 12s
+   rg 1: 199098 spectra, 12026271 peaks, total peaks 24244690, 19s
+   rg 2: 199038 spectra, 12024312 peaks, total peaks 36269002, 26s
+   rg 3: 199129 spectra, 12102053 peaks, total peaks 48371055, 32s
+   rg 4: 199054 spectra, 12005529 peaks, total peaks 60376584, 39s
+   rg 5: 199406 spectra, 13130768 peaks, total peaks 73507352, 46s
+   rg 6: 200000 spectra, 15269969 peaks, total peaks 88777321, 51s
+   rg 7: 200000 spectra, 12957376 peaks, total peaks 101734697, 57s
+   rg 8: 200000 spectra, 6643523 peaks, total peaks 108378220, 60s
+   rg 9: 200000 spectra, 6662374 peaks, total peaks 115040594, 64s
+   rg 10: 200000 spectra, 6126233 peaks, total peaks 121166827, 67s
+   rg 11: 200000 spectra, 5016097 peaks, total peaks 126182924, 71s
+   rg 12: 139608 spectra, 6730712 peaks, total peaks 132913636, 74s
+   spectra 2534564 peaks 132913636 sid<0: 0 nm nan: 339
+   done 76s
+   casmi from /kaggle/working/v43_v4code/casmi/__init__.py
+   cache built 210s
+   [Library] 2,535,315 spectra, 275,810 structures, 132,967,974 peaks (1.2s)
+   [Pool] 710,701 structures, nbits 10226, frag yes (8.2s)
+   engine FP bank: /kaggle/input/datasets/dmitriigluzdov/casmi26-fold-safe-fpnet/fpnet_fold0.pt
+   [Engine] reps 444,711 (0.5s)
+   external reference spectra: 751 added for 469 structures
+   derivation prior self-test mismatches: 0
+   engine ready; ranker features 160 boosters 4 268s
+   v19 pool popularity re-rank, mu 0.15 pool 710701
+     25/800 molecules 415s
+     50/800 molecules 487s
+     75/800 molecules 557s
+     100/800 molecules 627s
+     125/800 molecules 686s
+     150/800 molecules 746s
+     175/800 molecules 798s
+     200/800 molecules 853s
+     225/800 molecules 908s
+     250/800 molecules 968s
+     275/800 molecules 1019s
+     300/800 molecules 1074s
+     325/800 molecules 1130s
+     350/800 molecules 1185s
+     375/800 molecules 1237s
+     400/800 molecules 1295s
+     425/800 molecules 1345s
+     450/800 molecules 1394s
+     475/800 molecules 1452s
+     500/800 molecules 1506s
+     525/800 molecules 1557s
+     550/800 molecules 1605s
+     575/800 molecules 1656s
+     600/800 molecules 1711s
+     625/800 molecules 1760s
+     650/800 molecules 1814s
+     675/800 molecules 1868s
+     700/800 molecules 1915s
+     725/800 molecules 1971s
+     750/800 molecules 2019s
+     775/800 molecules 2070s
+     800/800 molecules 2121s
+   errors 0 | popularity re-ranked lists 799
+   Traceback (most recent call last):
+     File "<string>", line 1, in <module>
+     File "/usr/local/lib/python3.12/dist-packages/papermill/execute.py", line 131, in execute_notebook
+       raise_for_execution_errors(nb, output_path)
+     File "/usr/local/lib/python3.12/dist-packages/papermill/execute.py", line 251, in raise_for_execution_errors
+       raise error
+   papermill.exceptions.PapermillExecutionError: 
+   ---------------------------------------------------------------------------
+   Exception encountered at "In [30]":
+   ---------------------------------------------------------------------------
+   ValueError                                Traceback (most recent call last)
+   /tmp/ipykernel_23/1537760866.py in <cell line: 0>()
+        14 _meta = pd.DataFrame(_rows, columns=['molecule_id', 'key', 'label', 'base_score', 'lib_max', 'pid', 'n_cand'])
+        15 _meta['pop'] = np.where(_meta.pid >= 0, POOL_POP[np.maximum(_meta.pid.values, 0)], np.nan)
+   ---> 16 _meta = _meta.join(pd.DataFrame(np.concatenate(_X), columns=RK_FEATS))
+        17 _meta = _meta.merge(_tru[['molecule_id', 'cls']], on='molecule_id', how='left')
+        18 _meta.to_parquet('/kaggle/working/rk_rows.parquet', index=False)
+   /usr/local/lib/python3.12/dist-packages/pandas/core/frame.py in join(self, other, on, how, lsuffix, rsuffix, sort, validate)
+     10782                     validate=validate,
+     10783                 )
+   > 10784             return merge(
+     10785                 self,
+     10786                 other,
+   /usr/local/lib/python3.12/dist-packages/pandas/core/reshape/merge.py in merge(left, right, how, on, left_on, right_on, left_index, right_index, sort, suffixes, copy, indicator, validate)
+       182             validate=validate,
+       183         )
+   --> 184         return op.get_result(copy=copy)
+       185 
+       186 
+   /usr/local/lib/python3.12/dist-packages/pandas/core/reshape/merge.py in get_result(self, copy)
+       886         join_index, left_indexer, right_indexer = self._get_join_info()
+       887 
+   --> 888         result = self._reindex_and_concat(
+       889             join_index, left_indexer, right_indexer, copy=copy
+       890         )
+   /usr/local/lib/python3.12/dist-packages/pandas/core/reshape/merge.py in _reindex_and_concat(self, join_index, left_indexer, right_indexer, copy)
+       838         right = self.right[:]
+       839 
+   --> 840         llabels, rlabels = _items_overlap_with_suffix(
+       841             self.left._info_axis, self.right._info_axis, self.suffixes
+       842         )
+   /usr/local/lib/python3.12/dist-packages/pandas/core/reshape/merge.py in _items_overlap_with_suffix(left, right, suffixes)
+      2719 
+      2720     if not lsuffix and not rsuffix:
+   -> 2721         raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
+      2722 
+      2723     def renamer(x, suffix: str | None):
+   ValueError: columns overlap but no suffix specified: Index(['lib_max', 'n_cand'], dtype='object')
+   /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+     cells[i][c] = re.sub('\\\\\|', '|', cell)
+   /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+     text = re.sub(r'_', '\_', text) # Escape underscores in display text
+   [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
+   [NbConvertApp] Writing 417384 bytes to __notebook__.ipynb
+   [NbConvertApp] Converting notebook __notebook__.ipynb to html
+   [NbConvertApp] Writing 1376467 bytes to __results__.html
+
+output files:
