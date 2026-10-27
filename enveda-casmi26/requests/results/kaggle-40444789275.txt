@@ -1,0 +1,53 @@
+request: out-rk-log-1
+run: 40444789275  status: success  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3f465rm  version: 
+memo: Check in the e3f465rm-1 commit log that the leak-free ranker refit loaded (the line 'ours rknew: rows ...' vs 'ours rknew skipped').
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 157 files
+copied 0 files to /tmp/kres
+== casmi26-e3f465rm.log: 172 lines
+   ours rknew: rows 103928 molecules 795 weight 1.0 features 153 | from /kaggle/input/notebooks/yasunorim/casmi26-e3rk0/rk_rows.parquet
+   V1 inference complete; applying separately audited final pass next.
+   {
+     "experiment": "V1.1 metric-safe tail",
+     "rdkit": "2026.03.3",
+     "hidden_rerun": false,
+     "active_molecules": 12,
+     "output_rows": 400,
+     "changed_molecules": 0,
+     "invalid_removed": 0,
+     "equivalent_duplicates_removed": 0,
+     "existing_candidates_promoted": 0,
+     "ranked_candidates_added": 0,
+     "dreams_candidates_added": 0,
+     "monotone_rank_assertions_passed": true,
+     "metric_source_sha256": "c61d163f1bb768313fd0863822952f035f343924f37e3f5e4b5883ccef7e6201",
+     "baseline_sha256": "e976e143538eb7eee1f953579753086c7ecc17a75f9e5779dcef30cd383f0345",
+     "submission_sha256": "e976e143538eb7eee1f953579753086c7ecc17a75f9e5779dcef30cd383f0345",
+     "runtime_seconds": 1499.9,
+     "validation_note": "Visible test is a smoke check only and overlaps training; no generalization score claimed."
+   }
+   {'experiment': 'metric_identity_fusion', 'changed_molecules': 0, 'changed_top1': 0, 'reference_sha256': 'e976e143538eb7eee1f953579753086c7ecc17a75f9e5779dcef30cd383f0345', 'submission_sha256': 'e976e143538eb7eee1f953579753086c7ecc17a75f9e5779dcef30cd383f0345', 'measured_score': None}
+   NO-OP: predictions match the reference; do not spend a second submission on this file.
+   E004_VERIFICATION {"experiment": "E004", "source_version_id": 356740494, "source_version": 80, "source_code_sha256": "eee496a371fce179b4aeda1c5082a58212c724eaf1ca4ba0c943bbe8d7196ef2", "runtime_input_path": "/kaggle/input/competitions/enveda-CASMI26-molecule-id-mass-spectra", "input_ids": ["m_005e53
+   ours_lfrag installed: learned fragment credits
+   v7c FRAG gap molecules 1 of 400 0s
+   FACTORIAL_VERIFICATION {"experiment": "E006", "window": 40, "ice_fallback": true, "source_experiment": "E004", "base_report_file": "e004_verification.json", "control_file": "submission_e004_control.csv", "control_sha256": "e976e143538eb7eee1f953579753086c7ecc17a75f9e5779dcef30cd383f0345", "submissio
+   N1_CHALLENGER_FINAL {"complement": false, "proxy_covered_molecules": 0, "joint_rerank_rows": 0, "joint_finite_ice_rows": 0, "joint_finite_both_rows": 0}
+   RANK2_OVERLAY {"control_sha256": "8141d8395b39d97ea24e57a1a9c9010bec5ad154f8e7439ce924825f8a0e4ca5", "rows": 400, "inserted": 3, "status": "ok", "submission_sha256": "8141d8395b39d97ea24e57a1a9c9010bec5ad154f8e7439ce924825f8a0e4ca5"}
+   V43_EXECUTION_RECEIPT {"output_rows": 400, "processed_molecules": 12, "placeholder_rows": 388, "main_errors": 0, "elapsed_seconds": 1701.49}
+   files left in /kaggle/working 226 | submission.csv True
+   /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+     cells[i][c] = re.sub('\\\\\|', '|', cell)
+   /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+     text = re.sub(r'_', '\_', text) # Escape underscores in display text
+   [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
+   [NbConvertApp] Writing 561347 bytes to __notebook__.ipynb
+   [NbConvertApp] Converting notebook __notebook__.ipynb to html
+   [NbConvertApp] Support files will be in __results___files/
+   [NbConvertApp] Making directory __results___files
+   [NbConvertApp] Writing 1571798 bytes to __results__.html
+
+output files:

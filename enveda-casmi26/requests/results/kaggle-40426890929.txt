@@ -1,0 +1,28 @@
+request: e3rk0-1
+run: 40426890929  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 1
+memo: Leak-free ranker part, step 1 (data). Base: f465 pipeline (dmitriigluzdov 'The Data Behind Spectra to Structures' v16 + sanpier's PubChem promotion), engine 1 only. Ours: validation rig (build.py val=800 valfold=0 rkdump=1): 800 enveda-180 molecules of identity fold 0 (dmitriigluzdov's identity-disjoint folds) are held out of train (c1 half keeps other-library spectra, c2 half loses all), the engine FP bank is the fold-safe fpnet_fold0 (never saw fold 0), and the base ranker's input rows (top 300 + truth) are dumped to rk_rows.parquet. No submission. Why: 10-26 showed the fold-safe FPNet does not help as a drop-in (fe 0.458, fp 0.467); the base LightGBM ranker was fitted on rows where FPNet and the library had seen each molecule, so it over-trusts them on new molecules. Next: retrain the ranker on these rows (CV by molecule) and compare MRR with the base ranker on the same rows.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3rk0
+
+output files:
+total 104
+drwxr-xr-x  6 runner runner  4096 Oct 27 01:32 .
+drwxrwxrwt 14 root   root    4096 Oct 27 01:30 ..
+-rw-r--r--  1 runner runner 18378 Oct 27 01:32 casmi26-e3rk0.log
+drwxr-xr-x  2 runner runner  4096 Oct 27 01:31 external_reference_6nburjrh
+drwxr-xr-x  4 runner runner  4096 Oct 27 01:31 numba_cache
+drwxr-xr-x  4 runner runner  4096 Oct 27 01:31 v43_v4code
+-rw-r--r--  1 runner runner 61222 Oct 27 01:31 val_truth.csv
+drwxr-xr-x  2 runner runner  4096 Oct 27 01:32 work
+[{"stream_name":"stderr","time":6.544798835,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":6.544839506,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":7.461723318,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.461790347,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.461799694,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.461804599,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.080387425,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.080436156,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.080441923,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.080445426,"data":"0.00s - Note: Debugging will proce

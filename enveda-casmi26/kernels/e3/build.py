@@ -94,6 +94,10 @@ val = _arg("val", 0, int)             # > 0: validation run, no submission (buil
 valseed = _arg("valseed", 0, int)
 valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
 valsrc = _arg("valsrc", "e180", str)
+valfold = _arg("valfold", -1, int)   # ours (10-27), k>=0: e180 val molecules only from identity fold k; engine FP = fold-safe fpnet_fold{k} (never saw fold k)
+rknew = _arg("rknew", 0.0, float)  # ours (10-27), w>0: engine-1 ranker = (1-w) base boosters + w LightGBM lambdarank fitted in-kernel on our leak-free rows (kernel yasunorim/casmi26-e3rk0)
+rknomv = _arg("rknomv", 0, int)   # ours (10-27), 1: the rknew booster leaves out the model_views features (FPNet A/B/D saw the held-out molecules)
+rkdump = _arg("rkdump", 0, int)     # ours (10-27), 1: dump the base ranker's input rows (top 300 + truth) per val molecule, stop after the base lists
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
 latecut = _arg("latecut", 0, int)
@@ -952,6 +956,43 @@ if fpe or ebe:   # F. ours (10-26): fold-safe FPNet ensemble (dmitriigluzdov/cas
                 + "    print('ours ebe skipped:', repr(_fe), flush=True)\n")
         cells[_ic]["source"] = _c.replace(_old, _new)
 
+if rknew > 0:   # R. ours (10-27): leak-free ranker rows -> new lambdarank booster mixed into the engine-1 ranker
+    assert base == "f465", "rknew is written for the f465 frozen pipeline"
+    _ie = next(i for i, c in enumerate(cells) if c["cell_type"] == "code"
+               and "RK_FEATS = list(RK['features']); RK_B = [lgb.Booster(model_str=s) for s in RK['boosters']]" in "".join(c["source"]))
+    _src = "".join(cells[_ie]["source"])
+    _old = "RK_FEATS = list(RK['features']); RK_B = [lgb.Booster(model_str=s) for s in RK['boosters']]\n"
+    _new = _old + f"""# ==== ours (yasunorim; rknew): a lambdarank booster fitted on our leak-free rows (held-out molecules, fold-safe FP) ====
+OURS_RKW = {rknew}
+try:
+    _rkp = sorted(glob.glob('/kaggle/input/**/rk_rows.parquet', recursive=True), key=len)[0]
+    _rd = pd.read_parquet(_rkp).drop_duplicates(['molecule_id', 'key']).sort_values('molecule_id', kind='stable')
+    _rd = _rd[_rd.groupby('molecule_id').label.transform('max') > 0]
+    _rg = _rd.groupby('molecule_id', sort=True).size().values
+    _RKC = [i for i, f in enumerate(RK_FEATS) if not ({rknomv} and f.startswith('model_views'))]
+    _ds = lgb.Dataset(_rd[[RK_FEATS[i] for i in _RKC]].values.astype(np.float32), _rd.label.values, group=_rg)
+    _bn = lgb.train(dict(objective='lambdarank', learning_rate=0.03, num_leaves=31, min_data_in_leaf=50, bagging_fraction=0.8,
+                         bagging_freq=1, feature_fraction=0.7, lambdarank_truncation_level=25, verbose=-1, seed=0, num_threads=4),
+                    _ds, num_boost_round=400)
+    _RK_B0 = list(RK_B)
+    def _rk_mix(Xs, _b0=_RK_B0, _bn=_bn, _w=OURS_RKW, _RKC=_RKC):
+        s0 = np.mean([b.predict(Xs, num_threads=4) for b in _b0], axis=0)
+        s1 = _bn.predict(np.ascontiguousarray(Xs[:, _RKC]), num_threads=4)
+        z = lambda v: (v - v.mean()) / (v.std() + 1e-9) if len(v) > 1 else v * 0
+        return (1 - _w) * z(s0) + _w * z(s1) + 0 * s0
+    OURS_RK_MIX = _rk_mix
+    print('ours rknew: rows', len(_rd), 'molecules', len(_rg), 'weight', OURS_RKW, 'features', len(_RKC), '| from', _rkp, flush=True)
+except Exception as _e:
+    OURS_RK_MIX = None
+    print('ours rknew skipped:', repr(_e), flush=True)
+"""
+    assert _src.count(_old) == 1
+    _src = _src.replace(_old, _new)
+    _old2 = "    return np.mean([b.predict(Xs, num_threads=4) for b in RK_B], axis=0)\n"
+    assert _src.count(_old2) == 1
+    _src = _src.replace(_old2, "    if OURS_RK_MIX is not None:   # ours (rknew)\n        return OURS_RK_MIX(Xs)\n" + _old2)
+    cells[_ie]["source"] = _src
+
 # Z. last cell (every build): drop the ICEBERG site tree from /kaggle/working. It holds > 500 files, and the kernel
 # output listing is paged at 500, so the workflow's `kaggle kernels output` never reached submission.csv
 # (e3mmp100c-2, 10-14). Only scratch directories go; submission.csv and the audit files stay.
@@ -1124,7 +1165,7 @@ if base == "f465":   # dmitriigluzdov's five datasets are self-contained; no oth
                                "dmitriigluzdov/casmi26-natural-product-panel-benchmark", "dmitriigluzdov/casmi26-pubchem-popularity-prior",
                                "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets"] + (
         ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else []) + (["sanpier/casmi-spectrum-model-v1"] if nnw > 0 else [])
-    meta["kernel_sources"] = []
+    meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if rknew > 0 else []
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")

@@ -1,0 +1,29 @@
+request: e3rk0-2
+run: 40434139952  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 2
+memo: Leak-free ranker part, step 1 (data), rerun of e3rk0-1: the engine finished 800 held-out molecules in 2,121 s, then the dump cell stopped on a column-name clash (lib_max, n_cand are also ranker inputs); our side columns now carry an m_ prefix. Same setup: f465 engine 1 only, 800 enveda-180 molecules of identity fold 0 held out (c1 keeps other-library spectra, c2 loses all), engine FP = fold-safe fpnet_fold0, base ranker input rows (top 300 + truth) to rk_rows.parquet. No submission. build.py rk0 base=f465 val=800 valfold=0 rkdump=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3rk0
+
+output files:
+total 42268
+drwxr-xr-x  6 runner runner     4096 Oct 27 02:23 .
+drwxrwxrwt 14 root   root       4096 Oct 27 02:22 ..
+-rw-r--r--  1 runner runner    12581 Oct 27 02:23 casmi26-e3rk0.log
+drwxr-xr-x  2 runner runner     4096 Oct 27 02:22 external_reference_l0k8u473
+drwxr-xr-x  4 runner runner     4096 Oct 27 02:22 numba_cache
+-rw-r--r--  1 runner runner 43177504 Oct 27 02:22 rk_rows.parquet
+drwxr-xr-x  4 runner runner     4096 Oct 27 02:22 v43_v4code
+-rw-r--r--  1 runner runner    61222 Oct 27 02:22 val_truth.csv
+drwxr-xr-x  2 runner runner     4096 Oct 27 02:23 work
+[{"stream_name":"stderr","time":7.43506146,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":7.435120456,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":8.361041376,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.361066981,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.36107148,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.361075467,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.992640439,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.992664757,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.992673988,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.992676568,"data":"0.00s - Note: Debugging will proceed

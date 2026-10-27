@@ -1,0 +1,26 @@
+request: out-rk0-7
+run: 40438865090  status: success  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 
+memo: Leak-free ranker part, step 2: score e3rk0-2's rows with tools/rk_report.py (lambdarank refit, 5-fold CV by molecule, vs the base ranker on the same 800 held-out fold-0 molecules). Pass: +0.02 MRR@25 after the popularity re-rank.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 90 files
+got rk_rows.parquet 43177504
+copied 1 files to /tmp/kres
+rows 104702 molecules 800 truth in rows 795 features 160 | c1 400 c2 400
+model_views features 7 : model_views__fzABD_gap, model_views__fzABD_rank, model_views__fzD_gap, model_views__fzD_rank, model_views__fzD_z, model_views__rank_spread, model_views__rank_worst
+new            vs base (after pop): molecules up 80, down 4
+new-mv         vs base (after pop): molecules up 67, down 15
+new-mv+pop     vs base (after pop): molecules up 69, down 10
+RK base                 MRR@25 all 0.9286  c1 0.8665  c2 0.9906  top1 0.8862
+RK base+pop             MRR@25 all 0.9261  c1 0.8636  c2 0.9886  top1 0.8838
+RK new                  MRR@25 all 0.9813  c1 0.9706  c2 0.9919  top1 0.9738
+RK new >pop             MRR@25 all 0.9812  c1 0.9705  c2 0.9919  top1 0.9738
+RK new-mv               MRR@25 all 0.9637  c1 0.9421  c2 0.9853  top1 0.9463
+RK new-mv >pop          MRR@25 all 0.9626  c1 0.9405  c2 0.9847  top1 0.9450
+RK new-mv+pop           MRR@25 all 0.9671  c1 0.9476  c2 0.9866  top1 0.9525
+RK new-mv+pop >pop      MRR@25 all 0.9670  c1 0.9475  c2 0.9865  top1 0.9525
+top gain features: model_views__fzABD_gap 0.731, model_views__fzD_gap 0.180, model_views__fzABD_rank 0.027, model_views__rank_worst 0.010, lib_nspec 0.004, mass_ppm_rank 0.002, frag2__cov_rank 0.002, lib_max 0.002, is_gen 0.002, sf_rank 0.001, derivation__dp_rank_sim 0.001, fragnet__fn_rank 0.001, ap_rank 0.001, fragnet__fn_grp_rank 0.001, fragnet__fn_gap 0.001
+
+output files:
