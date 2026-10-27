@@ -1,0 +1,7 @@
+request: ds-saner-1
+run: 40425174136  status: failure  action: dsfiles  dir: enveda-casmi26/requests  submit: no
+kernel:   version: 
+memo: Read sanpier's catalogue-experiment-saner docs and code (text only: report, ranking summary, feature schema, learned.py, ranking.py, per-query results) to see which candidate features and labels a leak-free ranker retrain can reuse (10-24 audit part; 10-26 fold-safe FPNet in the engine lowered LB 0.467 -> 0.458).
+
+
+output files:
