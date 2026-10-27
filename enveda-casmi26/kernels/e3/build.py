@@ -96,6 +96,7 @@ valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_f
 valsrc = _arg("valsrc", "e180", str)
 valfold = _arg("valfold", -1, int)   # ours (10-27), k>=0: e180 val molecules only from identity fold k; engine FP = fold-safe fpnet_fold{k} (never saw fold k)
 rknew = _arg("rknew", 0.0, float)  # ours (10-27), w>0: engine-1 ranker = (1-w) base boosters + w LightGBM lambdarank fitted in-kernel on our leak-free rows (kernel yasunorim/casmi26-e3rk0)
+rknomv = _arg("rknomv", 0, int)   # ours (10-27), 1: the rknew booster leaves out the model_views features (FPNet A/B/D saw the held-out molecules)
 rkdump = _arg("rkdump", 0, int)     # ours (10-27), 1: dump the base ranker's input rows (top 300 + truth) per val molecule, stop after the base lists
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
@@ -968,18 +969,19 @@ try:
     _rd = pd.read_parquet(_rkp).drop_duplicates(['molecule_id', 'key']).sort_values('molecule_id', kind='stable')
     _rd = _rd[_rd.groupby('molecule_id').label.transform('max') > 0]
     _rg = _rd.groupby('molecule_id', sort=True).size().values
-    _ds = lgb.Dataset(_rd[RK_FEATS].values.astype(np.float32), _rd.label.values, group=_rg)
+    _RKC = [i for i, f in enumerate(RK_FEATS) if not ({rknomv} and f.startswith('model_views'))]
+    _ds = lgb.Dataset(_rd[[RK_FEATS[i] for i in _RKC]].values.astype(np.float32), _rd.label.values, group=_rg)
     _bn = lgb.train(dict(objective='lambdarank', learning_rate=0.03, num_leaves=31, min_data_in_leaf=50, bagging_fraction=0.8,
                          bagging_freq=1, feature_fraction=0.7, lambdarank_truncation_level=25, verbose=-1, seed=0, num_threads=4),
                     _ds, num_boost_round=400)
     _RK_B0 = list(RK_B)
-    def _rk_mix(Xs, _b0=_RK_B0, _bn=_bn, _w=OURS_RKW):
+    def _rk_mix(Xs, _b0=_RK_B0, _bn=_bn, _w=OURS_RKW, _RKC=_RKC):
         s0 = np.mean([b.predict(Xs, num_threads=4) for b in _b0], axis=0)
-        s1 = _bn.predict(Xs, num_threads=4)
+        s1 = _bn.predict(np.ascontiguousarray(Xs[:, _RKC]), num_threads=4)
         z = lambda v: (v - v.mean()) / (v.std() + 1e-9) if len(v) > 1 else v * 0
         return (1 - _w) * z(s0) + _w * z(s1) + 0 * s0
     OURS_RK_MIX = _rk_mix
-    print('ours rknew: rows', len(_rd), 'molecules', len(_rg), 'weight', OURS_RKW, '| from', _rkp, flush=True)
+    print('ours rknew: rows', len(_rd), 'molecules', len(_rg), 'weight', OURS_RKW, 'features', len(_RKC), '| from', _rkp, flush=True)
 except Exception as _e:
     OURS_RK_MIX = None
     print('ours rknew skipped:', repr(_e), flush=True)
