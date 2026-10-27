@@ -1,0 +1,5 @@
+v25 = v21 (bases/v21, LB 0.18 g4v21-3; public 0.24 prompt by honghanhhh "gemma-4-baseline-lb-0-24" + our time guard + our sibling-site checklist)
+Ours (10-27): thinking_budget 4096 -> 1024 per model turn (configs/sampling.yaml), prompt and budgets unchanged.
+Why: v20, v23 and v24probe (LoRA) all exceeded the 12 h runtime while v21 finished, so v21 sits at the time limit;
+public analysis says the thinking is dropped between tool calls and redone every turn, so most of a turn's time is
+thinking that is not kept. Shorter turns -> fewer tasks cut at the 8-minute cap and margin under 12 h.
