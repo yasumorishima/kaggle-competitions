@@ -1,0 +1,12 @@
+request: out-rk0-4
+run: 40438190376  status: failure  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 
+memo: Leak-free ranker part, step 2: score e3rk0-2's rows with tools/rk_report.py (lambdarank refit, 5-fold CV by molecule, vs the base ranker on the same 800 held-out fold-0 molecules). Pass: +0.02 MRR@25 after the popularity re-rank.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 90 files
+skip (too big) rk_rows.parquet 43177504
+copied 0 files to /tmp/kres
+
+output files:
