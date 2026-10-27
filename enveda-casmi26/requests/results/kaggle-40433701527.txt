@@ -1,0 +1,11 @@
+request: out-rk0-2
+run: 40433701527  status: failure  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 
+memo: Read why e3rk0-1 (leak-free ranker rows, val=800 valfold=0 rkdump=1) stopped after about 1 minute: print the tail of the kernel log.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 89 files
+copied 0 files to /tmp/kres
+
+output files:
