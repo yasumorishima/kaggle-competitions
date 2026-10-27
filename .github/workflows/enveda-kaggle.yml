@@ -204,7 +204,7 @@ jobs:
               if "/" in name or not fnmatch.fnmatch(name, pat):
                   continue
               data = requests.get(f["url"], timeout=300).content
-              if len(data) > 20_000_000:
+              if len(data) > (500_000_000 if dst == "/tmp/kres" else 20_000_000):   # post-only files are never committed
                   print("skip (too big)", name, len(data))
                   continue
               open(os.path.join(dst, name), "wb").write(data)
