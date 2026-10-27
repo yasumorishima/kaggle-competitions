@@ -252,3 +252,87 @@ if not getattr(_c3pool.Pool, '_c3_patched', False):
     cells.insert(_i16, code_cell(hook_c3b))
     _i17 = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "E = Engine(L, P, tfp" in "".join(c["source"]))
     cells.insert(_i17, code_cell(hook_c3c))
+
+# ---- ours (10-27): fold-restricted held-out molecules + fold-safe engine FP (valfold=k) ----
+if valfold >= 0:
+    assert valsrc == "e180" and base == "f465", "valfold is written for e180 molecules on the f465 base"
+    _hv = next(c for c in cells if c["cell_type"] == "code" and "VALIDATION RUN, not a submission" in "".join(c["source"]))
+    _src = "".join(_hv["source"])
+    _old = "_vo = set(_vm.inchikey14[_vm.ingest_lib != _VLIB])\n"
+    assert _src.count(_old) == 1
+    _new = _old + (
+        "import glob as _vg\n"
+        "_vfp = sorted(_vg.glob('/kaggle/input/**/casmi26-identity-disjoint-validation-folds/structures.parquet', recursive=True), key=len)[0]\n"
+        "_vfs = pd.read_parquet(_vfp, columns=['inchikey14', 'fold_identity'])\n"
+        f"_vfk = set(_vfs.inchikey14[_vfs.fold_identity == {valfold}])\n"
+        "_ve = _ve & _vfk\n"
+        f"print('VAL fold {valfold}: enveda-180 molecules in the fold', len(_ve), '| folds file', _vfp, flush=True)\n")
+    _hv["source"] = _src.replace(_old, _new)
+    _nf = 0
+    for _c in cells:
+        _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+        _old = "_FULL = glob.glob('/kaggle/input/**/casmi26-fpnet-full1/**/fpnet_full1.pt', recursive=True)"
+        if _c["cell_type"] == "code" and _old in _src:
+            _c["source"] = _src.replace(_old, f"_FULL = sorted(glob.glob('/kaggle/input/**/fpnet_fold{valfold}.pt', recursive=True), key=len)[:1]  # ours (valfold): never saw fold {valfold}\nassert _FULL, 'fold-safe fpnet_fold{valfold}.pt not found'")
+            _nf += 1
+    assert _nf == 1, f"fpnet_full1 line found {_nf} times"
+
+# ---- ours (10-27): dump the base ranker's input rows and stop after the base lists (rkdump=1) ----
+hook_rk = """# ==== ours (yasunorim; val rkdump): ranker training rows from held-out molecules ====
+import numpy as np, pandas as pd, json as _rj
+_tk14 = dict(zip(_tru.molecule_id, _tru.inchikey14))
+_rows, _X = [], []
+for (_m, _keys, _XF, _names, _sc, _lm, _pid) in _RKD:
+    _t = _tk14.get(_m)
+    _k14 = np.array([str(k)[:14] for k in _keys])
+    _lab = (_k14 == _t)
+    _keep = np.union1d(np.argsort(-_sc, kind='stable')[:300], np.where(_lab)[0])
+    _pos = {n: i for i, n in enumerate(_names)}
+    _X.append(np.asarray(_XF[_keep][:, [_pos[f] for f in RK_FEATS]], np.float32))
+    for _r, _i in enumerate(_keep):
+        _rows.append((_m, str(_keys[_i]), int(_lab[_i]), float(_sc[_i]), float(_lm), int(_pid[_i]), len(_keys)))
+_meta = pd.DataFrame(_rows, columns=['molecule_id', 'key', 'label', 'base_score', 'lib_max', 'pid', 'n_cand'])
+_meta['pop'] = np.where(_meta.pid >= 0, POOL_POP[np.maximum(_meta.pid.values, 0)], np.nan)
+_meta = _meta.join(pd.DataFrame(np.concatenate(_X), columns=RK_FEATS))
+_meta = _meta.merge(_tru[['molecule_id', 'cls']], on='molecule_id', how='left')
+_meta.to_parquet('/kaggle/working/rk_rows.parquet', index=False)
+_g = _meta.groupby('molecule_id').label.max()
+print('RKDUMP rows', len(_meta), 'molecules', _meta.molecule_id.nunique(), 'truth among dumped rows', int(_g.sum()),
+      '| features', len(RK_FEATS), flush=True)
+_rr = []
+for _m, _d in _meta.groupby('molecule_id'):
+    _o = _d.sort_values('base_score', ascending=False, kind='stable').drop_duplicates('key')
+    _w = np.where(_o.label.values == 1)[0]
+    _rr.append(1.0 / (_w[0] + 1) if len(_w) and _w[0] < 25 else 0.0)
+print('RKDUMP base ranker MRR@25 (no pop re-rank, no simulators)', round(float(np.mean(_rr)), 4), 'n', len(_rr), flush=True)
+"""
+if rkdump:
+    assert val > 0 and base == "f465", "rkdump needs a val run on the f465 base"
+    _ib = find_cell("'''all molecules -> base lists")
+    _bc = next(i for i, c in enumerate(cells) if i >= _ib and c["cell_type"] == "code"
+               and "score = rank_score(np.concatenate([X, F], 1), list(FEATURES) + list(names))" in "".join(c["source"]))
+    _src = "".join(cells[_bc]["source"])
+    _old = "                score = rank_score(np.concatenate([X, F], 1), list(FEATURES) + list(names))\n"
+    assert _src.count(_old) == 1
+    _src = _src.replace(_old, _old + "                _RKD.append((mid, list(C.key), np.concatenate([X, F], 1).astype(np.float32), list(FEATURES) + list(names), score, lib_max, np.asarray(C.pid)))  # ours (rkdump)\n")
+    _src = "_RKD = []  # ours (rkdump)\n" + _src
+    cells[_bc]["source"] = _src
+    cells.insert(_bc + 1, code_cell(hook_rk))
+    # nothing after the base lists is needed: later code cells become markdown (kept visible, not run)
+    for _c in cells[_bc + 2:]:
+        if _c["cell_type"] == "code":
+            _c["cell_type"] = "markdown"
+            _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+            _c["source"] = "(not run in an rkdump build)\n\n```python\n" + _src + "\n```"
+            _c.pop("outputs", None); _c.pop("execution_count", None)
+if rkdump:   # the ranker rows need only engine 1: engine 2 (own process) and the PubChem channel are skipped
+    _nsk = 0
+    for _c in cells:
+        _src = "".join(_c["source"]) if isinstance(_c["source"], list) else _c["source"]
+        if _c["cell_type"] == "code" and (_src.startswith("'''Our engine (two-ranker + BIO + AFIX) in a subprocess")
+                                          or _src.startswith("V17_PATCH = ")):
+            _c["cell_type"] = "markdown"
+            _c["source"] = "(skipped in an rkdump build: not needed for the engine-1 ranker rows)\n"
+            _c.pop("outputs", None); _c.pop("execution_count", None)
+            _nsk += 1
+    assert _nsk == 2, f"rkdump skip cells found {_nsk}"

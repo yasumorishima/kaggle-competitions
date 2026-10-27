@@ -94,6 +94,8 @@ val = _arg("val", 0, int)             # > 0: validation run, no submission (buil
 valseed = _arg("valseed", 0, int)
 valfull = _arg("valfull", 0, int)     # 1: an np val run keeps the leaky fpnet_full1 (to measure its leak)
 valsrc = _arg("valsrc", "e180", str)
+valfold = _arg("valfold", -1, int)   # ours (10-27), k>=0: e180 val molecules only from identity fold k; engine FP = fold-safe fpnet_fold{k} (never saw fold k)
+rkdump = _arg("rkdump", 0, int)     # ours (10-27), 1: dump the base ranker's input rows (top 300 + truth) per val molecule, stop after the base lists
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
 latecut = _arg("latecut", 0, int)
