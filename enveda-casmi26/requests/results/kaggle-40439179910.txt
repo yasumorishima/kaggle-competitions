@@ -1,0 +1,63 @@
+request: e3f465rk-1
+run: 40439179910  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3f465rk  version: 1
+memo: Base: the pipeline embedded in sanpier's 'Candidate-aware PubChem promotion 0.465' (frozen_0465 = dmitriigluzdov 'CASMI 26: The Data Behind Spectra to Structures' v16 + sanpier's rank-1 PubChem promotion), kernels/e3/base_f465.ipynb, + ours own COCONUT + lfrag (e3f465oc-1, LB 0.467, our best). New part (ours, 10-27): leak-free engine-1 ranker. Our validation kernel yasunorim/casmi26-e3rk0 held 800 enveda-180 molecules of dmitriigluzdov's identity fold 0 out of train (c1: other-library spectra kept; c2: all removed), swapped the engine FP to the fold-safe fpnet_fold0 and dumped the public ranker's 160 input features for the top 300 candidates + truth. A LightGBM lambdarank refit on these rows (5-fold CV by molecule) beats the public ranker on the same molecules: MRR@25 0.926 -> 0.981 (c1 0.864 -> 0.971; 80 molecules up, 4 down); without the FPNet A/B/D 'model_views' features (which saw the molecules) still 0.967. Here the booster is fitted in-kernel on all rows and replaces the public ranker (rknew=1). Hypothesis: the public ranker was fitted on rows where each molecule's own spectra were in the library, so it under-weights matches from other instruments, which is the hidden test's class 1 (timsTOF queries, references from other instruments); LB >= 0.475. Effect size: 8-10% of molecules move up in the simulation; even a fifth of that on the hidden 400 is +6 molecules. build.py f465rk base=f465 ownco=1 lfrag=1 rknew=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3f465rk
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-10-27 02:58:12.397000,e3f465rk-1: f465 + own COCONUT + lfrag (0.467) + our leak-free refit of the engine-1 ranker (all features) [run 40439179910],SubmissionStatus.PENDING,,
+submission.csv,2026-10-26 01:16:35.407000,e3f465fp-1: f465 + own COCONUT + lfrag (0.467) + our fold-safe FPNet ensemble in the PubChem channel only [run 40248810139],SubmissionStatus.COMPLETE,0.467,
+submission.csv,2026-10-26 00:50:49.087000,e3f465fe-1: f465 + own COCONUT + lfrag (0.467) + our fold-safe FPNet ensemble in the PubChem channel and the engine [run 40248783415],SubmissionStatus.COMPLETE,0.458,
+
+output files:
+total 916
+drwxr-xr-x 11 runner runner   4096 Oct 27 02:58 .
+drwxrwxrwt 14 root   root     4096 Oct 27 02:56 ..
+-rw-r--r--  1 runner runner  17283 Oct 27 02:56 baseline_submission.csv
+-rw-r--r--  1 runner runner    547 Oct 27 02:56 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Oct 27 02:56 candidate_audit.json
+-rw-r--r--  1 runner runner  37100 Oct 27 02:58 casmi26-e3f465rk.log
+-rw-r--r--  1 runner runner 193236 Oct 27 02:56 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9849 Oct 27 02:56 e004_verification.json
+drwxr-xr-x  3 runner runner   4096 Oct 27 02:56 eng
+-rw-r--r--  1 runner runner  29968 Oct 27 02:56 eng_lists.json
+-rw-r--r--  1 runner runner   9256 Oct 27 02:56 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Oct 27 02:56 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Oct 27 02:56 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Oct 27 02:56 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Oct 27 02:56 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Oct 27 02:57 external_reference_xcpwq_bu
+-rw-r--r--  1 runner runner  12857 Oct 27 02:57 frag_rescore.py
+drwxr-xr-x  2 runner runner   4096 Oct 27 02:57 gl_work
+drwxr-xr-x  2 runner runner   4096 Oct 27 02:57 ice_work
+drwxr-xr-x  3 runner runner   4096 Oct 27 02:57 n1_work
+drwxr-xr-x  6 runner runner   4096 Oct 27 02:57 numba_cache
+-rw-r--r--  1 runner runner   3557 Oct 27 02:57 ours_lfrag.py
+-rw-r--r--  1 runner runner  72500 Oct 27 02:57 pc_lists.json
+-rw-r--r--  1 runner runner   4856 Oct 27 02:57 pc_runner.py
+-rw-r--r--  1 runner runner  16124 Oct 27 02:57 probe_core2.py
+-rw-r--r--  1 runner runner      1 Oct 27 02:57 pubchem_promotion_audit.csv
+-rw-r--r--  1 runner runner    231 Oct 27 02:57 rank2_overlay.json
+-rw-r--r--  1 runner runner    345 Oct 27 02:57 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Oct 27 02:57 smoke_comp
+-rw-r--r--  1 runner runner  17282 Oct 27 02:57 submission.csv
+-rw-r--r--  1 runner runner  17283 Oct 27 02:57 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17282 Oct 27 02:57 submission_e006_control.csv
+-rw-r--r--  1 runner runner  17283 Oct 27 02:57 submission_reference.csv
+-rw-r--r--  1 runner runner   7335 Oct 27 02:57 v43_execution_receipt.json
+-rw-r--r--  1 runner runner 143355 Oct 27 02:57 v43_mounted_input_hashes.json
+drwxr-xr-x  4 runner runner   4096 Oct 27 02:57 v43_v4code
+drwxr-xr-x  2 runner runner   4096 Oct 27 02:58 work
+[{"stream_name":"stderr","time":7.131165354,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":7.131207623,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":8.075584707,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.075614296,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.075619293,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.075629504,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.716609691,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.716637539,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.716642726,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.716669027,"data":"0.00s - Note: Debugging will proce
