@@ -1,0 +1,25 @@
+request: out-rk0-5
+run: 40438242323  status: failure  action: output  dir: enveda-casmi26/kernels/e3  submit: no
+kernel: yasunorim/casmi26-e3rk0  version: 
+memo: Leak-free ranker part, step 2: score e3rk0-2's rows with tools/rk_report.py (lambdarank refit, 5-fold CV by molecule, vs the base ranker on the same 800 held-out fold-0 molecules). Pass: +0.02 MRR@25 after the popularity re-rank.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 90 files
+got rk_rows.parquet 43177504
+copied 1 files to /tmp/kres
+rows 104702 molecules 800 truth in rows 795 features 160 | c1 400 c2 400
+Traceback (most recent call last):
+  File "/home/runner/work/kaggle-competitions/kaggle-competitions/enveda-casmi26/tools/rk_report.py", line 65, in <module>
+    p = np.mean([cv(cols, seed=s) for s in (0, 1)], axis=0)
+                 ^^^^^^^^^^^^^^^^
+  File "/home/runner/work/kaggle-competitions/kaggle-competitions/enveda-casmi26/tools/rk_report.py", line 52, in cv
+    m = lgb.LGBMRanker(objective="lambdarank", n_estimators=rounds, learning_rate=0.03, num_leaves=31,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/lightgbm/sklearn.py", line 1910, in __init__
+    super().__init__(
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/lightgbm/sklearn.py", line 721, in __init__
+    raise LightGBMError(
+lightgbm.basic.LightGBMError: scikit-learn is required for lightgbm.sklearn. You must install scikit-learn and restart your session to use this module.
+
+output files:
