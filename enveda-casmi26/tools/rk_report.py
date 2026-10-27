@@ -49,10 +49,10 @@ def cv(cols, seed=0, rounds=400):
         tr = ~te
         dt = d[tr].sort_values("molecule_id", kind="stable")
         grp = dt.groupby("molecule_id", sort=True).size().values
-        m = lgb.LGBMRanker(objective="lambdarank", n_estimators=rounds, learning_rate=0.03, num_leaves=31,
-                           min_child_samples=50, subsample=0.8, subsample_freq=1, colsample_bytree=0.7,
-                           lambdarank_truncation_level=25, verbose=-1, random_state=seed)
-        m.fit(dt[cols].values.astype(np.float32), dt.label.values, group=grp)
+        m = lgb.train(dict(objective="lambdarank", learning_rate=0.03, num_leaves=31, min_data_in_leaf=50,
+                           bagging_fraction=0.8, bagging_freq=1, feature_fraction=0.7, lambdarank_truncation_level=25,
+                           verbose=-1, seed=seed), lgb.Dataset(dt[cols].values.astype(np.float32), dt.label.values, group=grp),
+                      num_boost_round=rounds)
         pred[te] = m.predict(d.loc[te, cols].values.astype(np.float32))
     return pred
 
@@ -73,8 +73,9 @@ for k, v in res.items():
     print(f"RK {k:20s} MRR@25 all {v['all']:.4f}  c1 {v['c1']:.4f}  c2 {v['c2']:.4f}  top1 {v['top1']:.4f}")
 # which inputs the new ranker leans on (one fit on all rows)
 dt = d.sort_values("molecule_id", kind="stable")
-m = lgb.LGBMRanker(objective="lambdarank", n_estimators=400, learning_rate=0.03, num_leaves=31, min_child_samples=50,
-                   subsample=0.8, subsample_freq=1, colsample_bytree=0.7, verbose=-1, random_state=0)
-m.fit(dt[F].values.astype(np.float32), dt.label.values, group=dt.groupby("molecule_id", sort=True).size().values)
-imp = pd.Series(m.booster_.feature_importance("gain"), index=F).sort_values(ascending=False)
+m = lgb.train(dict(objective="lambdarank", learning_rate=0.03, num_leaves=31, min_data_in_leaf=50, bagging_fraction=0.8,
+                   bagging_freq=1, feature_fraction=0.7, verbose=-1, seed=0),
+              lgb.Dataset(dt[F].values.astype(np.float32), dt.label.values, group=dt.groupby("molecule_id", sort=True).size().values),
+              num_boost_round=400)
+imp = pd.Series(m.feature_importance("gain"), index=F).sort_values(ascending=False)
 print("top gain features:", ", ".join(f"{k} {v / imp.sum():.3f}" for k, v in imp.head(15).items()))
