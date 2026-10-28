@@ -1,0 +1,105 @@
+request: out-a2fl-log-1
+run: 40610081450  status: success  action: output  dir: enveda-casmi26/kernels/arcref  submit: no
+kernel: yasunorim/arc3-a2fl  version: 
+memo: Check in the ARC a2fl-sub1 commit log that leoprovorov's Fable layer was applied ('ours: fable layer applied' vs 'skipped: ...') and our A2 patch appended after it.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+listed 18 files
+got serve.log 122034
+copied 1 files to /tmp/kres
+== arc3-a2fl.log: 215 lines
+   ours: fable layer applied
+   ours: A2 patch appended, dossier = 2
+   ours: fast commit run HarnessSolver(label='duck-harness', runtime_environment=None, job_dir=None, soft_end_time=None, minimal_diagnostics=False, model='local', analyzer_timeout=900.0, max_actions_per_game=None, max_runtime_s_per_game=300, max_generated_tokens_per_game=None, concurrency=1, save_reque
+   ours diag: server logs ['/kaggle/working/serve.log']
+   ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached
+   ours diag:    0       0   0.0    0.0    0.00       0.0            0              0
+   ours diag:   10     295   1.0    0.0    0.03     172.0        53760         508224
+   ours diag: gate {'enqueued': 1, 'blocked': 0, 'blocked_ms': 0, 'handover_ms': 0}
+   ours diag: retry {'retries': 0, 'levels_after': 0, 'fresh_admits': 0}
+   ours diag: turns ft09 turns=10 exec=5 acts=12 tok=32494 levels=2 | L1:3t/5a/6.2k L2:3t/7a/3.8k L3~:4t/0a/22.5k
+   ours diag: turns total {'games': 1, 'turns': 10, 'acts': 12, 'tok': 32494, 'levels': 2, 'tok_solved': 9971, 'tok_solved2': 3767, 'levels2': 1} tok/level=16247 tok/solved-level=4985 tok/solved-level(L>=2)=3767 acts/level=6  ('~' = level not completed)
+   analyzer request timed out at action 14; yielding with 0 tool call(s) preserved: HTTPConnectionPool(host='127.0.0.1', port=8001): Read timed out. (read timeout=1.8558751800001119)
+   [finished] ft09-0d8bbf25 state=gave_up level=2/6 score=14.29 actions=13 tokens=9971 per-level=6/43,7/12,0/23,0/28,0/65,0/37 note="tokens=32494"
+   benchmark: regenerated diagnostics in /kaggle/working in 0.86s
+   benchmark: duck-harness-kaggle
+   solver:    duck-harness
+   games:     1
+   passes:    1
+   runs:      1 (won: 0)
+   started:   2026-10-28 00:31:42
+   ended:     2026-10-28 00:36:42
+   duration:  5m 0s
+   mean score:    14.29
+   median score:  14.29
+   total actions: 13
+   total tokens:  9971
+   generated tokens/sec: 33.21 (job wallclock)
+   total wallclock: 300.0s
+   per-game (mean across passes):
+     ft09-0d8bbf25: score=14.29, levels=2.0/6, actions=13, tokens=9971
+   diagnostics: /kaggle/working/diagnostics.html
+   /usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead
+     warnings.warn("Consider using IPython.display.IFrame instead")
+   /usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead
+     warnings.warn("Consider using IPython.display.IFrame instead")
+   ours diag: server logs ['/kaggle/working/serve.log']
+   ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached
+   ours diag:    0       0   0.0    0.0    0.00       0.0            0              0
+   ours diag:   10     295   1.0    0.0    0.03     172.0        53760         508224
+   ours diag: gate {'enqueued': 1, 'blocked': 0, 'blocked_ms': 0, 'handover_ms': 0}
+   ours diag: retry {'retries': 0, 'levels_after': 0, 'fresh_admits': 0}
+   ours diag: turns ft09 turns=10 exec=5 acts=12 tok=32494 levels=2 | L1:3t/5a/6.2k L2:3t/7a/3.8k L3~:4t/0a/22.5k
+   ours diag: turns total {'games': 1, 'turns': 10, 'acts': 12, 'tok': 32494, 'levels': 2, 'tok_solved': 9971, 'tok_solved2': 3767, 'levels2': 1} tok/level=16247 tok/solved-level=4985 tok/solved-level(L>=2)=3767 acts/level=6  ('~' = level not completed)
+   /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+     cells[i][c] = re.sub('\\\\\|', '|', cell)
+   /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+     text = re.sub(r'_', '\_', text) # Escape underscores in display text
+   [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
+   [NbConvertApp] Writing 1309346 bytes to __notebook__.ipynb
+   [NbConvertApp] Converting notebook __notebook__.ipynb to html
+   [NbConvertApp] Writing 3011888 bytes to __results__.html
+== serve.log: 571 lines
+   [2026-10-28 00:36:27] INFO:     127.0.0.1:38974 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+   [2026-10-28 00:36:28] Prefill batch, #new-seq: 1, #new-token: 960, #cached-token: 50880, full token usage: 0.05, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 178.88
+   [2026-10-28 00:36:28] Decode batch, #running-req: 1, #full token: 51904, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.88, accept rate: 0.62, cuda graph: True, gen throughput (token/s): 83.55, #queue-req: 0
+   [2026-10-28 00:36:29] Decode batch, #running-req: 1, #full token: 52032, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.60, accept rate: 0.87, cuda graph: True, gen throughput (token/s): 228.41, #queue-req: 0
+   [2026-10-28 00:36:30] Decode batch, #running-req: 1, #full token: 52224, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.88, accept rate: 0.96, cuda graph: True, gen throughput (token/s): 247.49, #queue-req: 0
+   [2026-10-28 00:36:30] Decode batch, #running-req: 1, #full token: 52352, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.70, accept rate: 0.90, cuda graph: True, gen throughput (token/s): 237.14, #queue-req: 0
+   [2026-10-28 00:36:31] ReqTimeStats(rid=6eb1863ddbd54a0e8f1aa76392185297, input_len=51802, cached_input_len=50880, output_len=622, attempts=0, type=unified): queue_duration=1.39ms, initial_prefill_elapsed=137.30ms, post_prefill_elapsed=2750.83ms, forward_duration=2888.13ms, entry_time=1793147788.363
+   [2026-10-28 00:36:31] INFO:     127.0.0.1:46894 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+   [2026-10-28 00:36:32] Prefill batch, #new-seq: 1, #new-token: 1152, #cached-token: 51776, full token usage: 0.05, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 321.31
+   [2026-10-28 00:36:32] Decode batch, #running-req: 1, #full token: 52928, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.42, accept rate: 0.81, cuda graph: True, gen throughput (token/s): 95.04, #queue-req: 0
+   [2026-10-28 00:36:32] Decode batch, #running-req: 1, #full token: 53056, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.65, accept rate: 0.55, cuda graph: True, gen throughput (token/s): 170.07, #queue-req: 0
+   [2026-10-28 00:36:33] Decode batch, #running-req: 1, #full token: 53184, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.70, accept rate: 0.57, cuda graph: True, gen throughput (token/s): 172.91, #queue-req: 0
+   [2026-10-28 00:36:34] Decode batch, #running-req: 1, #full token: 53248, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.48, accept rate: 0.49, cuda graph: True, gen throughput (token/s): 159.40, #queue-req: 0
+   [2026-10-28 00:36:34] Decode batch, #running-req: 1, #full token: 53376, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.73, accept rate: 0.57, cuda graph: True, gen throughput (token/s): 175.90, #queue-req: 0
+   [2026-10-28 00:36:35] Decode batch, #running-req: 1, #full token: 53440, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.00, accept rate: 0.33, cuda graph: True, gen throughput (token/s): 128.62, #queue-req: 0
+   [2026-10-28 00:36:35] Decode batch, #running-req: 1, #full token: 53504, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 1.98, accept rate: 0.33, cuda graph: True, gen throughput (token/s): 127.59, #queue-req: 0
+   [2026-10-28 00:36:36] Decode batch, #running-req: 1, #full token: 53632, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 1.98, accept rate: 0.33, cuda graph: True, gen throughput (token/s): 126.72, #queue-req: 0
+   [2026-10-28 00:36:37] Decode batch, #running-req: 1, #full token: 53696, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.62, accept rate: 0.54, cuda graph: True, gen throughput (token/s): 168.82, #queue-req: 0
+   [2026-10-28 00:36:37] Decode batch, #running-req: 1, #full token: 53824, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.55, accept rate: 0.85, cuda graph: True, gen throughput (token/s): 225.17, #queue-req: 0
+   [2026-10-28 00:36:38] Decode batch, #running-req: 1, #full token: 54016, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.83, accept rate: 0.94, cuda graph: True, gen throughput (token/s): 245.62, #queue-req: 0
+   [2026-10-28 00:36:39] Decode batch, #running-req: 1, #full token: 54144, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.50, accept rate: 0.83, cuda graph: True, gen throughput (token/s): 225.08, #queue-req: 0
+   [2026-10-28 00:36:39] Decode batch, #running-req: 1, #full token: 54272, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 3.35, accept rate: 0.78, cuda graph: True, gen throughput (token/s): 217.05, #queue-req: 0
+   [2026-10-28 00:36:39] ReqTimeStats(rid=43b7d27ca7de48898cc1baae576d3ece, input_len=52891, cached_input_len=51776, output_len=1370, attempts=0, type=unified): queue_duration=1.42ms, initial_prefill_elapsed=152.95ms, post_prefill_elapsed=7641.64ms, forward_duration=7794.60ms, entry_time=1793147791.932
+   [2026-10-28 00:36:39] INFO:     127.0.0.1:46906 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+   [2026-10-28 00:36:41] Prefill batch, #new-seq: 1, #new-token: 1024, #cached-token: 54208, full token usage: 0.05, mamba usage: 0.07, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 112.40
+   [2026-10-28 00:36:41] Decode batch, #running-req: 1, #full token: 55296, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.55, accept rate: 0.52, cuda graph: True, gen throughput (token/s): 49.09, #queue-req: 0
+   [2026-10-28 00:36:42] Decode batch, #running-req: 1, #full token: 55424, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.48, accept rate: 0.49, cuda graph: True, gen throughput (token/s): 159.42, #queue-req: 0
+   [2026-10-28 00:36:42] Decode batch, #running-req: 1, #full token: 55488, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.12, accept rate: 0.38, cuda graph: True, gen throughput (token/s): 137.09, #queue-req: 0
+   [2026-10-28 00:36:43] Decode batch, #running-req: 1, #full token: 55616, full token usage: 0.05, mamba num: 4, mamba usage: 0.07, accept len: 2.10, accept rate: 0.37, cuda graph: True, gen throughput (token/s): 134.86, #queue-req: 0
+   [2026-10-28 00:36:44] Decode batch, #running-req: 1, #full token: 55680, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 2.10, accept rate: 0.37, cuda graph: True, gen throughput (token/s): 134.77, #queue-req: 0
+   [2026-10-28 00:36:44] Decode batch, #running-req: 1, #full token: 55744, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 2.45, accept rate: 0.48, cuda graph: True, gen throughput (token/s): 156.93, #queue-req: 0
+   [2026-10-28 00:36:45] Decode batch, #running-req: 1, #full token: 55936, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 3.55, accept rate: 0.85, cuda graph: True, gen throughput (token/s): 225.30, #queue-req: 0
+   [2026-10-28 00:36:46] Decode batch, #running-req: 1, #full token: 56064, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 3.80, accept rate: 0.93, cuda graph: True, gen throughput (token/s): 240.35, #queue-req: 0
+   [2026-10-28 00:36:46] Decode batch, #running-req: 1, #full token: 56192, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 3.40, accept rate: 0.80, cuda graph: True, gen throughput (token/s): 216.76, #queue-req: 0
+   [2026-10-28 00:36:47] Decode batch, #running-req: 1, #full token: 56320, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 2.50, accept rate: 0.50, cuda graph: True, gen throughput (token/s): 160.10, #queue-req: 0
+   [2026-10-28 00:36:47] Decode batch, #running-req: 1, #full token: 56384, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 2.70, accept rate: 0.57, cuda graph: True, gen throughput (token/s): 172.72, #queue-req: 0
+   [2026-10-28 00:36:48] Decode batch, #running-req: 1, #full token: 56512, full token usage: 0.06, mamba num: 4, mamba usage: 0.07, accept len: 2.67, accept rate: 0.56, cuda graph: True, gen throughput (token/s): 170.75, #queue-req: 0
+   /tmp/sgl-intel/venv/lib/python3.12/site-packages/sglang/srt/entrypoints/openai/serving_chat.py:1837: FastAPIDeprecationWarning: ORJSONResponse is deprecated, FastAPI now serializes data directly to JSON bytes via Pydantic when a return type or response model is set, which is faster and doesn't need 
+     return self.create_error_response(str(e))
+   [2026-10-28 00:36:48] ReqTimeStats(rid=934a1a22201a4a7aa227680b1e4eafc9, input_len=55203, cached_input_len=54208, output_len=1346, attempts=0, type=unified): queue_duration=1.40ms, initial_prefill_elapsed=145.23ms, post_prefill_elapsed=7771.80ms, forward_duration=7917.03ms, entry_time=1793147801.050
+
+output files:
