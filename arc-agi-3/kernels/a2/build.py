@@ -787,7 +787,22 @@ i5 = next(i for i, c in enumerate(cells) if "harness patch applied successfully"
 c5 = src(i5)
 anchor = "print('harness patch applied successfully')\n"
 assert c5.count(anchor) == 1
-c5 = c5.replace(anchor, anchor + (
+FABLE = ""
+if opts.get("fable", "0") == "1":
+    # fable=1 (10-28): leoprovorov's public "Fable layer" (kernels/a2/fable/SOURCE.txt), unchanged, applied to the
+    # patched harness by its own anchored edits before our patch is appended (every anchor matched once, checked on the
+    # patched bundle); any anchor miss leaves tool_agent.py untouched ('skipped: ...').
+    _fd = os.path.join(HERE, "fable")
+    _fcore = open(os.path.join(_fd, "fable_layer_core.py"), encoding="utf-8").read()
+    _fpatch = open(os.path.join(_fd, "fable_layer_patch.py"), encoding="utf-8").read()
+    FABLE = ("# fable layer (leoprovorov, public notebook 'Fable & Astra Play ARC-3: Handbook + Harness'), unchanged\n"
+             "os.environ['ARC3_FABLE_LAYER'] = '1'\n"
+             f"_FL_CORE = {_fcore!r}\n"
+             f"_FL_PATCH = {_fpatch!r}\n"
+             "_fl_ns = {'__name__': 'fable_layer_patch'}\n"
+             "exec(compile(_FL_PATCH, 'fable_layer_patch.py', 'exec'), _fl_ns)\n"
+             "print('ours: fable layer', _fl_ns['apply'](f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent', _FL_CORE), flush=True)\n")
+c5 = c5.replace(anchor, anchor + FABLE + (
     "# ours (yasunorim): A2 parts appended to the patched harness\n"
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
     f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
@@ -986,4 +1001,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"))

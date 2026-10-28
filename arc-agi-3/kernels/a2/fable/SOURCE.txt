@@ -1,0 +1,5 @@
+Source (unchanged copies): the "Fable layer" of leoprovorov's public notebook
+"Fable & Astra Play ARC-3: Handbook + Harness" (https://www.kaggle.com/code/leoprovorov/fable-astra-play-arc-3-handbook-harness),
+cells 41 (fable_layer_core.py) and 42 (fable_layer_patch.py), version run 2026-10-26.
+Used by arc-agi-3/kernels/a2/build.py fable=1: applied to the patched Milestone-2 harness (tool_agent.py) before our
+own A2 patch is appended. Our parts (RESET exposure, level dossier v2, run deadline, server watch) are ours.
