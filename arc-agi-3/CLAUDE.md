@@ -30,6 +30,12 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 
 **LB（10-25 00:1x 取り直し・4,795 チーム）：金 17 位＝38.37・銀 239 位＝32.25・銅 479 位＝30.92。自分：28.81（a2rs-sub1）・約 1,029 位。銅まで +2.1。締切 11-02（残り 8 本）。**
 - **10-31（休み明け・user 指示で 10-29〜10-30 は休み）**：**a2fl-sub1＝23.61**（a2rs 28.81 より −5.2）。Fable layer の上積みは見えない＝**Fable layer はここで打ち切る**。残りの枠は 10-31・11-01・11-02 の 3 本。今週の GPU は 10-31 に戻った見込み（ARC 優先）。
+  - **計画監査（Opus・10-31・許可なしで使ってよい〔user 10-31〕）**：LB（10-31）銅 500 位＝31.35・金 39.52。自分 28.81・1,241 位。
+    - leoprovorov の公開 dataset（arc-agi-3-book-of-ideas）の「土台そのまま」の 5 本：31.73・29.01・25.37・23.85・28.04＝平均 27.6・標準偏差約 3.1。
+    - **一番弱い前提：watch に損が無いこと**。watch 入りの 3 本（25.79・23.33・23.61）は、watch なしの 4 本（26.66・26.09・26.04・28.81）より全部低い（偶然なら約 1/35）。watch は本番の再実行でしか動かず、土台の「早く始めて最初のゲームで RESET を 1 手打つ（keep-alive）」の前に本番を止める。
+    - **採る：11-01 は止めない見張り（`build.py grace=3600`）**。watch のセルをやめ、土台の「ゲームごとの最初の呼び出しの再試行の時間」（`ARC3_HTTP_RETRY_INITIAL_SECONDS`・土台 900 秒）を 3,600 秒に延ばす。ゲームと keep-alive は土台どおりに始まる。a2cp ≥ 28 なら a2cp の watch を grace に替えた版、< 28 なら a2rs＋grace（CheckedPlan を外す）。合格 ≥ 29。効果：watch が 40〜90 分を食っていたなら +2〜4。
+    - 11-02：11-01 の版＋公開の book の python 道具の直し（道具のエラー率 8.5→7.3%）。00:05 UTC ごろに出して締切前に採点を終える。
+    - 最終 2 本：31 以上があれば 1 本目。2 本目は別の構成の最高点。無ければ a2rs・a2cp・11-01・11-02 の上位 2 本。c13・w8 は選ばない。手で選ぶ（自動の選び方はこのコンペで未確認）。
   - **10-31：a2cp-sub1 を提出**（`build.py a2cp dossier=2 reset=1 turnlog=1 fast=1 watch=1 cplan=1`）。a2rs＋watch に、evgendvorkin の公開「ARC-3 | CheckedPlan」V30（10-30 更新・点順 5 位・leoprovorov の Astra の checked_plan を出典に明記）を足した。無改変の写しは `kernels/a2/cplan/`（出典 SOURCE.txt）。
     - 中身：python の sandbox に `checked_plan(actions, expectations, observe)` を足す。1 手ずつ打ち、予想した見える特徴と今の盤面を比べ、最初の食い違いで止めて journal を返す（古い計画の残りを打たない）。土台の harness にある「手順の確かめ」の prompt（`ARC3_STEP_VERIFICATION_HINT`・土台では off）を on にし、案内を 1 行足す。
     - 変えるのは python_tool_sandbox.py と prompts.py だけ（アンカーが合わなければ止まる）。当方の patch は tool_agent.py。harness の patch は当方と md5 まで同じ。
