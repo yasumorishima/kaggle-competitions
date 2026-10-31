@@ -1219,6 +1219,10 @@ if base == "p477":
     # ours (10-31): our edits go into the frozen pipeline that busyaprime's notebook embeds (FROZEN_B64 + FROZEN_SHA256,
     # checked by its own runner); every outer cell is unchanged, our cells are appended after its final merge.
     import base64, hashlib
+    # the outer notebook addresses frozen cells by index (cells[2] = bootstrap, FROZEN_STAGE numbers): drop our header
+    # markdown so every base cell keeps its index; our code cells are appended after the last base cell only
+    assert cells[0]["cell_type"] == "markdown" and "".join(cells[0]["source"]).startswith(f"# casmi26 {name} (yasunorim)")
+    del cells[0]
     _fz = json.dumps(nb, indent=1).encode("utf-8")
     _outer = json.load(open(os.path.join(HERE, "outer_p477.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
