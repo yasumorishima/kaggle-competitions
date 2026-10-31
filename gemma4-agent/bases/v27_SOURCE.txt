@@ -1,0 +1,6 @@
+v27 = v21 (bases/v21, LB 0.18 g4v21-3; public 0.24 prompt by honghanhhh "gemma-4-baseline-lb-0-24" + our time guard + our sibling-site checklist)
++ sampling and tool set of MUHAMMED IDRIS BIN YACOOB's v24 (LB 0.24; Apache-2.0 dataset muhammedidris28/gemma4-agent-runs, agents/v24;
+  replica cosmorin "gemma-4-idris-v24-e07-faithful-replica"): temperature 0.2 -> 1.0, top_k 64 (his ledger attributes his 0.18 -> 0.24 to this
+  alone), and the 6 tools without the graph tools (run_command, read_file, edit_file, write_file, get_status, submit_patch).
+Ours: the combination with our v21 prompt (time guard, sibling-site checklist); the prompt line that told the model not to use the graph tools is
+dropped because they are no longer declared. Budgets as v21 (28 calls / 8 min / thinking 4096), which finished within 12 h.

@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3f465pi",
-  "title": "casmi26 e3f465pi",
+  "id": "yasunorim/casmi26-e3p477pi",
+  "title": "casmi26 e3p477pi",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -9,13 +9,15 @@
   "enable_tpu": "false",
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
-  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435",
   "dataset_sources": [
+    "sanpier/casmi-spectrum-model-v1",
     "dmitriigluzdov/casmi26-fold-safe-fpnet",
     "dmitriigluzdov/casmi26-natural-product-knowledge-table",
     "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
     "dmitriigluzdov/casmi26-pubchem-popularity-prior",
     "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets",
+    "sanpier/catalogue-experiment-saner",
     "yasunorim/casmi26-own-coconut-candidates"
   ],
   "competition_sources": [

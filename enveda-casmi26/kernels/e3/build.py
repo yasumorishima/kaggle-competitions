@@ -85,7 +85,7 @@ txk = _arg("txk", 25, int)            # ... re-rank only the top K of the final 
 txcov = _arg("txcov", "all", str)     # 'all': every molecule; 'blind': only molecules neither GLACIER nor ICEBERG scored, anchored on the scored ones
 assert txcov in ("all", "blind"), txcov
 base = _arg("base", "e006", str)      # 'e006': canqiang E006 (0.440); 'a451': saddamaditya Apex Synthesis (0.451 as titled)
-assert base in ("e006", "a451", "v15", "v22", "f465"), base   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
+assert base in ("e006", "a451", "v15", "v22", "f465", "p477"), base   # p477 (10-31): busyaprime LB 0.477, whose embedded frozen_0465 = f465 (2 preflight lines differ)   # v22: ahmedberatozer casmi26-v22-n1-challenger (v15 + flexonafft N1 challenger)
 #   # v15: ahmedberatozer casmi26-v15-n1a (v14 LB 0.455 + N1A)
 bfrag = _arg("bfrag", 0.0)            # a451 only: weight of z(the base's frag_rescore) on molecules the forward models DID score (0 = off)
 bfragk = _arg("bfragk", 25, int)      # ... inside same-formula groups of the final top K
@@ -128,7 +128,7 @@ cpu = "cpu" in sys.argv[2:]   # CPU kernel (GPU week quota spent): the base's T4
 assert not (cpu and base not in ("e006", "v15", "v22")), "cpu edits are written for the E006-lineage cells (e006, v15)"
 assert bfrag == 0 or base in ("a451", "v15", "v22"), "bfrag uses the a451 base's frag_rescore"
 assert fins == 0 or base in ("a451", "v15", "v22"), "fins uses the a451 base's frag_rescore"
-assert lfrag == 0 or base in ("a451", "v15", "v22", "f465"), "lfrag patches the a451 base's frag_rescore"
+assert lfrag == 0 or base in ("a451", "v15", "v22", "f465", "p477"), "lfrag patches the a451 base's frag_rescore"
 bx = _arg("bx", 0, int)               # 1: port of ahmedberatozer v19 BX (casmi26-v19-bioext: PubChem structures from biological depositors into engine 2's pool; not ours)
 ownpc = _arg("ownpc", 0, int)         # ours (10-21), K > 0: our own PubChem tier (yasunorim/casmi26-own-pubchem-tier), structures with >= K PubMed links, into engine 2's pool
 n1neg = _arg("n1neg", 0, int)         # ours (10-22), 1: GLACIER-blind molecules with only negative [M-H]- / [M+CH2O2-H]- spectra get [M+H]+ proxies (N1A extended)
@@ -1139,8 +1139,24 @@ if nnw > 0:
     cells.append(code_cell(NN_CELL))
 pcins = _arg("pcins", "", str)   # ours (10-31, Opus audit 10-28 'A'), "K,N": PubChem mid-slot insertion (f465 only)
 if pcins:
-    assert base == "f465", "pcins reads the f465 PubChem channel (PC) and gated-merge inputs (BASE, LIB_TAU)"
+    assert base in ("f465", "p477"), "pcins reads the f465 PubChem channel (PC) and gated-merge inputs (BASE, LIB_TAU)"
     _pk, _pn = (int(x) for x in pcins.split(","))
+if pcins and base == "p477":
+    cells.append(code_cell('''# ==== ours (yasunorim, build.py pcins on base p477): inputs of the PubChem mid-slot insertion ====
+# The insertion itself runs in the outer notebook after its final merge; here only the base's PubChem-only lists (PC)
+# of the molecules it treats as library-weak (lib_max < LIB_TAU) are written out.
+try:
+    _dump = {}
+    for _m, _b in BASE.items():
+        _p = PC.get(str(_m)) or PC.get(_m)
+        if _p and _p.get('pc') and float(_b[2]) < LIB_TAU:
+            _dump[str(_m)] = list(_p['pc'])
+    json.dump(_dump, open('/kaggle/working/ours_pcins_src.json', 'w'))
+    print('PCINS SOURCE molecules', len(_dump), flush=True)
+except Exception as _e:
+    print('PCINS SOURCE FAILED', repr(_e), flush=True)
+'''))
+if pcins and base == "f465":
     PCI_CELL = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py pcins -- every base cell is unchanged) ====
 # PubChem mid-slot insertion (Opus plan audit 10-28, part A). The base's PubChem-only channel (PC: up to 25 structures per
 # molecule outside the candidate pool, ordered by z(f.z of FPNet A+B+fold0) + popularity) reaches the final list only as
@@ -1194,9 +1210,111 @@ except Exception as _e:
     print('PCINS FAILED -> submission as is', repr(_e), flush=True)
 '''
     cells.append(code_cell(PCI_CELL))
+if base == "p477":   # the scratch-tree cleanup runs in the outer notebook, after its later stages
+    cells[:] = [c for c in cells if not (c["cell_type"] == "code" and "drop scratch trees from /kaggle/working" in "".join(c["source"]))]
 for c in cells:
     if c["cell_type"] == "code":
         c["outputs"], c["execution_count"] = [], None
+if base == "p477":
+    # ours (10-31): our edits go into the frozen pipeline that busyaprime's notebook embeds (FROZEN_B64 + FROZEN_SHA256,
+    # checked by its own runner); every outer cell is unchanged, our cells are appended after its final merge.
+    import base64, hashlib
+    # the outer notebook addresses frozen cells by index (cells[2] = bootstrap, FROZEN_STAGE numbers): drop our header
+    # markdown so every base cell keeps its index; our code cells are appended after the last base cell only
+    assert cells[0]["cell_type"] == "markdown" and "".join(cells[0]["source"]).startswith(f"# casmi26 {name} (yasunorim)")
+    del cells[0]
+    _fz = json.dumps(nb, indent=1).encode("utf-8")
+    _outer = json.load(open(os.path.join(HERE, "outer_p477.ipynb"), encoding="utf-8"))
+    _oc = _outer["cells"]
+    _i8 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "FROZEN_B64 = " in "".join(c["source"])]
+    assert len(_i8) == 1, _i8
+    _s8 = "".join(_oc[_i8[0]]["source"])
+    _ob = _s8.split("FROZEN_B64 = '", 1)[1].split("'", 1)[0]
+    _osha = _s8.split("FROZEN_SHA256 = '", 1)[1].split("'", 1)[0]
+    assert hashlib.sha256(base64.b64decode(_ob)).hexdigest() == _osha
+    _s8 = _s8.replace(_ob, base64.b64encode(_fz).decode("ascii")).replace(_osha, hashlib.sha256(_fz).hexdigest())
+    _oc[_i8[0]]["source"] = _s8
+    if pcins:
+        _oc.append(code_cell(f'''# ==== ours (yasunorim; build.py pcins={pcins} on base p477 -- every outer cell above is unchanged) ====
+# PubChem mid-slot insertion (Opus plan audit 10-28, part A), after the final merge: for the molecules the frozen
+# pipeline treats as library-weak, keep the final top {_pk}, insert up to {_pn} of its PubChem-only structures (PC order)
+# with rank 1's molecular formula that are not listed yet (InChIKey first block), then the rest, cut at 25.
+# Any failure keeps the submission as it was.
+PCI_K, PCI_N = {_pk}, {_pn}
+try:
+    from rdkit import Chem as _Ch
+    from rdkit.Chem.rdMolDescriptors import CalcMolFormula as _CMF
+    _mc = {{}}
+    def _mol(s):
+        if s not in _mc:
+            try:
+                _mc[s] = _Ch.MolFromSmiles(s)
+            except Exception:
+                _mc[s] = None
+        return _mc[s]
+    def _fm(s):
+        m = _mol(s); return _CMF(m) if m is not None else None
+    def _ik(s):
+        m = _mol(s)
+        try:
+            return _Ch.MolToInchiKey(m)[:14] if m is not None else None
+        except Exception:
+            return None
+    _src = json.load(open(ROOT / 'ours_pcins_src.json'))
+    _sub = pd.read_csv(ROOT / 'submission.csv', dtype=str, keep_default_na=False)
+    _out, _st = [], dict(gated=0, inserted_mols=0, inserted_rows=0)
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _l = [x for x in str(_s).split(';') if x]
+        _pc = _src.get(str(_m))
+        if not _pc or not _l or _l[0] == 'CCO':
+            _out.append(_s); continue
+        _st['gated'] += 1
+        _f1 = _fm(_l[0])
+        _ids = set(_ik(t) for t in _l) | set(_l)
+        _ins = []
+        for _c in _pc:
+            if len(_ins) >= PCI_N:
+                break
+            if _f1 is None or _fm(_c) != _f1 or _c in _ids:
+                continue
+            _k = _ik(_c)
+            if _k is None or _k in _ids:
+                continue
+            _ids.add(_k); _ids.add(_c); _ins.append(_c)
+        if not _ins:
+            _out.append(_s); continue
+        _st['inserted_mols'] += 1; _st['inserted_rows'] += len(_ins)
+        _out.append(';'.join((_l[:PCI_K] + _ins + _l[PCI_K:])[:25]))
+    _new = _sub.assign(smiles=_out)
+    assert _new.smiles.str.split(';').map(len).between(1, 25).all()
+    assert _new.smiles.str.split(';').map(lambda a: all(bool(x) for x in a) and len(set(a)) == len(a)).all()
+    _tmp = ROOT / 'submission.pcins.tmp'
+    _new.to_csv(_tmp, index=False); os.replace(_tmp, ROOT / 'submission.csv')
+    print('PCINS K', PCI_K, 'N', PCI_N, _st, flush=True)
+except Exception as _e:
+    if not IS_RERUN:
+        raise
+    print('PCINS FAILED -> submission as is', repr(_e), flush=True)
+'''))
+    _oc.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
+import os as _os, shutil as _sh
+for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods'):
+    _p = _os.path.join('/kaggle/working', _d)
+    if _os.path.isdir(_p):
+        _sh.rmtree(_p, ignore_errors=True)
+_n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
+print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
+"""))
+    _oc.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
+                   f"# casmi26 {name} (yasunorim)\n\nBase: [LB 0.477 - Two 0.472 Fixes, Merged the Right Way]"
+                   "(https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way) by busyaprime, version 3, "
+                   "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
+                   "base we used before), our own COCONUT table in engine 2's pool and our learned fragment credits (lfrag); "
+                   + ("after its final merge, our PubChem mid-slot insertion. " if pcins else "") + "\n"})
+    for c in _oc:
+        if c["cell_type"] == "code":
+            c["outputs"], c["execution_count"] = [], None
+    nb = _outer
 json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), indent=1)
 
 meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code_file": "main.ipynb",
@@ -1223,6 +1341,13 @@ if base == "f465":   # dmitriigluzdov's five datasets are self-contained; no oth
                                "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets"] + (
         ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else []) + (["sanpier/casmi-spectrum-model-v1"] if nnw > 0 else [])
     meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if rknew > 0 else []
+if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
+    meta["dataset_sources"] = ["sanpier/casmi-spectrum-model-v1", "dmitriigluzdov/casmi26-fold-safe-fpnet",
+                               "dmitriigluzdov/casmi26-natural-product-knowledge-table", "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
+                               "dmitriigluzdov/casmi26-pubchem-popularity-prior", "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets",
+                               "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
+    meta["kernel_sources"] = []
+    meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")

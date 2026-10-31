@@ -834,6 +834,13 @@ c5 = c5.replace(anchor, anchor + FABLE + CPLAN + (
     "with open(f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent/tool_agent.py', 'a') as _f:\n"
     "    _f.write(_OURS_PATCH)\n"
     "print('ours: A2 patch appended, dossier =', os.environ['ARC_OURS_DOSSIER'])\n"))
+if opts.get("grace"):
+    # grace=S (10-31, Opus audit): non-blocking start-up. Instead of our watch cell holding the benchmark until the
+    # server is ready, the base's own per-game grace on the first model request is lengthened (900 s in the base), so
+    # the games and the keep-alive warm-up reset start exactly as in the base.
+    _g_old = "os.environ['ARC3_HTTP_RETRY_INITIAL_SECONDS'] = '900'\n"
+    assert c5.count(_g_old) == 1, "grace anchor"
+    c5 = c5.replace(_g_old, f"os.environ['ARC3_HTTP_RETRY_INITIAL_SECONDS'] = '{int(opts['grace'])}'   # ours: base 900\n")
 cells[i5]["source"] = c5
 
 # ---- deadline: per-game limit from the time actually left (real rerun only)
@@ -1020,4 +1027,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"), "cplan", opts.get("cplan", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"), "cplan", opts.get("cplan", "0"), "grace", opts.get("grace", "-"))
