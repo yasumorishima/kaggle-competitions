@@ -1,0 +1,5 @@
+transition_contracts.py and install_duck_patch.py are copied unchanged from the public Kaggle notebook
+"ARC-3 | CheckedPlan | sc25 47.6% tu93 22.2%" by evgendvorkin
+(https://www.kaggle.com/code/evgendvorkin/arc-3-checkedplan-sc25-47-6-tu93-22-2, cell 8, V30, read 2026-10-31).
+That notebook credits leoprovorov's Astra work for checked_plan and runs it on the plain dfranzen Milestone-2 harness.
+Ours: combined with our a2rs parts (RESET exposure, dossier v2, deadline) and the server watch (build.py cplan=1).
