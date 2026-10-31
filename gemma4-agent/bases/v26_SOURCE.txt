@@ -1,0 +1,6 @@
+v26 = v21 (bases/v21, LB 0.18 g4v21-3; public 0.24 prompt by honghanhhh "gemma-4-baseline-lb-0-24" + our time guard + our sibling-site checklist)
+Ours (10-31): the opposite direction of v25 (thinking 1024 -> LB 0.15, -3 tasks): deeper turns, fewer of them.
+thinking_budget 4096 -> 6144 per model turn (max_output_tokens kept at 8192 so the 32k context request is unchanged),
+max_tool_calls 28 -> 20 and max_time_minutes 8 -> 7 (keeps the total under the 12 h runtime that v20/v23/v24probe exceeded),
+prompt line 4 states the new budget and asks for fewer, well-aimed calls.
+Call schedule rescaled to 20 calls (edit by call 9, checks from call 16).
