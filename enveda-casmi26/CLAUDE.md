@@ -47,7 +47,9 @@ Kaggle `enveda-CASMI26-molecule-id-mass-spectra`（Featured・$50k・**締切 20
   - 0.477 の中身：busyaprime「LB 0.477 - Two 0.472 Fixes, Merged the Right Way」v3＝romanrozen V2 0.468（frozen_0465 のパイプライン＋sanpier のニューラルの並べ直し）＋2〜25 位をニューラルの重み 0.75 で＋Spectral Parallax の断片の確認（1 位だけを動かす）。10-26 に「最後の並べ替えの手直し」と退けたのが見落とし（約 0.010 の損）。
   - **10-31：土台 p477 を作った（`build.py base=p477`）**。busyaprime の外側のセルは変えず、中に埋め込まれた frozen_0465（＝当方の base_f465 とほぼ同じ・違いは Python 3.13 と GPU 名の確認の 2 行）に当方の部品を当て、FROZEN_B64 とハッシュを差し替える（本人の runner がハッシュを確かめる）。`base_p477.ipynb`（frozen）・`outer_p477.ipynb`（busyaprime v3 の原本）。
     - **e3p477oc-1 を GPU で提出**（`build.py p477oc base=p477 ownco=1 lfrag=1`）：0.477＋自前 COCONUT＋lfrag（f465 で 0.457→0.467 に効いた 2 つ）。仮説 ≥ 0.478。効果：+1〜2 分子。
-    - 次の 1 本：e3p477pi（＋pcins=10,5）。pcins は外側の最後の並べ（merge）の後で差し込む（frozen の中では PC の一覧を `ours_pcins_src.json` に書き出すだけ）。
+    - **e3p477pi-1 も提出**（＋pcins=10,5・03:29 UTC）。pcins は外側の最後の並べ（merge）の後で差し込む（frozen の中では PC の一覧を `ours_pcins_src.json` に書き出すだけ）。
+    - 運用の失敗と直し：e3p477oc-1 は kernel の中で落ちた（提出なし・枠は減らず）。外側の notebook は frozen のセルを番号で読む（cells[2]＝RDKit の bootstrap・FROZEN_STAGE の番号）のに、build.py が frozen の先頭に説明のセルを足して番号がずれた。p477 では frozen にセルを差し込まず、当方のセルは最後の後ろにだけ足すよう直し、e3p477oc-2 で通した（03:02 UTC）。
+    - 今日の enveda：e3f465pi-1・e3p477oc-2・e3p477pi-1 の 3 本。残り 2 枠は新しい部品が無いので使わない（監査どおり）。
   - 監査の順：B（ICEBERG／GLACIER で差し込みを選び直す）は新しい土台の上で 11-01 から。C は pcins と束ねる（単独では出さない）。panel の採点し直しは分析の道具で、提出の関門にしない。やめる：f465 系統の上での作業、overlay・重みの変種。
 - **10-31 の部品（休み明け・GPU の週枠は 10-31 に戻った見込み・enveda は週 10 時間まで）**
   - **e3f465pi-1 を GPU で提出**（`build.py f465pi base=f465 ownco=1 lfrag=1 pcins=10,5`）＝Opus 監査 10-28 の A。最良（e3f465oc-1 0.467）の最後に 1 セル足す：土台がライブラリ一致の弱い分子と扱う分子（lib_max < LIB_TAU 0.9）だけ、最終の上位 10 を残し、土台自身の PubChem 専用の経路（PC：プール外の構造を分子ごとに最大 25、z(FPNet A+B+fold0 の f.z)＋人気度の順）から、1 位と同じ分子式でまだ無い構造（metric の同一性で照合）を最大 5 個差し込み、残りを続けて 25 で切る。失敗したら元のまま。
