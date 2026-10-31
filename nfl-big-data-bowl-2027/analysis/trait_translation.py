@@ -32,7 +32,7 @@ speed +0.34), so they are confirmatory for the new denoised definitions and the 
 All 4 x 4 drill x game pairs x 7 groups (= 112 pairs) are also reported, with Benjamini-Hochberg q over all 112, so the
 matched (diagonal) pairs can be compared to the unmatched ones (a trait that "translates" should beat the off-diagonal).
 
-Uncertainty: Spearman rho with a 2,000-sample player bootstrap 90% CI; replication by draft class (2023 / 2024 / 2025 =
+Uncertainty: Spearman rho (and "wcls": ranks within draft class, to catch class-level shifts in either side) with a 2,000-sample player bootstrap 90% CI; replication by draft class (2023 / 2024 / 2025 =
 disjoint players); reliability: game odd/even-play split, drill attempt-1 vs attempt-2 (40-yd) or odd/even drill halves
 (composites), Spearman-Brown; disattenuated rho = rho / sqrt(rel_d * rel_g) (only when both > 0.2). For the primaries also
 the partial rho after the stopwatch time (forty for vmax, ten_yd_split for v10, three_cone for composites) and weight.
@@ -113,10 +113,10 @@ def drill_table(data):
             if not len(mv):
                 continue
             cum = np.cumsum(sp[mv[0]:])
-            k = np.nonzero(cum >= 40)[0]
-            if not len(k):
+            if cum[-1] < 35:  # tracks end at ~40 yd (median 40.1); keep the whole track when it stops just short
                 continue
-            stop = mv[0] + k[0] + 2
+            k = np.nonzero(cum >= 40)[0]
+            stop = mv[0] + k[0] + 2 if len(k) else None
         r = feats(x, y, 0, stop)
         if r is None:
             continue
@@ -239,12 +239,23 @@ def p_rho(r, n):
     return 2 * norm.sf(abs(z))
 
 
-def reliability(h0, h1, col, ids):
-    j = pd.concat([h0[col].rename("a"), h1[col].rename("b")], axis=1).reindex(ids).dropna()
+def reliability(h0, h1, col, ids, grp=None):
+    """Split-half Spearman-Brown on the players `ids`. If fewer than 15 of them have both halves and `grp` (player ->
+    group) is given, fall back to all players with both halves, ranked within their group (pooled within-group)."""
+    j = pd.concat([h0[col].rename("a"), h1[col].rename("b")], axis=1).dropna()
+    jj = j.reindex(ids).dropna()
+    if len(jj) >= 15:
+        r = rho(jj.a.values, jj.b.values)
+        return (2 * r / (1 + r) if r > -1 else np.nan), len(jj)
+    if grp is None:
+        return np.nan, len(jj)
+    j = j.join(grp.rename("g")).dropna()
+    j = j.groupby("g").filter(lambda t: len(t) >= 5)
     if len(j) < 15:
         return np.nan, len(j)
-    r = rho(j.a.values, j.b.values)
-    return (2 * r / (1 + r) if r > -1 else np.nan), len(j)
+    a = j.groupby("g").a.rank(pct=True); b = j.groupby("g").b.rank(pct=True)
+    r = np.corrcoef(a - a.groupby(j.g).transform("mean"), b - b.groupby(j.g).transform("mean"))[0, 1]
+    return 2 * r / (1 + r), -len(j)  # negative n marks the pooled fallback
 
 
 def partial(a, b, Z):
@@ -275,8 +286,8 @@ def main(data, cache):
     print(f"drill attempts {len(dt)}  players with drill traits {len(D)}  game player-plays {len(gp)}  "
           f"players with game traits {len(G)}  joined {len(J)}")
     print("players per group (any trait):", J.grp.value_counts().reindex(GROUPS).to_dict())
-    print("rho = Spearman, CI = 90% player bootstrap; years = rho per draft class 2023/2024/2025 (n);"
-          " relD/relG = Spearman-Brown split-half; rho* = disattenuated\n")
+    print("rho = Spearman, CI = 90% player bootstrap; wcls = rho with ranks taken within draft class; years = rho per draft class 2023/2024/2025 (n);"
+          " relD/relG = Spearman-Brown split-half (within the group; if <15 players have 2 halves, pooled within-group over all groups); rho* = disattenuated\n")
 
     rows = []
     for g in GROUPS:
@@ -293,10 +304,12 @@ def main(data, cache):
                 for y in (2023, 2024, 2025):
                     sy = s[s.draft_year == y]
                     yrs.append((rho(sy[d].values, sy[t].values) if len(sy) >= 8 else np.nan, len(sy)))
-                rd, nd = reliability(Dh[0], Dh[1], d, s.index)
-                rg, ng = reliability(Gh[0], Gh[1], t, s.index)
+                wy = s.groupby("draft_year")[[d, t]].rank(pct=True)
+                rwy = np.corrcoef(wy[d], wy[t])[0, 1]  # ranks within draft class: guards against class-level shifts
+                rd, nd = reliability(Dh[0], Dh[1], d, s.index, grp)
+                rg, ng = reliability(Gh[0], Gh[1], t, s.index, grp)
                 dis = r / np.sqrt(rd * rg) if (rd > 0.2 and rg > 0.2) else np.nan
-                rows.append(dict(grp=g, drill=d, game=t, n=n, rho=r, lo=lo, hi=hi, p=p_rho(r, n),
+                rows.append(dict(grp=g, drill=d, game=t, n=n, rho=r, lo=lo, hi=hi, rwy=rwy, p=p_rho(r, n),
                                  y23=yrs[0][0], y24=yrs[1][0], y25=yrs[2][0], n23=yrs[0][1], n24=yrs[1][1],
                                  n25=yrs[2][1], relD=rd, relG=rg, dis=dis,
                                  matched=DT_.index(d) == GT_.index(t), primary=PRIMARY[g] == (d, t)))
@@ -307,7 +320,7 @@ def main(data, cache):
 
     def line(r):
         return (f"{r.grp:5s} {r.drill:9s}-> {r.game:7s} n {r.n:3d}  rho {r.rho:+.2f} [{r.lo:+.2f},{r.hi:+.2f}]  "
-                f"p {r.p:.3f} q {r.q:.3f}  yrs {r.y23:+.2f}({r.n23}) {r.y24:+.2f}({r.n24}) {r.y25:+.2f}({r.n25})  "
+                f"wcls {r.rwy:+.2f}  p {r.p:.3f} q {r.q:.3f}  yrs {r.y23:+.2f}({r.n23}) {r.y24:+.2f}({r.n24}) {r.y25:+.2f}({r.n25})  "
                 f"relD {r.relD:.2f} relG {r.relG:.2f} rho* {r.dis:+.2f}")
 
     print("== 1. PRE-STATED PRIMARY (one per group; 7 tests -> Bonferroni alpha 0.05/7 = 0.007)")
@@ -317,8 +330,15 @@ def main(data, cache):
         k = J[(J.grp == r.grp)][[d, t, STOPWATCH[d], "combine_weight"]].dropna()
         if len(k) >= 15:
             sw = STOPWATCH[d]
-            print(f"      stopwatch {sw} -> {t}: rho {rho(k[sw].values, k[t].values):+.2f} (n {len(k)});  partial rho "
-                  f"(drill|{sw}, weight) {partial(k[d].values, k[t].values, k[[sw, 'combine_weight']].values):+.2f}")
+            Z = k[[sw, "combine_weight"]].values
+            pr = partial(k[d].values, k[t].values, Z)
+            bs = []
+            for _ in range(1000):
+                i = RNG.integers(0, len(k), len(k))
+                bs.append(partial(k[d].values[i], k[t].values[i], Z[i]))
+            plo, phi = np.nanpercentile(bs, [5, 95])
+            print(f"      stopwatch {sw} -> {t}: rho {rho(k[sw].values, k[t].values):+.2f} (n {len(k)});  tracking beyond "
+                  f"stopwatch: partial rho (drill | {sw}, weight) {pr:+.2f} [{plo:+.2f},{phi:+.2f}]")
     prim = R[R.primary]
     print(f"   primaries significant at Bonferroni 0.007: {int((prim.p < 0.05 / 7).sum())}/7;  "
           f"CI above 0: {int((prim.lo > 0).sum())}/7;  same sign in all 3 classes: {int((prim.same_sign_yrs == 3).sum())}/7")

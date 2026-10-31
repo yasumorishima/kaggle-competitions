@@ -1,0 +1,83 @@
+TRAIT TRANSLATION  combine drill trait -> same trait in NFL games (rookie classes 2023-25)
+drill attempts 6236  players with drill traits 510  game player-plays 301094  players with game traits 486  joined 486
+players per group (any trait): {'WR': 101, 'TE': 36, 'CB': 63, 'S': 52, 'EDGE': 63, 'DT': 52, 'OL': 119}
+rho = Spearman, CI = 90% player bootstrap; wcls = rho with ranks taken within draft class; years = rho per draft class 2023/2024/2025 (n); relD/relG = Spearman-Brown split-half (within the group; if <15 players have 2 halves, pooled within-group over all groups); rho* = disattenuated
+
+== 1. PRE-STATED PRIMARY (one per group; 7 tests -> Bonferroni alpha 0.05/7 = 0.007)
+WR    D_vmax40 -> G_vmax  n  86  rho +0.56 [+0.43,+0.67]  wcls +0.57  p 0.000 q 0.000  yrs +0.43(32) +0.76(27) +0.54(27)  relD 0.94 relG 0.85 rho* +0.63
+      stopwatch forty -> G_vmax: rho -0.55 (n 86);  tracking beyond stopwatch: partial rho (drill | forty, weight) +0.22 [+0.03,+0.40]
+TE    D_vmax40 -> G_vmax  n  29  rho +0.45 [+0.19,+0.66]  wcls +0.40  p 0.015 q 0.126  yrs +0.35(10) +0.52(10) +0.33(9)  relD 0.92 relG 0.69 rho* +0.57
+      stopwatch forty -> G_vmax: rho -0.44 (n 29);  tracking beyond stopwatch: partial rho (drill | forty, weight) +0.13 [-0.29,+0.47]
+CB    D_v10_40 -> G_v10   n  49  rho +0.41 [+0.18,+0.59]  wcls +0.42  p 0.004 q 0.061  yrs +0.20(14) +0.48(22) +0.53(13)  relD 0.54 relG 0.90 rho* +0.58
+      stopwatch ten_yd_split -> G_v10: rho +0.05 (n 49);  tracking beyond stopwatch: partial rho (drill | ten_yd_split, weight) +0.37 [+0.14,+0.55]
+S     D_v10_40 -> G_v10   n  44  rho +0.03 [-0.25,+0.30]  wcls +0.04  p 0.868 q 0.965  yrs +0.15(19) -0.22(14) +0.16(11)  relD 0.44 relG 0.75 rho* +0.05
+      stopwatch ten_yd_split -> G_v10: rho +0.04 (n 44);  tracking beyond stopwatch: partial rho (drill | ten_yd_split, weight) +0.04 [-0.24,+0.32]
+EDGE  D_v10_40 -> G_v10   n  49  rho +0.02 [-0.23,+0.25]  wcls -0.05  p 0.914 q 0.965  yrs -0.04(21) -0.35(14) +0.24(14)  relD 0.77 relG 0.90 rho* +0.02
+      stopwatch ten_yd_split -> G_v10: rho -0.53 (n 49);  tracking beyond stopwatch: partial rho (drill | ten_yd_split, weight) -0.11 [-0.37,+0.16]
+DT    D_v10_40 -> G_v10   n  40  rho +0.44 [+0.16,+0.67]  wcls +0.54  p 0.005 q 0.063  yrs +0.71(10) +0.40(16) +0.56(14)  relD 0.74 relG 0.89 rho* +0.54
+      stopwatch ten_yd_split -> G_v10: rho -0.60 (n 40);  tracking beyond stopwatch: partial rho (drill | ten_yd_split, weight) +0.32 [+0.01,+0.55]
+OL    D_acc    -> G_amax  n 119  rho -0.05 [-0.21,+0.11]  wcls +0.05  p 0.594 q 0.859  yrs +0.11(37) -0.08(45) +0.14(37)  relD 0.34 relG 0.91 rho* -0.09
+      stopwatch three_cone -> G_amax: rho +0.07 (n 60);  tracking beyond stopwatch: partial rho (drill | three_cone, weight) -0.27 [-0.47,-0.04]
+   primaries significant at Bonferroni 0.007: 3/7;  CI above 0: 4/7;  same sign in all 3 classes: 4/7
+
+== 2. ALL PAIRS TESTED: 112 (4 drill x 4 game traits x 7 groups, minus n<15). BH q < 0.10: 10; CI above 0: 25; CI below 0: 3
+   DT    D_vmax40 -> G_v10   n  40  rho +0.58 [+0.38,+0.72]  wcls +0.58  p 0.000 q 0.005  yrs +0.76(10) +0.69(16) +0.32(14)  relD 0.96 relG 0.89 rho* +0.63
+*m WR    D_vmax40 -> G_vmax  n  86  rho +0.56 [+0.43,+0.67]  wcls +0.57  p 0.000 q 0.000  yrs +0.43(32) +0.76(27) +0.54(27)  relD 0.94 relG 0.85 rho* +0.63
+   EDGE  D_v10_40 -> G_vmax  n  49  rho +0.47 [+0.25,+0.64]  wcls +0.49  p 0.001 q 0.029  yrs +0.44(21) +0.62(14) +0.43(14)  relD 0.77 relG 0.83 rho* +0.59
+   DT    D_vmax40 -> G_amax  n  40  rho +0.47 [+0.22,+0.66]  wcls +0.45  p 0.003 q 0.050  yrs +0.45(10) +0.60(16) +0.28(14)  relD 0.96 relG 0.87 rho* +0.51
+   DT    D_v10_40 -> G_amax  n  40  rho +0.46 [+0.21,+0.65]  wcls +0.52  p 0.004 q 0.057  yrs +0.56(10) +0.35(16) +0.67(14)  relD 0.74 relG 0.87 rho* +0.57
+*m TE    D_vmax40 -> G_vmax  n  29  rho +0.45 [+0.19,+0.66]  wcls +0.40  p 0.015 q 0.126  yrs +0.35(10) +0.52(10) +0.33(9)  relD 0.92 relG 0.69 rho* +0.57
+   CB    D_v10_40 -> G_amax  n  49  rho +0.44 [+0.22,+0.63]  wcls +0.30  p 0.002 q 0.050  yrs -0.01(14) +0.44(22) +0.39(13)  relD 0.54 relG 0.84 rho* +0.66
+*m DT    D_v10_40 -> G_v10   n  40  rho +0.44 [+0.16,+0.67]  wcls +0.54  p 0.005 q 0.063  yrs +0.71(10) +0.40(16) +0.56(14)  relD 0.74 relG 0.89 rho* +0.54
+*m CB    D_v10_40 -> G_v10   n  49  rho +0.41 [+0.18,+0.59]  wcls +0.42  p 0.004 q 0.061  yrs +0.20(14) +0.48(22) +0.53(13)  relD 0.54 relG 0.90 rho* +0.58
+   WR    D_vmax40 -> G_v10   n  87  rho +0.29 [+0.13,+0.45]  wcls +0.34  p 0.007 q 0.080  yrs +0.46(32) +0.21(27) +0.33(28)  relD 0.94 relG 0.88 rho* +0.32
+*m S     D_v10_40 -> G_v10   n  44  rho +0.03 [-0.25,+0.30]  wcls +0.04  p 0.868 q 0.965  yrs +0.15(19) -0.22(14) +0.16(11)  relD 0.44 relG 0.75 rho* +0.05
+*m EDGE  D_v10_40 -> G_v10   n  49  rho +0.02 [-0.23,+0.25]  wcls -0.05  p 0.914 q 0.965  yrs -0.04(21) -0.35(14) +0.24(14)  relD 0.77 relG 0.90 rho* +0.02
+*m OL    D_acc    -> G_amax  n 119  rho -0.05 [-0.21,+0.11]  wcls +0.05  p 0.594 q 0.859  yrs +0.11(37) -0.08(45) +0.14(37)  relD 0.34 relG 0.91 rho* -0.09
+ m WR    D_acc    -> G_amax  n  99  rho -0.31 [-0.46,-0.15]  wcls -0.01  p 0.002 q 0.050  yrs -0.05(38) -0.05(30) +0.08(31)  relD 0.71 relG 0.87 rho* -0.39
+
+== 3. MATCHED (same trait both sides) vs UNMATCHED pairs: mean rho per group
+  WR    matched +0.17 (n pairs 4)  unmatched +0.07 (12)   best matched: vmax+0.56, dec+0.25
+  TE    matched +0.17 (n pairs 4)  unmatched +0.14 (12)   best matched: vmax+0.45, amax+0.20
+  CB    matched +0.15 (n pairs 4)  unmatched +0.01 (12)   best matched: v10+0.41, vmax+0.18
+  S     matched +0.03 (n pairs 4)  unmatched -0.03 (12)   best matched: dec+0.16, vmax+0.05
+  EDGE  matched +0.13 (n pairs 4)  unmatched +0.22 (12)   best matched: amax+0.25, vmax+0.19
+  DT    matched +0.23 (n pairs 4)  unmatched +0.24 (12)   best matched: v10+0.44, amax+0.27
+  OL    matched +0.02 (n pairs 4)  unmatched +0.07 (12)   best matched: v10+0.15, vmax+0.07
+
+== 4. MATCHED-PAIR GRID (rho, CI) per group x trait
+                   vmax40>vmax            v10_40>v10              acc>amax               dec>dec
+  WR     +0.56[+0.43,+0.67]n86 +0.18[-0.00,+0.34]n87 -0.31[-0.46,-0.15]n99 +0.25[+0.08,+0.40]n98
+  TE     +0.45[+0.19,+0.66]n29 +0.05[-0.26,+0.37]n30 +0.20[-0.08,+0.46]n36 -0.02[-0.30,+0.24]n36
+  CB     +0.18[-0.07,+0.40]n52 +0.41[+0.18,+0.59]n49 +0.03[-0.19,+0.25]n59 -0.02[-0.21,+0.17]n62
+  S      +0.05[-0.23,+0.32]n44 +0.03[-0.25,+0.30]n44 -0.12[-0.34,+0.12]n52 +0.16[-0.06,+0.38]n52
+  EDGE   +0.19[-0.08,+0.43]n49 +0.02[-0.23,+0.25]n49 +0.25[+0.04,+0.44]n63 +0.06[-0.14,+0.25]n63
+  DT     +0.02[-0.22,+0.25]n41 +0.44[+0.16,+0.67]n40 +0.27[+0.03,+0.48]n51 +0.19[-0.06,+0.44]n52
+  OL     +0.07[-0.10,+0.24]n94 +0.15[-0.01,+0.31]n94-0.05[-0.21,+0.11]n119-0.11[-0.26,+0.05]n119
+
+== 5. reliability of traits (Spearman-Brown, all players with both halves)
+  drill D_vmax40  rel 0.99 (n 375)
+  drill D_v10_40  rel 0.67 (n 375)
+  drill D_acc     rel 0.54 (n 510)
+  drill D_dec     rel 0.42 (n 510)
+  game G_vmax    rel 0.98 (n 481)
+  game G_v10     rel 0.99 (n 479)
+  game G_amax    rel 0.99 (n 479)
+  game G_dec     rel 0.95 (n 482)
+
+== READING (10-31)
+- Translates (CI > 0, same sign in all 3 draft classes, survives within-class ranks):
+    WR  top speed  40-yd tracking vmax -> deep-route game vmax  rho +0.56 [+0.43,+0.67], n 86, classes +0.43/+0.76/+0.54,
+        disattenuated +0.63; beyond the stopwatch forty (and weight) partial +0.22 [+0.03,+0.40].
+    CB  burst      40-yd speed 1.0 s after start -> game speed 1.0 s after his own start  rho +0.41 [+0.18,+0.59], n 49,
+        +0.20/+0.48/+0.53; the ten-yard split itself does NOT predict it (+0.05); partial beyond split +0.37 [+0.14,+0.55].
+    DT  burst      same pair  rho +0.44 [+0.16,+0.67], n 40, +0.71/+0.40/+0.56; partial beyond split +0.32 [+0.01,+0.55].
+    TE  top speed  rho +0.45 [+0.19,+0.66], n 29 (no gain beyond the forty time: +0.13).
+- Does not translate (primary near 0): S burst +0.03, EDGE burst +0.02 (EDGE's 40-yd burst relates to game TOP SPEED instead,
+  +0.47, but that pair was not the primary), OL acceleration composite -0.05.
+- Multiplicity: 7 primaries (3 pass Bonferroni 0.007, 4 have CI > 0); 112 pairs in total, 10 with BH q < 0.10.
+- Artefact caught: WR acceleration pairs (D_acc -> G_amax -0.31, D_v10_40 -> G_amax +0.26) vanish with ranks within draft
+  class (-0.01, -0.11) = they come from class-level shifts, not players. The 10-28 "WR early acceleration correlates
+  negatively drill vs game" is this artefact. Pooled-class correlations must always be checked within class.
+- Drill-side denoising: the composites over all drills (D_acc rel 0.54, D_dec rel 0.42) remain noisy and translate weakly;
+  the clean drill traits are the 40-yd tracking ones (vmax rel 0.99, v10 rel 0.67). Game traits are reliable (0.75-0.99).
