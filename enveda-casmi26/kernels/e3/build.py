@@ -1137,6 +1137,63 @@ if nnw > 0:
                "    _nn_sh.copy2(_nn_root / 'submission_before_nn.csv', _nn_root / 'submission.csv')\n"
                "    print('NN_RERANK failed, submission kept as before:', repr(_nn_e), flush=True)\n")
     cells.append(code_cell(NN_CELL))
+pcins = _arg("pcins", "", str)   # ours (10-31, Opus audit 10-28 'A'), "K,N": PubChem mid-slot insertion (f465 only)
+if pcins:
+    assert base == "f465", "pcins reads the f465 PubChem channel (PC) and gated-merge inputs (BASE, LIB_TAU)"
+    _pk, _pn = (int(x) for x in pcins.split(","))
+    PCI_CELL = f'''# ==== ours (yasunorim; inserted by enveda-casmi26/kernels/e3/build.py pcins -- every base cell is unchanged) ====
+# PubChem mid-slot insertion (Opus plan audit 10-28, part A). The base's PubChem-only channel (PC: up to 25 structures per
+# molecule outside the candidate pool, ordered by z(f.z of FPNet A+B+fold0) + popularity) reaches the final list only as
+# a rank-1 promotion or through interleave slots that later stages push out; on the natural-product panel with the truth
+# removed from the pool, f465 puts the truth in the top 25 for 99/250 molecules. Here, after every base rule: for the
+# molecules the base itself treats as library-weak (lib_max < LIB_TAU), keep the final top K, then insert up to N PC
+# structures with rank 1's molecular formula that are not already listed (metric identity), then the rest of the list,
+# cut at 25. Any failure keeps the submission as it was (the commit run raises).
+PCI_K, PCI_N = {_pk}, {_pn}
+try:
+    _p0 = time.time()
+    _sp = '/kaggle/working/submission.csv'
+    _sub = pd.read_csv(_sp, dtype=str, keep_default_na=False)
+    _out, _st = [], dict(gated=0, lib_strong=0, no_pc=0, no_formula=0, inserted_mols=0, inserted_rows=0)
+    for _m, _s in zip(_sub.molecule_id, _sub.smiles):
+        _l = [x for x in str(_s).split(';') if x]
+        _b = BASE.get(_m, BASE.get(int(_m)) if str(_m).isdigit() else None) if isinstance(BASE, dict) else None
+        _p = PC.get(str(_m)) or PC.get(_m)
+        if not _l or _l[0] == 'CCO' or _b is None:
+            _out.append(_s); continue
+        if float(_b[2]) >= LIB_TAU:
+            _st['lib_strong'] += 1; _out.append(_s); continue
+        if not _p or not _p.get('pc'):
+            _st['no_pc'] += 1; _out.append(_s); continue
+        _st['gated'] += 1
+        _f1 = _form2(_l[0])
+        if _f1 is None:
+            _st['no_formula'] += 1; _out.append(_s); continue
+        _ids = set(metric_identity(t) for t in _l)
+        _ins = []
+        for _c in _p['pc']:
+            if len(_ins) >= PCI_N:
+                break
+            if _form2(_c) != _f1:
+                continue
+            _ci = metric_identity(_c)
+            if _ci is None or _ci in _ids:
+                continue
+            _ids.add(_ci); _ins.append(_c)
+        if not _ins:
+            _out.append(_s); continue
+        _st['inserted_mols'] += 1; _st['inserted_rows'] += len(_ins)
+        _out.append(';'.join((_l[:PCI_K] + _ins + _l[PCI_K:])[:25]))
+    _sub['smiles'] = _out
+    assert _sub.smiles.map(lambda s: len(s.split(';'))).max() <= 25
+    _sub.to_csv(_sp, index=False)
+    print('PCINS K', PCI_K, 'N', PCI_N, _st, f'{{time.time()-_p0:.0f}}s', flush=True)
+except Exception as _e:
+    if not IS_RERUN:
+        raise
+    print('PCINS FAILED -> submission as is', repr(_e), flush=True)
+'''
+    cells.append(code_cell(PCI_CELL))
 for c in cells:
     if c["cell_type"] == "code":
         c["outputs"], c["execution_count"] = [], None
