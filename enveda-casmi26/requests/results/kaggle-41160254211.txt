@@ -1,0 +1,36 @@
+request: e3p477oc-1
+run: 41160254211  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3p477oc  version: 1
+memo: Rebase onto the public 0.477 (Opus plan audit 10-31: 452 teams tie at 0.477, bronze sits inside that block; our f465 lineage 0.467 is out of date). Base: busyaprime 'LB 0.477 - Two 0.472 Fixes, Merged the Right Way' v3 (romanrozen V2 0.468 + neural weight 0.75 on ranks 2-25 + Spectral Parallax fragment check on rank 1; credits inside), unchanged outer cells. Ours: inside its embedded frozen_0465 pipeline (= our f465 base, 2 preflight lines differ) our own COCONUT table in engine 2's pool and our learned fragment credits (lfrag) - the pair that took f465 from 0.457 to 0.467 (+0.010). They sit upstream of the V2 order, so the fragment check sees our order. build.py p477oc base=p477 ownco=1 lfrag=1 (FROZEN_B64/SHA256 replaced, its runner checks the new hash). Hypothesis: LB >= 0.478 (above the 0.477 block). Effect size: +1-2 molecules if the upstream parts add.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3p477oc
+
+output files:
+total 44
+drwxr-xr-x  3 runner runner  4096 Oct 31 02:31 .
+drwxrwxrwt 14 root   root    4096 Oct 31 02:31 ..
+-rw-r--r--  1 runner runner   220 Oct 31 02:31 bootstrap.log
+-rw-r--r--  1 runner runner  8327 Oct 31 02:31 casmi26-e3p477oc.log
+-rw-r--r--  1 runner runner 12857 Oct 31 02:31 frag_rescore.py
+drwxr-xr-x  3 runner runner  4096 Oct 31 02:31 p2s_code
+==> /tmp/kout/bootstrap.log <==
+  File "/kaggle/working/p2s_code/bootstrap.py", line 11
+    answer after the scorer's RDKit 2026.03.3 tautomer standardisation.
+                           ^
+SyntaxError: unterminated string literal (detected at line 11)
+
+==> /tmp/kout/casmi26-e3p477oc.log <==
+[{"stream_name":"stderr","time":7.47559223,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.475630745,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.475636944,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.475640805,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.095965292,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.095995518,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.096001592,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.096006335,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":11.075895318,"data":"974 public notebooks, 678 with a score, 279 of those below 0.4 not drawn\n"}
+,{"stream_name":"stdout","time":11.593400727,"data":"8 modules and the pinned pipeline source ready (0.41 MB)\n"}
+,{"stream_name":"stdout","time":11.699821695,"data":"Fragment source: eeacdcf0afb1\n"}
+,{"stream_name":"stdout","time":30.016907268,"data":"▶ Official RDKit wheel\n"}
+,{"stream_name":"stdout","ti
