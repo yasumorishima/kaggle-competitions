@@ -802,7 +802,26 @@ if opts.get("fable", "0") == "1":
              "_fl_ns = {'__name__': 'fable_layer_patch'}\n"
              "exec(compile(_FL_PATCH, 'fable_layer_patch.py', 'exec'), _fl_ns)\n"
              "print('ours: fable layer', _fl_ns['apply'](f'{BUNDLE_DIR}/src/ARC3-Inference/inference/agent', _FL_CORE), flush=True)\n")
-c5 = c5.replace(anchor, anchor + FABLE + (
+CPLAN = ""
+if opts.get("cplan", "0") == "1":
+    # cplan=1 (10-31): evgendvorkin's public "CheckedPlan" V30 (kernels/a2/cplan/SOURCE.txt), unchanged: its installer
+    # adds checked_plan() to the python sandbox and a guidance line to the step-verification prompt (anchors fail closed),
+    # and the base harness's own ARC3_STEP_VERIFICATION_HINT is switched on. It touches python_tool_sandbox.py and
+    # prompts.py only; our patch below goes to tool_agent.py.
+    _cd = os.path.join(HERE, "cplan")
+    _cc = open(os.path.join(_cd, "transition_contracts.py"), encoding="utf-8").read()
+    _ci = open(os.path.join(_cd, "install_duck_patch.py"), encoding="utf-8").read()
+    CPLAN = ("# checked plan (evgendvorkin, public notebook 'ARC-3 | CheckedPlan'), unchanged\n"
+             "_cp_pkg = Path('/kaggle/working/astra_checked_plan_v30')\n"
+             "_cp_pkg.mkdir(parents=True, exist_ok=True)\n"
+             f"(_cp_pkg / 'transition_contracts.py').write_text({_cc!r}, encoding='utf-8')\n"
+             f"(_cp_pkg / 'install_duck_patch.py').write_text({_ci!r}, encoding='utf-8')\n"
+             "subprocess.run([sys.executable, str(_cp_pkg / 'install_duck_patch.py'), '--root', "
+             "str(BUNDLE_DIR / 'src' / 'ARC3-Inference'), '--diff', str(_cp_pkg / 'checked_plan.diff'), '--apply'], "
+             "cwd=str(_cp_pkg), check=True)\n"
+             "os.environ['ARC3_STEP_VERIFICATION_HINT'] = '1'\n"
+             "print('ours: checked plan installed', flush=True)\n")
+c5 = c5.replace(anchor, anchor + FABLE + CPLAN + (
     "# ours (yasunorim): A2 parts appended to the patched harness\n"
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
     f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
@@ -1001,4 +1020,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"), "cplan", opts.get("cplan", "0"))

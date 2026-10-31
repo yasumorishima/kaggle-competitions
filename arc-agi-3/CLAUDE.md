@@ -29,6 +29,12 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
 **LB（10-25 00:1x 取り直し・4,795 チーム）：金 17 位＝38.37・銀 239 位＝32.25・銅 479 位＝30.92。自分：28.81（a2rs-sub1）・約 1,029 位。銅まで +2.1。締切 11-02（残り 8 本）。**
+- **10-31（休み明け・user 指示で 10-29〜10-30 は休み）**：**a2fl-sub1＝23.61**（a2rs 28.81 より −5.2）。Fable layer の上積みは見えない＝**Fable layer はここで打ち切る**。残りの枠は 10-31・11-01・11-02 の 3 本。今週の GPU は 10-31 に戻った見込み（ARC 優先）。
+  - **10-31：a2cp-sub1 を提出**（`build.py a2cp dossier=2 reset=1 turnlog=1 fast=1 watch=1 cplan=1`）。a2rs＋watch に、evgendvorkin の公開「ARC-3 | CheckedPlan」V30（10-30 更新・点順 5 位・leoprovorov の Astra の checked_plan を出典に明記）を足した。無改変の写しは `kernels/a2/cplan/`（出典 SOURCE.txt）。
+    - 中身：python の sandbox に `checked_plan(actions, expectations, observe)` を足す。1 手ずつ打ち、予想した見える特徴と今の盤面を比べ、最初の食い違いで止めて journal を返す（古い計画の残りを打たない）。土台の harness にある「手順の確かめ」の prompt（`ARC3_STEP_VERIFICATION_HINT`・土台では off）を on にし、案内を 1 行足す。
+    - 変えるのは python_tool_sandbox.py と prompts.py だけ（アンカーが合わなければ止まる）。当方の patch は tool_agent.py。harness の patch は当方と md5 まで同じ。
+    - 当方の部分：作者は素の土台で動かした。当方は a2rs（RESET・dossier v2・締切）と組み合わせる。仮説：予想が外れた後の無駄な手（点は (人間/agent の手数)² で効く）と止まるレベルが減り、LB > 28.81。効果量：作者の手元で sc25 27.4→47.6%、tu93 17.1→22.2%（切り分けなし）。1 本のぶれ ±4 なので +3 以上でないと見えない。
+    - 最終 2 本の考え：「a2rs 系の最高点（28.81）」と「a2cp」。11-01・11-02 の枠は a2cp の点を見て決める。
 - **10-28：a2pn-sub1＝23.33**（a2rs 28.81 より −5.5）。見張り 90 分＋先読みの待ちでは上がらない＝**起動の部品はここで打ち切る**（watch は 0.00 の事故よけとして 40 分のまま残す）。残り 6 本（10-28〜11-02）。今週の GPU の残り：約 13 時間（ARC 優先）。
   - 公開の読解（10-28）：点順の 1 位（romantamrazov「I AM BETTER」）と heliosli「merging」は土台と同一（commit 実行の設定だけ違う）。lalalia-final は「解いたレベルの記録＋モデル自身の規則 1 行」＝当方の dossier と同じ方向。leoprovorov「Fable & Astra Play ARC-3」の分析では、**土台そのままの再提出が 31.73 を出した＝1 本の LB のぶれは約 ±4**。銅の線（約 31）は土台の運の良い 1 本の高さ。
   - **10-28：a2fl-sub1 を提出**（`build.py a2fl dossier=2 reset=1 turnlog=1 fast=1 watch=1 fable=1`）。a2rs＋watch に、leoprovorov の公開の「Fable layer」（`kernels/a2/fable/`・無改変・出典は SOURCE.txt）を足した。
