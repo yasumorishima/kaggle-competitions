@@ -109,6 +109,7 @@ fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pic
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
+onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT structures missing from the final layer's prior table get np_coconut = 1
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
@@ -1239,6 +1240,38 @@ if base == "p477":
     assert hashlib.sha256(base64.b64decode(_ob)).hexdigest() == _osha
     _s8 = _s8.replace(_ob, base64.b64encode(_fz).decode("ascii")).replace(_osha, hashlib.sha256(_fz).hexdigest())
     _oc[_i8[0]]["source"] = _s8
+    if onp:
+        # ours (11-01, Opus audit part 2): the 0.479 final layer looks up pop / NP flags in dmitriigluzdov's pool_popularity.csv
+        # (the public pool only). 56k structures of our own COCONUT table are not in it, so they got NP 0 although they are
+        # COCONUT natural products. Build an extended copy (their rows: np_coconut 1, pop 0 = unknown, no library flag) and
+        # point the final layer at it; any failure keeps the original table.
+        assert outer == "m479" and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
+        _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def _load_pop_prior(" in "".join(c["source"])]
+        assert len(_i17) == 1, _i17
+        _s17 = "".join(_oc[_i17[0]]["source"])
+        _gold = "hits = sorted(glob.glob(str(input_root / '**/pool_popularity.csv'), recursive=True))"
+        assert _s17.count(_gold) == 1, "onp anchor"
+        _s17 = _s17.replace(_gold, "hits = sorted(glob.glob('/kaggle/working/ours_pop/pool_popularity.csv')) or " + _gold.split("= ", 1)[1] + "   # ours (onp)")
+        _onp = """# ==== ours (yasunorim, build.py onp=1): our own COCONUT structures get the NP flag in the prior table ====
+try:
+    import glob as _g, pickle as _pk, pandas as _pd, os as _os
+    _src = sorted(_g.glob('/kaggle/input/**/pool_popularity.csv', recursive=True))[0]
+    _cols = ['inchikey14', 'pop', 'src_spectral_library', 'np_coconut', 'np_lotus', 'src_natural_product']
+    _pt = _pd.read_csv(_src, usecols=_cols)
+    _cm = [p for p in _g.glob('/kaggle/input/**/coco_meta.pkl', recursive=True) if 'own-coconut' in p][0]
+    _keys = {str(k)[:14] for k in _pk.load(open(_cm, 'rb'))['keys']}
+    _new = sorted(_keys - set(_pt['inchikey14']))
+    _ex = _pd.DataFrame({'inchikey14': _new, 'pop': 0.0, 'src_spectral_library': 0, 'np_coconut': 1, 'np_lotus': 0, 'src_natural_product': 0})
+    _os.makedirs('/kaggle/working/ours_pop', exist_ok=True)
+    _pd.concat([_pt, _ex], ignore_index=True)[_cols].to_csv('/kaggle/working/ours_pop/pool_popularity.tmp', index=False)
+    _os.replace('/kaggle/working/ours_pop/pool_popularity.tmp', '/kaggle/working/ours_pop/pool_popularity.csv')
+    print('ONP: prior table', len(_pt), '+ own COCONUT structures', len(_ex), flush=True)
+    del _pt, _ex, _keys, _new
+except Exception as _e:
+    print('ONP FAILED -> original prior table', repr(_e), flush=True)
+
+"""
+        _oc[_i17[0]]["source"] = _onp + _s17
     if pcins:
         _oc.append(code_cell(f'''# ==== ours (yasunorim; build.py pcins={pcins} on base p477 -- every outer cell above is unchanged) ====
 # PubChem mid-slot insertion (Opus plan audit 10-28, part A), after the final merge: for the molecules the frozen
@@ -1303,7 +1336,7 @@ except Exception as _e:
 '''))
     _oc.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
 import os as _os, shutil as _sh
-for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods'):
+for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods', 'ours_pop'):
     _p = _os.path.join('/kaggle/working', _d)
     if _os.path.isdir(_p):
         _sh.rmtree(_p, ignore_errors=True)
@@ -1365,4 +1398,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
