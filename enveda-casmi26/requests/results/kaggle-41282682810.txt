@@ -1,0 +1,177 @@
+request: e3m479np-1
+run: 41282682810  status: success  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3m479np  version: 1
+memo: Repair of e3m479oc-1 (0.478 = 0.479 base + our own COCONUT + lfrag inside its frozen pipeline: -0.001 against the plain public 0.479). Opus audit 11-01 part 2: the 0.479 final layer (baidalinadilzhan / alex chilton MIDX) re-ranks ranks 2-25 with pop / spectral / NP flags looked up in dmitriigluzdov's pool_popularity.csv, which covers the public pool only; 56,397 structures of our own COCONUT table are missing (counted 11-01), so they got NP 0 although they are COCONUT natural products and sank in ranks 2-25. Ours here (build.py onp=1): an extended copy of the table with those structures as np_coconut 1, pop 0 (unknown), no library flag, and the final layer reads it (one glob line + one block at the top of its cell; any failure keeps the original table). Hypothesis: our two frozen-pipeline parts no longer lose against the final layer, LB >= 0.479 (and >= 0.480 if their +0.001 on p477 carries over). Effect size: 0-2 molecules; submitted alone because it repairs a defect in our own part (bundled with part 1 next). build.py m479np base=p477 outer=m479 ownco=1 lfrag=1 onp=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3m479np
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.csv,2026-11-01 07:19:38.200000,e3m479np-1: MIDX 0.479 + own COCONUT + lfrag + ours: NP flag for our COCONUT structures in the final layer's prior table [run 41282682810],SubmissionStatus.PENDING,,
+submission.csv,2026-11-01 00:46:34.307000,e3m479oc-1: public MIDX 0.479 (alexchilton v8) + ours inside its frozen pipeline: own COCONUT + lfrag [run 41255927318],SubmissionStatus.COMPLETE,0.478,
+submission.csv,2026-10-31 03:29:24.870000,e3p477pi-1: busyaprime LB 0.477 + own COCONUT + lfrag + ours: PubChem mid-slot insertion after the final merge [run 41162674822],SubmissionStatus.COMPLETE,0.477,
+
+output files:
+total 1392
+drwxr-xr-x 14 runner runner   4096 Nov  1 07:19 .
+drwxrwxrwt 14 root   root     4096 Nov  1 07:17 ..
+-rw-r--r--  1 runner runner  17309 Nov  1 07:17 baseline_submission.csv
+-rw-r--r--  1 runner runner     33 Nov  1 07:17 bootstrap.log
+-rw-r--r--  1 runner runner    547 Nov  1 07:17 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Nov  1 07:17 candidate_audit.json
+-rw-r--r--  1 runner runner  11431 Nov  1 07:19 casmi26-e3m479np.log
+-rw-r--r--  1 runner runner 193458 Nov  1 07:17 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9849 Nov  1 07:17 e004_verification.json
+-rw-r--r--  1 runner runner 138382 Nov  1 07:17 effective_query_spectra.parquet
+drwxr-xr-x  3 runner runner   4096 Nov  1 07:17 eng
+-rw-r--r--  1 runner runner  29968 Nov  1 07:17 eng_lists.json
+-rw-r--r--  1 runner runner    229 Nov  1 07:17 execution_receipt.json
+-rw-r--r--  1 runner runner   9256 Nov  1 07:17 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Nov  1 07:17 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Nov  1 07:17 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Nov  1 07:17 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Nov  1 07:17 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 external_reference_wxp_vzfd
+-rw-r--r--  1 runner runner  12857 Nov  1 07:18 frag_rescore.py
+-rw-r--r--  1 runner runner  29230 Nov  1 07:18 frozen_candidate_evidence.parquet
+-rw-r--r--  1 runner runner    211 Nov  1 07:18 frozen_run_info.json
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 gl_work
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 ice_work
+-rw-r--r--  1 runner runner    951 Nov  1 07:18 merge_report.json
+drwxr-xr-x  3 runner runner   4096 Nov  1 07:18 n1_work
+-rw-r--r--  1 runner runner  42002 Nov  1 07:18 neural_candidate_features.parquet
+-rw-r--r--  1 runner runner      2 Nov  1 07:18 neural_candidate_features.parquet.errors.json
+-rw-r--r--  1 runner runner  13653 Nov  1 07:18 neural_rerank_audit.csv
+-rw-r--r--  1 runner runner    530 Nov  1 07:18 neural_submission_report.json
+drwxr-xr-x  6 runner runner   4096 Nov  1 07:18 numba_cache
+-rw-r--r--  1 runner runner   3557 Nov  1 07:18 ours_lfrag.py
+-rw-r--r--  1 runner runner  14674 Nov  1 07:18 outsider_evidence.parquet
+-rw-r--r--  1 runner runner  23321 Nov  1 07:18 outsider_neural_features.parquet
+-rw-r--r--  1 runner runner      2 Nov  1 07:18 outsider_neural_features.parquet.errors.json
+-rw-r--r--  1 runner runner    116 Nov  1 07:18 outsiders.log
+-rw-r--r--  1 runner runner    623 Nov  1 07:18 outsiders_neural.log
+drwxr-xr-x  3 runner runner   4096 Nov  1 07:18 p2s_code
+-rw-r--r--  1 runner runner  10952 Nov  1 07:18 parallax_public_provenance.py
+-rw-r--r--  1 runner runner  72500 Nov  1 07:18 pc_lists.json
+-rw-r--r--  1 runner runner   4856 Nov  1 07:18 pc_runner.py
+-rw-r--r--  1 runner runner  16124 Nov  1 07:18 probe_core2.py
+-rw-r--r--  1 runner runner      1 Nov  1 07:18 pubchem_promotion_audit.csv
+-rw-r--r--  1 runner runner    231 Nov  1 07:18 rank2_overlay.json
+-rw-r--r--  1 runner runner    345 Nov  1 07:18 run_manifest.json
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 smoke_comp
+-rw-r--r--  1 runner runner  17140 Nov  1 07:18 spectral_parallax_audit.csv
+-rw-r--r--  1 runner runner    423 Nov  1 07:18 spectral_parallax_report.json
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission.csv
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_baseline0465.csv
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_control_V2.csv
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_e004_control.csv
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_e006_control.csv
+-rw-r--r--  1 runner runner   1286 Nov  1 07:18 submission_neural.log
+-rw-r--r--  1 runner runner  74912 Nov  1 07:18 submission_pipeline.log
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_public0466.csv
+-rw-r--r--  1 runner runner  17309 Nov  1 07:18 submission_reference.csv
+-rw-r--r--  1 runner runner   7335 Nov  1 07:18 v43_execution_receipt.json
+-rw-r--r--  1 runner runner 152037 Nov  1 07:18 v43_mounted_input_hashes.json
+drwxr-xr-x  4 runner runner   4096 Nov  1 07:18 v43_v4code
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 variants
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:18 variants_check
+drwxr-xr-x  2 runner runner   4096 Nov  1 07:19 work
+==> /tmp/kout/bootstrap.log <==
+Official-metric RDKit: 2026.03.3
+
+==> /tmp/kout/casmi26-e3m479np.log <==
+[{"stream_name":"stderr","time":10.529490206,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.529549632,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.529563448,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.529567947,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":11.266415125,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":11.266451986,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":11.266457272,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":11.266461228,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":15.02050464,"data":"974 public notebooks, 678 with a score, 279 of those below 0.4 not drawn\n"}
+,{"stream_name":"stdout","time":15.490501418000001,"data":"8 modules and the pinned pipeline source ready (0.41 MB)\n"}
+,{"stream_name":"stdout","time":15.595172969,"data":"Fragment source: eeacdcf0afb1\n"}
+,{"stream_name":"stdout","time":16.268045802,"data":"в–¶ Official RDKit wheel\n"}
+,{"stream_
+==> /tmp/kout/outsiders.log <==
+OUTSIDERS 240 candidates for 12 molecules {"pubchem": 122, "fusion_overflow": 113, "engine2": 4, "main_tail": 1} 2s
+
+==> /tmp/kout/outsiders_neural.log <==
+[07:15:36] Tautomer enumeration stopped at 381 tautomers: max transforms reached
+[07:15:36] Tautomer enumeration stopped at 387 tautomers: max transforms reached
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 18 19
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 18 19
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 18 19
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 19 20
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 19 20
+[07:15:37] Can't kekulize mol.  Unkekulized atoms: 14 17 19 20
+NEURAL input failures kept at baseline: 0
+NEURAL FEATURES (240, 14) final_model.pt
+
+==> /tmp/kout/submission_neural.log <==
+[07:15:23] Tautomer enumeration stopped at 605 tautomers: max transforms reached
+[07:15:23] Tautomer enumeration stopped at 241 tautomers: max transforms reached
+[07:15:25] Can't kekulize mol.  Unkekulized atoms: 2 3 4
+[07:15:25] Can't kekulize mol.  Unkekulized atoms: 2 3 4
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 5 6 22
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 5 6 22
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 4 5 22
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 4 5 22
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 5 6 22
+[07:15:26] Can't kekulize mol.  Unkekulized atoms: 3 4 5 22
+[07:15:27] Tautomer enumeration stopped at 219 tautomers: max transforms reached
+[07:15:27] Tautomer enumeration stopped at 174 tautomers: max transforms reached
+[07:15:27] Tautomer enumeration stopped at 226 tautomers: max transforms reached
+[07:15:27] Tautomer enumeration stopped at 225 tautomers: max transforms reached
+[07:15:28] Tautomer enumeration stopped at 157 tautomers: max transforms reached
+[07:15:28] Tautomer enumeration stopped at 210 tautomers: max transforms reached
+[07:15:28] Tautomer enumeration stopped at 199 tautomers: max transforms reached
+NEURAL input failures kept at baseline: 0
+NEURAL FEATURES (688, 20) final_model.pt
+
+==> /tmp/kout/submission_pipeline.log <==
+PIPELINE CELL 2 START
+Official-metric RDKit: 2026.03.3
+PIPELINE CELL 2 DONE
+PIPELINE CELL 3 START
+PIPELINE CELL 3 DONE
+PIPELINE CELL 4 START
+PIPELINE CELL 4 DONE
+PIPELINE CELL 5 START
+PIPELINE CELL 5 DONE
+PIPELINE CELL 6 START
+<pandas.io.formats.style.Styler at 0x7a3b98a672f0>
+training structures (distinct inchikey14): 275,810; test molecules: 400
+PIPELINE CELL 6 DONE
+PIPELINE CELL 9 START
+<pandas.io.formats.style.Styler at 0x7a3b96f60530>
+PIPELINE CELL 9 DONE
+PIPELINE CELL 12 START
+<pandas.io.formats.style.Styler at 0x7a3b96266f90>
+PIPELINE CELL 12 DONE
+PIPELINE CELL 14 START
+documentation prior alone: MRR@25 = 0.8034 (250 molecules)
+<pandas.io.formats.style.Styler at 0x7a3b9df9ec30>
+PIPELINE CELL 14 DONE
+PIPELINE CELL 16 START
+<pandas.io.formats.style.Styler at 0x7a3b965363c0>
+<pandas.io.formats.style.Styler at 0x7a3b96537aa0>
+Prior-only ranking of the PubChem candidates with the answer formula; 250 molecules, ties averaged
+<pandas.io.formats.style.Styler at 0x7a3b96fa78c0>
+<pandas.io.formats.style.Styler at 0x7a3b96536c60>
+PubChem-channel shortlist with the documentation prior; 250 molecules
+<pandas.io.formats.style.Styler at 0x7a3b96534f50>
+PIPELINE CELL 16 DONE
+PIPELINE CELL 18 START
+<pandas.io.formats.style.Styler at 0x7a3b964fff80>
+<pandas.io.formats.style.Styler at 0x7a3b96534c50>
+PIPELINE CELL 18 DONE
+PIPELINE CELL 20 START
+PIPELINE CELL 20 DONE
+PIPELINE CELL 21 START
+PIPELINE CELL 21 DONE
+PIPELINE CELL 22 START
+PIPELINE CELL 22 DONE
+PIPELINE CELL 23 START
+PIPELINE C
