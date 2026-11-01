@@ -821,7 +821,18 @@ if opts.get("cplan", "0") == "1":
              "cwd=str(_cp_pkg), check=True)\n"
              "os.environ['ARC3_STEP_VERIFICATION_HINT'] = '1'\n"
              "print('ours: checked plan installed', flush=True)\n")
-c5 = c5.replace(anchor, anchor + FABLE + CPLAN + (
+PYFIX = ""
+if opts.get("pyfix", "0") == "1":
+    # pyfix=1 (11-01): our implementation of the three free Python-tool fixes listed in leoprovorov's public
+    # "ARC-AGI-3 book of ideas" (entry 22; no code published): history entries get .step/.level, `import time` is
+    # allowed, animation records get .items()/.values(). Anchored on the patched sandbox; any missing anchor -> unchanged.
+    _pf = open(os.path.join(HERE, "pyfix", "apply_pyfix.py"), encoding="utf-8").read()
+    PYFIX = ("# ours: python tool fixes (ideas from leoprovorov's book of ideas, entry 22)\n"
+             "_pf_path = Path('/kaggle/working/ours_pyfix.py')\n"
+             f"_pf_path.write_text({_pf!r}, encoding='utf-8')\n"
+             "subprocess.run([sys.executable, str(_pf_path), "
+             "str(BUNDLE_DIR / 'src' / 'ARC3-Inference' / 'inference' / 'agent' / 'python_tool_sandbox.py')], check=False)\n")
+c5 = c5.replace(anchor, anchor + FABLE + CPLAN + PYFIX + (
     "# ours (yasunorim): A2 parts appended to the patched harness\n"
     f"os.environ['ARC_OURS_DOSSIER'] = '{dossier}'\n"
     f"os.environ['ARC_OURS_RETRY_TOK'] = '{opts.get('retry', '0')}'\n"
@@ -1027,4 +1038,4 @@ meta = json.load(open(os.path.join(HERE, "..", "m2base", "kernel-metadata.json")
 meta.update(id=f"yasunorim/arc3-{name}", title=f"arc3 {name}")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote", name, "ctxk", opts.get("ctxk", "128"), "dossier", dossier, "passes", passes, "fast", opts.get("fast", "0"), "streams", opts.get("streams", "10"), "reset", opts.get("reset", "0"), "reuse", opts.get("reuse", "0"),
-      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"), "cplan", opts.get("cplan", "0"), "grace", opts.get("grace", "-"))
+      "turnlog", opts.get("turnlog", "0"), "autopilot", opts.get("autopilot", "0"), "ledger", opts.get("ledger", "0"), "watch", opts.get("watch", "0"), "watchmin", opts.get("watchmin", "40"), "pcwait", opts.get("pcwait", "0"), "fable", opts.get("fable", "0"), "cplan", opts.get("cplan", "0"), "pyfix", opts.get("pyfix", "0"), "grace", opts.get("grace", "-"))
