@@ -1,0 +1,35 @@
+PILLAR 2 PREP: translated drill traits -> game outcomes, increment over stopwatch + draft position
+ridge, 5-fold CV by player x 20 repeats; increment = R2(base+trait) - R2(base), player bootstrap 90% CI
+undrafted players: log_pick missing -> median-imputed inside each fold (missing pick among players: 127)
+
+== WR: trait D_vmax40
+  [sep] Spearman trait -> outcome +0.20 (n 77);  partial | small base +0.03 (n 65);  outcome sd 0.284
+  sep | full base (8 stopwatch + log pick) n  77  base R2 +0.205  base+trait +0.195  trait only -0.018  increment -0.009 [-0.019, -0.001]
+  sep | small base (forty, 10yd, wt, log pick) n  77  base R2 +0.145  base+trait +0.138  trait only -0.018  increment -0.007 [-0.026, +0.014]
+  [tpr] Spearman trait -> outcome -0.07 (n 79);  partial | small base -0.00 (n 66);  outcome sd 0.040
+  tpr | full base (8 stopwatch + log pick) n  79  base R2 -0.052  base+trait -0.056  trait only -0.044  increment -0.004 [-0.030, +0.020]
+  tpr | small base (forty, 10yd, wt, log pick) n  79  base R2 -0.049  base+trait -0.053  trait only -0.044  increment -0.004 [-0.015, +0.005]
+  [yprr] Spearman trait -> outcome -0.06 (n 79);  partial | small base -0.23 (n 66);  outcome sd 0.449
+  yprr | full base (8 stopwatch + log pick) n  79  base R2 +0.024  base+trait +0.046  trait only -0.027  increment +0.021 [-0.010, +0.048]
+  yprr | small base (forty, 10yd, wt, log pick) n  79  base R2 +0.073  base+trait +0.084  trait only -0.027  increment +0.011 [-0.025, +0.043]
+
+== CB: trait D_v10_40
+  [brk] Spearman trait -> outcome -0.09 (n 47);  partial | small base -0.04 (n 43);  outcome sd 0.230
+  brk | full base (8 stopwatch + log pick) n  47  base R2 -0.098  base+trait -0.084  trait only -0.057  increment +0.014 [-0.002, +0.031]
+  brk | small base (forty, 10yd, wt, log pick) n  47  base R2 -0.066  base+trait -0.063  trait only -0.057  increment +0.004 [-0.003, +0.010]
+  [tkl] Spearman trait -> outcome -0.19 (n 46);  partial | small base -0.16 (n 42);  outcome sd 0.015
+  tkl | full base (8 stopwatch + log pick) n  46  base R2 -0.027  base+trait -0.040  trait only -0.088  increment -0.013 [-0.038, +0.011]
+  tkl | small base (forty, 10yd, wt, log pick) n  46  base R2 -0.069  base+trait -0.093  trait only -0.088  increment -0.024 [-0.064, +0.024]
+  [snap] Spearman trait -> outcome +0.42 (n 47);  partial | small base +0.34 (n 43);  outcome sd 0.277
+  snap | full base (8 stopwatch + log pick) n  47  base R2 -0.073  base+trait -0.067  trait only +0.104  increment +0.006 [-0.056, +0.063]
+  snap | small base (forty, 10yd, wt, log pick) n  47  base R2 -0.056  base+trait +0.008  trait only +0.104  increment +0.064 [-0.031, +0.156]
+
+== READING (11-01)
+- No translated trait adds to stopwatch + draft position for a real game outcome at these n:
+    WR  top speed -> route-adjusted separation (primary): increment -0.009 [-0.019, -0.001] (full base), -0.007 [-0.026, +0.014]
+        (small base), n 77. Raw Spearman +0.20 but partial after forty/10yd/weight/pick +0.03 = the forty time already
+        carries what top speed says about separation. Targets per route and yards per route: increments within +-0.02, CI over 0.
+    CB  burst -> break on the throw (primary): +0.014 [-0.002, +0.031] / +0.004, Spearman -0.09; tackles: -0.01 to -0.02.
+- The trait does predict its own game counterpart (CB snap burst: trait alone R2 +0.104, +0.064 [-0.031, +0.156] over the
+  small base, Spearman +0.42), i.e. pillar 1 holds, but the step from "the same ability on Sunday" to "a better outcome"
+  is not visible here. 11-09 criterion (increment CI above 0) not met by these two traits on these outcomes.
