@@ -1,0 +1,23 @@
+pair rule: among players with drill v10, game v10 and a stopwatch 10-yd split, pairs with |split diff| <= 0.02 s and both players' pre-start creep (0.5->2 yd/s) <= group median; choose the pair with the largest |drill v10 diff|  (the bare rule without the creep filter is printed too)
+
+CB: n 49  Spearman drill v10 -> game v10 +0.41;  stopwatch split -> game v10 +0.05 (n 49);  partial | split +0.42;  partial | split, weight +0.37 (n 49)
+  onset robustness: drill v10_on1 -> game v10 rho +0.35 (n 49)
+  onset robustness: drill v10_on2 -> game v10 rho +0.37 (n 49)
+  onset robustness: drill v10_on3 -> game v10 rho +0.20 (n 49)
+  creep (0.5->2 yd/s) median 0.35 s; creep -> game v10 rho -0.23
+  bare rule (453 candidate pairs): Josh Newton split 1.55 v10 6.89 creep 0.25  vs  Cobee Bryant split 1.56 v10 3.43 creep 0.80
+  figure rule: candidate pairs 143; chosen (largest drill v10 gap 1.93 yd/s):
+    Deonte Banks (2023)  10-yd split 1.49 s  forty 4.35  drill v10 6.86 yd/s  game v10 3.95 yd/s (pct in group 49)  creep 0.25 s
+    Quinyon Mitchell (2024)  10-yd split 1.51 s  forty 4.33  drill v10 4.93 yd/s  game v10 3.78 yd/s (pct in group 27)  creep 0.35 s
+
+DT: n 40  Spearman drill v10 -> game v10 +0.44;  stopwatch split -> game v10 -0.60 (n 40);  partial | split +0.32;  partial | split, weight +0.32 (n 40)
+  onset robustness: drill v10_on1 -> game v10 rho +0.53 (n 40)
+  onset robustness: drill v10_on2 -> game v10 rho +0.56 (n 40)
+  onset robustness: drill v10_on3 -> game v10 rho +0.65 (n 40)
+  creep (0.5->2 yd/s) median 0.40 s; creep -> game v10 rho -0.37
+  bare rule (176 candidate pairs): Zacch Pickens split 1.74 v10 5.78 creep 0.30  vs  Darius Robinson split 1.73 v10 4.14 creep 0.55
+  figure rule: candidate pairs 80; chosen (largest drill v10 gap 1.00 yd/s):
+    Myles Murphy (2024)  10-yd split 1.82 s  forty 5.20  drill v10 5.53 yd/s  game v10 3.18 yd/s (pct in group 52)  creep 0.30 s
+    Cam Jackson (2025)  10-yd split 1.81 s  forty 5.17  drill v10 4.53 yd/s  game v10 2.89 yd/s (pct in group 15)  creep 0.40 s
+
+wrote figs/forty_curve.png

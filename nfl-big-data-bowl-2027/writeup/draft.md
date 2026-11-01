@@ -37,7 +37,7 @@
 3. `figs/within_multiples.png` — small multiples by situation.
 4. (todo) hoop trajectory examples: fast vs slow rookie, tracked path around the circle.
 5. (todo) shrinkage: raw vs MixedLM player get-off.
-6. (todo) WR/CB cut fingerprint (pillar 1) if it reaches the 11-02 bar.
+6. `figs/forty_curve.png` — CB / DT 40-yd tracked speed curves: two players with the same stopwatch 10-yd split but a different rise, and drill v@1.0 s vs game burst (CB ρ +0.41, DT +0.44; beyond the split +0.37 / +0.32). Replaces the cut-fingerprint slot (pillar 1 reframed to trait translation on 10-31).
 
 ## 8. Code
 - Public notebook (December): reproduces every number above from the competition files (`analysis/*.py`).
