@@ -29,6 +29,10 @@ Kaggle `arc-prize-2026-arc-agi-3`（Featured・メダルあり・**締切 2026-1
 ## 🎯 メダルへの道筋（2026-10-01 策定・毎セッション最初に読む）
 
 **LB（10-25 00:1x 取り直し・4,795 チーム）：金 17 位＝38.37・銀 239 位＝32.25・銅 479 位＝30.92。自分：28.81（a2rs-sub1）・約 1,029 位。銅まで +2.1。締切 11-02（残り 8 本）。**
+- **11-01：a2cp-sub1＝24.61**（a2rs 28.81 より −4.2・watch 入りは 4 本とも 23〜26）。CheckedPlan は外す。
+  - **11-01 00:2x：a2rg-sub1 を提出**（`build.py a2rg dossier=2 reset=1 turnlog=1 fast=1 grace=3600`＝a2rs＋最初の呼び出しの再試行 900→3,600 秒・watch なし）。合格 ≥ 29。
+  - **11-02 の版を用意（`pyfix=1`）**：leoprovorov の book（entry 22）の「python 道具の直し」3 つを自前で実装（book にコードは無い）＝履歴の記録に `.step`・`.level`、`import time` を許す、アニメーションの記録に `.items()`・`.values()`。harness の patch の後の sandbox に当て、アンカーが 1 回ずつ合わなければ何もしない（`kernels/a2/pyfix/apply_pyfix.py`）。patch 後のファイルを手元で作って当て、起動コードの構文を確認済み。book の測定では道具のエラー 8.5→7.3%（check_model と一緒の版でレベルは 2.25 対 2.48＝直しの効果は切り分けなし・book は「直しは無料なので残す」）。
+    - 11-02 の候補：a2rg が ≥ 28 なら `build.py a2rp dossier=2 reset=1 turnlog=1 fast=1 grace=3600 pyfix=1`。
 - **10-31（休み明け・user 指示で 10-29〜10-30 は休み）**：**a2fl-sub1＝23.61**（a2rs 28.81 より −5.2）。Fable layer の上積みは見えない＝**Fable layer はここで打ち切る**。残りの枠は 10-31・11-01・11-02 の 3 本。今週の GPU は 10-31 に戻った見込み（ARC 優先）。
   - **計画監査（Opus・10-31・許可なしで使ってよい〔user 10-31〕）**：LB（10-31）銅 500 位＝31.35・金 39.52。自分 28.81・1,241 位。
     - leoprovorov の公開 dataset（arc-agi-3-book-of-ideas）の「土台そのまま」の 5 本：31.73・29.01・25.37・23.85・28.04＝平均 27.6・標準偏差約 3.1。
