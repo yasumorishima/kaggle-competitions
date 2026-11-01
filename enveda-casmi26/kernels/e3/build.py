@@ -109,6 +109,11 @@ fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pic
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
+outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
+# 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
+# same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
+assert outer in ("p477", "m479"), outer
+assert outer == "p477" or base == "p477", "outer replaces the p477 wrapper only"
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
 src = lambda i: "".join(cells[i]["source"])  # noqa: E731
@@ -1224,7 +1229,7 @@ if base == "p477":
     assert cells[0]["cell_type"] == "markdown" and "".join(cells[0]["source"]).startswith(f"# casmi26 {name} (yasunorim)")
     del cells[0]
     _fz = json.dumps(nb, indent=1).encode("utf-8")
-    _outer = json.load(open(os.path.join(HERE, "outer_p477.ipynb"), encoding="utf-8"))
+    _outer = json.load(open(os.path.join(HERE, f"outer_{outer}.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
     _i8 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "FROZEN_B64 = " in "".join(c["source"])]
     assert len(_i8) == 1, _i8
@@ -1306,9 +1311,13 @@ _n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
 print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
 """))
     _oc.insert(0, {"cell_type": "markdown", "metadata": {}, "source":
-                   f"# casmi26 {name} (yasunorim)\n\nBase: [LB 0.477 - Two 0.472 Fixes, Merged the Right Way]"
+                   f"# casmi26 {name} (yasunorim)\n\nBase: " + (
+                   "[LB 0.477 - Two 0.472 Fixes, Merged the Right Way]"
                    "(https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way) by busyaprime, version 3, "
-                   "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
+                   if outer == "p477" else
+                   "[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) "
+                   "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
+                   "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
                    "base we used before), our own COCONUT table in engine 2's pool and our learned fragment credits (lfrag); "
                    + ("after its final merge, our PubChem mid-slot insertion. " if pcins else "") + "\n"})
     for c in _oc:
@@ -1348,9 +1357,12 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
     meta["kernel_sources"] = []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
+    if outer == "m479":   # alexchilton v8's image and its extra RDKit wheel (the run that scored 0.479)
+        meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
+        meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461"
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
