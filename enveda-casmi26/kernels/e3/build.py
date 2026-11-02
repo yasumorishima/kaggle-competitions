@@ -97,6 +97,13 @@ valsrc = _arg("valsrc", "e180", str)
 valfold = _arg("valfold", -1, int)   # ours (10-27), k>=0: e180 val molecules only from identity fold k; engine FP = fold-safe fpnet_fold{k} (never saw fold k)
 rknew = _arg("rknew", 0.0, float)  # ours (10-27), w>0: engine-1 ranker = (1-w) base boosters + w LightGBM lambdarank fitted in-kernel on our leak-free rows (kernel yasunorim/casmi26-e3rk0)
 rknomv = _arg("rknomv", 0, int)   # ours (10-27), 1: the rknew booster leaves out the model_views features (FPNet A/B/D saw the held-out molecules)
+C1R_FEATS = ("lib_max lib_mean lib_top3 lib_nspec lib_cos lib_max_rank lib_gap lib_grp_max lib_hit lib_same_adduct "      # library match
+             "ap a1 best_tan top_tan mean_tan ap_rank ap_gap ap_grp_max top_sim ap_np best_tan_np top_sim_np ap_np_gap ap_sum n_analog_hi tan_zero_shift "   # analogs
+             "mass_ppm mass_ppm_rank formula_share n_formula formula_is_top n_cand n_query target_mass q_npeaks n_heavy el_c el_n el_o el_sum el_rank n_pos n_neg "   # context
+             "fr_int fr_int_mean fr_cnt fr_top10 fr_strict fr_rank fr_gap fr_z fr_n sf_int sf_cnt sf_top10 sf_rank sf_gap").split()   # untrained fragment explanation
+c1r = _arg("c1r", 0.0, float)    # ours (11-02, Opus audit part 3), w>0: engine-1 candidates WITH library spectra (lib_hit) swap among their own
+#   base slots by z(base) + w z(class-1 lambdarank on library/analog/context/in-silico-fragment features only, fitted in-kernel on the
+#   c1 molecules of our leak-free rows, kernel yasunorim/casmi26-e3rk0); candidates without spectra keep their slots
 rkdump = _arg("rkdump", 0, int)     # ours (10-27), 1: dump the base ranker's input rows (top 300 + truth) per val molecule, stop after the base lists
 valc3 = _arg("valc3", 0, int)         # 1: the c2 half also loses its structure from the engine-1/2 pools (only the PubChem tier keeps it)   # e180: enveda-180 held out (leaks: the public FPNet/ranker saw it) | np: enveda-np-examples (unseen by the public FPNet)
 pcfix = _arg("pcfix", 0, int)         # a451: PubChem-only candidates return to their gated-merge rank at the end (build_pc.py)
@@ -1000,6 +1007,83 @@ except Exception as _e:
     _src = _src.replace(_old2, "    if OURS_RK_MIX is not None:   # ours (rknew)\n        return OURS_RK_MIX(Xs)\n" + _old2)
     cells[_ie]["source"] = _src
 
+if c1r > 0:   # C1R. ours (11-02, Opus audit part 3): a class-1 ranker for the library-bearing candidates of engine 1
+    assert base in ("f465", "p477") and rknew == 0, "c1r is written for the frozen_0465 engine (f465 / p477), without rknew"
+    _ie = next(i for i, c in enumerate(cells) if c["cell_type"] == "code"
+               and "RK_FEATS = list(RK['features']); RK_B = [lgb.Booster(model_str=s) for s in RK['boosters']]" in "".join(c["source"]))
+    _src = "".join(cells[_ie]["source"])
+    _old = "RK_FEATS = list(RK['features']); RK_B = [lgb.Booster(model_str=s) for s in RK['boosters']]\n"
+    _new = _old + f"""# ==== ours (yasunorim; build.py c1r={c1r}): class-1 ranker for the candidates that have library spectra ====
+# Hidden class 1 = the molecule's own timsTOF spectra are not public, but other instruments' spectra are. The public ranker was
+# fitted on rows where the molecule's own spectrum was in the library, so it under-trusts other-instrument matches (our leak-free
+# rows e3rk0: c1 MRR 0.866). Fitted here on the c1 molecules of those rows (lib_hit > 0 candidates only; features = library match,
+# analog, mass/formula context, untrained fragment explanation -- no FPNet / fragnet / frag2 / derivation / model_views).
+# Per molecule, only the candidates with library spectra swap among their own base slots, by z(base) + w z(c1 ranker); every
+# candidate without spectra (the class-2/3 truth) keeps its slot and score. 5-fold CV on e3rk0: c1 0.866 -> 0.908, c2 unchanged.
+OURS_C1R_W = {c1r}
+OURS_C1R = None
+OURS_C1R_ST = dict(calls=0, swapped=0, top1_changed=0, errors=0)
+try:
+    _C1F = {C1R_FEATS!r}
+    _p1 = {{f: i for i, f in enumerate(RK_FEATS)}}
+    assert all(f in _p1 for f in _C1F) and 'lib_hit' in _p1, [f for f in _C1F if f not in _p1]
+    _rkp = sorted(glob.glob('/kaggle/input/**/casmi26-e3rk0/rk_rows.parquet', recursive=True), key=len)[0]
+    _rd = pd.read_parquet(_rkp, columns=sorted(set(['molecule_id', 'key', 'label', 'cls'] + _C1F)))
+    _rd = _rd.drop_duplicates(['molecule_id', 'key'])
+    _rd = _rd[(_rd.cls == 'c1') & (_rd.lib_hit > 0)]
+    try:   # a validation run must not train on its own held-out molecules
+        _tid = set(pd.read_parquet(os.path.join(COMP, 'test.parquet'), columns=['molecule_id']).molecule_id.astype(str))
+        _rd = _rd[~_rd.molecule_id.astype(str).isin(_tid)]
+    except Exception:
+        pass
+    _rd = _rd[_rd.groupby('molecule_id').label.transform('max') > 0].sort_values('molecule_id', kind='stable')
+    assert _rd.molecule_id.nunique() >= 200, _rd.molecule_id.nunique()
+    _c1b = lgb.train(dict(objective='lambdarank', learning_rate=0.03, num_leaves=15, min_data_in_leaf=30, bagging_fraction=0.8,
+                          bagging_freq=1, feature_fraction=0.7, lambdarank_truncation_level=25, verbose=-1, seed=0, num_threads=4,
+                          deterministic=True, force_col_wise=True),
+                     lgb.Dataset(_rd[_C1F].values.astype(np.float32), _rd.label.values,
+                                 group=_rd.groupby('molecule_id', sort=True).size().values), num_boost_round=300)
+    _c1i = [_p1[f] for f in _C1F]; _c1h = _p1['lib_hit']
+    def _c1r(Xs, s0, _b=_c1b, _ci=_c1i, _hi=_c1h, _w=OURS_C1R_W, _st=OURS_C1R_ST):
+        _st['calls'] += 1
+        try:
+            s0 = np.asarray(s0, np.float64)
+            h = np.where(Xs[:, _hi] > 0)[0]
+            if len(h) < 2:
+                return s0
+            s1 = _b.predict(np.ascontiguousarray(Xs[h][:, _ci], dtype=np.float32), num_threads=4)
+            z = lambda v: (v - v.mean()) / (v.std() + 1e-9)
+            key = z(s0[h]) + _w * z(s1)
+            out = s0.copy()
+            out[h[np.argsort(-key, kind='stable')]] = np.sort(s0[h])[::-1]   # same score values, library slots re-dealt
+            if not np.array_equal(out, s0):
+                _st['swapped'] += 1
+            if int(np.argmax(out)) != int(np.argmax(s0)):
+                _st['top1_changed'] += 1
+            return out
+        except Exception as _e1:
+            _st['errors'] += 1
+            return s0
+    OURS_C1R = _c1r
+    print('ours c1r: rows', len(_rd), 'molecules', _rd.molecule_id.nunique(), 'weight', OURS_C1R_W, 'features', len(_C1F), '| from', _rkp, flush=True)
+except Exception as _e:
+    OURS_C1R = None
+    print('ours c1r skipped:', repr(_e), flush=True)
+"""
+    assert _src.count(_old) == 1, "c1r anchor 1"
+    _src = _src.replace(_old, _new)
+    _old2 = "    return np.mean([b.predict(Xs, num_threads=4) for b in RK_B], axis=0)\n"
+    assert _src.count(_old2) == 1, "c1r anchor 2"
+    _src = _src.replace(_old2, "    _s0 = np.mean([b.predict(Xs, num_threads=4) for b in RK_B], axis=0)\n"
+                               "    return OURS_C1R(Xs, _s0) if OURS_C1R is not None else _s0   # ours (c1r)\n")
+    cells[_ie]["source"] = _src
+    _il = next(i for i, c in enumerate(cells) if c["cell_type"] == "code"
+               and "print('errors', n_err, '| popularity re-ranked lists', n_pp)\n" in "".join(c["source"]))
+    _src = "".join(cells[_il]["source"])
+    _old3 = "print('errors', n_err, '| popularity re-ranked lists', n_pp)\n"
+    assert _src.count(_old3) == 1, "c1r anchor 3"
+    cells[_il]["source"] = _src.replace(_old3, _old3 + "print('ours c1r stats', globals().get('OURS_C1R_ST'), flush=True)   # ours (c1r)\n")
+
 # Z. last cell (every build): drop the ICEBERG site tree from /kaggle/working. It holds > 500 files, and the kernel
 # output listing is paged at 500, so the workflow's `kaggle kernels output` never reached submission.csv
 # (e3mmp100c-2, 10-14). Only scratch directories go; submission.csv and the audit files stay.
@@ -1457,7 +1541,8 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
                    "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
                    "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
                    "base we used before), our own COCONUT table in engine 2's pool and our learned fragment credits (lfrag); "
-                   + ("after its final merge, our PubChem mid-slot insertion. " if pcins else "") + "\n"})
+                   + ("after its final merge, our PubChem mid-slot insertion. " if pcins else "")
+                   + (f"In engine 1, our class-1 ranker re-deals the slots of the candidates with library spectra (c1r={c1r}). " if c1r > 0 else "") + "\n"})
     for c in _oc:
         if c["cell_type"] == "code":
             c["outputs"], c["execution_count"] = [], None
@@ -1487,13 +1572,13 @@ if base == "f465":   # dmitriigluzdov's five datasets are self-contained; no oth
                                "dmitriigluzdov/casmi26-natural-product-panel-benchmark", "dmitriigluzdov/casmi26-pubchem-popularity-prior",
                                "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets"] + (
         ["yasunorim/casmi26-own-coconut-candidates"] if ownco else []) + (["yasunorim/casmi26-own-pubchem-tier"] if ownpc or ownpcnp > 0 else []) + (["sanpier/casmi-spectrum-model-v1"] if nnw > 0 else [])
-    meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if rknew > 0 else []
+    meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if rknew > 0 or c1r > 0 else []
 if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
     meta["dataset_sources"] = ["sanpier/casmi-spectrum-model-v1", "dmitriigluzdov/casmi26-fold-safe-fpnet",
                                "dmitriigluzdov/casmi26-natural-product-knowledge-table", "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
                                "dmitriigluzdov/casmi26-pubchem-popularity-prior", "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets",
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
-    meta["kernel_sources"] = []
+    meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if c1r > 0 else []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
     if outer == "m479":   # alexchilton v8's image and its extra RDKit wheel (the run that scored 0.479)
         meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
@@ -1503,4 +1588,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "arb", arb, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
