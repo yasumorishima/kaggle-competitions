@@ -203,7 +203,7 @@ jobs:
             case "$extra" in
               kernel:*)
                 ref="${extra#kernel:}"
-                pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+                pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
                 python sim/fetch_opponent.py --exec "$ref"
                 extra="opponents/${ref//\//__}.py"
                 ;;

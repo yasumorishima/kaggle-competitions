@@ -191,7 +191,7 @@ jobs:
             [ -n "$opp" ] || continue
             if [ "${opp#kernel:}" != "$opp" ]; then
               ref="${opp#kernel:}"
-              pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+              pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
               python sim/fetch_opponent.py --exec "$ref"
               opp="opponents/${ref//\//__}.py"
               [ -s "$opp" ] || { echo "no agent file in notebook $ref" >&2; exit 1; }

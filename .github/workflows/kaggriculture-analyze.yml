@@ -54,7 +54,7 @@ jobs:
             case "$v" in kernel:*) need_cli=1 ;; esac
           done
           if [ "$need_cli" = "1" ]; then
-            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
           fi
           resolve() {
             case "$1" in

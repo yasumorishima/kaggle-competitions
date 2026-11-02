@@ -61,7 +61,7 @@ jobs:
             if [ "${v#kernel:}" != "$v" ]; then need_cli=1; fi
           done
           if [ -n "$need_cli" ]; then
-            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
           fi
           resolve() {
             if [ "${1#kernel:}" != "$1" ]; then

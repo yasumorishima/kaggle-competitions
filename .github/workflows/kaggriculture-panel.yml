@@ -75,7 +75,7 @@ jobs:
           extra=""
           if [ -n "${{ inputs.panel }}" ]; then extra="--panel ${{ inputs.panel }}"; fi
           panel=$(python sim/panel.py --a unused $extra --print-panel)
-          case "$panel" in *kernel:*) pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15';; esac
+          case "$panel" in *kernel:*) pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15';; esac
           out=""
           for entry in ${panel//,/ }; do
             if [ "${entry#kernel:}" != "$entry" ]; then

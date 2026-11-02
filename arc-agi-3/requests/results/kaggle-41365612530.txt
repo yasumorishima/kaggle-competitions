@@ -1,0 +1,17 @@
+request: a2rp-sub1
+run: 41365612530  status: failure  action: kernel  dir: arc-agi-3/kernels/a2  submit: yes
+kernel: yasunorim/arc3-a2rp  version: 
+memo: A2 on LB, final day (11-02). Base: dfranzen's ARC-AGI-3 Milestone-2 notebook (Tufa Labs' Duck harness), kernels/m2base, + ours a2rg (run deadline + level dossier v2 + RESET exposure + 3600 s first-call grace, LB 30.31 our best). New part (ours): python-tool sandbox fixes (pyfix) that apply the book-of-ideas entry 22 bugs: history entries keep step/level, 'time' is allowed in the sandbox, the lazy animation object gets items()/values(). Each fix is anchor-checked and compiled before writing; on any mismatch the sandbox is left as is. Hypothesis: agent python calls that crashed on these (AttributeError / blocked import) waste turns; fixing them lifts levels. Pass >= 31. Effect size: +1 to +3 if a few percent of tool calls hit these errors; LB noise +-4 per run. build.py a2rp dossier=2 reset=1 turnlog=1 fast=1 grace=3600 pyfix=1.
+
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/bin/kaggle", line 3, in <module>
+    from kaggle.cli import main
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/kaggle/__init__.py", line 4, in <module>
+    from kaggle.api.kaggle_api_extended import KaggleApi
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/kaggle/api/kaggle_api_extended.py", line 152, in <module>
+    from ..models.upload_file import UploadFile
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/kaggle/models/upload_file.py", line 22, in <module>
+    import six
+ModuleNotFoundError: No module named 'six'
+
+output files:
