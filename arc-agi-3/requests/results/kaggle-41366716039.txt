@@ -1,0 +1,182 @@
+request: a2rp-sub2
+run: 41366716039  status: success  action: kernel  dir: arc-agi-3/kernels/a2  submit: yes
+kernel: yasunorim/arc3-a2rp  version: 1
+memo: A2 on LB, final day (11-02). Base: dfranzen's ARC-AGI-3 Milestone-2 notebook (Tufa Labs' Duck harness), kernels/m2base, + ours a2rg (run deadline + level dossier v2 + RESET exposure + 3600 s first-call grace, LB 30.31 our best). New part (ours): python-tool sandbox fixes (pyfix) that apply the book-of-ideas entry 22 bugs: history entries keep step/level, 'time' is allowed in the sandbox, the lazy animation object gets items()/values(). Each fix is anchor-checked and compiled before writing; on any mismatch the sandbox is left as is. Hypothesis: agent python calls that crashed on these (AttributeError / blocked import) waste turns; fixing them lifts levels. Pass >= 31. Effect size: +1 to +3 if a few percent of tool calls hit these errors; LB noise +-4 per run. build.py a2rp dossier=2 reset=1 turnlog=1 fast=1 grace=3600 pyfix=1.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/arc3-a2rp
+==> /tmp/kout/arc3-a2rp.log <==
+re=0.00, levels=0.0/6, actions=1, tokens=0\n"}
+,{"stream_name":"stdout","time":1344.852145917,"data":"\n"}
+,{"stream_name":"stdout","time":1447.860800065,"data":"[sys] RAM 103.3/176.9 | swap none | proc 0.4 GB, 65 threads, 70 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1567.878428728,"data":"[sys] RAM 103.3/176.9 | swap none | proc 0.4 GB, 65 threads, 69 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1687.892006978,"data":"[sys] RAM 103.3/176.9 | swap none | proc 0.4 GB, 65 threads, 70 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1807.911450718,"data":"[sys] RAM 103.3/176.9 | swap none | proc 0.4 GB, 65 threads, 70 fds | GPU0 69.9/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1873.126845923,"data":"Precaching: loaded 62 files (185.40 GB) in 1707.88 seconds.\n"}
+,{"stream_name":"stdout","time":1873.126872223,"data":"\n"}
+,{"stream_name":"stdout","time":1927.928618068,"data":"[sys] RAM 105.8/176.9 | swap none | proc 0.3 GB, 61 threads, 66 fds | GPU0 89.8/95.6 | disk / 7123.6/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":1945.172225232,"data":"benchmark: regenerated diagnostics in /kaggle/working in 0.22s\n"}
+,{"stream_name":"stdout","time":1945.172242772,"data":"benchmark: duck-harness-kaggle\n"}
+,{"stream_name":"stdout","time":1945.172244532,"data":"solver:    duck-harness\n"}
+,{"stream_name":"stdout","time":1945.172245812,"data":"games:     1\n"}
+,{"stream_name":"stdout","time":1945.172246902,"data":"passes:    1\n"}
+,{"stream_name":"stdout","time":1945.172247862,"data":"runs:      1 (won: 0)\n"}
+,{"stream_name":"stdout","time":1945.172248832,"data":"started:   2026-11-02 00:36:38\n"}
+,{"stream_name":"stdout","time":1945.172249952,"data":"ended:     in progress\n"}
+,{"stream_name":"stdout","time":1945.172251022,"data":"mean score:    0.00\n"}
+,{"stream_name":"stdout","time":1945.172251972,"data":"median score:  0.00\n"}
+,{"stream_name":"stdout","time":1945.172252912,"data":"total actions: 1\n"}
+,{"stream_name":"stdout","time":1945.172253862,"data":"total tokens:  0\n"}
+,{"stream_name":"stdout","time":1945.172254932,"data":"generated tokens/sec: 0.00 (job wallclock)\n"}
+,{"stream_name":"stdout","time":1945.172255982,"data":"total wallclock: 0.0s\n"}
+,{"stream_name":"stdout","time":1945.172257072,"data":"\n"}
+,{"stream_name":"stdout","time":1945.172258042,"data":"per-game (mean across passes):\n"}
+,{"stream_name":"stdout","time":1945.172259102,"data":"  ft09-0d8bbf25: score=0.00, levels=0.0/6, actions=1, tokens=0\n"}
+,{"stream_name":"stdout","time":1945.172260102,"data":"\n"}
+,{"stream_name":"stdout","time":2047.941305151,"data":"[sys] RAM 106.3/176.9 | swap none | proc 0.3 GB, 61 threads, 67 fds | GPU0 91.1/95.6 | disk / 7123.5/8156.9, /kaggle/working 0.0/19.5\n"}
+,{"stream_name":"stdout","time":2058.171824615,"data":"[finished] ft09-0d8bbf25 state=gave_up level=0/6 score=0.00 actions=1 tokens=0 per-level=1/43,0/12,0/23,0/28,0/65,0/37 note=\"tokens=184\"\n"}
+,{"stream_name":"stdout","time":2058.909744419,"data":"benchmark: regenerated diagnostics in /kaggle/working in 0.74s\n"}
+,{"stream_name":"stdout","time":2058.909754239,"data":"benchmark: duck-harness-kaggle\n"}
+,{"stream_name":"stdout","time":2058.909756049,"data":"solver:    duck-harness\n"}
+,{"stream_name":"stdout","time":2058.909756979,"data":"games:     1\n"}
+,{"stream_name":"stdout","time":2058.909757799,"data":"passes:    1\n"}
+,{"stream_name":"stdout","time":2058.909758499,"data":"runs:      1 (won: 0)\n"}
+,{"stream_name":"stdout","time":2058.909759309,"data":"started:   2026-11-02 00:36:38\n"}
+,{"stream_name":"stdout","time":2058.909760049,"data":"ended:     2026-11-02 00:58:37\n"}
+,{"stream_name":"stdout","time":2058.909760759,"data":"duration:  21m 58s\n"}
+,{"stream_name":"stdout","time":2058.909761469,"data":"mean score:    0.00\n"}
+,{"stream_name":"stdout","time":2058.909762339,"data":"median score:  0.00\n"}
+,{"stream_name":"stdout","time":2058.909763079,"data":"total actions: 1\n"}
+,{"stream_name":"stdout","time":2058.909763819,"data":"total tokens:  0\n"}
+,{"stream_name":"stdout","time":2058.909764559,"data":"generated tokens/sec: 0.00 (job wallclock)\n"}
+,{"stream_name":"stdout","time":2058.909765439,"data":"total wallclock: 1313.9s\n"}
+,{"stream_name":"stdout","time":2058.909766269,"data":"\n"}
+,{"stream_name":"stdout","time":2058.909767109,"data":"per-game (mean across passes):\n"}
+,{"stream_name":"stdout","time":2058.909767849,"data":"  ft09-0d8bbf25: score=0.00, levels=0.0/6, actions=1, tokens=0\n"}
+,{"stream_name":"stdout","time":2058.909768619,"data":"\n"}
+,{"stream_name":"stdout","time":2058.909769329,"data":"diagnostics: /kaggle/working/diagnostics.html\n"}
+,{"stream_name":"stderr","time":2059.625126084,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":2059.625138614,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stderr","time":2059.625140384,"data":"\n"}
+,{"stream_name":"stderr","time":2059.625141264,"data":"/usr/local/lib/python3.12/dist-packages/IPython/core/display.py:724: UserWarning: Consider using IPython.display.IFrame instead\n"}
+,{"stream_name":"stderr","time":2059.625142244,"data":"  warnings.warn(\"Consider using IPython.display.IFrame instead\")\n"}
+,{"stream_name":"stdout","time":2059.658509354,"data":"ours diag: server logs ['/kaggle/working/serve.log']\n"}
+,{"stream_name":"stdout","time":2059.658517314,"data":"ours diag: min  decodes  run  queue  kv_use  gen_tok/s  prefill_new  prefill_cached\n"}
+,{"stream_name":"stdout","time":2059.658518434,"data":"ours diag:    0       0   0.0    0.0    0.00       0.0            0              0\n"}
+,{"stream_name":"stdout","time":2059.658519224,"data":"ours diag:   20       0   0.0    0.0    0.00       0.0            0              0\n"}
+,{"stream_name":"stdout","time":2059.658519984,"data":"ours diag:   30       1   1.0    0.0    0.01       5.0         5760              0\n"}
+,{"stream_name":"stdout","time":2059.658520814,"data":"ours diag: gate {'enqueued': 1, 'blocked': 0, 'blocked_ms': 0, 'handover_ms': 0}\n"}
+,{"stream_name":"stdout","time":2059.658521574,"data":"ours diag: retry {'retries': 0, 'levels_after': 0, 'fresh_admits': 0}\n"}
+,{"stream_name":"stdout","time":2059.658522344,"data":"ours diag: turns ft09 turns=1 exec=0 acts=0 tok=184 levels=0 | L1~:1t/0a/0.2k\n"}
+,{"stream_name":"stdout","time":2059.658737244,"data":"ours diag: turns total {'games': 1, 'turns': 1, 'acts': 0, 'tok': 184, 'levels': 0, 'tok_solved': 0, 'tok_solved2': 0, 'levels2': 0} tok/level=184 tok/solved-level=0 tok/solved-level(L\u003e=2)=0 acts/level=0  ('~' = level not completed)\n"}
+,{"stream_name":"stderr","time":2061.52467694,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":2061.52469163,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":2061.677047828,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":2061.677058368,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":2062.406460983,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":2062.561644492,"data":"[NbConvertApp] Writing 1251497 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":2063.738388303,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":2064.726957556,"data":"[NbConvertApp] Writing 2905044 bytes to __results__.html\n"}
+]
+==> /tmp/kout/serve.log <==
+22<00:08,  8.79s/it]Capturing batches (bs=1 avail_mem=4.92 GB): 100%|██████████| 7/7 [02:23<00:00,  6.13s/it]Capturing batches (bs=1 avail_mem=4.92 GB): 100%|██████████| 7/7 [02:23<00:00, 20.51s/it]
+[2026-11-02 00:57:59] Capture target verify CUDA graph end. elapsed=144.41 s, mem usage=0.48 GB, avail mem=4.91 GB.
+[2026-11-02 00:58:06] [gdn_recovery] captured 7 recovery cuda graphs (buckets=[1, 2, 4, 7, 8, 9, 10], boundary=True)
+[2026-11-02 00:58:06] Disable prefill CUDA graph because cuda_graph_config resolved prefill.backend='disabled' (e.g. via --cuda-graph-backend-prefill=disabled or auto-disable rules).
+[2026-11-02 00:58:06] Capture draft decode CUDA graph begin. backend=full, num_tokens_per_req=1, bs=[1, 2, 4, 7, 8, 9, 10], avail mem=4.91 GB
+  0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=10 avail_mem=4.91 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=10 avail_mem=4.91 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it]Capturing batches (bs=9 avail_mem=4.55 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it] Capturing batches (bs=8 avail_mem=4.54 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it]Capturing batches (bs=7 avail_mem=4.54 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it]Capturing batches (bs=4 avail_mem=4.54 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it]Capturing batches (bs=2 avail_mem=4.54 GB):  14%|█▍        | 1/7 [00:01<00:07,  1.28s/it]Capturing batches (bs=2 avail_mem=4.54 GB):  86%|████████▌ | 6/7 [00:01<00:00,  5.46it/s]Capturing batches (bs=1 avail_mem=4.54 GB):  86%|████████▌ | 6/7 [00:01<00:00,  5.46it/s]Capturing batches (bs=1 avail_mem=4.54 GB): 100%|██████████| 7/7 [00:06<00:00,  1.14it/s]
+[2026-11-02 00:58:13] Capture draft decode CUDA graph end. elapsed=7.01 s, mem usage=0.37 GB, avail mem=4.54 GB.
+[2026-11-02 00:58:13] Capture draft extend CUDA graph begin. backend=full, num_tokens_per_req=4, bs=[1, 2, 4, 7, 8, 9, 10], avail mem=4.54 GB
+  0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=10 avail_mem=4.54 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=9 avail_mem=4.26 GB):   0%|          | 0/7 [00:00<?, ?it/s] Capturing batches (bs=8 avail_mem=4.26 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=7 avail_mem=4.26 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=4 avail_mem=4.25 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=2 avail_mem=4.25 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=1 avail_mem=4.25 GB):   0%|          | 0/7 [00:00<?, ?it/s]Capturing batches (bs=1 avail_mem=4.25 GB): 100%|██████████| 7/7 [00:00<00:00, 118.55it/s]
+[2026-11-02 00:58:14] Capture draft extend CUDA graph end. elapsed=0.93 s, mem usage=0.29 GB, avail mem=4.25 GB.
+[2026-11-02 00:58:14] max_total_num_tokens=1011264, chunked_prefill_size=8192, max_prefill_tokens=16384, max_running_requests=10, context_len=139264, available_gpu_mem=4.25 GB
+[2026-11-02 00:58:14] Mamba sparse-prefill v2: one cold-start branch plus final checkpoint
+[2026-11-02 00:58:14] Mamba LRU: refresh checkpoint before final device unlock
+[2026-11-02 00:58:14] Init Unified Radix Cache. Components: (<ComponentType.FULL: 0>, <ComponentType.MAMBA: 2>). Tree Core: UnifiedTreeCore
+[2026-11-02 00:58:14] Tree cache initialized: source=default impl=UnifiedRadixCache hybrid_swa=False hybrid_ssm=True hicache_attached=False streaming_wrapped=False
+[2026-11-02 00:58:15] Engine startup timings (s): load_weight=1740.13, kv_cache_allocation=2.13, scheduler_e2e=1916.21, cuda_graph={prefill=0.00, decode=0.00, target_verify=144.41, draft_prefill=0.00, draft_decode=7.01, draft_extend=0.93}, tokenizer_e2e=1920.96
+[2026-11-02 00:58:15] INFO:     Started server process [505]
+[2026-11-02 00:58:15] INFO:     Waiting for application startup.
+[2026-11-02 00:58:15] Using default chat sampling params from model generation config: {'temperature': 1.0, 'top_k': 20, 'top_p': 0.95}
+[2026-11-02 00:58:15] Running warmup structured_output
+/tmp/sgl-intel/venv/lib/python3.12/site-packages/triton/language/core.py:2284: UserWarning: tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.
+  warn("tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.")
+[2026-11-02 00:58:23] Prefill batch, #new-seq: 1, #new-token: 64, #cached-token: 0, full token usage: 0.00, mamba usage: 0.05, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7.37
+[2026-11-02 00:58:23] ReqTimeStats(rid=247b9831657f443bb535be0813c6e6da, input_len=10, cached_input_len=0, output_len=34, attempts=0, type=unified): queue_duration=1.40ms, initial_prefill_elapsed=8046.27ms, post_prefill_elapsed=180.04ms, forward_duration=8226.31ms, entry_time=1793581095.267
+[2026-11-02 00:58:23] Structured-output warmup completed for the built-in JSON schema.
+[2026-11-02 00:58:23] Warmup ended
+[2026-11-02 00:58:23] INFO:     Application startup complete.
+[2026-11-02 00:58:23] INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+[2026-11-02 00:58:24] INFO:     127.0.0.1:42658 - "GET /model_info HTTP/1.1" 200 OK
+[2026-11-02 00:58:26] Triton kernel '_fwd_kernel' took 1.05 s to compile after serving started. Serving-time compilation can stall the engine; pre-compile it during engine init.
+/tmp/sgl-intel/venv/lib/python3.12/site-packages/flashinfer/api_logging.py:2333: RuntimeWarning: CP delta rule heuristic matched but CP dispatch is unavailable: CP delta rule does not support state checkpointing yet; falling back to non-CP delta rule.
+  return _inner(*args, **kwargs)
+/tmp/sgl-intel/venv/lib/python3.12/site-packages/flashinfer/api_logging.py:2333: RuntimeWarning: CP delta rule heuristic matched but CP dispatch is unavailable: CP delta rule does not support state checkpointing yet; falling back to non-CP delta rule.
+  return _inner(*args, **kwargs)
+[2026-11-02 00:58:35] Prefill batch, #new-seq: 1, #new-token: 128, #cached-token: 0, full token usage: 0.01, mamba usage: 0.12, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 10.43
+[2026-11-02 00:58:35] Prefill batch, #new-seq: 1, #new-token: 5568, #cached-token: 0, full token usage: 0.01, mamba usage: 0.13, #running-req: 1, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 17728.81
+[2026-11-02 00:58:35] ReqTimeStats(rid=5d724a207787409d990fbb1e09242c37, input_len=122, cached_input_len=0, output_len=8, attempts=0, type=unified): queue_duration=0.36ms, initial_prefill_elapsed=10994.40ms, post_prefill_elapsed=351.10ms, forward_duration=11345.50ms, entry_time=1793581104.587
+[2026-11-02 00:58:35] INFO:     127.0.0.1:42670 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[2026-11-02 00:58:36] Freezing GC in Tokenizer Manager process. gen0: 488->0, gen1: 1406->0, gen2: 989559->0
+[2026-11-02 00:58:36] INFO:     127.0.0.1:59018 - "POST /freeze_gc HTTP/1.1" 200 OK
+[2026-11-02 00:58:36] The server is fired up and ready to roll!
+[2026-11-02 00:58:36] Freezing GC in Scheduler process. gen0: 447->0, gen1: 3270->0, gen2: 1220622->0
+[2026-11-02 00:58:36] Freezing GC in Detokenizer Manager process. gen0: 3->0, gen1: 1512->0, gen2: 805703->0
+[2026-11-02 00:58:36] Decode batch, #running-req: 1, #full token: 5696, full token usage: 0.01, mamba num: 4, mamba usage: 0.07, accept len: 2.53, accept rate: 0.51, cuda graph: True, gen throughput (token/s): 5.01, #queue-req: 0
+[2026-11-02 00:58:36] ReqTimeStats(rid=02f2eaca0c4b4ef0b4858af9e6e32c08, input_len=5566, cached_input_len=0, output_len=186, attempts=0, type=unified): queue_duration=0.39ms, initial_prefill_elapsed=6000.30ms, post_prefill_elapsed=1061.66ms, forward_duration=7061.96ms, entry_time=1793581109.896
+[2026-11-02 00:58:36] INFO:     127.0.0.1:39944 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-11-02 00:59:10.763000,a2rp-sub2: a2rg (deadline + dossier v2 + RESET + 3600 s grace) + our python-tool sandbox fixes [run 41366716039],SubmissionStatus.PENDING,,
+submission.parquet,2026-11-01 00:31:06.933000,a2rg-sub1: a2rs (deadline + dossier v2 + RESET) + our 3600 s first-call grace instead of the watch [run 41255726487],SubmissionStatus.COMPLETE,30.31,
+submission.parquet,2026-10-31 01:55:50.577000,a2cp-sub1: a2rs (deadline + dossier v2 + RESET) + watch + evgendvorkin's CheckedPlan (stepwise verified plans) [run 41156228599],SubmissionStatus.COMPLETE,24.61,
+
+output files:
+total 764
+drwxr-xr-x  7 runner runner   4096 Nov  2 00:59 .
+drwxrwxrwt 14 root   root     4096 Nov  2 00:59 ..
+-rw-r--r--  1 runner runner  59000 Nov  2 00:59 .per_game_cards.pkl
+-rw-r--r--  1 runner runner  34891 Nov  2 00:59 arc3-a2rp.log
+drwxr-xr-x  2 runner runner   4096 Nov  2 00:59 artifacts
+-rw-r--r--  1 runner runner   1234 Nov  2 00:59 benchmark.json
+-rw-r--r--  1 runner runner 519784 Nov  2 00:59 diagnostics.html
+-rw-r--r--  1 runner runner    434 Nov  2 00:59 games.pkl
+-rw-r--r--  1 runner runner    356 Nov  2 00:59 git_status.txt
+-rw-r--r--  1 runner runner   9104 Nov  2 00:59 intermediate_states.pkl
+drwxr-xr-x  2 runner runner   4096 Nov  2 00:59 movies
+-rw-r--r--  1 runner runner   2838 Nov  2 00:59 ours_pyfix.py
+drwxr-xr-x  2 runner runner   4096 Nov  2 00:59 prompts
+-rw-r--r--  1 runner runner  53006 Nov  2 00:59 requests.jsonl
+-rw-r--r--  1 runner runner  39191 Nov  2 00:59 serve.log
+-rw-r--r--  1 runner runner   1902 Nov  2 00:59 solver.pkl
+drwxr-xr-x  2 runner runner   4096 Nov  2 00:59 solver_analysis
+-rw-r--r--  1 runner runner   2648 Nov  2 00:59 submission.parquet
+-rw-r--r--  1 runner runner    421 Nov  2 00:59 summary.txt
+drwxr-xr-x  2 runner runner   4096 Nov  2 00:59 transcripts
+==> /tmp/kout/arc3-a2rp.log <==
+[{"stream_name":"stderr","time":4.002318898,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.002342568,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.002344398,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.002345448,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":4.300023759,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.300043439,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.300045049,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.300046019,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":5.075951587,"data":"Writing /kaggle/harness-changes.patch\n"}
+,{"stream_name":"stderr","time":6.300820818,"data":"Checking patch ARC3-Inference/inference/agent/action_names.py...\n"}
+,{"stream_name":"stderr","time":6.300845838,"data":"Checking patch ARC3-Inference/inference/agent/noop_repeat_guard.py...\n"}
+,{"stream_name":"stderr","time":6.300852178,"data":"Checking patch ARC3-Inference/inference/agent/p
+==> /tmp/kout/serve.log <==
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-11-02 00:26:11] Breakable CUDA graph is incompatible with multimodal model; disabling prefill CUDA graph.
+[2026-11-02 00:26:11] Setting page size to 64 for compressed QSA (full//ratio compressed addressing).
+[2026-11-02 00:26:12] Attention backend not specified. Use flashinfer backend by default.
+[2026-11-02 00:26:12] Successfully imported FlashInfer mamba module
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_interleaved', 'mrope_section'}
+[2026-11-02 00:26:12] DeepSeek MTP does not require setting speculative_draft_model_path.
+[2026-11-02 00:26:14] server_args={'model_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_mode': 'auto', 'tokenizer_backend': 'huggingface', 'tokenizer_worker_num': 1, 'detokenizer_worker_num': 1, 'skip_tokenizer_init': False, 'load_format': 'safetensors', 'model_loader_ext
