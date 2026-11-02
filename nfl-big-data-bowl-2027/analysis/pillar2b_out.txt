@@ -1,0 +1,76 @@
+PILLAR 2b: (1) WR top speed -> deep-route separation, (2) DT 40-yd v10 -> get-off / pressure
+ridge, 5-fold CV by player x 20 repeats; increment = R2(base+trait) - R2(base), player bootstrap 90% CI (pillar2.test)
+
+==== (1) WR: 40-yd top speed -> separation on deep routes (GO / POST / CORNER)
+WR routes with separation: 37525  deep (GO/POST/CORNER) 14216  deep sep mean 2.73 yd vs other 3.28 yd
+deep routes per WR (with drill vmax): median 102; WRs with >= 20: 82
+
+-- PRIMARY: sep_deep (>= 20 deep routes)
+  [sep_deep] D_vmax40: Spearman +0.03 (n 74); within class -0.01; by class 23/24/25 +0.11(29)/-0.16(27)/+0.03(18); partial | small base -0.14 (n 63); outcome sd 0.303
+  sep_deep | full base               n  74  base R2 +0.092  base+trait +0.089  trait only -0.031  increment -0.003 [-0.017, +0.010]
+  sep_deep | small base              n  74  base R2 +0.091  base+trait +0.080  trait only -0.031  increment -0.011 [-0.027, +0.005]
+
+-- secondary
+  [sep_deep >= 10] D_vmax40: Spearman +0.07 (n 83); within class +0.05; by class 23/24/25 +0.15(31)/-0.16(27)/+0.17(25); partial | small base -0.14 (n 66); outcome sd 0.361
+  sep_deep >= 10 | full base         n  83  base R2 +0.127  base+trait +0.127  trait only -0.031  increment +0.000 [-0.012, +0.011]
+  sep_deep >= 10 | small base        n  83  base R2 +0.114  base+trait +0.111  trait only -0.031  increment -0.003 [-0.018, +0.011]
+  [sep_deep >= 30] D_vmax40: Spearman +0.04 (n 68); within class +0.02; by class 23/24/25 +0.16(27)/-0.14(25)/+0.02(16); partial | small base -0.17 (n 60); outcome sd 0.297
+  sep_deep >= 30 | full base         n  68  base R2 +0.050  base+trait +0.041  trait only -0.033  increment -0.009 [-0.027, +0.008]
+  sep_deep >= 30 | small base        n  68  base R2 +0.027  base+trait +0.012  trait only -0.033  increment -0.015 [-0.041, +0.009]
+  [sep GO only >= 15] D_vmax40: Spearman -0.02 (n 71); within class -0.03; by class 23/24/25 -0.01(27)/-0.18(27)/+0.18(17); partial | small base -0.16 (n 63); outcome sd 0.327
+  sep GO only >= 15 | full base      n  71  base R2 +0.063  base+trait +0.066  trait only -0.038  increment +0.003 [-0.011, +0.016]
+  sep GO only >= 15 | small base     n  71  base R2 +0.081  base+trait +0.074  trait only -0.038  increment -0.006 [-0.029, +0.016]
+  [sep other routes >= 30 (contrast)] D_vmax40: Spearman +0.20 (n 73); within class +0.20; by class 23/24/25 +0.31(27)/+0.10(27)/+0.21(19); partial | small base +0.07 (n 63); outcome sd 0.344
+  sep other routes >= 30 (contrast) | full base n  73  base R2 +0.115  base+trait +0.111  trait only +0.002  increment -0.004 [-0.026, +0.015]
+  sep other routes >= 30 (contrast) | small base n  73  base R2 +0.028  base+trait +0.038  trait only +0.002  increment +0.010 [-0.022, +0.041]
+  mediator: in-game deep-route top speed (G_vmax) -> sep_deep
+  [sep_deep ~ game G_vmax] G_vmax: Spearman +0.13 (n 82); within class +0.12; by class 23/24/25 +0.31(34)/-0.20(29)/+0.27(19); partial | small base -0.23 (n 65); outcome sd 0.334
+  sep_deep ~ game G_vmax | full base n  82  base R2 +0.125  base+trait +0.118  trait only -0.032  increment -0.007 [-0.011, -0.004]
+  sep_deep ~ game G_vmax | small base n  82  base R2 +0.130  base+trait +0.131  trait only -0.032  increment +0.000 [-0.019, +0.019]
+
+==== (2) DT (DT + NT): 40-yd speed at 1.0 s (v10) -> get-off and pressure
+DL rush snaps 35693  pressure rate 0.100 (DT/NT 0.067)
+
+-- PRIMARY: DT getoff (>= 30 plays, DT/NT means removed)  DT/NT with outcome 51
+  [DT getoff] D_v10_40: Spearman -0.16 (n 40); within class -0.17; by class 23/24/25 -0.20(10)/+0.13(16)/-0.50(14); partial | small base -0.14 (n 30); outcome sd 0.081
+  DT getoff | full base              n  40  base R2 +0.108  base+trait +0.100  trait only -0.075  increment -0.009 [-0.024, +0.006]
+  DT getoff | small base             n  40  base R2 +0.119  base+trait +0.093  trait only -0.075  increment -0.026 [-0.051, -0.002]
+
+-- PRIMARY: DT press (>= 50 rush snaps, DT/NT means removed)  DT/NT with outcome 45
+  [DT press] D_v10_40: Spearman +0.38 (n 36); within class +0.36; by class 23/24/25 +0.37(10)/+0.62(15)/-0.03(11); partial | small base +0.39 (n 28); outcome sd 0.023
+  DT press | full base               n  36  base R2 -0.029  base+trait +0.047  trait only +0.081  increment +0.077 [-0.028, +0.169]
+  DT press | small base              n  36  base R2 +0.048  base+trait +0.174  trait only +0.081  increment +0.126 [-0.016, +0.257]
+
+-- secondary
+  [DT getoff (drill onset 2 yd/s)] v10_on2: Spearman -0.43 (n 40); within class -0.38; by class 23/24/25 -0.13(10)/-0.12(16)/-0.85(14); partial | small base -0.09 (n 30); outcome sd 0.081
+  DT getoff (drill onset 2 yd/s) | full base n  40  base R2 +0.108  base+trait +0.110  trait only +0.066  increment +0.001 [-0.032, +0.029]
+  DT getoff (drill onset 2 yd/s) | small base n  40  base R2 +0.119  base+trait +0.110  trait only +0.066  increment -0.009 [-0.068, +0.043]
+  [all DL getoff (pos means removed)] D_v10_40: Spearman -0.07 (n 87); within class -0.06; by class 23/24/25 -0.03(31)/+0.22(30)/-0.42(26); partial | small base -0.09 (n 66); outcome sd 0.082
+  all DL getoff (pos means removed) | full base n  87  base R2 -0.005  base+trait -0.008  trait only -0.030  increment -0.003 [-0.008, +0.004]
+  all DL getoff (pos means removed) | small base n  87  base R2 +0.000  base+trait -0.007  trait only -0.030  increment -0.007 [-0.017, +0.003]
+  [all DL getoff] v10 on top of base + hoop_dur (n 79):
+  all DL getoff | full base + hoop   n  79  base R2 -0.016  base+trait -0.022  trait only -0.032  increment -0.006 [-0.014, +0.003]
+  all DL getoff | small base + hoop  n  79  base R2 +0.025  base+trait +0.012  trait only -0.032  increment -0.013 [-0.025, +0.005]
+  [DT press (drill onset 2 yd/s)] v10_on2: Spearman +0.36 (n 36); within class +0.39; by class 23/24/25 +0.56(10)/+0.48(15)/+0.10(11); partial | small base +0.16 (n 28); outcome sd 0.023
+  DT press (drill onset 2 yd/s) | full base n  36  base R2 -0.029  base+trait +0.028  trait only +0.096  increment +0.057 [-0.031, +0.125]
+  DT press (drill onset 2 yd/s) | small base n  36  base R2 +0.048  base+trait +0.177  trait only +0.096  increment +0.129 [+0.010, +0.220]
+  [all DL press (pos means removed)] D_v10_40: Spearman +0.33 (n 77); within class +0.19; by class 23/24/25 +0.13(29)/+0.34(28)/+0.05(20); partial | small base +0.37 (n 62); outcome sd 0.032
+  all DL press (pos means removed) | full base n  77  base R2 +0.118  base+trait +0.132  trait only +0.030  increment +0.015 [-0.050, +0.076]
+  all DL press (pos means removed) | small base n  77  base R2 +0.075  base+trait +0.122  trait only +0.030  increment +0.047 [-0.036, +0.122]
+  [all DL press] v10 on top of base + hoop_dur (n 70):
+  all DL press | full base + hoop    n  70  base R2 +0.129  base+trait +0.128  trait only +0.013  increment -0.001 [-0.061, +0.056]
+  all DL press | small base + hoop   n  70  base R2 +0.038  base+trait +0.080  trait only +0.013  increment +0.042 [-0.033, +0.112]
+
+== READING (11-02)
+- (1) WR: no increment on deep routes either. Primary sep_deep (GO/POST/CORNER, >= 20 routes, n 74): Spearman +0.03,
+  within class -0.01, partial | small base -0.14; increment -0.003 [-0.017, +0.010] (full), -0.011 [-0.027, +0.005]
+  (small). Same at 10 / 30 routes and GO only. Even the in-game deep top speed (G_vmax) does not predict deep separation
+  beyond the base (partial -0.23). The +0.20 of 11-01 lives on the SHORT routes (contrast +0.20, within class +0.20) and
+  is carried by the forty (partial +0.07). Top speed, drill or game, does not buy separation at pass_forward.
+- (2) DT: get-off -- no (Spearman -0.16 in the expected direction, increment -0.009 / -0.026). Pressure -- the strongest
+  signal of the 11-01/02 pillar-2 attempts but not yet significant: Spearman +0.38 (n 36), within class +0.36, partial
+  | small base +0.39; increment +0.077 [-0.028, +0.169] (full), +0.126 [-0.016, +0.257] (small); classes +0.37/+0.62/
+  -0.03. Onset 2 yd/s version: small-base increment +0.129 [+0.010, +0.220] (secondary, one of several variants).
+  All DL (n 77): Spearman +0.33, increment +0.015 / +0.047 (CI over 0); beside hoop_dur adds ~0 (full) / +0.042 (small).
+- 11-09 criterion (increment CI above 0, primary): not met. DT pressure is the candidate: n 36 with a 50-rush-snap floor;
+  next = play-level mixed / binomial model on all rush snaps (as hier.py did for get-off) to use every DT and tighten CI.
