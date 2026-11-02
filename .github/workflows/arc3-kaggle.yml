@@ -48,7 +48,7 @@ jobs:
 
       - name: Install kaggle CLI
         # kaggle 2.0.0 needs kagglesdk pinned to 0.1.15 (see kaggle-push.yml).
-        run: pip install -q 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+        run: pip install -q six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
 
       - name: Read the request
         run: |

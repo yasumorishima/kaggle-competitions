@@ -112,7 +112,7 @@ jobs:
           set -e
           b="$AGENT_B"
           if [ "${b#kernel:}" != "$b" ]; then
-            pip install 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+            pip install six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
             ref="${b#kernel:}"
             python sim/fetch_opponent.py --exec "$ref"
             echo "AGENT_B_PATH=opponents/${ref//\//__}.py" >> "$GITHUB_ENV"
