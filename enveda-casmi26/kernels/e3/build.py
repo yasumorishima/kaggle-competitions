@@ -109,6 +109,7 @@ fins = _arg("fins", 0, int)           # a451 only, > 0: the frag_rescore top pic
 lfrag = _arg("lfrag", 0, int)         # a451 only, 1: the base's frag_rescore.score_molecule -> our learned peak credits (ours_lfrag)
 iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) on the rerun (base 5400; the CPU needs more)          # ... re-rank only the top K of the final list
 
+arb = _arg("arb", 0, int)   # ours (11-02, Opus audit part 1), outer m479: rank-1 arbitration of the fragment check's leader moves by our own votes (lfrag + neutral loss)
 onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT structures missing from the final layer's prior table get np_coconut = 1
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
@@ -1272,6 +1273,110 @@ except Exception as _e:
 
 """
         _oc[_i17[0]]["source"] = _onp + _s17
+    if arb:
+        # ours (11-02, Opus audit 11-01 part 1 "rank-1 arbitration"): the final layer (cell 17) takes the fragment check's
+        # rank-1 move p0 (p0 != v0, v0 = the V2 leader) as is and pins v0 at rank 2. Here, only for those molecules, two
+        # votes that neither the V2 order nor the fragment check use decide which of p0 / v0 leads; the other goes to rank 2:
+        #   lfrag  our learned peak credits (ours_lfrag, fitted listwise on same-formula train isomers) -- the outer process
+        #          runs the check on the untrained base credits; lfrag reaches the V2 order only where GLACIER and ICEBERG
+        #          gave no score (frozen fragment-gap cell)
+        #   nl     our neutral-loss naive Bayes (ours_nl: precursor - peak = hexose, SO3, CO2, ...; rates measured on train);
+        #          votes only past ARB_NL_TAU nats, i.e. when a diagnostic loss is seen
+        # v0 leads when the summed vote is below 0 (lfrag against the move and nl not for it, or both against).
+        # Any failure (or no move) leaves the 0.479 behaviour exactly.
+        assert outer == "m479", "arb patches the m479 final layer (pxm_merge)"
+        _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def pxm_merge(" in "".join(c["source"])]
+        assert len(_i17) == 1, _i17
+        _s17 = "".join(_oc[_i17[0]]["source"])
+        _arb_sub = [
+            ("        if p[0] != v[0]:\n            leader = p[0]\n            rest = [s for s in c if s != p[0]]\n",
+             "        _ours_rev = p[0] != v[0] and str(mid) in ARB_REVERT   # ours (arb): our votes keep the V2 leader\n"
+             "        if p[0] != v[0]:\n            leader = v[0] if _ours_rev else p[0]\n            rest = [s for s in c if s != leader]\n"),
+            ("        if PIN_OLD_LEADER and p[0] != v[0] and v[0] in rest and rest[0] != v[0]:\n            rest = [v[0]] + [x for x in rest if x != v[0]]\n",
+             "        _ours_lose = p[0] if _ours_rev else v[0]   # ours (arb): the loser of the two leaders is pinned at rank 2\n"
+             "        if PIN_OLD_LEADER and p[0] != v[0] and _ours_lose in rest and rest[0] != _ours_lose:\n            rest = [_ours_lose] + [x for x in rest if x != _ours_lose]\n"),
+            ("    merged_tuples, counts = pxm_merge(*frames, ",
+             "    _ours_arb(frames)   # ours (arb)\n    merged_tuples, counts = pxm_merge(*frames, "),
+        ]
+        for _o, _n in _arb_sub:
+            assert _s17.count(_o) == 1, ("arb anchor", _o[:60])
+            _s17 = _s17.replace(_o, _n)
+        _arb = """# ==== ours (yasunorim, build.py arb=1): rank-1 arbitration of the fragment check's leader moves ====
+ARB_REVERT, ARB_REPORT = set(), {}
+ARB_LF_TAU, ARB_NL_TAU = 0.0, 1.0
+_OURS_LFRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_lfrag.py"), encoding="utf-8").read()) + """
+_OURS_NL_SRC = """ + repr(open(os.path.join(HERE, "ours_nl.py"), encoding="utf-8").read()) + """
+
+
+def _ours_arb(frames):
+    \"\"\"Fill ARB_REVERT with the molecules whose fragment-check leader p0 loses to the V2 leader v0 on our votes.\"\"\"
+    global ARB_REVERT, ARB_REPORT
+    ARB_REVERT, rep = set(), dict(status='start', moved=0, revert=0, keep=0, lf_for=0, lf_against=0, nl_for=0, nl_against=0, no_spectra=0)
+    try:
+        import importlib.util as _iu, sys as _sys, os as _os
+        _phys, _v2 = frames[0], frames[1]
+        _moved = [(str(m), ps.split(';')[0], vs.split(';')[0]) for m, ps, vs in zip(_phys.molecule_id, _phys.smiles, _v2.smiles)
+                  if ps.split(';')[0] != vs.split(';')[0]]
+        rep['moved'] = len(_moved)
+        if _moved:
+            _d = ROOT / 'ours_arb'
+            _d.mkdir(exist_ok=True)
+            (_d / 'ours_lfrag.py').write_text(_OURS_LFRAG_SRC)
+            (_d / 'ours_nl.py').write_text(_OURS_NL_SRC)
+            def _load(name, path):
+                sp = _iu.spec_from_file_location(name, str(path)); mo = _iu.module_from_spec(sp)
+                _sys.modules[name] = mo; sp.loader.exec_module(mo); return mo
+            _fr = _load('_ours_arb_frag', ROOT / 'frag_rescore.py')   # private copy: the check's module is not touched
+            _load('_ours_arb_lfrag', _d / 'ours_lfrag.py').install(_fr)
+            _nl = _load('_ours_arb_nl', _d / 'ours_nl.py')
+            _q = pd.read_parquet(ROOT / 'effective_query_spectra.parquet')
+            _q['molecule_id'] = _q.molecule_id.astype(str)
+            _by = {m: g for m, g in _q.groupby('molecule_id', sort=False)}
+            _cache, _rows = {}, []
+            for mid, p0, v0 in _moved:
+                g = _by.get(mid)
+                if g is None or not len(g):
+                    rep['no_spectra'] += 1; continue
+                spec = [dict(mz=np.asarray(r.ms2_mzs, np.float64), it=np.asarray(r.ms2_normalized_intensities, np.float64),
+                             adduct=r.adduct, prec=float(r.precursor_mz), mode=1 if str(r.ionization_mode).lower() == 'positive' else -1)
+                        for r in g.itertuples()][:16]
+                vote, lf, nl = 0, [None, None], [None, None]
+                try:
+                    lf = _fr.score_molecule(spec, [p0, v0], cache=_cache)
+                    if None not in lf:
+                        dl = float(lf[0]) - float(lf[1])
+                        if dl > ARB_LF_TAU: vote += 1; rep['lf_for'] += 1
+                        elif dl < -ARB_LF_TAU: vote -= 1; rep['lf_against'] += 1
+                except Exception as e:
+                    rep['lf_error'] = repr(e)[:200]
+                try:
+                    seen = _nl.observed([(np.column_stack([x['mz'], x['it']]), x['prec']) for x in spec])
+                    nl = [_nl.score(p0, seen), _nl.score(v0, seen)]
+                    if None not in nl:
+                        dn = float(nl[0]) - float(nl[1])
+                        if dn > ARB_NL_TAU: vote += 1; rep['nl_for'] += 1
+                        elif dn < -ARB_NL_TAU: vote -= 1; rep['nl_against'] += 1
+                except Exception as e:
+                    rep['nl_error'] = repr(e)[:200]
+                if vote < 0:
+                    ARB_REVERT.add(mid)
+                _rows.append(dict(molecule_id=mid, p0=p0, v0=v0, lf_p0=lf[0], lf_v0=lf[1], nl_p0=nl[0], nl_v0=nl[1], vote=vote,
+                                  leader='v0' if vote < 0 else 'p0'))
+            rep['revert'] = len(ARB_REVERT); rep['keep'] = len(_moved) - len(ARB_REVERT)
+            pd.DataFrame(_rows).to_csv(ROOT / 'ours_arb.csv', index=False)
+        rep['status'] = 'applied'
+    except Exception as e:
+        ARB_REVERT = set()
+        rep.update(status='failed_kept_0479', error=repr(e)[:300])
+    ARB_REPORT = rep
+    try:
+        (ROOT / 'ours_arb.json').write_text(json.dumps(rep, indent=2))
+    except Exception:
+        pass
+    print('ARB:', json.dumps(rep), flush=True)
+
+"""
+        _oc[_i17[0]]["source"] = _arb + _s17
     if pcins:
         _oc.append(code_cell(f'''# ==== ours (yasunorim; build.py pcins={pcins} on base p477 -- every outer cell above is unchanged) ====
 # PubChem mid-slot insertion (Opus plan audit 10-28, part A), after the final merge: for the molecules the frozen
@@ -1398,4 +1503,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "arb", arb, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
