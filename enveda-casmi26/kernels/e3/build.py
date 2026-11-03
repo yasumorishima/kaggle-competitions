@@ -121,7 +121,7 @@ onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT 
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
-assert outer in ("p477", "m479"), outer
+assert outer in ("p477", "m479", "m480"), outer
 assert outer == "p477" or base == "p477", "outer replaces the p477 wrapper only"
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -1330,7 +1330,7 @@ if base == "p477":
         # (the public pool only). 56k structures of our own COCONUT table are not in it, so they got NP 0 although they are
         # COCONUT natural products. Build an extended copy (their rows: np_coconut 1, pop 0 = unknown, no library flag) and
         # point the final layer at it; any failure keeps the original table.
-        assert outer == "m479" and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
+        assert outer in ("m479", "m480") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def _load_pop_prior(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1368,7 +1368,7 @@ except Exception as _e:
         #          votes only past ARB_NL_TAU nats, i.e. when a diagnostic loss is seen
         # v0 leads when the summed vote is below 0 (lfrag against the move and nl not for it, or both against).
         # Any failure (or no move) leaves the 0.479 behaviour exactly.
-        assert outer == "m479", "arb patches the m479 final layer (pxm_merge)"
+        assert outer in ("m479", "m480"), "arb patches the m479 final layer (pxm_merge)"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def pxm_merge(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1537,6 +1537,10 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
                    "[LB 0.477 - Two 0.472 Fixes, Merged the Right Way]"
                    "(https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way) by busyaprime, version 3, "
                    if outer == "p477" else
+                   "[CASMI26 LB 0.480 | Neural Ensemble](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-480-neural-ensemble) "
+                   "by alex chilton, version 9 (bgunshui's 480 neural ensemble on the 0.479 MIDX notebook; bgunshui's longer-trained "
+                   "spectrum scorer averaged with the public one), "
+                   if outer == "m480" else
                    "[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) "
                    "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
                    "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
@@ -1580,8 +1584,10 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
     meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if c1r > 0 else []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
-    if outer == "m479":   # alexchilton v8's image and its extra RDKit wheel (the run that scored 0.479)
+    if outer in ("m479", "m480"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
         meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
+        if outer == "m480":   # alexchilton "LB 0.480 | Neural Ensemble" v9: bgunshui's longer-trained spectrum scorer (kernel output)
+            meta["kernel_sources"] = meta["kernel_sources"] + ["bgunshui/casmi26-scorer-train-public"]
         meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461"
 if cpu:
     meta.update(enable_gpu="false")
