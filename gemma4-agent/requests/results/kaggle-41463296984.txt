@@ -1,0 +1,53 @@
+request: g4v28-1
+run: 41463296984  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 28
+memo: v28 = MUHAMMED IDRIS BIN YACOOB's v24 (LB 0.24, finished within 12 h; Apache-2.0 dataset muhammedidris28/gemma4-agent-runs, agents/v24: 6 tools, temperature 1.0, top_p 0.95, top_k 64, thinking 4096, 28 calls, his prompt) + our time guard (from our v18/v21): max_time_minutes 8 -> 7 and timeout_seconds 240 -> 150 (per-task worst case 12 -> 9.5 min, aiming at ~11 h for all tasks, since no notebook-wide clock is visible), get_status right after the first edit and submit with under 150 s left (his rule was 90 s), focused pytest wrapped in timeout 90. Our v27 (our v21 prompt + his sampling/tools) exceeded the 12 h runtime. Hypothesis: finishes within 12 h and LB >= 0.20. Effect size: if Idris's 0.24 configuration finishes, +3-4 tasks of ~58 public over our 0.18. Source and changes: bases/v28_SOURCE.txt.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 28 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      245  2026-11-02 14:35   agent.yaml
+      129  2026-11-02 14:35   configs/sampling.yaml
+       94  2026-11-02 14:35   eval_config.yaml
+     3494  2026-11-02 14:35   prompts/system.md
+---------                     -------
+     3962                     4 files
+agent.yaml 245
+configs/sampling.yaml 129
+eval_config.yaml 94
+prompts/system.md 3494
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 295176 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-11-02 14:36:20.417000,"g4v28-1: Idris v24 (0.24) + our time guard (7 min / 150 s, get_status after edit, submit under 150 s) [run 41463296984]",SubmissionStatus.PENDING,,
+submission.zip,2026-11-01 06:55:39.083000,"g4v27-1: v21 (0.18) + Idris v24 sampling (temp 1.0, top_k 64) and 6 tools [run 41282661266]",SubmissionStatus.COMPLETE,,
+submission.zip,2026-10-31 01:39:31.290000,"g4v26-1: v21 (0.18) + ours: thinking 4096 -> 6144, 20 calls / 7 min (fewer, deeper turns) [run 41156296953]",SubmissionStatus.COMPLETE,0.13,
+
+output files:
+total 16
+drwxr-xr-x  2 runner runner 4096 Nov  2 14:36 .
+drwxrwxrwt 14 root   root   4096 Nov  2 14:36 ..
+-rw-r--r--  1 runner runner 1206 Nov  2 14:36 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 2501 Nov  2 14:36 submission.zip
+[{"stream_name":"stdout","time":1.167141488,"data":"agent.yaml 245\n"}
+,{"stream_name":"stdout","time":1.167245187,"data":"configs/sampling.yaml 129\n"}
+,{"stream_name":"stdout","time":1.167508986,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":1.167798536,"data":"prompts/system.md 3494\n"}
+,{"stream_name":"stdout","time":1.167897922,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":4.263589164,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":4.263632504,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":4.7657526279999995,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":4.765786662,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":6.911893822,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":8.668572272,"data":"[NbConvertApp] Writing 295176 bytes to __results__.html\n"}
+]

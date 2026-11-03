@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3m479c1",
-  "title": "casmi26 e3m479c1",
+  "id": "yasunorim/casmi26-e3m480c1r",
+  "title": "casmi26 e3m480c1r",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -25,7 +25,8 @@
     "enveda-CASMI26-molecule-id-mass-spectra"
   ],
   "kernel_sources": [
-    "yasunorim/casmi26-e3rk0"
+    "yasunorim/casmi26-e3rk0",
+    "bgunshui/casmi26-scorer-train-public"
   ],
   "model_sources": []
 }

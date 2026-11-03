@@ -1,0 +1,14 @@
+v28 = MUHAMMED IDRIS BIN YACOOB's v24 (public LB 0.24, finished within 12 h; Apache-2.0 dataset muhammedidris28/gemma4-agent-runs,
+agents/v24, downloaded 2026-11-02) as the base: agent.yaml (6 tools), configs/sampling.yaml (temperature 1.0, top_p 0.95, top_k 64,
+max_output_tokens 8192, thinking 4096), prompts/system.md and eval_config.yaml (28 calls, 80 turns) unchanged except the lines below.
+(Our v27 = our v21 prompt + his sampling/tools exceeded the 12 h runtime on 11-02; his own prompt is shorter per task.)
+
+Ours (time guard, from our v18/v21, made consistent with his budget):
+- eval_config: max_time_minutes 8 -> 7, timeout_seconds 240 -> 150. The harness exposes no notebook-wide clock (get_status reports
+  only the per-task remainder), so the whole-run margin is set through the per-task worst case: a task ends at the cap plus at most
+  one running command, 8 min + 240 s = 12 min -> 7 min + 150 s = 9.5 min (-21 %), to keep the run well inside 12 h (~11 h target).
+- prompt Budget: "7 minutes" and our guard line: call get_status (free) right after the first edit; under 150 s left, skip the
+  check and submit; wrap a test run in `timeout 90` (inside the 150 s command cap).
+- prompt step 4: his "under 90 seconds -> submit" raised to 150 s (one model step plus one check no longer fits below that);
+  his focused pytest check wrapped as `timeout 90 python -m pytest ...`.
+Not changed: his 28 calls, thinking 4096, sampling, tools, edit-by-call-12 and one-check-then-submit procedure.
