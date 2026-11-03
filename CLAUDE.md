@@ -68,6 +68,9 @@ GitHub の無料枠（個人アカウント）：Actions は**非公開リポジ
   - `kaggle-competitions`（公開）の GHA は無料。ただし larger runner（GPU・大きいマシン）は公開でも有料なので使わない。
 - **待つだけのジョブを長く走らせない**（例：Kaggle kernel の完了待ちで 100 分ランナーを占有）。公開なら無料だが、非公開に同じ形を持ち込まない。
 - **重い計算の置き場所の優先順**：cloud コンテナ（無料）→ Kaggle Notebook（GPU 週 30 時間まで無料）→ 公開リポジトリの GHA → self-hosted（RPi5）。**有料になるもの（非公開の GitHub ランナー・Codespaces・larger runner・有料 API）は使わない。**
+  - **🔴 TPU を先に使う（2026-11-03 user 指示・原文「先に、TPU使おうか、なるべく」「GPUは他の評価でも何かと使いたくなるし。TPUはマニアックだし」）。** GPU が残っていても、TPU で回せる計算はまず TPU に回す。GPU は、GPU でしか出せない提出（enveda・Notebook 提出で TPU が 400 になるもの）と、TPU に載らない評価のために取っておく。
+    - TPU に回すもの：学習（enveda の ranker・FPNet 系・断片の点、Gemma の手元評価や微調整は JAX／Keras）、大量の CPU 処理（TPU 機の 224 コアで ICEBERG・候補の前計算など）、模擬・検証の行づくり。前計算した結果は dataset／kernel 出力にして、GPU の提出 kernel は読むだけにする。
+    - 新しい計算を始めるときは「TPU で回せるか」を先に確かめ、回せない理由（提出の規定・ライブラリが無い）を memo に 1 行書いてから GPU を使う。
   - **🔴 GPU の週枠が切れたら TPU を使う（2026-10-22 user 再指示・原文「GPUなくなったときはTPUでもいいんだよ？メモ」）。**「GPU が戻るまで提出できない」「CPU だけで出す」で止めない。GPU が要る処理（ARC の LLM agent・enveda の GPU 版など）は、まず TPU の kernel（`accelerator: tpu` 系）で動かせるか確かめ、動くならその日のうちに TPU で出す。
     - **ただし Notebook 提出のコンペで「CPU/GPU の Notebook」と規定されているもの（enveda・ARC）は、TPU の kernel を提出すると Kaggle が 400 で拒否する**（enveda の e2tpu-2s で 10-09 に実測。枠は減らない）。そのため GPU 切れの日は、(1) 提出は CPU の kernel で出し、GPU の部品を CPU で回せるよう速くする（例：enveda の ICEBERG を CPU で並列にする）、(2) TPU は手元の検証・学習に回す（TPU 機は CPU 224 コア＝ICEBERG などの CPU 処理を大量に回せる）。
   - **Kaggle の TPU も無料枠。必要なときは遠慮なく使う**（2026-10-05 user 指示）。GPU 枠が足りないとき（seed や epoch を変えた複数学習・大きいモデルの学習など）は TPU に回す。PyTorch なら torch_xla、または JAX に移植する。
