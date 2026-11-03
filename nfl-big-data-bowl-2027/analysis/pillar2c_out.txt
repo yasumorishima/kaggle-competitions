@@ -1,0 +1,31 @@
+PILLAR 2c: DT 40-yd v10 -> pressure on every pass-rush snap (no 50-snap cutoff)
+DL rush snaps 35693  pressure rate 0.100  DL rushers 115
+
+==== DT (DT/NT): players with v10 and >= 1 rush snap 41 (>= 50 snaps: 36)  snaps 10600  median snaps/player 175
+  play-level logistic GEE, clustered by player (exchangeable); z_v10 = +1 sd of 40-yd speed at 1.0 s
+  PRIMARY small base                 beta +0.1456 (OR 1.157)  95% CI [+0.0258, +0.2653]  p 0.017  (players 41, snaps 10600)
+  full base                          beta +0.1544 (OR 1.167)  95% CI [+0.0119, +0.2969]  p 0.034  (players 41, snaps 10600)
+  small base + play context          beta +0.1574 (OR 1.170)  95% CI [+0.0409, +0.2739]  p 0.0081  (players 41, snaps 10600)
+  no base (v10 only)                 beta +0.1654 (OR 1.180)  95% CI [+0.0640, +0.2669]  p 0.0014  (players 41, snaps 10600)
+  PRIMARY player cluster bootstrap (300 reps): 95% [-0.0421, +0.2992]  share > 0 0.920
+  GLMM (player random intercept, VB) small base: beta +0.1445  95% [+0.0794, +0.2096]  player sd 0.191
+  beta-binomial prior a 9.83 b 147.29 (prior n 157.1, mean 0.063)
+  EB rate, >= 10 rush snaps (n 41): Spearman v10 +0.31
+      EB >= 10 | small base          n  41  base R2 +0.020  base+trait +0.126  trait only +0.034  increment +0.106 [-0.058, +0.222]
+      EB >= 10 | full base           n  41  base R2 -0.073  base+trait -0.023  trait only +0.034  increment +0.051 [-0.052, +0.125]
+  EB rate, >= 25 rush snaps (n 40): Spearman v10 +0.32
+      EB >= 25 | small base          n  40  base R2 +0.013  base+trait +0.133  trait only +0.044  increment +0.120 [-0.037, +0.239]
+      EB >= 25 | full base           n  40  base R2 -0.099  base+trait -0.049  trait only +0.044  increment +0.051 [-0.053, +0.132]
+  EB rate, >= 50 rush snaps (n 36): Spearman v10 +0.42
+      EB >= 50 | small base          n  36  base R2 +0.011  base+trait +0.203  trait only +0.105  increment +0.191 [-0.020, +0.359]
+      EB >= 50 | full base           n  36  base R2 -0.056  base+trait +0.074  trait only +0.105  increment +0.131 [-0.012, +0.244]
+  by draft year (GEE small base): 2023 +0.141  2024 +0.253  2025 -0.206
+
+==== all DL (DE/DT/NT/OLB): players with v10 and >= 1 rush snap 90 (>= 50 snaps: 77)  snaps 28262  median snaps/player 192
+  play-level logistic GEE, clustered by player (exchangeable); z_v10 = +1 sd of 40-yd speed at 1.0 s
+  small base                         beta +0.0748 (OR 1.078)  95% CI [-0.0226, +0.1721]  p 0.13  (players 90, snaps 28262)
+  full base                          beta +0.0615 (OR 1.063)  95% CI [-0.0309, +0.1539]  p 0.19  (players 90, snaps 28262)
+  small base + play context          beta +0.0805 (OR 1.084)  95% CI [-0.0140, +0.1751]  p 0.095  (players 90, snaps 28262)
+  no base (v10 only)                 beta +0.1203 (OR 1.128)  95% CI [+0.0270, +0.2136]  p 0.011  (players 90, snaps 28262)
+
+VERDICT (primary, DT small base GEE): beta +0.1456  95% CI [+0.0258, +0.2653]  -> PASS (CI above 0)
