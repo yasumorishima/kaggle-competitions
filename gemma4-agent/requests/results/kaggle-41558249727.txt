@@ -1,0 +1,9 @@
+request: tpueval-8
+run: 41558249727  status: failure  action: kernel  dir: gemma4-agent/kernels/tpueval  submit: no
+kernel: yasunorim/gemma4-tpueval  version: 6
+memo: TPU first (user 11-03). Paired local eval on TPU v5e-8, no submit: v28 (Idris v24 + our time guard = g4v28-1, LB pending) vs v21 (our best before, LB 0.18) on the same 14 calibrated tasks as tpueval-7 (GPU v7 3-6, TPU v7 2 / v12 6). bf16 QAT served by vllm-tpu; grader checked first (gold must pass, else stop). Sees: solved count per config, mean seconds per task, whether the 7 min / 150 s guard cuts solves. Hypothesis: v28 >= v21 + 2. If yes, v28's family is the base for the next versions; the TPU bench becomes the daily local check instead of GPU.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 6 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-tpueval
+
+output files:
