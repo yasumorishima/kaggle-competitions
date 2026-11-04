@@ -1,0 +1,10 @@
+v29 = our v21 (bases/v21, LB 0.18 g4v21-3; its prompt grew from the public 0.24 prompt by honghanhhh "gemma-4-baseline-lb-0-24" + our time guard
++ our sibling-site checklist) with:
+- sampling and tool set of MUHAMMED IDRIS BIN YACOOB's v24 (Apache-2.0 dataset muhammedidris28/gemma4-agent-runs, agents/v24):
+  temperature 0.2 -> 1.0, top_k 64; 6 tools (the three graph tools dropped, and the prompt line forbidding them).
+- ours: 6 min per task and 120 s per command (our 11-03 statistics: <= 5 min finished 10/10, 7-8 min ran over 6/13, p = 0.019;
+  the rule is <= 6 min). Worst task 12 -> 8 min.
+- ours: a time-based edit deadline. From Idris's runs.jsonl (v17-v20, 253 tasks, counted by us): first edit < 120 s solved 51 %,
+  120-240 s 36 %, >= 240 s 8 %, no edit 0 %; 95 of 98 solves ended within 360 s. Prompt: get_status after the 5th call, best-guess
+  edit next if under 240 s remain and nothing is edited; edit by call 9 or within 120 s; after the edit, under 90 s left -> submit.
+- focused pytest wrapped in `timeout 60` (inside the 120 s command cap).
