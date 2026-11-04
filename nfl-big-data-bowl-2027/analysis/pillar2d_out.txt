@@ -1,0 +1,35 @@
+PILLAR 2d: the 2025 reversal of DT v10 -> pressure, and the tercile figure
+DT + NT with v10 and rush snaps: 41 players, 10600 snaps
+
+1) by draft year
+  2023: players 11  NT share 0.27  median snaps  192  snaps  4253  v10 mean 5.28 sd 0.51  median pick 104  pressure 0.074  GEE beta +0.141 [+0.053, +0.230]
+  2024: players 16  NT share 0.06  median snaps  237  snaps  4454  v10 mean 5.33 sd 0.61  median pick 96  pressure 0.070  GEE beta +0.253 [+0.100, +0.406]
+  2025: players 14  NT share 0.00  median snaps  111  snaps  1893  v10 mean 4.95 sd 0.37  median pick 152  pressure 0.060  GEE beta -0.206 [-0.510, +0.098]
+
+2) 2025 players (sorted by v10): v10, rush snaps, raw rate, EB rate, pick, position, and the 2025 beta without them
+  Nazir Stackhouse         DT  v10 4.38  snaps  108  raw 0.028  EB 0.048  pick   nan  2025 beta without -0.359  (with all -0.206)
+  Elijah Simmons           DT  v10 4.53  snaps   78  raw 0.077  EB 0.067  pick   nan  2025 beta without -0.192  (with all -0.206)
+  Cam Jackson              DT  v10 4.53  snaps   47  raw 0.128  EB 0.078  pick   140  2025 beta without -0.169  (with all -0.206)
+  Darius Alexander         DT  v10 4.78  snaps  272  raw 0.055  EB 0.058  pick    65  2025 beta without -0.189  (with all -0.206)
+  Junior Tafuna            DT  v10 4.81  snaps   44  raw 0.091  EB 0.069  pick   nan  2025 beta without -0.198  (with all -0.206)
+  Eric Gregory             DT  v10 4.82  snaps  110  raw 0.064  EB 0.063  pick   nan  2025 beta without -0.199  (with all -0.206)
+  Warren Brinson           DT  v10 4.83  snaps  219  raw 0.073  EB 0.069  pick   198  2025 beta without +0.003  (with all -0.206)
+  Yahya Black              DT  v10 4.84  snaps  245  raw 0.061  EB 0.062  pick   164  2025 beta without -0.208  (with all -0.206)
+  Joshua Farmer            DT  v10 4.96  snaps  159  raw 0.044  EB 0.053  pick   137  2025 beta without -0.208  (with all -0.206)
+  C.J. West                DT  v10 5.25  snaps  189  raw 0.053  EB 0.057  pick   113  2025 beta without -0.152  (with all -0.206)
+  Ty Robinson              DT  v10 5.27  snaps  105  raw 0.048  EB 0.057  pick   111  2025 beta without -0.175  (with all -0.206)
+  Aeneas Peebles           DT  v10 5.28  snaps  113  raw 0.080  EB 0.070  pick   210  2025 beta without -0.219  (with all -0.206)
+  Zeek Biggers             DT  v10 5.39  snaps  172  raw 0.052  EB 0.057  pick   253  2025 beta without -0.169  (with all -0.206)
+  Tommy Akingbesote        DT  v10 5.69  snaps   32  raw 0.062  EB 0.063  pick   247  2025 beta without -0.208  (with all -0.206)
+
+3) permutation of the draft-year labels (1000 reps): a random group of the 2025 size
+  random 14-player groups: beta mean +0.142  sd 0.191  share <= 2025's -0.206: 0.032  (1000 fits)
+
+4) heterogeneity: z_v10 x draft year (Wald, cluster-robust)
+  interaction terms: z_v10:C(yr)[T.2024] +0.189  z_v10:C(yr)[T.2025] -0.045  Wald chi2 4.00  p 0.135
+
+FIGURE: pooled pressure rate per v10 tercile (player cluster bootstrap 95%)
+  low  v10 4.14-4.84  players 14  snaps  3136  rate 0.060 [0.045, 0.069]
+  mid  v10 4.85-5.37  players 13  snaps  3617  rate 0.067 [0.041, 0.083]
+  high v10 5.39-6.56  players 14  snaps  3847  rate 0.081 [0.065, 0.091]
+saved /home/user/kaggle-competitions/nfl-big-data-bowl-2027/figs/dt_pressure_tercile.png
