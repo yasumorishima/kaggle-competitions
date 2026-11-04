@@ -118,6 +118,9 @@ iceb = _arg("iceb", 0, int)           # > 0: the base's ICEBERG time budget (s) 
 
 arb = _arg("arb", 0, int)   # ours (11-02, Opus audit part 1), outer m479: rank-1 arbitration of the fragment check's leader moves by our own votes (lfrag + neutral loss)
 onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT structures missing from the final layer's prior table get np_coconut = 1
+ae = _arg("ae", 0, int)   # ours (11-04, Opus audit 11-04 part 1), outer m480: analog-edit structure at rank 2 (ours_ae.py; idea: heliosli r3p)
+aetau = _arg("aetau", 0.95, float)
+aenmax = _arg("aenmax", 4, int)
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
@@ -1523,6 +1526,108 @@ except Exception as _e:
         raise
     print('PCINS FAILED -> submission as is', repr(_e), flush=True)
 '''))
+    if ae:
+        assert outer in ("m479", "m480"), "ae runs after the m479/m480 final merge"
+        _ae_lib_src = open(os.path.join(HERE, "..", "..", "eval", "ae", "build_lib.py"), encoding="utf-8").read()
+        _oc.append(code_cell("""# ==== ours (yasunorim; build.py ae=1 -- every outer cell above is unchanged): analog-edit structure at rank 2 ====
+# Idea credited to heliosli's r3p overlay (public notebook heliosli/casmi26-0-481, cell 24); our own code (ours_ae.py):
+# all 10 test adducts, his 19 modifications + H2 and NH edits, our library index built here from train.parquet
+# (eval/ae/build_lib.py), several analogs vote for a product, ties broken by our fragment explanation (ours_frag).
+# Per molecule: analogs in the same ionization mode and adduct whose precursor differs by one modification with modified
+# cosine >= AE_TAU; their single edits that are in neither the list nor the pipeline's pools are the products. Insert the
+# winner at rank 2 only when the products are few (<= AE_NMAX) or two analogs agree (simulation 11-04 on 3,000 hidden
+# enveda-180 molecules: hit 0.20 there vs 0.06 with many products). Rank 1 and the order of the rest are unchanged; the
+# list stays at 25. Time guard 8.2 h after NB_T0; any failure leaves the submission as it was.
+AE_TAU, AE_NMAX = """ + repr(aetau) + ", " + repr(aenmax) + """
+_OURS_AE_SRC = """ + repr(open(os.path.join(HERE, "ours_ae.py"), encoding="utf-8").read()) + """
+_OURS_FRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_frag.py"), encoding="utf-8").read()) + """
+_OURS_AELIB_SRC = """ + repr(_ae_lib_src) + """
+try:
+    import os as _os, sys as _sys, json as _js, glob as _g, time as _t, importlib as _il
+    import numpy as _np, pandas as _pd
+    _a0 = _t.time()
+    if _t.time() - NB_T0 > 8.2 * 3600:
+        raise TimeoutError('ae skipped: session past 8.2 h')
+    _md = '/kaggle/working/ours_mods'
+    _os.makedirs(_md, exist_ok=True)
+    for _n, _src in (('ours_ae.py', _OURS_AE_SRC), ('ours_frag.py', _OURS_FRAG_SRC), ('ours_aelib.py', _OURS_AELIB_SRC)):
+        open(_os.path.join(_md, _n), 'w').write(_src)
+    if _md not in _sys.path:
+        _sys.path.insert(0, _md)
+    import ours_ae as _ae, ours_frag as _of, ours_aelib as _al
+    _ld = '/kaggle/working/ours_mods/aelib'
+    _al.main(str(COMP / 'train.parquet'), _ld)
+    _st = _pd.read_parquet(_ld + '/ae_struct.parquet')
+    _lib = _ae.Library(_ld + '/ae_lib.npz', _st.smiles.tolist(), _pd.read_parquet(_ld + '/ae_groups.parquet').group.tolist())
+    _te = _pd.read_parquet(str(COMP / 'test.parquet'))
+    _sp = ROOT / 'submission.csv'
+    _sub = _pd.read_csv(_sp, dtype=str, keep_default_na=False)
+    from rdkit import Chem as _Ch
+    def _k14(s):
+        try:
+            m = _Ch.MolFromSmiles(s)
+            return _Ch.MolToInchiKey(m)[:14] if m is not None else None
+        except Exception:
+            return None
+    _pool = {}
+    _evp = ROOT / 'frozen_candidate_evidence.parquet'
+    if _evp.is_file():
+        _ev = _pd.read_parquet(_evp)
+        _kc = 'metric_key' if 'metric_key' in _ev.columns else None
+        for _m, _gr in _ev.groupby(_ev['molecule_id'].astype(str)):
+            _pool[_m] = set(_gr[_kc].dropna().astype(str)) if _kc else {x for x in map(_k14, _gr['smiles'].astype(str)) if x}
+    for _fn, _kk in (('pc_lists.json', ('pc_keys',)), ('eng_lists.json', ('keys',))):
+        _fp = ROOT / _fn
+        if _fp.is_file():
+            for _m, _v in _js.load(open(_fp)).items():
+                if isinstance(_v, dict):
+                    for _x in _kk:
+                        _pool.setdefault(str(_m), set()).update(str(y) for y in (_v.get(_x) or []) if y)
+    _st_ = dict(rows=len(_sub), with_spectra=0, gated=0, inserted=0, few=0, voted=0, no_new=0, many=0, errors=0,
+                pool_molecules=len(_pool), lib_seconds=round(_t.time() - _a0, 1))
+    _out = []
+    _bym = {str(m): g for m, g in _te.groupby(_te['molecule_id'].astype(str))}
+    for _m, _s in zip(_sub['molecule_id'].astype(str), _sub['smiles'].astype(str)):
+        _l = [x for x in _s.split(';') if x]
+        _rows = _bym.get(_m)
+        if _rows is None or not _l or _t.time() - NB_T0 > 8.4 * 3600:
+            _out.append(_s); continue
+        try:
+            _q = _ae.query_specs(zip(_rows.ionization_mode, _rows.adduct, _rows.precursor_mz, _rows.ms2_mzs, _rows.ms2_normalized_intensities))
+            if not _q:
+                _out.append(_s); continue
+            _st_['with_spectra'] += 1
+            _fr = [(_np.c_[_np.asarray(a, float), _np.asarray(b, float)], float(p), _of.polarity_of(ad, md))
+                   for md, ad, p, a, b in zip(_rows.ionization_mode, _rows.adduct, _rows.precursor_mz, _rows.ms2_mzs, _rows.ms2_normalized_intensities)]
+            _ex = set(_pool.get(_m, set())) | {x for x in map(_k14, _l) if x}
+            _smi, _inf = _ae.propose_v(_lib, _q, _fr, _of, exclude=_ex, tau=AE_TAU, mode='vote')
+            if _inf.get('gate'):
+                _st_['gated'] += 1
+            if _smi is None:
+                _st_['no_new'] += int(bool(_inf.get('gate')))
+                _out.append(_s); continue
+            _few, _vot = _inf.get('n_new', 99) <= AE_NMAX, _inf.get('votes', 1) >= 2
+            if not (_few or _vot):
+                _st_['many'] += 1
+                _out.append(_s); continue
+            _st_['few'] += int(_few); _st_['voted'] += int(_vot); _st_['inserted'] += 1
+            _out.append(';'.join(([_l[0], _smi] + [x for x in _l[1:] if x != _smi])[:25]))
+        except Exception as _e:
+            _st_['errors'] += 1
+            _out.append(_s)
+    _new = _sub.assign(smiles=_out)
+    assert _new.smiles.str.split(';').map(len).between(1, 25).all()
+    assert _new.smiles.str.split(';').map(lambda a: all(bool(x) for x in a) and len(set(a)) == len(a)).all()
+    _tmp = ROOT / 'submission.ae.tmp'
+    _new.to_csv(_tmp, index=False); _os.replace(_tmp, _sp)
+    _st_['seconds'] = round(_t.time() - _a0, 1)
+    (ROOT / 'ours_ae.json').write_text(_js.dumps(_st_))
+    print('AE', _js.dumps(_st_), flush=True)
+except Exception as _e:
+    if not IS_RERUN:
+        raise
+    print('AE FAILED -> submission as is', repr(_e), flush=True)
+"""))
     _oc.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
 import os as _os, shutil as _sh
 for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods', 'ours_pop'):
@@ -1594,4 +1699,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
