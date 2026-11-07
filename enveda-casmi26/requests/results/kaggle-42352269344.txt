@@ -1,0 +1,9 @@
+request: e3g482aev-1
+run: 42352269344  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3g482aev  version: 
+memo: Same as e3g482ae-1 (Gold Apex V22 0.482 base by popwenman/romanrozen + own COCONUT + lfrag + onp) with ae v1 in place of ae v0: a learned pick among the analog-edit products (ours_aesite: edit site on the analog, edit kind, analog votes, fragment explanation of all and of the shifted peaks, molecule context; LightGBM fitted on 20,000 simulated enveda-180 molecules hidden from the library, eval/ae/site.py + site_fit.py), inserted at rank 2 when p >= 0.10. Simulation, known library structures excluded as in the kernel: v0 rule hit 0.217 of insertions, EV +42 per 1,000 molecules with products; v1 hit 0.316, EV +59. Visible test: 20 of 400 molecules get an insertion (v0: 28). Effect estimate: v0 +0.2 molecules scaled by 1.4 = about +0.3 public molecules (range -0.2 to +1); below 2, so on the g482 bundle. Pairs with e3g482ae-1 (only ae v0 -> v1 differs). Hypothesis: LB >= e3g482ae-1. build.py g482aev base=p477 outer=g482 ownco=1 lfrag=1 onp=1 ae=1 aev=1 aep=0.10.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+400 Client Error: Bad Request for url: https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel
+
+output files:
