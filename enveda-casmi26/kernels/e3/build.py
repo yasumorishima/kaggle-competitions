@@ -1322,7 +1322,7 @@ if base == "p477":
     # markdown so every base cell keeps its index; our code cells are appended after the last base cell only
     assert cells[0]["cell_type"] == "markdown" and "".join(cells[0]["source"]).startswith(f"# casmi26 {name} (yasunorim)")
     del cells[0]
-    _fz = json.dumps(nb, indent=1).encode("utf-8")
+    _fz = json.dumps(nb, separators=(",", ":")).encode("utf-8")   # compact (11-07: notebook size)
     _outer = json.load(open(os.path.join(HERE, f"outer_{outer}.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
     if outer == "g482":   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
@@ -1553,7 +1553,7 @@ _OURS_FRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_frag.py"), encoding="u
 _OURS_AELIB_SRC = """ + repr(_ae_lib_src) + """
 AE_V, AE_P = """ + repr(aev) + ", " + repr(aep) + """
 _OURS_AESITE_SRC = """ + (repr(open(os.path.join(HERE, "ours_aesite.py"), encoding="utf-8").read()) if aev else "''") + """
-_OURS_AESITE_MODEL = """ + (repr(open(os.path.join(HERE, "..", "..", "eval", "ae", "ae_site_model.txt"), encoding="utf-8").read()) if aev else "''") + """
+_OURS_AESITE_MODEL_Z = """ + (repr(__import__("base64").b64encode(__import__("zlib").compress(open(os.path.join(HERE, "..", "..", "eval", "ae", "ae_site_model.txt"), "rb").read(), 9)).decode("ascii")) if aev else "''") + """   # zlib + base64 (notebook size)
 try:
     import os as _os, sys as _sys, json as _js, glob as _g, time as _t, importlib as _il
     import numpy as _np, pandas as _pd
@@ -1570,7 +1570,8 @@ try:
     import ours_ae as _ae, ours_frag as _of, ours_aelib as _al
     if AE_V:   # ae v1: learned pick among the products (LightGBM fitted on simulated enveda-180 molecules, eval/ae/site_fit.py)
         import ours_aesite as _as, lightgbm as _lgb
-        _asm = _lgb.Booster(model_str=_OURS_AESITE_MODEL)
+        import zlib as _zl, base64 as _b64
+        _asm = _lgb.Booster(model_str=_zl.decompress(_b64.b64decode(_OURS_AESITE_MODEL_Z)).decode('utf-8'))
     _ld = '/kaggle/working/ours_mods/aelib'
     _al.main(str(COMP / 'train.parquet'), _ld)
     _st = _pd.read_parquet(_ld + '/ae_struct.parquet')
@@ -1693,7 +1694,7 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
         if c["cell_type"] == "code":
             c["outputs"], c["execution_count"] = [], None
     nb = _outer
-json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), indent=1)
+json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), indent=None, separators=(",", ":"))   # compact (11-07: SaveKernel rejected a 1.6 MB notebook)
 
 meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code_file": "main.ipynb",
         "language": "python", "kernel_type": "notebook", "is_private": "true", "enable_gpu": "true",

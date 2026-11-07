@@ -16,9 +16,10 @@ import pandas as pd
 sys.path.insert(0, __file__.rsplit("/", 3)[0] + "/kernels/e3")
 import ours_aesite   # noqa: E402
 
-PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=15, min_data_in_leaf=20, feature_fraction=0.8,
+import os
+PARAMS = dict(objective="binary", learning_rate=float(os.environ.get("AE_LR", 0.03)), num_leaves=15, min_data_in_leaf=20, feature_fraction=0.8,
               bagging_fraction=0.8, bagging_freq=1, lambda_l2=1.0, verbose=-1, seed=0)
-ROUNDS = 400
+ROUNDS = int(os.environ.get("AE_ROUNDS", 400))   # 11-07: the kernel ships 120 rounds at 0.1 (notebook size limit)
 
 
 def v0_pick(d):
