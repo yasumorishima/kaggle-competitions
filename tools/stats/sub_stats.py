@@ -119,6 +119,7 @@ GEMMA_CFG = {  # version: (minutes per task, calls, thinking, temperature, own t
     "g4v23": (8, 28, 4096, 0.2, 1), "g4v24p": (8, 28, 4096, 0.2, 1), "g4v25": (8, 28, 1024, 0.2, 1),
     "g4v26": (7, 20, 6144, 0.2, 1), "g4v27": (8, 28, 4096, 1.0, 0), "g4v28": (7, 28, 4096, 1.0, 1),
     "g4v29": (6, 28, 4096, 1.0, 1),
+    "g4v30": (6, 28, 4096, 1.0, 1),   # v29 + thinking pace + heredoc fallback (prompt only)
 }
 
 
