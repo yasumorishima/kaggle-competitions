@@ -121,6 +121,8 @@ onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT 
 ae = _arg("ae", 0, int)   # ours (11-04, Opus audit 11-04 part 1), outer m480: analog-edit structure at rank 2 (ours_ae.py; idea: heliosli r3p)
 aetau = _arg("aetau", 0.95, float)
 aenmax = _arg("aenmax", 4, int)
+aev = _arg("aev", 0, int)   # ours (11-07): ae v1 = learned pick among the products (ours_aesite + eval/ae/ae_site_model.txt), insert when p >= aep
+aep = _arg("aep", 0.2, float)
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
@@ -1549,6 +1551,9 @@ AE_TAU, AE_NMAX = """ + repr(aetau) + ", " + repr(aenmax) + """
 _OURS_AE_SRC = """ + repr(open(os.path.join(HERE, "ours_ae.py"), encoding="utf-8").read()) + """
 _OURS_FRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_frag.py"), encoding="utf-8").read()) + """
 _OURS_AELIB_SRC = """ + repr(_ae_lib_src) + """
+AE_V, AE_P = """ + repr(aev) + ", " + repr(aep) + """
+_OURS_AESITE_SRC = """ + (repr(open(os.path.join(HERE, "ours_aesite.py"), encoding="utf-8").read()) if aev else "''") + """
+_OURS_AESITE_MODEL = """ + (repr(open(os.path.join(HERE, "..", "..", "eval", "ae", "ae_site_model.txt"), encoding="utf-8").read()) if aev else "''") + """
 try:
     import os as _os, sys as _sys, json as _js, glob as _g, time as _t, importlib as _il
     import numpy as _np, pandas as _pd
@@ -1557,11 +1562,15 @@ try:
         raise TimeoutError('ae skipped: session past 8.2 h')
     _md = '/kaggle/working/ours_mods'
     _os.makedirs(_md, exist_ok=True)
-    for _n, _src in (('ours_ae.py', _OURS_AE_SRC), ('ours_frag.py', _OURS_FRAG_SRC), ('ours_aelib.py', _OURS_AELIB_SRC)):
+    for _n, _src in (('ours_ae.py', _OURS_AE_SRC), ('ours_frag.py', _OURS_FRAG_SRC), ('ours_aelib.py', _OURS_AELIB_SRC),
+                     ('ours_aesite.py', _OURS_AESITE_SRC)):
         open(_os.path.join(_md, _n), 'w').write(_src)
     if _md not in _sys.path:
         _sys.path.insert(0, _md)
     import ours_ae as _ae, ours_frag as _of, ours_aelib as _al
+    if AE_V:   # ae v1: learned pick among the products (LightGBM fitted on simulated enveda-180 molecules, eval/ae/site_fit.py)
+        import ours_aesite as _as, lightgbm as _lgb
+        _asm = _lgb.Booster(model_str=_OURS_AESITE_MODEL)
     _ld = '/kaggle/working/ours_mods/aelib'
     _al.main(str(COMP / 'train.parquet'), _ld)
     _st = _pd.read_parquet(_ld + '/ae_struct.parquet')
@@ -1607,6 +1616,22 @@ try:
             _fr = [(_np.c_[_np.asarray(a, float), _np.asarray(b, float)], float(p), _of.polarity_of(ad, md))
                    for md, ad, p, a, b in zip(_rows.ionization_mode, _rows.adduct, _rows.precursor_mz, _rows.ms2_mzs, _rows.ms2_normalized_intensities)]
             _ex = set(_pool.get(_m, set())) | {x for x in map(_k14, _l) if x}
+            if AE_V:
+                _X, _inf = _as.product_rows(_lib, _q, _fr, _of, exclude=_ex, tau=AE_TAU)
+                if _X is None:
+                    _smi = None
+                else:
+                    _pp = _asm.predict(_X)
+                    _j = int(_np.argmax(_pp))
+                    _inf['p'] = float(_pp[_j])
+                    _smi = _inf['smiles'][_j] if _pp[_j] >= AE_P else None
+                    _st_['below_p'] = _st_.get('below_p', 0) + int(_pp[_j] < AE_P)
+                if _smi is not None:
+                    _st_['inserted'] += 1
+                    _st_['gated'] += 1
+                    _out.append(';'.join(([_l[0], _smi] + [x for x in _l[1:] if x != _smi])[:25])); continue
+                _st_['gated'] += int(bool(_inf.get('gate')))
+                _out.append(_s); continue
             _smi, _inf = _ae.propose_v(_lib, _q, _fr, _of, exclude=_ex, tau=AE_TAU, mode='vote')
             if _inf.get('gate'):
                 _st_['gated'] += 1
@@ -1715,4 +1740,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "aev", aev, "aep", aep, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)

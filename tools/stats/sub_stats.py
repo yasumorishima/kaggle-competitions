@@ -29,7 +29,7 @@ ANCHOR = {"E006": 0.440, "a451": 0.451, "f465": 0.465, "p477": 0.477, "m479": 0.
 CATS = {
     "inject": {"mmp", "dn", "pcl", "bt", "ownpc", "n1neg", "pcfix", "ownpcnp", "pi", "ownco", "fi"},
     "rescore": {"fg", "fgwide", "nl", "ion", "ionb", "decoy", "lfrag", "bf", "fp2", "nn", "fpnpc", "fpneng", "gg",
-                "pcvote", "c1r", "ae", "arb", "rk", "dnlib", "dnslot", "pclcap", "pcguard", "latecut"},
+                "pcvote", "c1r", "ae", "aev", "arb", "rk", "dnlib", "dnslot", "pclcap", "pcguard", "latecut"},
     "prior": {"npprior", "tx", "txb", "np"},
 }
 MOL = 1 / 130          # one public molecule moved from wrong to rank 1
