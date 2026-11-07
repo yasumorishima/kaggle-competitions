@@ -24,12 +24,12 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 COMPS = {"enveda": "enveda-CASMI26-molecule-id-mass-spectra", "gemma": "gemma-4-developer-agent"}
-ANCHOR = {"E006": 0.440, "a451": 0.451, "f465": 0.465, "p477": 0.477, "m479": 0.479, "m480": 0.480}
+ANCHOR = {"E006": 0.440, "a451": 0.451, "f465": 0.465, "p477": 0.477, "m479": 0.479, "m480": 0.480, "g482": 0.482}   # g482: the title score of popwenman v22 (romanrozen v17 = 0.482)
 # kinds of part: new candidates into the list / re-scoring of the existing list / a prior on the whole list
 CATS = {
     "inject": {"mmp", "dn", "pcl", "bt", "ownpc", "n1neg", "pcfix", "ownpcnp", "pi", "ownco", "fi"},
     "rescore": {"fg", "fgwide", "nl", "ion", "ionb", "decoy", "lfrag", "bf", "fp2", "nn", "fpnpc", "fpneng", "gg",
-                "pcvote", "c1r", "ae", "arb", "rk", "dnlib", "dnslot", "pclcap", "pcguard", "latecut"},
+                "pcvote", "c1r", "ae", "aev", "arb", "rk", "dnlib", "dnslot", "pclcap", "pcguard", "latecut"},
     "prior": {"npprior", "tx", "txb", "np"},
 }
 MOL = 1 / 130          # one public molecule moved from wrong to rank 1
@@ -119,6 +119,7 @@ GEMMA_CFG = {  # version: (minutes per task, calls, thinking, temperature, own t
     "g4v23": (8, 28, 4096, 0.2, 1), "g4v24p": (8, 28, 4096, 0.2, 1), "g4v25": (8, 28, 1024, 0.2, 1),
     "g4v26": (7, 20, 6144, 0.2, 1), "g4v27": (8, 28, 4096, 1.0, 0), "g4v28": (7, 28, 4096, 1.0, 1),
     "g4v29": (6, 28, 4096, 1.0, 1),
+    "g4v30": (6, 28, 4096, 1.0, 1),   # v29 + thinking pace + heredoc fallback (prompt only)
 }
 
 

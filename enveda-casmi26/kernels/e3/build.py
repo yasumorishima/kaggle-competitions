@@ -121,10 +121,15 @@ onp = _arg("onp", 0, int)   # ours (11-01), outer m479 + ownco: our own COCONUT 
 ae = _arg("ae", 0, int)   # ours (11-04, Opus audit 11-04 part 1), outer m480: analog-edit structure at rank 2 (ours_ae.py; idea: heliosli r3p)
 aetau = _arg("aetau", 0.95, float)
 aenmax = _arg("aenmax", 4, int)
+aev = _arg("aev", 0, int)   # ours (11-07): ae v1 = learned pick among the products (ours_aesite + eval/ae/ae_site_model.txt), insert when p >= aep
+aep = _arg("aep", 0.2, float)
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
-assert outer in ("p477", "m479", "m480"), outer
+# 'g482' (11-07): popwenman "CASMI26 0482 Gold Apex V22" v2 = romanrozen "[0.482] CASMI: From Peaks to Structures" v17 with
+# popwenman's own v80 scorer (kernel output) in place of a deleted kernel; same frozen sha256 d1e757c2 as m480, + LOTUS
+# backfill, prior weights 0.10/0.10/0.12 gate 0.78, timsTOF mass prior on ranks 2-25 and the mass rank-1 rule (V8 = MASS)
+assert outer in ("p477", "m479", "m480", "g482"), outer
 assert outer == "p477" or base == "p477", "outer replaces the p477 wrapper only"
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -1317,9 +1322,13 @@ if base == "p477":
     # markdown so every base cell keeps its index; our code cells are appended after the last base cell only
     assert cells[0]["cell_type"] == "markdown" and "".join(cells[0]["source"]).startswith(f"# casmi26 {name} (yasunorim)")
     del cells[0]
-    _fz = json.dumps(nb, indent=1).encode("utf-8")
+    _fz = json.dumps(nb, separators=(",", ":")).encode("utf-8")   # compact (11-07: notebook size)
     _outer = json.load(open(os.path.join(HERE, f"outer_{outer}.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
+    if outer == "g482":   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
+        _ic = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "COMMIT_MODE = 'fast'" in "".join(c["source"])]
+        assert len(_ic) == 1, _ic
+        _oc[_ic[0]]["source"] = "".join(_oc[_ic[0]]["source"]).replace("COMMIT_MODE = 'fast'", "COMMIT_MODE = 'smoke'   # ours (was 'fast')", 1)
     _i8 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "FROZEN_B64 = " in "".join(c["source"])]
     assert len(_i8) == 1, _i8
     _s8 = "".join(_oc[_i8[0]]["source"])
@@ -1333,7 +1342,7 @@ if base == "p477":
         # (the public pool only). 56k structures of our own COCONUT table are not in it, so they got NP 0 although they are
         # COCONUT natural products. Build an extended copy (their rows: np_coconut 1, pop 0 = unknown, no library flag) and
         # point the final layer at it; any failure keeps the original table.
-        assert outer in ("m479", "m480") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
+        assert outer in ("m479", "m480", "g482") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def _load_pop_prior(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1371,7 +1380,7 @@ except Exception as _e:
         #          votes only past ARB_NL_TAU nats, i.e. when a diagnostic loss is seen
         # v0 leads when the summed vote is below 0 (lfrag against the move and nl not for it, or both against).
         # Any failure (or no move) leaves the 0.479 behaviour exactly.
-        assert outer in ("m479", "m480"), "arb patches the m479 final layer (pxm_merge)"
+        assert outer in ("m479", "m480", "g482"), "arb patches the m479 final layer (pxm_merge)"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def pxm_merge(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1527,7 +1536,7 @@ except Exception as _e:
     print('PCINS FAILED -> submission as is', repr(_e), flush=True)
 '''))
     if ae:
-        assert outer in ("m479", "m480"), "ae runs after the m479/m480 final merge"
+        assert outer in ("m479", "m480", "g482"), "ae runs after the m479/m480 final merge"
         _ae_lib_src = open(os.path.join(HERE, "..", "..", "eval", "ae", "build_lib.py"), encoding="utf-8").read()
         _oc.append(code_cell("""# ==== ours (yasunorim; build.py ae=1 -- every outer cell above is unchanged): analog-edit structure at rank 2 ====
 # Idea credited to heliosli's r3p overlay (public notebook heliosli/casmi26-0-481, cell 24); our own code (ours_ae.py):
@@ -1542,6 +1551,9 @@ AE_TAU, AE_NMAX = """ + repr(aetau) + ", " + repr(aenmax) + """
 _OURS_AE_SRC = """ + repr(open(os.path.join(HERE, "ours_ae.py"), encoding="utf-8").read()) + """
 _OURS_FRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_frag.py"), encoding="utf-8").read()) + """
 _OURS_AELIB_SRC = """ + repr(_ae_lib_src) + """
+AE_V, AE_P = """ + repr(aev) + ", " + repr(aep) + """
+_OURS_AESITE_SRC = """ + (repr(open(os.path.join(HERE, "ours_aesite.py"), encoding="utf-8").read()) if aev else "''") + """
+_OURS_AESITE_MODEL_Z = """ + (repr(__import__("base64").b64encode(__import__("zlib").compress(open(os.path.join(HERE, "..", "..", "eval", "ae", "ae_site_model.txt"), "rb").read(), 9)).decode("ascii")) if aev else "''") + """   # zlib + base64 (notebook size)
 try:
     import os as _os, sys as _sys, json as _js, glob as _g, time as _t, importlib as _il
     import numpy as _np, pandas as _pd
@@ -1550,11 +1562,16 @@ try:
         raise TimeoutError('ae skipped: session past 8.2 h')
     _md = '/kaggle/working/ours_mods'
     _os.makedirs(_md, exist_ok=True)
-    for _n, _src in (('ours_ae.py', _OURS_AE_SRC), ('ours_frag.py', _OURS_FRAG_SRC), ('ours_aelib.py', _OURS_AELIB_SRC)):
+    for _n, _src in (('ours_ae.py', _OURS_AE_SRC), ('ours_frag.py', _OURS_FRAG_SRC), ('ours_aelib.py', _OURS_AELIB_SRC),
+                     ('ours_aesite.py', _OURS_AESITE_SRC)):
         open(_os.path.join(_md, _n), 'w').write(_src)
     if _md not in _sys.path:
         _sys.path.insert(0, _md)
     import ours_ae as _ae, ours_frag as _of, ours_aelib as _al
+    if AE_V:   # ae v1: learned pick among the products (LightGBM fitted on simulated enveda-180 molecules, eval/ae/site_fit.py)
+        import ours_aesite as _as, lightgbm as _lgb
+        import zlib as _zl, base64 as _b64
+        _asm = _lgb.Booster(model_str=_zl.decompress(_b64.b64decode(_OURS_AESITE_MODEL_Z)).decode('utf-8'))
     _ld = '/kaggle/working/ours_mods/aelib'
     _al.main(str(COMP / 'train.parquet'), _ld)
     _st = _pd.read_parquet(_ld + '/ae_struct.parquet')
@@ -1600,6 +1617,22 @@ try:
             _fr = [(_np.c_[_np.asarray(a, float), _np.asarray(b, float)], float(p), _of.polarity_of(ad, md))
                    for md, ad, p, a, b in zip(_rows.ionization_mode, _rows.adduct, _rows.precursor_mz, _rows.ms2_mzs, _rows.ms2_normalized_intensities)]
             _ex = set(_pool.get(_m, set())) | {x for x in map(_k14, _l) if x}
+            if AE_V:
+                _X, _inf = _as.product_rows(_lib, _q, _fr, _of, exclude=_ex, tau=AE_TAU)
+                if _X is None:
+                    _smi = None
+                else:
+                    _pp = _asm.predict(_X)
+                    _j = int(_np.argmax(_pp))
+                    _inf['p'] = float(_pp[_j])
+                    _smi = _inf['smiles'][_j] if _pp[_j] >= AE_P else None
+                    _st_['below_p'] = _st_.get('below_p', 0) + int(_pp[_j] < AE_P)
+                if _smi is not None:
+                    _st_['inserted'] += 1
+                    _st_['gated'] += 1
+                    _out.append(';'.join(([_l[0], _smi] + [x for x in _l[1:] if x != _smi])[:25])); continue
+                _st_['gated'] += int(bool(_inf.get('gate')))
+                _out.append(_s); continue
             _smi, _inf = _ae.propose_v(_lib, _q, _fr, _of, exclude=_ex, tau=AE_TAU, mode='vote')
             if _inf.get('gate'):
                 _st_['gated'] += 1
@@ -1646,6 +1679,11 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
                    "by alex chilton, version 9 (bgunshui's 480 neural ensemble on the 0.479 MIDX notebook; bgunshui's longer-trained "
                    "spectrum scorer averaged with the public one), "
                    if outer == "m480" else
+                   "[CASMI26 0482 Gold Apex V22](https://www.kaggle.com/code/popwenman/casmi26-0482-gold-apex-v22) by popwenman, version 2 "
+                   "(romanrozen's [0.482] CASMI: From Peaks to Structures v17 with popwenman's v80 spectrum scorer; alex chilton's Gold Apex "
+                   "V22, the 0.480 neural ensemble and the 0.479 MIDX notebook underneath; LOTUS candidates by qwertykeypadapple), "
+                   "commit mode set to smoke by us, "
+                   if outer == "g482" else
                    "[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) "
                    "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
                    "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
@@ -1656,7 +1694,7 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
         if c["cell_type"] == "code":
             c["outputs"], c["execution_count"] = [], None
     nb = _outer
-json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), indent=1)
+json.dump(nb, open(os.path.join(HERE, "main.ipynb"), "w", encoding="utf-8"), indent=None, separators=(",", ":"))   # compact (11-07: SaveKernel rejected a 1.6 MB notebook)
 
 meta = {"id": f"yasunorim/casmi26-e3{name}", "title": f"casmi26 e3{name}", "code_file": "main.ipynb",
         "language": "python", "kernel_type": "notebook", "is_private": "true", "enable_gpu": "true",
@@ -1689,14 +1727,18 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
     meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if c1r > 0 else []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
-    if outer in ("m479", "m480"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
+    if outer in ("m479", "m480", "g482"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
         meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
         if outer == "m480":   # alexchilton "LB 0.480 | Neural Ensemble" v9: bgunshui's longer-trained spectrum scorer (kernel output)
             meta["kernel_sources"] = meta["kernel_sources"] + ["bgunshui/casmi26-scorer-train-public"]
         meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461"
+        if outer == "g482":   # popwenman v22's inputs and image: his v80 scorer (kernel output) and the LOTUS candidates
+            meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
+            meta["dataset_sources"].append("qwertykeypadapple/casmi26-lotus-candidates")
+            meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01"
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "aev", aev, "aep", aep, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)

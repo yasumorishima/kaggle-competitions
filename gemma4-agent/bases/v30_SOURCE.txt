@@ -1,0 +1,8 @@
+v30 (11-07) = bases/v29 (see v29_SOURCE.txt: v21 + Idris v24 sampling temperature 1.0 / top_k 64 and 6 tools, our 6-minute budget and edit deadline) + two prompt parts, wording ours:
+1) THINKING PACE: short thinking on locate/read/test/git turns, full thinking only for the specification step and edit/repair turns.
+   Ideas from public work (Apache-2.0): averywright "Caveman Thinking" (short-thinking instruction, LB 0.20 once),
+   navyadevadiga "Gemma4 SWE Agent T8 Static" (3-5 sentences per turn), leoprovorov "Single Agent Anytime Patch" (1-2 sentences on search/read turns).
+   Our reason: at 6 minutes per task the clock binds before the 28 calls; thinking is 60-70% of a turn's seconds (0.058 s per token, pablodiegoo).
+2) Broken edit_file arguments (frequent at temperature 1.0): switch to a heredoc Python edit on the next call instead of retrying.
+   Idea from prvsiyan "Unclosed Quotation" (11-06, Apache-2.0).
+No sampling, budget or tool change against v29.
