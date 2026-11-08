@@ -10,7 +10,8 @@
 ## 2. Data and definitions (Data Science 30%)
 - 106 DL rookies (2023-2025 drafts) with both a tracked hoop rep and game get-off (`player_get_off`); 118 DL rookies in all, 115 with get-off.
 - Hoop duration: time from the first to the last tracked frame of the circuit at 10 Hz (`analysis/dl_drills.py`).
-- Get-off: per-play `player_get_off`; player level = shrunken mean from a MixedLM (position fixed effect, player random intercept; ICC 0.060).
+- Get-off: per-play `player_get_off`; player level = shrunken mean from a MixedLM (position fixed effect, player random intercept; ICC 0.060). Shrinkage is small for most players (median factor 0.94) and strong only below about 30 plays (Figure 5).
+- What the drill measures (Figure 4): a figure-eight around two hoops; the fastest rookies hold speed through the bends, the slowest lose it on the second loop.
 - Only one drill feature (hoop duration) was fixed in advance; no feature search.
 
 ## 3. Result 1: the drill predicts game get-off (Figure 1: `figs/hoop_getoff.png`)
@@ -44,8 +45,8 @@
 1. `figs/hoop_getoff.png` — hoop vs get-off scatter by year + CV R² bars.
 2. `figs/within_forest.png` — within-situation correlations with intervals.
 3. `figs/within_multiples.png` — small multiples by situation.
-4. (todo) hoop trajectory examples: fast vs slow rookie, tracked path around the circle.
-5. (todo) shrinkage: raw vs MixedLM player get-off.
+4. `figs/hoop_paths.png` — the drill itself: tracked figure-eight paths and speed traces of the 3 fastest (6.3-6.6 s, all edge) and 3 slowest (8.4-9.2 s, all DT) of 109 DL rookies; the fast group keeps 4-5 yd/s through the second loop where the slow group drops to about 2 yd/s (`analysis/fig_paths.py`).
+5. `figs/getoff_shrink.png` — the target: each player's raw position-adjusted get-off and its empirical-Bayes shrunken value against plays (115 players, ICC 0.063, median shrink factor 0.94; under 30 plays the factor is 0.63), showing why low-play players do not drive Result 1.
 6. `figs/forty_curve.png` — CB / DT 40-yd tracked speed curves: two players with the same stopwatch 10-yd split but a different rise, and drill v@1.0 s vs game burst (CB ρ +0.41, DT +0.44; beyond the split +0.37 / +0.32). Replaces the cut-fingerprint slot (pillar 1 reframed to trait translation on 10-31).
 7. `figs/dt_pressure_tercile.png` — DT pressure rate by v10 tercile with player-bootstrap intervals; each player's shrunken rate vs v10 by draft year with the GEE line (Result 3).
 
