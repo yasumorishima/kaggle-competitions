@@ -123,6 +123,8 @@ aetau = _arg("aetau", 0.95, float)
 aenmax = _arg("aenmax", 4, int)
 aev = _arg("aev", 0, int)   # ours (11-07): ae v1 = learned pick among the products (ours_aesite + eval/ae/ae_site_model.txt), insert when p >= aep
 aep = _arg("aep", 0.2, float)
+aer1 = _arg("aer1", 0.0, float)      # ours (11-08): ae v1 pick to rank 1 when p >= aer1 and the molecule's own library match < aer1lib (0 = off)
+aer1lib = _arg("aer1lib", 0.7, float)
 outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer notebook around the frozen pipeline
 # 'p477': busyaprime v3 (LB 0.477); 'm479': alexchilton v8 = baidalinadilzhan's MIDX exact dedup fill verbatim (LB 0.479,
 # same frozen_0465 sha256 d1e757c2, + documentation prior on ranks 2-25, InChIKey14 dedup, outsider fill)
@@ -1552,6 +1554,7 @@ _OURS_AE_SRC = """ + repr(open(os.path.join(HERE, "ours_ae.py"), encoding="utf-8
 _OURS_FRAG_SRC = """ + repr(open(os.path.join(HERE, "ours_frag.py"), encoding="utf-8").read()) + """
 _OURS_AELIB_SRC = """ + repr(_ae_lib_src) + """
 AE_V, AE_P = """ + repr(aev) + ", " + repr(aep) + """
+AE_R1, AE_R1LIB = """ + repr(aer1) + ", " + repr(aer1lib) + """   # rank 1 when p >= AE_R1 and own library match < AE_R1LIB (simulation: p >= 0.5 hits 0.57, answer in the pool 1%)
 _OURS_AESITE_SRC = """ + (repr(open(os.path.join(HERE, "ours_aesite.py"), encoding="utf-8").read()) if aev else "''") + """
 _OURS_AESITE_MODEL_Z = """ + (repr(__import__("base64").b64encode(__import__("zlib").compress(open(os.path.join(HERE, "..", "..", "eval", "ae", "ae_site_model.txt"), "rb").read(), 9)).decode("ascii")) if aev else "''") + """   # zlib + base64 (notebook size)
 try:
@@ -1630,6 +1633,20 @@ try:
                 if _smi is not None:
                     _st_['inserted'] += 1
                     _st_['gated'] += 1
+                    if AE_R1 and _inf['p'] >= AE_R1:
+                        _lm = 0.0   # own library match: best plain modified cosine (shift 0) at the same precursor and group
+                        for _gq, _pq, _qm, _qi in _q:
+                            _gi = _lib.gid.get(_gq)
+                            if _gi is None:
+                                continue
+                            _rr, _pr = _lib.by_g[_gi]
+                            for _tt in range(_np.searchsorted(_pr, _pq - 0.005), _np.searchsorted(_pr, _pq + 0.005)):
+                                _r = _rr[_tt]; _nl = int(_lib.n[_r])
+                                _lm = max(_lm, _ae.modcos(_qm, _qi, _lib.mz[_r, :_nl].astype(_np.float64), _lib.it[_r, :_nl].astype(_np.float64), 0.0, 0.01))
+                        if _lm < AE_R1LIB:
+                            _st_['rank1'] = _st_.get('rank1', 0) + 1
+                            _out.append(';'.join(([_smi] + [x for x in _l if x != _smi])[:25])); continue
+                        _st_['r1_lib_blocked'] = _st_.get('r1_lib_blocked', 0) + 1
                     _out.append(';'.join(([_l[0], _smi] + [x for x in _l[1:] if x != _smi])[:25])); continue
                 _st_['gated'] += int(bool(_inf.get('gate')))
                 _out.append(_s); continue
@@ -1741,4 +1758,4 @@ if cpu:
     meta.pop("machine_shape")
 json.dump(meta, open(os.path.join(HERE, "kernel-metadata.json"), "w"), indent=2)
 print("wrote main.ipynb", meta["id"], "denovo", denovo, "dns", dns, "dnmin", dnmin, "dnforms", dnforms, "dnlib", dnlib,
-      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "aev", aev, "aep", aep, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)
+      "dnsrc", dnsrc if denovo > 0 else "-", "mmp", mmp, "fgap", fgap, "fgapk", fgapk, "nl", nl, nlcov, "nlion", nlion, "base", base, "bfrag", bfrag, "lfrag", lfrag, "fins", fins, "pcfix", pcfix, "pcvote", pcvote, "latecut", latecut, "pcguard", pcguard, "pclcap", pclcap, "bx", bx, "n1neg", n1neg, "bt", bt, "ownpcnp", ownpcnp, "ownco", ownco, "outer", outer, "onp", onp, "ae", ae, "aetau", aetau, "aenmax", aenmax, "aev", aev, "aep", aep, "aer1", aer1, "aer1lib", aer1lib, "arb", arb, "c1r", c1r, "icepar", icepar, "n1b", n1b, "ownpc", ownpc, "dnnoinj", dnnoinj, "dnslot", dnslot, "val", val, "fp2gap", fp2gap, "nn", nnw, "fpe", fpe, "ebe", ebe, "cpu", cpu)

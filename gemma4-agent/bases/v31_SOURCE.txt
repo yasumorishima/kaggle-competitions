@@ -1,0 +1,7 @@
+v31 (11-08) = verracodeguacas "Gemma 4 Agent: Budget-Fit Single Agent" v5 (Apache-2.0, https://www.kaggle.com/code/verracodeguacas/gemma-4-agent-budget-fit-single-agent),
+files unchanged (agent.yaml, configs/sampling.yaml, eval_config.yaml: 8 min, 28 calls, 80 turns, 240 s commands, temperature 0.2, thinking 4096;
+prompts/system.md: the official starter prompt as edited by the author), plus one part of ours inserted in step 2:
+the partner-file table from our reading of the 129 reference fixes (first written for our v21), shortened to the pairs that recur,
+and folded into the search the agent already runs (no extra call, to keep the time of a base that finished its scored runs).
+Why this base: repeated public runs (Dariush Afshar "most-run public config averages", cited by dmitriigluzdov
+"Public Agent Ideas and Evidence") give Budget-Fit 10.0 of 58 public tasks over ten draws; our own family averages about 8.1.
