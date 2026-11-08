@@ -120,6 +120,7 @@ GEMMA_CFG = {  # version: (minutes per task, calls, thinking, temperature, own t
     "g4v26": (7, 20, 6144, 0.2, 1), "g4v27": (8, 28, 4096, 1.0, 0), "g4v28": (7, 28, 4096, 1.0, 1),
     "g4v29": (6, 28, 4096, 1.0, 1),
     "g4v30": (6, 28, 4096, 1.0, 1),   # v29 + thinking pace + heredoc fallback (prompt only)
+    "g4v31": (8, 28, 4096, 0.2, 0),   # Budget-Fit v5 (verracodeguacas) + our partner-file table
 }
 
 

@@ -1,0 +1,143 @@
+ENVEDA  rows 75 (scored submissions on a public base + anchors)  columns 53  dof 22
+  residual SD 0.0028 = 0.36 molecules  (non-additivity + rounding; below this an effect is noise)
+  column           coef      se      t    mol  n
+  base:E006      0.4409
+  base:a451      0.4515
+  base:f465      0.4650
+  base:g482      0.4818
+  base:m479      0.4784
+  base:m480      0.4803
+  base:p477      0.4773
+  base:v15       0.4562
+  base:v22       0.4594
+  cpu           -0.0094  0.0020  -4.67  -1.23  26
+  dnslot        +0.0192  0.0040  +4.76  +2.49  1
+  dnlib         +0.0092  0.0040  +2.27  +1.19  1
+  bx            +0.0046  0.0040  +1.13  +0.60  1
+  nl            +0.0029  0.0037  +0.76  +0.37  9
+  nn            +0.0019  0.0031  +0.61  +0.25  1
+  fpnpc         +0.0019  0.0031  +0.61  +0.25  2
+  fp2           +0.0019  0.0037  +0.50  +0.24  1
+  n1b           +0.0012  0.0032  +0.38  +0.16  1
+  lfrag         +0.0004  0.0020  +0.22  +0.06  44
+  ib126         +0.0000  0.0040  +0.00  +0.00  1
+  ionb          +0.0000  0.0040  +0.00  +0.00  1
+  ae            -0.0002  0.0032  -0.06  -0.02  2
+  decoy         -0.0002  0.0036  -0.06  -0.03  2
+  pi            -0.0003  0.0024  -0.11  -0.03  2
+  fg            -0.0003  0.0030  -0.10  -0.04  15
+  ownco         -0.0003  0.0021  -0.15  -0.04  34
+  aev           -0.0004  0.0043  -0.10  -0.05  1
+  np            -0.0005  0.0028  -0.17  -0.06  7
+  pcvote        -0.0008  0.0024  -0.32  -0.10  4
+  pclcap        -0.0008  0.0040  -0.21  -0.11  1
+  c1r           -0.0009  0.0037  -0.26  -0.12  2
+  gg            -0.0013  0.0029  -0.43  -0.16  2
+  fi            -0.0020  0.0035  -0.56  -0.25  1
+  ownpcnp       -0.0020  0.0018  -1.13  -0.26  4
+  arb           -0.0021  0.0047  -0.45  -0.28  1
+  icepar        -0.0023  0.0021  -1.10  -0.30  5
+  bf            -0.0027  0.0026  -1.06  -0.36  2
+  fgwide        -0.0041  0.0037  -1.11  -0.54  1
+  tx            -0.0060  0.0040  -1.51  -0.78  1
+  n1neg         -0.0071  0.0020  -3.53  -0.92  3
+  ownpc         -0.0075  0.0026  -2.93  -0.98  3
+  dn            -0.0076  0.0032  -2.41  -0.99  2
+  npprior       -0.0080  0.0040  -2.02  -1.04  1
+  pcguard       -0.0085  0.0042  -2.04  -1.10  1
+  txb           -0.0090  0.0040  -2.27  -1.17  1
+  fpneng        -0.0090  0.0040  -2.27  -1.17  1
+  ion           -0.0100  0.0040  -2.52  -1.30  1
+  latecut       -0.0108  0.0024  -4.51  -1.40  2
+  mmp           -0.0113  0.0030  -3.79  -1.47  2
+  bt            -0.0160  0.0020  -7.88  -2.08  3
+  pcl           -0.0228  0.0027  -8.50  -2.97  5
+  rk            -0.0456  0.0024 -18.68  -5.92  2
+  pcfix         -0.0538  0.0024 -22.55  -6.99  3
+
+  category inject   parts 11  precision-weighted mean -0.0113 (-1.46 mol)  spread of true effects sd 0.0146
+    shrunken: ownco -0.0005  pi -0.0006  ownpcnp -0.0021  fi -0.0025  n1neg -0.0072  ownpc -0.0076  dn -0.0078  mmp -0.0113  bt -0.0159  pcl -0.0224  pcfix -0.0527
+
+  category rescore  parts 24  precision-weighted mean -0.0042 (-0.55 mol)  spread of true effects sd 0.0102
+    shrunken: dnslot +0.0160  dnlib +0.0074  nl +0.0020  nn +0.0014  fpnpc +0.0014  fp2 +0.0011  lfrag +0.0003  ae -0.0005  ionb -0.0006  fg -0.0006  decoy -0.0007  pcvote -0.0009  aev -0.0010  pclcap -0.0013  c1r -0.0013  gg -0.0015  arb -0.0025  bf -0.0028  fgwide -0.0042  pcguard -0.0079  fpneng -0.0084  ion -0.0092  latecut -0.0104  rk -0.0433
+
+  category prior    parts  4  precision-weighted mean -0.0048 (-0.63 mol)  spread of true effects sd 0.0000
+    shrunken: np -0.0048  npprior -0.0048  tx -0.0048  txb -0.0048
+
+  exact pairs (same base and device, part sets differ by one part):  delta = with - without
+  decoy     mean +0.0030 (+0.4 mol)  n 1  +0.003 [e3fg05dnl05c-1 vs e3fg05nl05c-1]
+  nl        mean +0.0020 (+0.3 mol)  n 1  +0.002 [e3fg05nl05c-1 vs e3fg05c-1]
+  n1b       mean +0.0020 (+0.3 mol)  n 2  +0.002 [e3v22icnb-1 vs e3v22icp-1]  +0.002 [e3v22icnb-1 vs e3v22icn-1]
+  fp2       mean +0.0010 (+0.1 mol)  n 1  +0.001 [e3fg05fp05c-1 vs e3fg05c-1]
+  lfrag     mean +0.0010 (+0.1 mol)  n 2  +0.000 [e3a451lf-1 vs anchor:a451]  +0.002 [e3a451lfbf-1 vs e3a451bf03-1]
+  ionb      mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3fg05nlib05c-1 vs e3fg05nl05c-1]
+  ib126     mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3fg05nl05ib126c-1 vs e3fg05nl05c-1]
+  pcvote    mean +0.0000 (+0.0 mol)  n 2  +0.000 [e3pcfv-1 vs e3pcf-1]  +0.000 [e3pcv-1 vs anchor:a451]
+  gg        mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3v15gglf-1 vs e3v15lf-1]
+  nn        mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3f465nn-1 vs e3f465oc-1]
+  fpnpc     mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3f465fp-1 vs e3f465oc-1]
+  np        mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3m479np-1 vs e3m479oc-1]
+  ae        mean +0.0000 (+0.0 mol)  n 1  +0.000 [e3m480ae-1 vs e3m480np-1]
+  fi        mean -0.0010 (-0.1 mol)  n 1  -0.001 [e3a451lffi-1 vs e3a451lf-1]
+  ownco     mean -0.0010 (-0.1 mol)  n 2  +0.002 [e3v15oc-1 vs e3v15lf-1]  -0.004 [e3v15ocp-1 vs e3v15op-1]
+  c1r       mean -0.0010 (-0.1 mol)  n 1  -0.001 [e3m480c1r-1 vs e3m480np-1]
+  pi        mean -0.0015 (-0.2 mol)  n 2  -0.002 [e3f465pi-1 vs e3f465oc-1]  -0.001 [e3p477pi-1 vs e3p477oc-2]
+  fg        mean -0.0020 (-0.3 mol)  n 1  -0.002 [e3m100fg05c-1 vs e3mmp100c-3]
+  bf        mean -0.0020 (-0.3 mol)  n 2  -0.003 [e3a451bf03-1 vs anchor:a451]  -0.001 [e3a451lfbf-1 vs e3a451lf-1]
+  icepar    mean -0.0023 (-0.3 mol)  n 3  -0.002 [e3v22icp-1 vs e3v22oc-1]  -0.002 [e3v22icn-1 vs e3v22oc-1]  -0.003 [e3v22icnpn-1 vs e3v22pnoc-1]
+  ownpcnp   mean -0.0027 (-0.4 mol)  n 4  -0.001 [e3v22pnoc-1 vs e3v22oc-1]  -0.002 [e3v22icnpn-1 vs e3v22icp-1]  -0.002 [e3v22icnpn-1 vs e3v22icn-1]  -0.006 [e3f465pn-1 vs e3f465oc-1]
+  fgwide    mean -0.0050 (-0.7 mol)  n 1  -0.005 [e3fgice05c-1 vs e3fg05c-1]
+  tx        mean -0.0060 (-0.8 mol)  n 1  -0.006 [e3fg05nl05tx05c-1 vs e3fg05nl05c-1]
+  ownpc     mean -0.0070 (-0.9 mol)  n 2  -0.004 [e3v15op-1 vs e3v15lf-1]  -0.010 [e3v15ocp-1 vs e3v15oc-1]
+  npprior   mean -0.0080 (-1.0 mol)  n 1  -0.008 [e3fg05nl05np05c-2 vs e3fg05nl05c-1]
+  dn        mean -0.0085 (-1.1 mol)  n 2  -0.008 [e3fg05dn20c-1 vs e3fg05c-1]  -0.009 [e3fg05dt20c-1 vs e3fg05c-1]
+  txb       mean -0.0090 (-1.2 mol)  n 1  -0.009 [e3fg05nl05txb05c-1 vs e3fg05nl05c-1]
+  n1neg     mean -0.0090 (-1.2 mol)  n 2  -0.011 [e3v22ngoc-1 vs e3v22oc-1]  -0.007 [e3f465ng-1 vs e3f465oc-1]
+  fpneng    mean -0.0090 (-1.2 mol)  n 1  -0.009 [e3f465fe-1 vs e3f465fp-1]
+  ion       mean -0.0100 (-1.3 mol)  n 1  -0.010 [e3fg05nli05c-1 vs e3fg05nl05c-1]
+  latecut   mean -0.0110 (-1.4 mol)  n 2  -0.013 [e3pcl-1 vs e3pcfv-1]  -0.009 [e3lc-1 vs anchor:a451]
+  mmp       mean -0.0130 (-1.7 mol)  n 1  -0.013 [e3m100fg05c-1 vs e3fg05c-1]
+  bt        mean -0.0200 (-2.6 mol)  n 1  -0.020 [e3f465bt-1 vs e3f465oc-1]
+  pcl       mean -0.0220 (-2.9 mol)  n 1  -0.022 [e3v15all-1 vs e3v15gglf-1]
+  rk        mean -0.0475 (-6.2 mol)  n 2  -0.052 [e3f465rk-1 vs e3f465oc-1]  -0.043 [e3f465rm-1 vs e3f465oc-1]
+  pcfix     mean -0.0530 (-6.9 mol)  n 2  -0.053 [e3pcfv-1 vs e3pcv-1]  -0.053 [e3pcf-1 vs anchor:a451]
+
+GEMMA  (public about 58 tasks; 1 task = 0.017)
+  g4v1-1     cfg(min,calls,think,temp,guard) None  -> ERROR
+  g4v2-1     cfg(min,calls,think,temp,guard) (4, 50, 0, 0.2, 0)  -> 0.03
+  g4v3-1     cfg(min,calls,think,temp,guard) (4, 50, 0, 0.2, 0)  -> 0.05
+  g4v4-1     cfg(min,calls,think,temp,guard) (8, 100, 4096, 0.2, 0)  -> 0.03
+  g4v5-1     cfg(min,calls,think,temp,guard) (5, 80, 0, 0.2, 0)  -> 0.06
+  g4v6-1     cfg(min,calls,think,temp,guard) (5, 80, 0, 0.2, 0)  -> 0.08
+  g4v7-1     cfg(min,calls,think,temp,guard) (5, 80, 0, 0.2, 0)  -> 0.08
+  g4v7-2     cfg(min,calls,think,temp,guard) (5, 80, 0, 0.2, 0)  -> 0.08
+  g4v12-1    cfg(min,calls,think,temp,guard) (5, 80, 0, 0.2, 0)  -> 0.08
+  g4v13-1b   cfg(min,calls,think,temp,guard) (5, 60, 2048, 0.2, 0)  -> 0.10
+  g4v14-1    cfg(min,calls,think,temp,guard) (5, 60, 2048, 0.2, 0)  -> 0.10
+  g4v15-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 0)  -> OVERTIME
+  g4v16-1    cfg(min,calls,think,temp,guard) (7, 28, 4096, 0.2, 1)  -> OVERTIME
+  g4v17-1    cfg(min,calls,think,temp,guard) (5, 28, 4096, 0.2, 1)  -> 0.13
+  g4v18-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> 0.15
+  g4v19-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> 0.15
+  g4v20-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> OVERTIME
+  g4v21-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> ERROR
+  g4v21-3    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> 0.18
+  g4v22-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> 0.13
+  g4v23-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> OVERTIME
+  g4v24p-1   cfg(min,calls,think,temp,guard) (8, 28, 4096, 0.2, 1)  -> OVERTIME
+  g4v25-1    cfg(min,calls,think,temp,guard) (8, 28, 1024, 0.2, 1)  -> 0.15
+  g4v26-1    cfg(min,calls,think,temp,guard) (7, 20, 6144, 0.2, 1)  -> 0.13
+  g4v27-1    cfg(min,calls,think,temp,guard) (8, 28, 4096, 1.0, 0)  -> OVERTIME
+  g4v28-1    cfg(min,calls,think,temp,guard) (7, 28, 4096, 1.0, 1)  -> 0.01
+  g4v29-1    cfg(min,calls,think,temp,guard) (6, 28, 4096, 1.0, 1)  -> 0.13
+  g4v30-1    cfg(min,calls,think,temp,guard) (6, 28, 4096, 1.0, 1)  -> 0.15
+  minutes/task    4: done 2 / over 0  5: done 8 / over 0  6: done 2 / over 0  7: done 2 / over 1  8: done 6 / over 5
+  temperature     0.2: done 17 / over 5  1.0: done 3 / over 1
+  own time guard  0: done 10 / over 2  1: done 10 / over 4
+  completed runs 20: mean 0.100  SD 0.048  binomial SD of one run at p=0.10, 58 tasks: 0.039
+  4 min/task: finish rate 1.00 (2/2)  mean score when finished 0.040  expected score (finish rate x score) 0.040
+  5 min/task: finish rate 1.00 (8/8)  mean score when finished 0.089  expected score (finish rate x score) 0.089
+  6 min/task: finish rate 1.00 (2/2)  mean score when finished 0.140  expected score (finish rate x score) 0.140
+  7 min/task: finish rate 0.67 (2/3)  mean score when finished 0.070  expected score (finish rate x score) 0.047
+  8 min/task: finish rate 0.55 (6/11)  mean score when finished 0.132  expected score (finish rate x score) 0.072
+  last 8 completed (same 28-call family): mean 0.129  SD 0.051 = 2.9 tasks
