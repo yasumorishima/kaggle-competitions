@@ -1,0 +1,60 @@
+request: g4v32p-1
+run: 43537742305  status: success  action: kernel  dir: gemma4-agent/kernels/pack  submit: yes
+kernel: yasunorim/gemma4-agent-pack  version: 32
+memo: LoRA probe 2 (11-10 gold plan): v31 (Budget-Fit v5 by verracodeguacas, Apache-2.0, + our partner-file table) + ours: a zero rank-8 LoRA on q_proj (B = 0, output equals the base) as adapter main_lora, and 6 minutes per task instead of 8 (prompt budget line updated) so the smaller vLLM KV cache under LoRA fits the 12-hour run. Probe 1 (g4v24p: rank 8 on v21 at 8 min) exceeded the runtime. Hypothesis: completes, and the score is within noise of v31 (>= 0.13; our 6 min runs averaged 0.14). If it completes, SFT on tool-call trajectories goes in the same adapter slot (the gold plan's +3 task part); if it times out, retry at 5 min / 20 calls. Effect estimate: 0 tasks by itself (gateway check), -1 to -2 tasks from the shorter time. Source: bases/v32p_SOURCE.txt.
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 32 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gemma4-agent-pack
+Archive:  /tmp/kout/submission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      333  2026-11-14 00:59   agent.yaml
+      119  2026-11-14 00:59   configs/sampling.yaml
+       94  2026-11-14 00:59   eval_config.yaml
+     5471  2026-11-14 00:59   prompts/system.md
+      402  2026-11-14 00:59   adapters/main_lora/adapter_config.json
+ 14353840  2026-11-14 00:59   adapters/main_lora/adapter_model.safetensors
+---------                     -------
+ 14360259                     6 files
+agent.yaml 333
+configs/sampling.yaml 119
+eval_config.yaml 94
+prompts/system.md 5465
+wrote /tmp/zl/adapters/main_lora rank 8 tensors 120 bytes 14336000
+adapters/main_lora/adapter_config.json 402
+adapters/main_lora/adapter_model.safetensors 14353840
+wrote /kaggle/working/submission.zip
+/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 298011 bytes to __results__.html
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.zip,2026-11-14 01:00:48.183000,"g4v32p-1: v31 (Budget-Fit v5, Apache-2.0) + ours: zero rank-8 LoRA probe 2, 6 min per task [run 43537742305]",SubmissionStatus.PENDING,,
+submission.zip,2026-11-08 00:15:11.990000,"g4v31-1: Budget-Fit v5 (verracodeguacas, Apache-2.0) + ours: partner-file table from 129 reference fixes, no extra call [run 42428800340]",SubmissionStatus.COMPLETE,0.20,
+submission.zip,2026-11-07 07:28:29.440000,g4v30-1: v29 + ours: thinking pace per turn (short on read/test turns) + heredoc fallback for cut-off edit_file arguments [run 42351343319],SubmissionStatus.COMPLETE,0.15,
+
+output files:
+total 3992
+drwxr-xr-x  2 runner runner    4096 Nov 14 01:00 .
+drwxrwxrwt 12 root   root      4096 Nov 14 01:00 ..
+-rw-r--r--  1 runner runner    1539 Nov 14 01:00 gemma4-agent-pack.log
+-rw-r--r--  1 runner runner 4075061 Nov 14 01:00 submission.zip
+[{"stream_name":"stdout","time":1.4128642820000001,"data":"agent.yaml 333\n"}
+,{"stream_name":"stdout","time":1.413174198,"data":"configs/sampling.yaml 119\n"}
+,{"stream_name":"stdout","time":1.413348639,"data":"eval_config.yaml 94\n"}
+,{"stream_name":"stdout","time":1.413893424,"data":"prompts/system.md 5465\n"}
+,{"stream_name":"stdout","time":3.584644602,"data":"wrote /tmp/zl/adapters/main_lora rank 8 tensors 120 bytes 14336000\n"}
+,{"stream_name":"stdout","time":3.60442654,"data":"adapters/main_lora/adapter_config.json 402\n"}
+,{"stream_name":"stdout","time":4.227424683,"data":"adapters/main_lora/adapter_model.safetensors 14353840\n"}
+,{"stream_name":"stdout","time":4.227463364,"data":"wrote /kaggle/working/submission.zip\n"}
+,{"stream_name":"stderr","time":8.183551344,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":8.183626058,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":8.952183726,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":8.952224076,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":11.912045686,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":14.357188407,"data":"[NbConvertApp] Writing

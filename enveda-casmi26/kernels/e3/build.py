@@ -131,7 +131,7 @@ outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer n
 # 'g482' (11-07): popwenman "CASMI26 0482 Gold Apex V22" v2 = romanrozen "[0.482] CASMI: From Peaks to Structures" v17 with
 # popwenman's own v80 scorer (kernel output) in place of a deleted kernel; same frozen sha256 d1e757c2 as m480, + LOTUS
 # backfill, prior weights 0.10/0.10/0.12 gate 0.78, timsTOF mass prior on ranks 2-25 and the mass rank-1 rule (V8 = MASS)
-assert outer in ("p477", "m479", "m480", "g482"), outer
+assert outer in ("p477", "m479", "m480", "g482", "a488"), outer
 assert outer == "p477" or base == "p477", "outer replaces the p477 wrapper only"
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -1327,7 +1327,7 @@ if base == "p477":
     _fz = json.dumps(nb, separators=(",", ":")).encode("utf-8")   # compact (11-07: notebook size)
     _outer = json.load(open(os.path.join(HERE, f"outer_{outer}.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
-    if outer == "g482":   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
+    if outer in ("g482", "a488"):   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
         _ic = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "COMMIT_MODE = 'fast'" in "".join(c["source"])]
         assert len(_ic) == 1, _ic
         _oc[_ic[0]]["source"] = "".join(_oc[_ic[0]]["source"]).replace("COMMIT_MODE = 'fast'", "COMMIT_MODE = 'smoke'   # ours (was 'fast')", 1)
@@ -1344,7 +1344,7 @@ if base == "p477":
         # (the public pool only). 56k structures of our own COCONUT table are not in it, so they got NP 0 although they are
         # COCONUT natural products. Build an extended copy (their rows: np_coconut 1, pop 0 = unknown, no library flag) and
         # point the final layer at it; any failure keeps the original table.
-        assert outer in ("m479", "m480", "g482") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
+        assert outer in ("m479", "m480", "g482", "a488") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def _load_pop_prior(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1382,7 +1382,7 @@ except Exception as _e:
         #          votes only past ARB_NL_TAU nats, i.e. when a diagnostic loss is seen
         # v0 leads when the summed vote is below 0 (lfrag against the move and nl not for it, or both against).
         # Any failure (or no move) leaves the 0.479 behaviour exactly.
-        assert outer in ("m479", "m480", "g482"), "arb patches the m479 final layer (pxm_merge)"
+        assert outer in ("m479", "m480", "g482", "a488"), "arb patches the m479 final layer (pxm_merge)"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def pxm_merge(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1538,7 +1538,7 @@ except Exception as _e:
     print('PCINS FAILED -> submission as is', repr(_e), flush=True)
 '''))
     if ae:
-        assert outer in ("m479", "m480", "g482"), "ae runs after the m479/m480 final merge"
+        assert outer in ("m479", "m480", "g482", "a488"), "ae runs after the m479/m480 final merge"
         _ae_lib_src = open(os.path.join(HERE, "..", "..", "eval", "ae", "build_lib.py"), encoding="utf-8").read()
         _oc.append(code_cell("""# ==== ours (yasunorim; build.py ae=1 -- every outer cell above is unchanged): analog-edit structure at rank 2 ====
 # Idea credited to heliosli's r3p overlay (public notebook heliosli/casmi26-0-481, cell 24); our own code (ours_ae.py):
@@ -1701,6 +1701,11 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
                    "V22, the 0.480 neural ensemble and the 0.479 MIDX notebook underneath; LOTUS candidates by qwertykeypadapple), "
                    "commit mode set to smoke by us, "
                    if outer == "g482" else
+                   "[CASMI26 LB 0.488 | Peaks to Structures + Network](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-488-peaks-to-structures-network) "
+                   "by alex chilton, version 14 (analyticaobscura's casmi-2026: guhongbin's 0.487 on popwenman's Gold Apex V22, ozertuu's "
+                   "external spectral-library rank-1 overlay, the N-1c in-test molecular network re-rank; romanrozen's v17, the 0.480 "
+                   "neural ensemble and the 0.479 MIDX notebook underneath), commit mode set to smoke by us, "
+                   if outer == "a488" else
                    "[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) "
                    "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
                    "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
@@ -1744,7 +1749,7 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
     meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if c1r > 0 else []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
-    if outer in ("m479", "m480", "g482"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
+    if outer in ("m479", "m480", "g482", "a488"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
         meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
         if outer == "m480":   # alexchilton "LB 0.480 | Neural Ensemble" v9: bgunshui's longer-trained spectrum scorer (kernel output)
             meta["kernel_sources"] = meta["kernel_sources"] + ["bgunshui/casmi26-scorer-train-public"]
@@ -1753,6 +1758,9 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
             meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
             meta["dataset_sources"].append("qwertykeypadapple/casmi26-lotus-candidates")
             meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01"
+        if outer == "a488":   # alexchilton v14's inputs and image (37c64f7d): v80 scorer, ozertuu's two external libraries
+            meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
+            meta["dataset_sources"] += ["samartalwar/casmi-2026-spectral-library-massbankharmonized", "takumuhata/casmi26-extlib"]
 if cpu:
     meta.update(enable_gpu="false")
     meta.pop("machine_shape")

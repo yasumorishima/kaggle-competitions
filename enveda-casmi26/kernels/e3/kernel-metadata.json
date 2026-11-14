@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3g482aev",
-  "title": "casmi26 e3g482aev",
+  "id": "yasunorim/casmi26-e3a488",
+  "title": "casmi26 e3a488",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -9,7 +9,7 @@
   "enable_tpu": "false",
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
-  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01",
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
   "dataset_sources": [
     "sanpier/casmi-spectrum-model-v1",
     "dmitriigluzdov/casmi26-fold-safe-fpnet",
@@ -20,7 +20,8 @@
     "sanpier/catalogue-experiment-saner",
     "yasunorim/casmi26-own-coconut-candidates",
     "metric/rdkit-2026-3-3-wheel",
-    "qwertykeypadapple/casmi26-lotus-candidates"
+    "samartalwar/casmi-2026-spectral-library-massbankharmonized",
+    "takumuhata/casmi26-extlib"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"
