@@ -1,0 +1,5 @@
+v32p (11-14) = v31 (verracodeguacas Budget-Fit Single Agent v5, Apache-2.0, + our partner-file table; see v31_SOURCE.txt)
++ ours: LoRA probe 2 from the 11-10 gold plan: adapter main_lora on the root agent, a rank-8 LoRA on q_proj whose B matrices
+are zero (output equals the base model; generated inside the pack kernel by train/make_zero_lora.py, marker
+adapters/main_lora/zero_lora.txt), and the per-task time cut from 8 to 6 minutes (prompt budget line updated) so the
+smaller KV cache under LoRA still fits the 12-hour run. Probe 1 (g4v24p, rank 8 on v21 at 8 min) exceeded the runtime.
