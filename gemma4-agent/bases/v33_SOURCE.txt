@@ -1,0 +1,5 @@
+v33 (11-23) = bliverrigpdoge "# LB 0.22 | 3 tweaks, 40 tool calls, no training" v3 (https://www.kaggle.com/code/bliverrigpdoge/lb-0-22-3-tweaks-40-tool-calls-no-training),
+itself built on verracodeguacas "Gemma 4 Agent: Budget-Fit Single Agent" v5 (Apache-2.0) -- the same base as our v31. Its four files unchanged
+(40 tool calls, 8 min, fast exit "Done" after submit_patch, submit at once when the call budget is exhausted, the task statement pinned at
+the end of the system prompt), plus one part of ours: the partner-file table from our reading of the 129 reference fixes (v31, step 1).
+Files read as data (ast.literal_eval of its FILES dict), not executed.
