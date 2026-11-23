@@ -24,7 +24,7 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 COMPS = {"enveda": "enveda-CASMI26-molecule-id-mass-spectra", "gemma": "gemma-4-developer-agent"}
-ANCHOR = {"E006": 0.440, "a451": 0.451, "f465": 0.465, "p477": 0.477, "m479": 0.479, "m480": 0.480, "g482": 0.482}   # g482: the title score of popwenman v22 (romanrozen v17 = 0.482)
+ANCHOR = {"E006": 0.440, "a451": 0.451, "f465": 0.465, "p477": 0.477, "m479": 0.479, "m480": 0.480, "g482": 0.482, "k505": 0.505, "g505": 0.505}   # k505/g505: kozykappa v23 / goodpjw2008 v7 public LB (11-23); g482: the title score of popwenman v22 (romanrozen v17 = 0.482)
 # kinds of part: new candidates into the list / re-scoring of the existing list / a prior on the whole list
 CATS = {
     "inject": {"mmp", "dn", "pcl", "bt", "ownpc", "n1neg", "pcfix", "ownpcnp", "pi", "ownco", "fi"},
@@ -122,6 +122,7 @@ GEMMA_CFG = {  # version: (minutes per task, calls, thinking, temperature, own t
     "g4v30": (6, 28, 4096, 1.0, 1),   # v29 + thinking pace + heredoc fallback (prompt only)
     "g4v31": (8, 28, 4096, 0.2, 0),   # Budget-Fit v5 (verracodeguacas) + our partner-file table
     "g4v32p": (6, 28, 4096, 0.2, 0),  # v31 + zero rank-8 LoRA (adapter probe 2), 6 min
+    "g4v33": (8, 40, 4096, 0.2, 0),   # bliverrigpdoge LB 0.22 (40 calls, fast exit, pinned task) + our partner-file table
 }
 
 
