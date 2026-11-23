@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3a488",
-  "title": "casmi26 e3a488",
+  "id": "yasunorim/casmi26-e3k505",
+  "title": "casmi26 e3k505",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -21,7 +21,8 @@
     "yasunorim/casmi26-own-coconut-candidates",
     "metric/rdkit-2026-3-3-wheel",
     "samartalwar/casmi-2026-spectral-library-massbankharmonized",
-    "takumuhata/casmi26-extlib"
+    "taeyangg4/casmi26-extlib-gnps-full",
+    "taeyangg4/casmi26-fr3to25-clean"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"
