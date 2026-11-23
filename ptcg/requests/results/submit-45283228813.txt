@@ -1,0 +1,11 @@
+request: p1b
+run: 45283228813  status: success
+memo: 初回提出：ルールのエージェント v1（水のメガユキノオー ex デッキ）。手元で乱択に 381-19、先頭選択に 268-132。土台は主催 sample と matterhorn3838 の previous_rule の考え方（コードは書き直し）
+
+main.py
+deck.csv
+  0%|          | 0.00/5.04k [00:00<?, ?B/s]100%|██████████| 5.04k/5.04k [00:00<00:00, 20.9kB/s]
+Successfully submitted to The Pokémon Company - PTCG AI Battle Challenge PlaygroundWarning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName           date                        description                                          status                    publicScore  privateScore  
+-----------------  --------------------------  ---------------------------------------------------  ------------------------  -----------  ------------  
+submission.tar.gz  2026-11-23 22:49:08.433000  v1 rule agent (Mega Abomasnow ex) [run 45283228813]  SubmissionStatus.PENDING                             

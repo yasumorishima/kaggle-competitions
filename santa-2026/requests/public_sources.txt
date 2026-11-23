@@ -1,0 +1,12 @@
+# Public program sets merged every cycle (kind ref). Data only: parsed with csv+json and replayed by our referee.
+# Licenses: see each page (Apache-2.0 / CC0 at the time of adding). Credit goes in santa-2026/CLAUDE.md.
+dataset ishankarnick/santa-2026-frontier-programs
+dataset goodpjw2008/santa-2026-dag-lns-programs
+dataset alexchilton/santa-2026-rudolph-programs
+dataset asteriospanoras/santa-2026-elf-programs-and-experiments
+dataset sadamtorres/santa-2026-elf-calc
+dataset lucifer19/elf-calculator-x-ray-programs
+kernel alexchilton/rudolph-the-red-nosed-register-allocator
+kernel avazaku/elf-calc-backward-frontier-rewrite
+kernel goodpjw2008/santa-2026-fresh-program-re-search-lb-128-504
+kernel ishankarnick/santa-2026-frontier-programs-128-504

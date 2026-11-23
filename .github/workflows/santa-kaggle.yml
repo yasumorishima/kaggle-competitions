@@ -1,0 +1,207 @@
+name: Santa 2026 Kaggle
+
+# One search cycle for Santa 2026 (The Elf Calculator), run from a cloud session by pushing
+# santa-2026/requests/kaggle.json (any branch but main), or on the schedule from main.
+#
+#  1. collect: our previous pool (private dataset yasunorim/santa26-work), the outputs of our shard kernels,
+#     and the public program sets listed in santa-2026/requests/public_sources.txt;
+#  2. merge: per puzzle the shortest program that replays cleanly (santa-2026/tools/merge.py, data only);
+#  3. version the private dataset with our code + the new pool (programs never enter this public repo);
+#  4. submit the pool when it beats our best submitted score (request "submit": "submit");
+#  5. push the shard kernels again (yasunorim/santa26-shard-<i>), which search until the next cycle.
+# The outcome (scores only) is committed back as santa-2026/requests/results/kaggle-<run id>.txt.
+#
+# Request file: id (new per request; a replayed id is skipped), memo, action "cycle", shards (int),
+# minutes (search minutes per shard), plan (runner --plan), submit ("submit" or ""), message, push ("no" to skip 5).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 10,22 * * *'   # shards run 650 min; a cycle collects them and pushes new ones
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'santa-2026/requests/kaggle.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: santa-kaggle
+  cancel-in-progress: false
+
+env:
+  COMP: santa-2026
+  OWNER: yasunorim
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install kaggle CLI
+        run: pip install -q six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+
+      - name: Read the request
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import json, os, glob
+          f = "santa-2026/requests/kaggle.json" if os.environ["EVENT"] == "push" else "santa-2026/requests/schedule.json"
+          r = json.load(open(f, encoding="utf-8"))
+          rid = str(r.get("id", "")).strip()
+          if os.environ["EVENT"] != "push":
+              rid = f"{rid}-{os.environ['GITHUB_RUN_ID']}"
+          assert rid, "id is required"
+          for g in glob.glob("santa-2026/requests/results/*.txt"):
+              if f"request: {rid}\n" in open(g, encoding="utf-8").read():
+                  print(f"request {rid} already ran ({g}); skipping")
+                  open(os.environ["GITHUB_ENV"], "a").write("SKIP=yes\n"); raise SystemExit(0)
+          assert r.get("action") == "cycle", "action must be cycle"
+          memo = str(r.get("memo", "")).strip(); assert memo, "memo is required"
+          shards = int(r.get("shards", 4)); assert 1 <= shards <= 10
+          minutes = float(r.get("minutes", 650)); assert 10 <= minutes <= 690
+          plan = str(r.get("plan", "anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000"))
+          assert all(c.isalnum() or c in "_:," for c in plan), "plan: letters, digits, _ : , only"
+          msg = str(r.get("message", memo)).replace("\n", " ")
+          with open(os.environ["GITHUB_ENV"], "a") as g:
+              g.write(f"RID={rid}\nSHARDS={shards}\nMINUTES={minutes}\nPLAN={plan}\nMSG={msg}\n")
+              g.write(f"SUBMIT={'yes' if r.get('submit') == 'submit' else 'no'}\nPUSH={'no' if r.get('push') == 'no' else 'yes'}\n")
+              g.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
+          print(rid, shards, minutes, plan, r.get("submit"), "|", memo)
+          PY
+
+      - name: Collect and merge
+        if: env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          W=/tmp/santa; mkdir -p $W/comp $W/prev $W/shards $W/public $W/work
+          kaggle competitions download "$COMP" -p $W/comp >/dev/null && (cd $W/comp && unzip -q -o *.zip)
+          kaggle datasets download "$OWNER/santa26-work" -p $W/prev --unzip >/dev/null 2>&1 && echo "previous pool found" || echo "no previous pool"
+          for i in $(seq 0 9); do
+            S=$(kaggle kernels status "$OWNER/santa26-shard-$i" 2>&1 || true)
+            echo "shard $i: $S" | tee -a /tmp/out.txt
+            case "$S" in *COMPLETE*|*ERROR*|*CANCEL*) kaggle kernels output "$OWNER/santa26-shard-$i" -p $W/shards/$i >/dev/null 2>&1 || true ;; esac
+          done
+          grep -v '^#' santa-2026/requests/public_sources.txt | while read kind ref; do
+            [ -n "$kind" ] || continue
+            d=$W/public/$(echo "$ref" | tr / _)
+            if [ "$kind" = dataset ]; then kaggle datasets download "$ref" -p "$d" --unzip >/dev/null 2>&1 || echo "failed $ref"
+            else kaggle kernels output "$ref" -p "$d" >/dev/null 2>&1 || echo "failed $ref"; fi
+          done
+          # the previous archive (jsonl) joins the merge as programs, so it is rebuilt and pruned every cycle
+          if [ -f $W/prev/archive.jsonl ]; then
+            python -c "import json,csv,sys;w=csv.writer(open('$W/prev/archive_prev.csv','w',newline=''));w.writerow(['id','program']);[w.writerow([r['k'],json.dumps(r['p'],separators=(',',':'))]) for r in map(json.loads,open('$W/prev/archive.jsonl'))]"
+          fi
+          PREV=""; [ -f $W/prev/pool.csv ] && PREV="$W/prev/pool.csv $W/prev/archive_prev.csv"
+          python -I santa-2026/tools/merge.py --puzzles $W/comp/puzzles.csv --out $W/work/pool.csv \
+            --archive $W/work/archive.jsonl --report $W/work/sources.csv $PREV $W/shards $W/public 2>&1 | tee /tmp/merge.txt | tail -4
+          SCORE=$(grep -oE 'merged score [0-9]+' /tmp/merge.txt | grep -oE '[0-9]+')
+          PREVSCORE=""; [ -f $W/prev/pool.csv ] && PREVSCORE=$(python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/prev/pool.csv | grep -oE 'score [0-9]+' | grep -oE '[0-9]+')
+          python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/work/pool.csv
+          # public-only score, to measure what our own search adds
+          python -I santa-2026/tools/merge.py --puzzles $W/comp/puzzles.csv --out /tmp/pub.csv $W/public > /tmp/pub.txt 2>&1 || true
+          PUB=$(grep -oE 'merged score [0-9]+' /tmp/pub.txt | grep -oE '[0-9]+' || echo "?")
+          python - <<'PY' >> /tmp/out.txt
+          import csv, collections
+          c = collections.Counter()
+          for r in csv.DictReader(open("/tmp/santa/work/sources.csv")):
+              s = r["source"].split("/tmp/santa/")[1].split("/")[0]; c[s] += 1
+          print("puzzles by source:", dict(c))
+          PY
+          echo "pool score: $SCORE (previous pool ${PREVSCORE:-none}, public only $PUB)" | tee -a /tmp/out.txt
+          echo "SCORE=$SCORE" >> $GITHUB_ENV
+
+      - name: Version the private dataset
+        if: env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          W=/tmp/santa/work
+          cp -r santa-2026/search santa-2026/tools santa-2026/third_party $W/
+          find $W -name '__pycache__' -prune -exec rm -rf {} +
+          printf '{"title": "santa26-work", "id": "%s/santa26-work", "licenses": [{"name": "CC0-1.0"}]}\n' "$OWNER" > $W/dataset-metadata.json
+          if kaggle datasets status "$OWNER/santa26-work" >/dev/null 2>&1; then
+            kaggle datasets version -p $W -m "pool $SCORE [run ${GITHUB_RUN_ID}]" -r zip 2>&1 | tail -3 | tee -a /tmp/out.txt
+          else
+            kaggle datasets create -p $W -r zip 2>&1 | tail -3 | tee -a /tmp/out.txt
+          fi
+          for i in $(seq 1 30); do
+            S=$(kaggle datasets status "$OWNER/santa26-work" 2>&1 || true); echo "dataset: $S"
+            case "$S" in *ready*) break ;; esac; sleep 20
+          done
+
+      - name: Submit
+        if: env.SKIP != 'yes' && env.SUBMIT == 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          kaggle competitions submissions "$COMP" --csv 2>/dev/null > /tmp/subs.csv || true
+          head -3 /tmp/subs.csv
+          BEST=$(python - <<'PY'
+          import csv
+          s = []
+          for r in csv.DictReader(open("/tmp/subs.csv")):
+              for k, v in r.items():
+                  if k and "public" in k.lower() and "score" in k.lower():
+                      try: s.append(float(v))
+                      except (TypeError, ValueError): pass
+          print(int(min(s)) if s else 10**9)
+          PY
+          )
+          echo "best submitted: $BEST, pool: $SCORE" | tee -a /tmp/out.txt
+          if [ "$SCORE" -lt "$BEST" ]; then
+            kaggle competitions submit "$COMP" -f /tmp/santa/work/pool.csv -m "$MSG pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2 | tee -a /tmp/out.txt
+          else
+            echo "not submitted: pool does not beat the best submitted score" | tee -a /tmp/out.txt
+          fi
+
+      - name: Push the shard kernels
+        if: env.SKIP != 'yes' && env.PUSH == 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          for i in $(seq 0 $((SHARDS - 1))); do
+            D=/tmp/shard$i; mkdir -p $D
+            sed -e "s|__SHARD__|$i/$SHARDS|" -e "s|__MINUTES__|$MINUTES|" -e "s|__PLAN__|$PLAN|" santa-2026/kernels/shard/main.py > $D/main.py
+            printf '{"id": "%s/santa26-shard-%s", "title": "santa26-shard-%s", "code_file": "main.py", "language": "python", "kernel_type": "script", "is_private": true, "enable_gpu": false, "enable_tpu": false, "enable_internet": false, "dataset_sources": ["%s/santa26-work"], "competition_sources": ["%s"], "kernel_sources": []}\n' "$OWNER" $i $i "$OWNER" "$COMP" > $D/kernel-metadata.json
+            OUT=$(kaggle kernels push -p $D 2>&1) || true
+            echo "shard $i: $OUT" | tail -1 | tee -a /tmp/out.txt
+          done
+
+      - name: Commit the outcome
+        if: always() && env.SKIP != 'yes'
+        env:
+          RUN_ID: ${{ github.run_id }}
+          OUTCOME: ${{ job.status }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          out="santa-2026/requests/results/kaggle-${RUN_ID}.txt"
+          mkdir -p "$(dirname "$out")"
+          {
+            echo "request: ${RID:-}"
+            echo "run: ${RUN_ID}  status: ${OUTCOME}  shards: ${SHARDS:-?}  minutes: ${MINUTES:-?}  submit: ${SUBMIT:-?}"
+            echo "memo: ${MEMO:-}"
+            echo
+            cat /tmp/out.txt 2>/dev/null || true
+          } > "$out"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$out"
+          git commit -q -m "santa-2026: kaggle outcome ${RUN_ID}"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
+            sleep $((i * 5))
+          done
+          echo "could not push the outcome"; exit 1

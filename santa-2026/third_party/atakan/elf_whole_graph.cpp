@@ -1,0 +1,445 @@
+// Rebuild the entire acyclic program at each accepted state.  Candidate
+// arithmetic choices are edges, not executable input blocks or fixed cuts.
+#define ELF_GLOBAL_LIBRARY
+#include "elf_global_schedule.cpp"
+#include <map>
+#include <numeric>
+#include <tuple>
+
+// Low-overhead lookup for the one-step frontier used in the
+// meet-in-the-middle expansion. Zero is outside the allowed value domain.
+class FrontierIndex {
+    std::vector<Value> keys;
+    std::vector<int> places;
+    std::size_t mask;
+    std::size_t position(Value k) const {
+        k^=k>>29;k*=0x9e3779b97f4a7c15ULL;k^=k>>27;
+        return k&mask;
+    }
+public:
+    explicit FrontierIndex(std::size_t n) {
+        std::size_t capacity=1;
+        while(capacity<n*2+1)capacity<<=1;
+        keys.assign(capacity,0);places.assign(capacity,0);mask=capacity-1;
+    }
+    void add(Value k,int n) {
+        for(auto i=position(k);;i=(i+1)&mask) if(!keys[i]||keys[i]==k) {
+            keys[i]=k;places[i]=n;return;
+        }
+    }
+    int get(Value k) const {
+        for(auto i=position(k);keys[i];i=(i+1)&mask) if(keys[i]==k)return places[i];
+        return -1;
+    }
+};
+
+struct Recipe { char op; int a,b; };
+using State=std::vector<int>;
+
+struct PlanPool {
+    const Value limit;
+    Index ids;
+    std::vector<Value> nums;
+    std::vector<std::vector<Recipe>> choices;
+    std::vector<int> targets;
+    std::array<int,slots> seed_register;
+    State home;
+    int previous_nodes=0;
+
+    PlanPool(const Registers& regs,const std::vector<Value>& goals,Value bound,const Program& input)
+        :limit(bound) {
+        seed_register.fill(-1);
+        auto graph=topological_graph(recover_graph(regs,bound,goals,input));
+        for (auto& n:graph.nodes) intern(n.value);
+        for (int i=0;i<(int)graph.nodes.size();++i) {
+            const auto& n=graph.nodes[i];
+            if (n.op) add(i,n.op,n.a,n.b,12);
+        }
+        for (int i=0;i<slots;++i) if (graph.initial[i]>=0) seed_register[i]=graph.initial[i];
+        for (Value t:goals) targets.push_back(ids.at(t));
+        previous_nodes=(int)nums.size();
+    }
+
+    int intern(Value v) {
+        auto [it,new_id]=ids.emplace(v,(int)nums.size());
+        if(new_id) { nums.push_back(v); choices.emplace_back(); }
+        return it->second;
+    }
+
+    bool add(int id,char op,int a,int b,int cap) {
+        if (a==id||b==id) return false;
+        if ((op=='+'||op=='*') && a>b) std::swap(a,b);
+        auto& options=choices[id];
+        if ((int)options.size()>=cap) return false;
+        for (auto q:options) if (q.op==op && q.a==a && q.b==b) return false;
+        options.push_back({op,a,b});
+        return true;
+    }
+
+    void enrich(int breadth,int rounds,std::mt19937& rng,int style) {
+        for (int phase=0;phase<rounds;++phase) {
+            const int n=(int)nums.size();
+            std::vector<int> refs(n),size(n);
+            for (int r:targets) ++refs[r];
+            for (auto& options:choices) if (!options.empty()) {
+                const auto r=options[0];
+                ++refs[r.a]; if(r.a!=r.b) ++refs[r.b];
+            }
+            for (int i=0;i<n;++i) if (!choices[i].empty()) {
+                const auto r=choices[i][0];
+                size[i]=1+(refs[r.a]==1?size[r.a]:0)+(r.a!=r.b&&refs[r.b]==1?size[r.b]:0);
+            }
+            std::vector<int> order(n);
+            std::iota(order.begin(),order.end(),0);
+            if (style%2 || phase) std::shuffle(order.begin(),order.end(),rng);
+            std::unordered_map<Value,std::vector<Recipe>> draft;
+            draft.reserve(n*n);
+            for (int i:order) for (int j:order) {
+                if (i<j) continue;
+                for (char op:{'+','*','-','/'}) {
+                    int a=i,b=j;
+                    if ((op=='-'||op=='/') && nums[a]<nums[b]) std::swap(a,b);
+                    auto v=calculate(op,nums[a],nums[b],limit);
+                    if (!v || v==nums[a] || v==nums[b]) continue;
+                    auto it=ids.find(v);
+                    if (it!=ids.end()) {
+                        if (!choices[it->second].empty()) add(it->second,op,a,b,phase?25:17);
+                    } else if (phase==0 || i<previous_nodes || j<previous_nodes) {
+                        auto& have=draft[v];
+                        if (have.size()<3) have.push_back({op,a,b});
+                    }
+                }
+            }
+            struct Link { int root, leaf; char op; bool first; };
+            struct Suggested { std::vector<Link> links; int utility=0; int last=-1; };
+            std::unordered_map<Value,Suggested> promotion;
+            for (int r=0;r<n;++r) {
+                if (choices[r].empty()) continue;
+                if (phase && r>=previous_nodes && size[r]<=1) continue;
+                for (int b:order) if (r!=b) {
+                    inverse(nums[r],nums[b],limit,[&](Value x,char op,bool first) {
+                        if (x==nums[r] || x==nums[b] || !draft.count(x)) return false;
+                        auto& e=promotion[x];
+                        if (e.links.size()<18) e.links.push_back({r,b,op,first});
+                        if (e.last!=r) {
+                            e.utility+=std::min(size[r],6);
+                            e.last=r;
+                        }
+                        return false;
+                    });
+                }
+            }
+            // Find unrepresented two-operand combinations by joining two
+            // exact one-operation frontiers. They are promoted in pairs.
+            struct Bond { int root; Value x,y; char op; };
+            std::vector<Bond> bonds;
+            if (style>=3 && phase==0 && !draft.empty()) {
+                std::vector<Value> frontier;
+                for(const auto& [v,_]:draft)frontier.push_back(v);
+                std::sort(frontier.begin(),frontier.end());
+                FrontierIndex quick(frontier.size());
+                for(int i=0;i<(int)frontier.size();++i)quick.add(frontier[i],i);
+                int limit_pairs=std::max(18,breadth/2);
+                for(int r:order) if(size[r]>=3) {
+                    int found=0;
+                    const auto t=nums[r];
+                    int size_n=(int)frontier.size();
+                    int stride=std::max(1,size_n/(style>=5?36000:14000));
+                    for(int i=rng()%stride;i<size_n && found<6;i+=stride) {
+                        Value x=frontier[i];
+                        auto test=[&](Value y,char op,bool order_xy) {
+                            if(!y||y==t||x==t||quick.get(y)<0)return;
+                            const auto valid=[&](Value v) {
+                                auto& options=draft.at(v);
+                                return std::any_of(options.begin(),options.end(),[&](Recipe a){return a.a!=r && a.b!=r;});
+                            };
+                            if(!valid(x)||!valid(y))return;
+                            bonds.push_back({r,order_xy?x:y,order_xy?y:x,op});++found;
+                        };
+                        if(x<t && x<=t-x)test(t-x,'+',true);
+                        if(x<=limit-t)test(t+x,'-',false);
+                        if(x>1 && t%x==0 && x<=t/x)test(t/x,'*',true);
+                    }
+                    if((int)bonds.size()>=limit_pairs)break;
+                }
+            }
+            std::vector<std::tuple<int,int,Value>> ranked;
+            ranked.reserve(promotion.size());
+            for (auto& [v,s]:promotion) {
+                int unique=0, last=-1;
+                for(auto q:s.links) if(q.root!=last) {++unique;last=q.root;}
+                if (s.utility<2 && unique<2) continue;
+                int rank=s.utility+(style%3+1)*unique;
+                // More diverse equal-demand choices across restarts.
+                ranked.emplace_back(-rank,int(rng()%79),v);
+            }
+            int take=std::min<int>(breadth,(int)ranked.size());
+            std::partial_sort(ranked.begin(),ranked.begin()+take,ranked.end());
+            for (int i=0;i<take;++i) {
+                Value x=std::get<2>(ranked[i]);
+                int id=intern(x);
+                for (auto res:draft.at(x)) add(id,res.op,res.a,res.b,7);
+                for (auto v:promotion.at(x).links)
+                    add(v.root,v.op,v.first?id:v.leaf,v.first?v.leaf:id,phase?34:28);
+            }
+            for(auto b:bonds) {
+                auto materialize=[&](Value v){
+                    int i=intern(v);
+                    for(auto q:draft.at(v)) if(q.a!=b.root && q.b!=b.root)add(i,q.op,q.a,q.b,7);
+                    return i;
+                };
+                auto a=materialize(b.x),c=materialize(b.y);
+                add(b.root,b.op,a,c,36);
+            }
+        }
+        home.assign(nums.size(),0);
+    }
+};
+
+struct Evaluator {
+    const PlanPool& p;
+    std::vector<unsigned char> mark;
+    std::vector<int> order, stack, cycle, uses;
+    int cost=0;
+    explicit Evaluator(const PlanPool& pool):p(pool),mark(p.nums.size()),uses(p.nums.size()) {
+        order.reserve(p.nums.size());stack.reserve(p.nums.size());
+    }
+    bool visit(int id,const State& state) {
+        if (mark[id]==2) return true;
+        if (mark[id]==1) {
+            cycle.assign(std::find(stack.begin(),stack.end(),id),stack.end());
+            return false;
+        }
+        mark[id]=1;stack.push_back(id);
+        const auto& recipes=p.choices[id];
+        if (!recipes.empty()) {
+            Recipe r=recipes[state[id]];
+            if (!visit(r.a,state)||!visit(r.b,state)) return false;
+            ++uses[r.a];if(r.a!=r.b)++uses[r.b];
+            ++cost;
+        }
+        stack.pop_back();mark[id]=2;order.push_back(id);
+        return true;
+    }
+    int eval(const State& state) {
+        std::fill(mark.begin(),mark.end(),0);
+        std::fill(uses.begin(),uses.end(),0);
+        cycle.clear();stack.clear();order.clear();cost=0;
+        for(int id:p.targets) if(!visit(id,state)) return 100000;
+        return cost;
+    }
+    Graph freeze(const State& state) const {
+        Graph g;g.initial.fill(-1);
+        std::vector<int> index(p.nums.size(),-1);
+        for (int slot=0;slot<slots;++slot) if(p.seed_register[slot]>=0) {
+            int id=p.seed_register[slot];
+            if(index[id]<0) {
+                index[id]=(int)g.nodes.size();
+                g.nodes.push_back({p.nums[id],0,-1,-1});
+            }
+            g.initial[slot]=index[id];
+        }
+        for(int id:order) if(!p.choices[id].empty()) {
+            auto a=p.choices[id][state[id]];
+            index[id]=(int)g.nodes.size();
+            g.nodes.push_back({p.nums[id],a.op,index[a.a],index[a.b]});
+        }
+        for (int t:p.targets) g.targets.push_back(index[t]);
+        return g;
+    }
+};
+
+struct Outcome { Program best; int moves=0, uphill=0, cooperative=0, initial=0, best_graph=0; };
+
+Outcome find_program(const Registers& start,const std::vector<Value>& targets,Value limit,
+                     Program input,int breadth,int layers,int steps,int worlds,int style,std::uint32_t salt) {
+    Outcome answer;
+    answer.best=input;
+    std::mt19937 rng((std::uint32_t)(limit^(limit>>32)^salt));
+    for(int world=0;world<worlds;++world) {
+        PlanPool pool(start,targets,limit,answer.best);
+        std::mt19937 material_rng((std::uint32_t)(limit^(limit>>32)^salt^(0xd1b54a32u*(world+1))));
+        pool.enrich(breadth,layers,material_rng,(style>=3?style:0)+world);
+        Evaluator active(pool),proposed(pool);
+        State state=pool.home,best=state;
+        int cost=active.eval(state),shortest=cost;
+        if(world==0) answer.initial=answer.best_graph=cost;
+        std::vector<std::vector<std::pair<int,int>>> support(pool.nums.size());
+        for(int id=0;id<(int)pool.choices.size();++id)
+            for(int n=0;n<(int)pool.choices[id].size();++n) {
+                auto r=pool.choices[id][n];
+                support[r.a].push_back({id,n});
+                if(r.b!=r.a) support[r.b].push_back({id,n});
+            }
+        std::vector<int> hubs;
+        for(int i=0;i<(int)support.size();++i)
+            if(i>=pool.previous_nodes && support[i].size()>=2) hubs.push_back(i);
+        auto remember=[&](Evaluator& e,const State& s,int length) {
+            if(length>=(int)answer.best.size()) return;
+            auto graph=e.freeze(s);
+            for(int j=0;j<24;++j) {
+                auto code=pressure_schedule(graph,j,rng(),(int)answer.best.size());
+                if(code.empty())
+                    code=Scheduler(graph,(int)answer.best.size(),limit,j%4,(j/4)%2).run(graph.targets);
+                if(!code.empty() && code.size()<answer.best.size()) {
+                    answer.best=std::move(code);
+                    answer.best_graph=length;
+                    if((int)answer.best.size()==length) break;
+                }
+                if(j%4==3) std::shuffle(graph.targets.begin(),graph.targets.end(),rng);
+            }
+        };
+        if(world==0) remember(active,state,cost);
+        std::vector<int> editable;
+        auto refresh=[&] {
+            editable.clear();
+            for(int id:active.order) if(pool.choices[id].size()>1) editable.push_back(id);
+        };
+        refresh();
+        if(editable.empty()) continue;
+        const int epoch=std::max(128,steps/4);
+        for(int i=0;i<steps;++i) {
+            if(i>0&&i%epoch==0) {
+                state=best;cost=active.eval(state);refresh();
+                if(editable.empty())break;
+            }
+            State candidate=state;
+            bool multi=false;
+            if(style>=3 && rng()%5==0) {
+                // A live value is cheap to remove only after all users are
+                // redirected. Try the entire fan-out as a single proposal.
+                int v=active.order[rng()%active.order.size()];
+                if(active.uses[v]>=2 && active.uses[v]<=5 && !pool.choices[v].empty()) {
+                    bool eligible=true;
+                    int changed=0;
+                    for(int u:active.order) if(!pool.choices[u].empty()) {
+                        auto now=pool.choices[u][state[u]];
+                        if(now.a!=v && now.b!=v) continue;
+                        const auto& opts=pool.choices[u];
+                        int best=-1, quality=-100;
+                        for(int x=0;x<(int)opts.size();++x) {
+                            auto next=opts[x];
+                            if(next.a==v || next.b==v)continue;
+                            int value=4*((active.mark[next.a]!=0)+(active.mark[next.b]!=0))+int(rng()%7);
+                            if(value>quality) {best=x;quality=value;}
+                        }
+                        if(best<0){eligible=false;break;}
+                        candidate[u]=best;++changed;
+                    }
+                    multi=eligible && changed>=2;
+                    if(!multi)candidate=state;
+                }
+            }
+            if(!multi && style>0 && !hubs.empty() && rng()%7==0) {
+                const int h=hubs[rng()%hubs.size()];
+                auto& links=support[h];int picked=0;
+                for(int tries=0;tries<12 && picked<3;++tries) {
+                    auto [r,j]=links[rng()%links.size()];
+                    if (active.mark[r] && candidate[r]!=j) {
+                        candidate[r]=j;
+                        ++picked;
+                    }
+                }
+                multi=picked>=2;
+            }
+            if(!multi) {
+                const int r=editable[rng()%editable.size()];
+                const auto& opts=pool.choices[r];
+                int k=int(rng()%opts.size());
+                if(rng()%4 && opts.size()>2) {
+                    // Bias towards plugging into values already in the
+                    // current global plan; keep exploration possible.
+                    auto appeal=[&](int x) {
+                        auto edge=opts[x];
+                        return (active.mark[edge.a]!=0)+(active.mark[edge.b]!=0)-
+                               (x==state[r]?4:0);
+                    };
+                    int other=int(rng()%opts.size());
+                    if(appeal(other)>appeal(k))k=other;
+                }
+                if(k==state[r])k=(k+1)%opts.size();
+                candidate[r]=k;
+                auto other=opts[k];
+                if(style>=2 && i%9==0) {
+                    int leaf=rng()%2?other.a:other.b;
+                    if(pool.choices[leaf].size()>1) {
+                        candidate[leaf]=int(rng()%pool.choices[leaf].size());
+                        multi=true;
+                    }
+                }
+            }
+            int score=proposed.eval(candidate);
+            // A new recipe may read a currently downstream result. Rather
+            // than discard it immediately, try re-rooting a cycle by also
+            // changing another recipe on the cycle.
+            if(style>0) for(int repair=0;score==100000 && repair<3 && !proposed.cycle.empty();++repair) {
+                int selected=-1,choice=-1;
+                auto cycle=proposed.cycle;
+                std::shuffle(cycle.begin(),cycle.end(),rng);
+                for(int v:cycle) if(pool.choices[v].size()>1) {
+                    auto& opts=pool.choices[v];
+                    for(int t=0,j=int(rng()%opts.size());t<(int)opts.size();++t,j=(j+1)%opts.size()) {
+                        auto x=opts[j];
+                        if(j==candidate[v] || std::find(cycle.begin(),cycle.end(),x.a)!=cycle.end()
+                                           || std::find(cycle.begin(),cycle.end(),x.b)!=cycle.end()) continue;
+                        selected=v;choice=j;break;
+                    }
+                    if(selected>=0)break;
+                }
+                if(selected<0)break;
+                candidate[selected]=choice;multi=true;
+                score=proposed.eval(candidate);
+            }
+            if(score==100000)continue;
+            int delta=score-cost;
+            double progress=(i%epoch)/(double)epoch;
+            double temperature=(style>=2?1.55:.85)*std::pow(0.025,progress);
+            const double unit=(rng()+0.5)/4294967296.0;
+            if(delta>0 && (style==0||unit>=std::exp(-delta/temperature)))continue;
+            if(delta==0 && style==0)continue;
+            answer.moves++;answer.uphill+=delta>0;answer.cooperative+=multi;
+            state.swap(candidate);cost=active.eval(state);refresh();
+            if(cost<shortest) {
+                shortest=cost;best=state;
+                remember(active,state,cost);
+            } else if(cost==shortest && cost<(int)answer.best.size() && (i%19==0)) {
+                remember(active,state,cost);
+            }
+            if(editable.empty())break;
+        }
+    }
+    return answer;
+}
+
+int main(int argc,char** argv) {
+    try {
+        std::ios::sync_with_stdio(false);std::cin.tie(nullptr);
+        if(argc!=7)throw std::invalid_argument("width layers steps worlds mode seed");
+        int width=std::stoi(argv[1]),layers=std::stoi(argv[2]),steps=std::stoi(argv[3]),
+            worlds=std::stoi(argv[4]),style=std::stoi(argv[5]);
+        std::uint32_t salt=std::stoul(argv[6]);
+        std::string label;Value limit;int ns,nt,n;
+        while(std::cin>>label>>limit>>ns>>nt>>n) {
+            Registers start{};std::vector<Value> goals(nt);Program code(n);
+            for(int i=0;i<ns;++i)std::cin>>start.at(i);
+            for(auto& t:goals)std::cin>>t;
+            for(auto& s:code)std::cin>>s.kind>>s.a>>s.b>>s.destination;
+            if(style>=9) {
+                PlanPool pool(start,goals,limit,code);
+                std::mt19937 rng((std::uint32_t)(limit^(limit>>32)^salt));
+                pool.enrich(width,layers,rng,style-4);
+                std::cout<<label<<' '<<pool.nums.size()<<'\n';
+                for(int i=0;i<(int)pool.nums.size();++i) {
+                    std::cout<<pool.nums[i]<<' '<<pool.choices[i].size()<<'\n';
+                    for(auto r:pool.choices[i])std::cout<<r.op<<' '<<pool.nums[r.a]<<' '<<pool.nums[r.b]<<'\n';
+                }
+                continue;
+            }
+            auto answer=find_program(start,goals,limit,std::move(code),width,layers,steps,worlds,style,salt);
+            std::cout<<label<<' '<<answer.best.size()<<' '<<answer.moves<<' '<<answer.uphill<<' '
+                     <<answer.cooperative<<' '<<answer.initial<<' '<<answer.best_graph<<'\n';
+            for(const auto& op:answer.best)
+                std::cout<<op.kind<<' '<<op.a<<' '<<op.b<<' '<<op.destination<<'\n';
+        }
+    } catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
+}
