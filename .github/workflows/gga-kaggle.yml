@@ -29,7 +29,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gga-kaggle
+  group: gga-kaggle-${{ github.run_id }}   # runs do not queue behind a long kernel wait (a TPU queue can take hours)
   cancel-in-progress: false
 
 env:
