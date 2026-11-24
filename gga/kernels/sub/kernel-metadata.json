@@ -1,0 +1,16 @@
+{
+  "id": "yasunorim/gga-sub",
+  "title": "gga-sub",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": true,
+  "machine_shape": "TpuV5E8",
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": ["generalist-gaming-agent"],
+  "kernel_sources": [],
+  "model_sources": []
+}
