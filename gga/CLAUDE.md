@@ -45,4 +45,10 @@
 - 手元の確認は scratchpad の venv で、`cd <配布物> && PLAYWRIGHT_BROWSERS_PATH=<配布物>/kit/browsers python -m gga.runner --games all --agent <agent.py> --minutes 1 --frames` を回します。配布物は repo に入れません。
 
 ### 進捗
-- 11-24：参加しました。主催の runner が cloud で動くことを確かめ、v1（規則だけの探索 agent）を TPU の kernel で提出に回しました。
+- 11-24：参加しました。主催の runner が cloud で動くことを確かめました。
+  - TPU の kernel で v1 を出そうとして、3 つの壁に当たりました。
+    1. TPU のイメージに `grpc_tools` が無い → 私用 dataset `yasunorim/gga-wheels` に grpcio-tools・grpcio を入れ、kernel の頭で、イメージの protobuf に合う版を入れるようにしました。
+    2. CPU のセッションは同時に 5 本まで（Santa の shard 4 本で埋まる）。
+    3. TPU のセッションは同時に 1 本までで、調べるための kernel（`gga-probe-tpu`）が TPU の空き待ちで枠を使っています。
+  - v2：メニューのボタン検出を足しました。手元 1 分で Cavebots が設定画面で止まらず、戦闘に入るようになりました。調べる kernel が終わりしだい、v2 を TPU で出します。
+- **Kaggle のセッションの上限**：CPU は 5 本、TPU は 1 本です（11-24 に push のエラーで確認）。TPU の kernel は 1 本ずつ出し、待ち（queued）が長いことがあります。
