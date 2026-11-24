@@ -1,0 +1,60 @@
+request: wheels3
+run: 45396514757  status: success  action: dataset  dir: gga/datasets/grpcwheels  submit: no
+kernel:   version: 
+memo: 私用 dataset gga-wheels を作る：grpcio-tools・grpcio（Python 3.10〜3.13、protobuf 4 用 1.62.3 と 5 以上用 1.71.0）と setuptools。TPU のイメージに grpc_tools が無く、推論サーバが起動できないため
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Starting upload for file grpcio-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.67M [00:00<?, ?B/s] 11%|█         | 640k/5.67M [00:00<00:00, 5.83MB/s]100%|██████████| 5.67M/5.67M [00:00<00:00, 10.9MB/s]
+Upload successful: grpcio-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/692 [00:00<?, ?B/s]100%|██████████| 692/692 [00:00<00:00, 1.70kB/s]
+Upload successful: prepare.sh (692B)
+Starting upload for file grpcio-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.67M [00:00<?, ?B/s] 40%|███▉      | 2.27M/5.67M [00:00<00:00, 16.5MB/s]100%|██████████| 5.67M/5.67M [00:00<00:00, 12.4MB/s]
+Upload successful: grpcio-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file grpcio_tools-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s] 54%|█████▎    | 1.27M/2.36M [00:00<00:00, 12.0MB/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 5.19MB/s]
+Upload successful: grpcio_tools-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file grpcio-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.29M [00:00<?, ?B/s] 19%|█▉        | 1.03M/5.29M [00:00<00:00, 10.5MB/s]100%|██████████| 5.29M/5.29M [00:00<00:00, 11.2MB/s]
+Upload successful: grpcio-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file grpcio_tools-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s] 72%|███████▏  | 1.94M/2.68M [00:00<00:00, 12.9MB/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 5.65MB/s]
+Upload successful: grpcio_tools-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file grpcio-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.24M [00:00<?, ?B/s] 63%|██████▎   | 3.31M/5.24M [00:00<00:00, 24.8MB/s]100%|██████████| 5.24M/5.24M [00:00<00:00, 11.4MB/s]
+Upload successful: grpcio-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file grpcio-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.64M [00:00<?, ?B/s] 27%|██▋       | 1.50M/5.64M [00:00<00:00, 12.0MB/s] 68%|██████▊   | 3.84M/5.64M [00:00<00:00, 18.0MB/s]100%|█████████▉| 5.62M/5.64M [00:00<00:00, 17.3MB/s]100%|██████████| 5.64M/5.64M [00:00<00:00, 7.81MB/s]
+Upload successful: grpcio-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file grpcio-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.64M [00:00<?, ?B/s] 29%|██▉       | 1.64M/5.64M [00:00<00:00, 13.0MB/s]100%|██████████| 5.64M/5.64M [00:00<00:00, 11.4MB/s]
+Upload successful: grpcio-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file grpcio_tools-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 5.52MB/s]
+Upload successful: grpcio_tools-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file grpcio_tools-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s] 15%|█▍        | 400k/2.68M [00:00<00:00, 3.97MB/s] 80%|███████▉  | 2.14M/2.68M [00:00<00:00, 11.2MB/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 4.77MB/s]
+Upload successful: grpcio_tools-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file grpcio-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.29M [00:00<?, ?B/s]  9%|▉         | 480k/5.29M [00:00<00:01, 4.88MB/s]100%|██████████| 5.29M/5.29M [00:00<00:00, 11.6MB/s]
+Upload successful: grpcio-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file grpcio_tools-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s] 50%|████▉     | 1.33M/2.68M [00:00<00:00, 12.5MB/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 6.14MB/s]
+Upload successful: grpcio_tools-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file .gitignore
+  0%|          | 0.00/6.00 [00:00<?, ?B/s]100%|██████████| 6.00/6.00 [00:00<00:00, 13.9B/s]
+Upload successful: .gitignore (6B)
+Starting upload for file grpcio_tools-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s] 21%|██        | 512k/2.36M [00:00<00:00, 5.06MB/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 4.83MB/s]
+Upload successful: grpcio_tools-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file setuptools-84.2.1-py3-none-any.whl
+  0%|          | 0.00/856k [00:00<?, ?B/s]100%|██████████| 856k/856k [00:00<00:00, 1.99MB/s]
+Upload successful: setuptools-84.2.1-py3-none-any.whl (856KB)
+Starting upload for file grpcio_tools-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s] 66%|██████▌   | 1.56M/2.36M [00:00<00:00, 14.7MB/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 5.36MB/s]
+Upload successful: grpcio_tools-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Your private Dataset is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/gga-wheels
+
+output files:
