@@ -1,4 +1,4 @@
-"""Brief-reading explorer (ours, v3): no model, CPU only.
+"""Brief-reading explorer (ours, v4): no model, CPU only.
 
 What it does, per game:
 - Reads info["controls"] and info["description"] to pick its input families: arrow keys / WASD held (real-time
@@ -32,6 +32,7 @@ except Exception:  # pragma: no cover
 STUCK_S = 2.5          # a screen this long unchanged is treated as a menu / game over
 DIFF_STILL = 1.2       # mean absolute grey difference (0-255) below which two frames count as the same
 RESTARTS = ("reload", "relaunch")
+SALIENT_P = 0.75       # share of clicks aimed at rare-coloured cells (objects) rather than uniform
 ACTIVE_RESET_S = 10.0  # a screen busy this long is a new phase (play): menu spots clicked before may be clicked again
 
 
@@ -83,6 +84,31 @@ def _menu_spots(jpeg: bytes, w: int, h: int):
         cx = sum(i * c for i, c in enumerate(cols)) / tot
         spots.append((int((cx + 0.5) * w / 160), int(((a + b) / 2) * h / 100)))
     return spots[:8]
+
+
+def _salient_cells(jpeg: bytes, gw: int = 40, gh: int = 25):
+    """Cells of a gw x gh grid weighted by how rare their colour is on this screen. Backgrounds (rock, grass, sky,
+    floor) are the common colours; objects (blocks next to a tunnel, units, enemies, items, buttons) are the rare
+    ones, so clicks drawn from these weights land on things far more often than uniform clicks."""
+    if Image is None or not jpeg:
+        return None
+    try:
+        im = Image.open(io.BytesIO(jpeg)).convert("RGB").resize((gw, gh))
+    except Exception:
+        return None
+    px = list(im.getdata()) if not hasattr(im, "get_flattened_data") else list(im.get_flattened_data())
+    if px and not isinstance(px[0], tuple):
+        px = [tuple(px[i:i + 3]) for i in range(0, len(px), 3)]
+    keys = [(r >> 5, g >> 5, b >> 5) for r, g, b in px]
+    cnt: dict = {}
+    for k in keys:
+        cnt[k] = cnt.get(k, 0) + 1
+    n = len(keys)
+    w = [0.0 if cnt[k] > 0.25 * n else 1.0 / cnt[k] for k in keys]
+    tot = sum(w)
+    if tot <= 0:
+        return None
+    return gw, gh, w, tot
 
 
 class Brief:
@@ -144,6 +170,7 @@ class Agent:
         self.sweep_i = 0
         self.tried: set = set()
         self.w = self.h = None
+        self.salient = None
 
     def _families(self):
         b = self.brief
@@ -174,8 +201,21 @@ class Agent:
         return keys
 
     def _xy(self):
-        # board-ish area: keep away from the very edges (edge scrolling, letterbox bars)
-        return (int(self.w * self.rng.uniform(0.12, 0.88)), int(self.h * self.rng.uniform(0.12, 0.88)))
+        """A click target: mostly a rare-coloured cell of the current screen (an object), sometimes uniform.
+        Keeps away from the very edges (edge scrolling, letterbox bars)."""
+        r = self.rng
+        sal = self.salient
+        if sal is not None and r.random() < SALIENT_P:
+            gw, gh, w, tot = sal
+            t = r.random() * tot
+            for i, wi in enumerate(w):
+                t -= wi
+                if t <= 0:
+                    break
+            cx, cy = (i % gw + r.random()) / gw, (i // gw + r.random()) / gh
+            cx, cy = min(max(cx, 0.03), 0.97), min(max(cy, 0.03), 0.97)
+            return int(self.w * cx), int(self.h * cy)
+        return (int(self.w * r.uniform(0.12, 0.88)), int(self.h * r.uniform(0.12, 0.88)))
 
     # ---- action builders ------------------------------------------------------------------------------------
     def _act(self, fam):
@@ -302,5 +342,7 @@ class Agent:
         if (obs.program_left_s or 0) > 0.25:
             return Action("skip", {})
         fam = self._choose()
+        if fam in ("aim_fire", "click_rand", "right_click", "build"):
+            self.salient = _salient_cells(obs.image)
         self.arm = fam
         return self._act(fam)
