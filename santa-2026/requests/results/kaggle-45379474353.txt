@@ -1,0 +1,37 @@
+request: c3
+run: 45379474353  status: success  shards: 4  minutes: 650.0  submit: yes
+memo: 部品「変わったばかりの題を先に探す」の初回。前の pool より短くなった題と fresh_seed.txt（11-23→11-24 に公開側で縮んだ 15 題・16 命令）を fresh.txt にし、shard 4 本（各 4 コア・650 分）が先に 12 回ずつ探す。根拠は goodpjw2008 の実測（変わったばかりの解は 11.8 命令/時、収束した解は 1.8）。効果量の見込み：0〜3 命令（公開の線−1 なら 299→約 220 位で銅の圏内）。提出は pool が今の最良（128,488）より短いときだけ
+
+shard 0: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-0 has status "KernelWorkerStatus.COMPLETE"
+shard 1: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-1 has status "KernelWorkerStatus.COMPLETE"
+shard 2: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-2 has status "KernelWorkerStatus.COMPLETE"
+shard 3: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-3 has status "KernelWorkerStatus.COMPLETE"
+shard 4: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 5: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 6: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 7: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 8: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 9: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+puzzles by source: {'prev': 1000}
+fresh puzzles (shorter than the previous pool): 0, gain 0
+fresh puzzles for the shards (with carry-over): 15
+pool score: 128488 (previous pool 128488, public only 128488)
+  0%|          | 0.00/2.70k [00:00<?, ?B/s]100%|██████████| 2.70k/2.70k [00:00<00:00, 4.69kB/s]
+Upload successful: tools.zip (3KB)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/santa26-work
+best submitted: 1000000000, pool: 128488
+  0%|          | 0.00/1.99M [00:00<?, ?B/s]100%|██████████| 1.99M/1.99M [00:00<00:00, 3.32MB/s]
+Successfully submitted to Santa 2026 - The Elf CalculatorKernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-0
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-1
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-2
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-3
