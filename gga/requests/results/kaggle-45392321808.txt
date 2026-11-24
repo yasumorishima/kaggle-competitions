@@ -1,0 +1,26 @@
+request: v1tpu
+run: 45392321808  status: failure  action: kernel  dir: gga/kernels/sub  submit: yes
+kernel: yasunorim/gga-sub  version: 1
+memo: v1：自前の規則だけの探索 agent（説明文を読んで始め方と操作の種類を決める、画面が止まったら開け直す、画面をよく変える操作を多めに選ぶ）。確かめる仮説は 2 つ：(1) TPU（TpuV5E8）の kernel で提出が通るか、(2) モデルなしの規則だけでどこまで取れるか。効果量の見込み：0.02〜0.05（手元 1 分：Asteroid $390/5760、Off Line 6/781、Blarglike 2/902、Cavebots は設定画面で止まる）
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-sub
+
+output files:
+total 12
+drwxr-xr-x  2 runner runner 4096 Nov 24 12:20 .
+drwxrwxrwt 13 root   root   4096 Nov 24 12:20 ..
+-rw-r--r--  1 runner runner 1595 Nov 24 12:20 gga-sub.log
+[{"stream_name":"stdout","time":1.66573724,"data":"harness /kaggle/input/competitions/generalist-gaming-agent\n"}
+,{"stream_name":"stderr","time":2.065288243,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":2.065348443,"data":"  File \"/kaggle/src/script.py\", line 261, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":2.065354432,"data":"    from kaggle_evaluation.gga.gga_inference_server import GGAInferenceServer\n"}
+,{"stream_name":"stderr","time":2.065358852,"data":"  File \"/kaggle/input/competitions/generalist-gaming-agent/kaggle_evaluation/__init__.py\", line 15, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":2.066538489,"data":"    _proto_compiler.ensure_compiled()\n"}
+,{"stream_name":"stderr","time":2.06654774,"data":"  File \"/kaggle/input/competitions/generalist-gaming-agent/kaggle_evaluation/core/proto_compiler.py\", line 68, in ensure_compiled\n"}
+,{"stream_name":"stderr","time":2.067891876,"data":"    _compile(output_dir)\n"}
+,{"stream_name":"stderr","time":2.067901316,"data":"  File \"/kaggle/input/competitions/generalist-gaming-agent/kaggle_evaluation/core/proto_compiler.py\", line 30, in _compile\n"}
+,{"stream_name":"stderr","time":2.069190043,"data":"    import grpc_tools\n"}
+,{"stream_name":"stderr","time":2.069198333,"data":"ModuleNotFoundError: No module named 'grpc_tools'\n"}
+,{"stream_name":"stderr","time":6.921853988,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":
