@@ -1,0 +1,16 @@
+{
+  "id": "yasunorim/gga-probe-tpu",
+  "title": "gga-probe-tpu",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": true,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "TpuV5E8"
+}
