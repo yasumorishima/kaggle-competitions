@@ -51,4 +51,5 @@
     2. CPU のセッションは同時に 5 本まで（Santa の shard 4 本で埋まる）。
     3. TPU のセッションは同時に 1 本までで、調べるための kernel（`gga-probe-tpu`）が TPU の空き待ちで枠を使っています。
   - v2：メニューのボタン検出を足しました。手元 1 分で Cavebots が設定画面で止まらず、戦闘に入るようになりました。調べる kernel が終わりしだい、v2 を TPU で出します。
+  - 13:58 UTC：調査の kernel はまだ TPU の空き待ち（12:22 から 1.5 時間以上）。kernel を止める API（`cancel-session`）は session id が要り、公開の API からは取れないため、待ちを続けます。今週の枠：GPU 27.7／30 時間（使い切りに近い）、TPU 0.0／20 時間。GGA は TPU で進めます。
 - **Kaggle のセッションの上限**：CPU は 5 本、TPU は 1 本です（11-24 に push のエラーで確認）。TPU の kernel は 1 本ずつ出し、待ち（queued）が長いことがあります。
