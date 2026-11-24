@@ -1,0 +1,9 @@
+request: v1cpu
+run: 45392660393  status: failure  action: kernel  dir: gga/kernels/subcpu  submit: yes
+kernel: yasunorim/gga-sub-cpu  version: 
+memo: v1 を CPU の kernel で出し直す（TPU のイメージには grpc_tools が無く、推論サーバの起動で止まった。v1 はモデルを使わないので CPU で GPU 枠を使わない）。確かめる仮説：モデルなしの規則だけでどこまで取れるか。効果量の見込み：0.02〜0.05
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel push error: Maximum batch CPU session count of 5 reached.
+
+output files:

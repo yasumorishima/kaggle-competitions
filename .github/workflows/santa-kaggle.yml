@@ -181,10 +181,20 @@ jobs:
           PY
           )
           echo "best submitted: $BEST, pool: $SCORE" | tee -a /tmp/out.txt
-          if [ "$SCORE" -lt "$BEST" ]; then
+          # user rule (2026-11-24): at most 5 Santa submissions a day (UTC); counted in requests/submits_day.txt
+          TODAY=$(date -u +%F); CNT=0
+          if [ -f santa-2026/requests/submits_day.txt ] && [ "$(cut -d' ' -f1 santa-2026/requests/submits_day.txt)" = "$TODAY" ]; then
+            CNT=$(cut -d' ' -f2 santa-2026/requests/submits_day.txt)
+          fi
+          echo "submissions today ($TODAY): $CNT of 5" | tee -a /tmp/out.txt
+          if [ "$CNT" -ge 5 ]; then
+            echo "not submitted: the daily limit of 5 is used" | tee -a /tmp/out.txt
+          elif [ "$SCORE" -lt "$BEST" ]; then
             R=$(kaggle competitions submit "$COMP" -f /tmp/santa/work/pool.csv -m "$MSG pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2)
             echo "$R" | tee -a /tmp/out.txt
-            case "$R" in *Successfully*) echo "$SCORE" > santa-2026/requests/best_submitted.txt ;; esac
+            case "$R" in *Successfully*)
+              echo "$SCORE" > santa-2026/requests/best_submitted.txt
+              echo "$TODAY $((CNT + 1))" > santa-2026/requests/submits_day.txt ;; esac
           else
             echo "not submitted: pool does not beat the best submitted score" | tee -a /tmp/out.txt
           fi
@@ -224,6 +234,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$out"
           [ -f santa-2026/requests/best_submitted.txt ] && git add santa-2026/requests/best_submitted.txt
+          [ -f santa-2026/requests/submits_day.txt ] && git add santa-2026/requests/submits_day.txt
           git commit -q -m "santa-2026: kaggle outcome ${RUN_ID}"
           for i in 1 2 3 4 5; do
             git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
