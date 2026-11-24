@@ -1,0 +1,9 @@
+request: probe1
+run: 45392799867  status: failure  action: kernel  dir: gga/kernels/probe  submit: no
+kernel: yasunorim/gga-probe-tpu  version: 1
+memo: TPU のイメージの調査：Python・grpc・grpc_tools・protobuf・polars・PIL・jax・keras・torch_xla などの版。推論サーバに要る grpc_tools を私用 dataset の wheel で渡すため、版を合わせる
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-probe-tpu
+
+output files:
