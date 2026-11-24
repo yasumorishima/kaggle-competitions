@@ -195,6 +195,8 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           for i in $(seq 0 $((SHARDS - 1))); do
+            ST=$(kaggle kernels status "$OWNER/santa26-shard-$i" 2>&1 || true)
+            case "$ST" in *RUNNING*|*QUEUED*) echo "shard $i: still running, not pushed" | tee -a /tmp/out.txt; continue ;; esac
             D=/tmp/shard$i; mkdir -p $D
             sed -e "s|__SHARD__|$i/$SHARDS|" -e "s|__MINUTES__|$MINUTES|" -e "s|__PLAN__|$PLAN|" santa-2026/kernels/shard/main.py > $D/main.py
             printf '{"id": "%s/santa26-shard-%s", "title": "santa26-shard-%s", "code_file": "main.py", "language": "python", "kernel_type": "script", "is_private": true, "enable_gpu": false, "enable_tpu": false, "enable_internet": false, "dataset_sources": ["%s/santa26-work"], "competition_sources": ["%s"], "kernel_sources": []}\n' "$OWNER" $i $i "$OWNER" "$COMP" > $D/kernel-metadata.json
