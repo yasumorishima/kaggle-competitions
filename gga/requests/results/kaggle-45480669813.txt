@@ -1,0 +1,40 @@
+request: v4cpu
+run: 45480669813  status: success  action: kernel  dir: gga/kernels/subcpu  submit: yes
+kernel: yasunorim/gga-sub-cpu  version: 2
+memo: v4＝v2 に 2 部品を束ねた版（自前・モデルなし・CPU の kernel）。(1) v3：画面が 10 秒動いたら試し済みのボタンを忘れる→敗北・結果画面のあと OK→PLAY でやり直せる（手元の Cavebots 10 分で戦闘 1 回→3 回）。(2) v4：クリックの 75% を画面の珍しい色の場所（物・敵・ブロック）に向ける（Cavebots で初めて掘る・ボットを作るが出た）。確かめる仮説：v2cpu との対で、やり直しと狙ったクリックが LB を上げるか。効果量の見込み：+0.01〜0.03（Cavebots の最長生存が戦闘の回数で伸びる分と、Asteroid の照準）。手元 1 本では生存秒数の差は雑音の幅（97〜166 秒）。
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-sub-cpu
+[{"stream_name":"stdout","time":2.119280622,"data":"harness /kaggle/input/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":9.105770687,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":9.317768883,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":12.503393852,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":12.503432038,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":12.900109396,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":12.900136821,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":13.963653414,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":15.441017801,"data":"[NbConvertApp] Writing 363245 bytes to __results__.html\n"}
+]Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-11-24 20:26:44.180000,"v4cpu v2 + retry after defeat + clicks aimed at rare-coloured objects (ours, no model, CPU kernel) [run 45480669813]",SubmissionStatus.PENDING,,
+submission.parquet,2026-11-24 15:32:24.093000,"v2cpu rule explorer + menu button detection (ours, no model, CPU kernel) [run 45426442612]",SubmissionStatus.PENDING,,
+
+output files:
+total 24
+drwxr-xr-x  3 runner runner 4096 Nov 24 20:26 .
+drwxrwxrwt 12 root   root   4096 Nov 24 20:26 ..
+drwxr-xr-x  2 runner runner 4096 Nov 24 20:26 __pycache__
+-rw-r--r--  1 runner runner   27 Nov 24 20:26 agent.py
+-rw-r--r--  1 runner runner 1269 Nov 24 20:26 gga-sub-cpu.log
+-rw-r--r--  1 runner runner  853 Nov 24 20:26 submission.parquet
+[{"stream_name":"stdout","time":2.119280622,"data":"harness /kaggle/input/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":9.105770687,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":9.317768883,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":12.503393852,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":12.503432038,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":12.900109396,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":12.900136821,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":13.963653414,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":15.441017801,"data":"[NbConvertApp] Writing 363245 bytes to __results__.html\n"}
+]

@@ -1,0 +1,100 @@
+name: Santa 2026 GHA search
+
+# More free search for Santa 2026: 16 standard public runners (4 cores each) run our search/runner.py
+# for about 5.5 hours after each cycle of santa-kaggle.yml, alongside the Kaggle shard kernels.
+#
+# Programs never appear in this public repo or its logs:
+#  - the pool comes from our private dataset (yasunorim/santa26-work), downloaded in a step that holds the
+#    Kaggle token; the private key gha_key.pem in that dataset is deleted in the same step;
+#  - the public C++ engines (third_party/, Apache-2.0) run in a later step with no secret in its environment
+#    and the checkout keeps no git credentials;
+#  - the results are encrypted with the public key gha_pub.pem (AES-256 key wrapped with RSA) before they are
+#    uploaded as artifacts; the next cycle of santa-kaggle.yml downloads and decrypts them.
+# Logs show only puzzle ids and lengths.
+
+on:
+  workflow_run:
+    workflows: ["Santa 2026 Kaggle"]
+    types: [completed]
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'santa-2026/requests/gha.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: santa-gha-search
+  cancel-in-progress: false
+
+env:
+  COMP: santa-2026
+  OWNER: yasunorim
+  NSHARD: 16
+  MINUTES: 320
+
+jobs:
+  search:
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download the pool (the only step with the Kaggle token)
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          pip install -q six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+          W=/tmp/santa; mkdir -p $W/comp $W/work
+          kaggle competitions download "$COMP" -p $W/comp >/dev/null && (cd $W/comp && unzip -q -o *.zip)
+          kaggle datasets download "$OWNER/santa26-work" -p $W/work --unzip >/dev/null 2>&1
+          rm -f $W/work/gha_key.pem
+          test -f $W/work/gha_pub.pem && test -f $W/work/pool.csv
+          rm -rf ~/.kaggle ~/.config/kaggle
+
+      - name: Build the public engines and search (no secrets)
+        run: |
+          W=/tmp/santa; B=/tmp/bin; mkdir -p $B $W/out
+          T=santa-2026/third_party
+          for s in anneal anneal_seeded incremental incremental_seeded quartet; do
+            g++ -O3 -march=native -std=c++17 $T/wangjakie/$s.cpp -o $B/$s &
+          done
+          g++ -O3 -march=native -std=c++17 $T/atakan/elf_multiplier_frontier.cpp -o $B/frontier &
+          g++ -O3 -march=native -std=c++17 $T/atakan/elf_interface_closure.cpp -o $B/closure &
+          wait; ls $B
+          FRESH=""; [ -f $W/work/fresh.txt ] && FRESH="--fresh-ids $W/work/fresh.txt"
+          python santa-2026/search/runner.py --pool $W/work/pool.csv --puzzles $W/comp/puzzles.csv --bin $B \
+            --out $W/out/improved.csv --archive $W/work/archive.jsonl --archive-out $W/out/archive_new.csv \
+            --shard ${{ matrix.shard }}/$NSHARD --minutes $MINUTES --jobs $(nproc) $FRESH 2>&1 | tee $W/out/search.log | grep -v "jobs=" | tail -40
+          grep "jobs=" $W/out/search.log | tail -1
+
+      - name: Encrypt the results
+        if: always()
+        run: |
+          W=/tmp/santa; mkdir -p /tmp/art
+          [ -d $W/out ] || exit 0
+          K=$(openssl rand -hex 32)
+          tar czf /tmp/out.tgz -C $W/out .
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass "pass:$K" -in /tmp/out.tgz -out /tmp/art/out.enc
+          printf %s "$K" | openssl pkeyutl -encrypt -pubin -inkey $W/work/gha_pub.pem -out /tmp/art/key.enc
+          rm -f /tmp/out.tgz
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: santa-gha-${{ matrix.shard }}
+          path: /tmp/art/
+          retention-days: 3
+          if-no-files-found: ignore

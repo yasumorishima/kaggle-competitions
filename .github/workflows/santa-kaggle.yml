@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: santa-kaggle
@@ -82,6 +83,7 @@ jobs:
         if: env.SKIP != 'yes'
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
           W=/tmp/santa; mkdir -p $W/comp $W/prev $W/shards $W/public $W/work
@@ -92,6 +94,27 @@ jobs:
             echo "shard $i: $S" | tee -a /tmp/out.txt
             case "$S" in *COMPLETE*|*ERROR*|*CANCEL*) kaggle kernels output "$OWNER/santa26-shard-$i" -p $W/shards/$i >/dev/null 2>&1 || true ;; esac
           done
+          # what each shard's search did (its log shows ids and lengths only)
+          for i in $(seq 0 9); do
+            [ -d $W/shards/$i ] && grep -h -o -E "fresh ids in this shard: [0-9]+|done: jobs [0-9]+, improved [0-9]+ puzzles, gain [0-9]+" $W/shards/$i/*.log 2>/dev/null | tail -2 | sed "s/^/shard $i log: /" | tee -a /tmp/out.txt || true
+          done
+          # the GHA search runs (santa-gha-search.yml) of the last 36 hours: encrypted artifacts, decrypted with our key
+          mkdir -p $W/gha $W/gha_raw
+          if [ -f $W/prev/gha_key.pem ]; then
+            gh run list -R "$GITHUB_REPOSITORY" -w santa-gha-search.yml --status completed -L 6 --json databaseId,createdAt \
+              -q '.[] | select((now - (.createdAt | fromdateiso8601)) < 129600) | .databaseId' > /tmp/gha_runs.txt 2>/dev/null || true
+            while read id; do gh run download "$id" -R "$GITHUB_REPOSITORY" -D $W/gha_raw/$id >/dev/null 2>&1 || true; done < /tmp/gha_runs.txt
+            n=0
+            for d in $W/gha_raw/*/*/; do
+              [ -f "$d/key.enc" ] || continue
+              K=$(openssl pkeyutl -decrypt -inkey $W/prev/gha_key.pem -in "$d/key.enc") || continue
+              n=$((n + 1)); mkdir -p $W/gha/$n
+              openssl enc -d -aes-256-cbc -pbkdf2 -pass "pass:$K" -in "$d/out.enc" | tar xz -C $W/gha/$n || true
+            done
+            echo "gha runs: $(wc -l < /tmp/gha_runs.txt), shard outputs decrypted: $n" | tee -a /tmp/out.txt
+            cat $W/gha/*/search.log 2>/dev/null | grep -E "^done:" | python3 -c "import sys,re;L=[list(map(int,re.findall(r'\d+',l))) for l in sys.stdin];print(f'gha search: {len(L)} shards, jobs {sum(x[0] for x in L)}, improved {sum(x[1] for x in L)}, gain {sum(x[2] for x in L)}')" | tee -a /tmp/out.txt || true
+            find $W/gha -name search.log -delete
+          fi
           grep -v '^#' santa-2026/requests/public_sources.txt | while read kind ref; do
             [ -n "$kind" ] || continue
             d=$W/public/$(echo "$ref" | tr / _)
@@ -104,7 +127,7 @@ jobs:
           fi
           PREV=""; [ -f $W/prev/pool.csv ] && PREV="$W/prev/pool.csv $W/prev/archive_prev.csv"
           python -I santa-2026/tools/merge.py --puzzles $W/comp/puzzles.csv --out $W/work/pool.csv \
-            --archive $W/work/archive.jsonl --report $W/work/sources.csv $PREV $W/shards $W/public 2>&1 | tee /tmp/merge.txt | tail -4
+            --archive $W/work/archive.jsonl --report $W/work/sources.csv $PREV $W/shards $W/gha $W/public 2>&1 | tee /tmp/merge.txt | tail -4
           SCORE=$(grep -oE 'merged score [0-9]+' /tmp/merge.txt | grep -oE '[0-9]+')
           PREVSCORE=""; [ -f $W/prev/pool.csv ] && PREVSCORE=$(python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/prev/pool.csv | grep -oE 'score [0-9]+' | grep -oE '[0-9]+')
           python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/work/pool.csv
@@ -147,6 +170,10 @@ jobs:
           W=/tmp/santa/work
           cp -r santa-2026/search santa-2026/tools santa-2026/third_party $W/
           find $W -name '__pycache__' -prune -exec rm -rf {} +
+          # the key pair for the GHA search: kept in the private dataset only; the search jobs delete the private half
+          if [ -f /tmp/santa/prev/gha_key.pem ]; then cp /tmp/santa/prev/gha_key.pem $W/
+          else openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out $W/gha_key.pem 2>/dev/null; fi
+          openssl pkey -in $W/gha_key.pem -pubout -out $W/gha_pub.pem
           printf '{"title": "santa26-work", "id": "%s/santa26-work", "licenses": [{"name": "CC0-1.0"}]}\n' "$OWNER" > $W/dataset-metadata.json
           if kaggle datasets status "$OWNER/santa26-work" >/dev/null 2>&1; then
             kaggle datasets version -p $W -m "pool $SCORE [run ${GITHUB_RUN_ID}]" -r zip 2>&1 | tail -3 | tee -a /tmp/out.txt
