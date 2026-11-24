@@ -174,12 +174,17 @@ jobs:
                   if k and "public" in k.lower() and "score" in k.lower():
                       try: s.append(float(v))
                       except (TypeError, ValueError): pass
+          # the submissions list from kaggle 2.0.0 comes back empty here, so we also keep our own record
+          try: s.append(float(open("santa-2026/requests/best_submitted.txt").read().split()[0]))
+          except (OSError, IndexError, ValueError): pass
           print(int(min(s)) if s else 10**9)
           PY
           )
           echo "best submitted: $BEST, pool: $SCORE" | tee -a /tmp/out.txt
           if [ "$SCORE" -lt "$BEST" ]; then
-            kaggle competitions submit "$COMP" -f /tmp/santa/work/pool.csv -m "$MSG pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2 | tee -a /tmp/out.txt
+            R=$(kaggle competitions submit "$COMP" -f /tmp/santa/work/pool.csv -m "$MSG pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2)
+            echo "$R" | tee -a /tmp/out.txt
+            case "$R" in *Successfully*) echo "$SCORE" > santa-2026/requests/best_submitted.txt ;; esac
           else
             echo "not submitted: pool does not beat the best submitted score" | tee -a /tmp/out.txt
           fi
@@ -216,6 +221,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$out"
+          [ -f santa-2026/requests/best_submitted.txt ] && git add santa-2026/requests/best_submitted.txt
           git commit -q -m "santa-2026: kaggle outcome ${RUN_ID}"
           for i in 1 2 3 4 5; do
             git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
