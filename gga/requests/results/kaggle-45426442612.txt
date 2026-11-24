@@ -1,0 +1,39 @@
+request: v2cpu
+run: 45426442612  status: success  action: kernel  dir: gga/kernels/subcpu  submit: yes
+kernel: yasunorim/gga-sub-cpu  version: 1
+memo: v2（自前の規則だけの探索 agent＋メニューのボタン検出）を CPU の kernel で出す（TPU は調査 kernel が 3 時間以上空き待ちで枠が埋まっているため）。v1 との差は 1 部品で、画面から文字・ボタンの行を検出し、題名の次（PLAY・START）から順にクリックする。手元 1 分で、Cavebots は設定画面で止まらずに戦闘に入るようになった（点は生き残った秒数）。確かめる仮説：(1) 提出が通って LB に点が出るか、(2) 規則だけでどこまで取れるか。効果量の見込み：0.03〜0.08（Cavebots が 0→0.05〜0.2）
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-sub-cpu
+[{"stream_name":"stdout","time":1.488882216,"data":"harness /kaggle/input/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":6.225277485,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":6.371479335,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":9.217942921,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":9.217979786,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":9.533412808,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":9.533442249,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":10.543883589,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":11.867911873,"data":"[NbConvertApp] Writing 350027 bytes to __results__.html\n"}
+]Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-11-24 15:32:24.093000,"v2cpu rule explorer + menu button detection (ours, no model, CPU kernel) [run 45426442612]",SubmissionStatus.PENDING,,
+
+output files:
+total 24
+drwxr-xr-x  3 runner runner 4096 Nov 24 15:32 .
+drwxrwxrwt 12 root   root   4096 Nov 24 15:32 ..
+drwxr-xr-x  2 runner runner 4096 Nov 24 15:32 __pycache__
+-rw-r--r--  1 runner runner   27 Nov 24 15:32 agent.py
+-rw-r--r--  1 runner runner 1265 Nov 24 15:32 gga-sub-cpu.log
+-rw-r--r--  1 runner runner  853 Nov 24 15:32 submission.parquet
+[{"stream_name":"stdout","time":1.488882216,"data":"harness /kaggle/input/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":6.225277485,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":6.371479335,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":9.217942921,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":9.217979786,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":9.533412808,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":9.533442249,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":10.543883589,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":11.867911873,"data":"[NbConvertApp] Writing 350027 bytes to __results__.html\n"}
+]
