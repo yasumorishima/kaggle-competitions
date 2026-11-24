@@ -118,6 +118,23 @@ jobs:
               s = r["source"].split("/tmp/santa/")[1].split("/")[0]; c[s] += 1
           print("puzzles by source:", dict(c))
           PY
+          # fresh.txt: puzzles that got shorter since the previous pool (public or ours); shards search these first
+          python - <<'PY' >> /tmp/out.txt
+          import csv, json, os
+          W = "/tmp/santa"
+          def lens(f):
+              return {r["id"]: len(json.loads(r["program"])) for r in csv.DictReader(open(f))} if os.path.exists(f) else {}
+          new, old = lens(f"{W}/work/pool.csv"), lens(f"{W}/prev/pool.csv")
+          fresh = sorted(k for k in new if k in old and new[k] < old[k])
+          print(f"fresh puzzles (shorter than the previous pool): {len(fresh)}, gain {sum(old[k] - new[k] for k in fresh)}")
+          # the previous cycle's fresh ids stay fresh one more cycle; requests/fresh_seed.txt adds ids by hand
+          carry = set()
+          for f in (f"{W}/prev/fresh.txt", "santa-2026/requests/fresh_seed.txt"):
+              if os.path.exists(f): carry |= {l.strip() for l in open(f) if l.strip() in new}
+          fresh = sorted(set(fresh) | carry)
+          open(f"{W}/work/fresh.txt", "w").write("".join(k + "\n" for k in fresh))
+          print(f"fresh puzzles for the shards (with carry-over): {len(fresh)}")
+          PY
           echo "pool score: $SCORE (previous pool ${PREVSCORE:-none}, public only $PUB)" | tee -a /tmp/out.txt
           echo "SCORE=$SCORE" >> $GITHUB_ENV
 
