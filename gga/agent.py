@@ -1,4 +1,4 @@
-"""Brief-reading explorer (ours, v1): no model, CPU only.
+"""Brief-reading explorer (ours, v3): no model, CPU only.
 
 What it does, per game:
 - Reads info["controls"] and info["description"] to pick its input families: arrow keys / WASD held (real-time
@@ -32,6 +32,7 @@ except Exception:  # pragma: no cover
 STUCK_S = 2.5          # a screen this long unchanged is treated as a menu / game over
 DIFF_STILL = 1.2       # mean absolute grey difference (0-255) below which two frames count as the same
 RESTARTS = ("reload", "relaunch")
+ACTIVE_RESET_S = 10.0  # a screen busy this long is a new phase (play): menu spots clicked before may be clicked again
 
 
 def _thumb(jpeg: bytes):
@@ -136,6 +137,7 @@ class Agent:
         self.brief = Brief(obs.info) if obs is not None else None
         self.prev = None
         self.still_since = None
+        self.active_since = None
         self.queue: list = []
         self.arm = None
         self.arm_stats: dict = {}
@@ -279,8 +281,15 @@ class Agent:
             self.arm = None
         if d < DIFF_STILL:
             self.still_since = obs.elapsed_s if self.still_since is None else self.still_since
+            if self.still_since is not None and obs.elapsed_s - self.still_since > 1.0:
+                self.active_since = None
         else:
             self.still_since = None
+            self.active_since = obs.elapsed_s if self.active_since is None else self.active_since
+            if obs.elapsed_s - self.active_since > ACTIVE_RESET_S and self.tried:
+                # play went on for a while: the next menu / result screen may need the same buttons again (PLAY, OK)
+                self.tried.clear()
+                self.sweep_i = 0
 
         if self.queue:
             return self._opener_action(self.queue.pop(0))
