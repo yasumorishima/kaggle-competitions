@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/gga-sub",
-  "title": "gga-sub",
+  "id": "yasunorim/gga-probe-tpu",
+  "title": "gga-probe-tpu",
   "code_file": "main.py",
   "language": "python",
   "kernel_type": "script",
