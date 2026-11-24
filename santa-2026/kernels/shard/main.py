@@ -26,6 +26,7 @@ os.makedirs(work, exist_ok=True)
 src = os.path.join(root, "third_party")
 builds = {s: f"wangjakie/{s}.cpp" for s in ("anneal", "anneal_seeded", "incremental", "incremental_seeded", "quartet",
                                              "compact_rotate", "compact_mask", "baseline_mask")}
+builds.update(frontier="atakan/elf_multiplier_frontier.cpp", closure="atakan/elf_interface_closure.cpp")
 procs = [subprocess.Popen(["g++", "-O3", "-march=native", "-std=c++17", os.path.join(src, f), "-o", os.path.join(work, s)])
          for s, f in builds.items()]
 for p in procs: p.wait()

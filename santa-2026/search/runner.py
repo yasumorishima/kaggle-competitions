@@ -26,6 +26,8 @@ ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g. in the public frontier): searched first")
 ap.add_argument("--fresh-repeat", type=int, default=12)
 ap.add_argument("--plan", default="anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000")
+ap.add_argument("--fresh-plan", default="frontier:0,frontier:1,frontier:2,closure:0,closure:1,closure:2,anneal_seeded:20000,incremental_seeded:20000",
+                help="strategies for fresh puzzles; frontier:i / closure:i are Atakan's optimizers with config i")
 ap.add_argument("--log", default="")
 a = ap.parse_args()
 
@@ -34,6 +36,11 @@ ids = [l.strip() for l in open(a.ids) if l.strip() in P] if a.ids else sorted(P)
 si, sn = map(int, a.shard.split("/")); ids = ids[si::sn]
 rng = random.Random(a.seed or (time.time_ns() ^ os.getpid()))
 plan = [(s.split(":")[0], int(s.split(":")[1])) for s in a.plan.split(",")]
+fplan = [(s.split(":")[0], int(s.split(":")[1])) for s in a.fresh_plan.split(",")]
+# Atakan Aldemir's optimizers (third_party/atakan, Apache-2.0): the argument sets goodpjw2008 used on changed puzzles.
+ATK = {"frontier": ["8 4200 9 10 9 {salt} 1500", "14 8000 12 13 9 {salt} 3000", "8 4200 9 10 13 {salt} 1500"],
+       "closure": ["90 26 7 {salt} 4150", "92 32 4 {salt} 5250", "100 28 9 {salt} 4950"]}
+fplan = [x for x in fplan if x[0] not in ATK or os.path.exists(os.path.join(a.bin, x[0]))] or plan
 best = {k: POOL[k] for k in ids}; start_len = {k: len(best[k]) for k in ids}
 arch = {k: [] for k in ids}; seen = {k: {json.dumps(best[k])} for k in ids}
 if a.archive and os.path.exists(a.archive):
@@ -48,7 +55,27 @@ if a.archive and os.path.exists(a.archive):
 new_arch = []
 log = open(a.log, "a") if a.log else sys.stdout
 
+def atk_job(k, strat, cfg, seed):
+    s, t, L = P[k]; tg = sorted(set(t)); prog = best[k]
+    case = "\n".join([f"{k} {L} {len(s)} {len(tg)} {len(prog)}", " ".join(map(str, s)), " ".join(map(str, tg))]
+                     + [f"{op} {x} {y} {d}" for op, x, y, d in prog])
+    argv = [os.path.join(a.bin, strat)] + ATK[strat][cfg % len(ATK[strat])].format(salt=seed).split()
+    try:
+        r = subprocess.run(argv, input=case + "\n", capture_output=True, text=True, timeout=1800)
+    except Exception:
+        return k, None
+    lines = r.stdout.splitlines()
+    if not lines or len(lines[0].split()) < 2: return k, None
+    n = int(lines[0].split()[1])
+    try:
+        out = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in (l.split() for l in lines[1:1 + n])]
+        replay(s, t, L, out)
+    except Exception:
+        return k, None
+    return k, out
+
 def job(k, strat, rounds, seed):
+    if strat in ATK: return atk_job(k, strat, rounds, seed)
     s, t, L = P[k]
     r2 = random.Random(seed)
     tapes = [best[k]] + r2.sample(arch[k], min(6, len(arch[k])))
@@ -80,7 +107,7 @@ if a.fresh_ids and os.path.exists(a.fresh_ids):
     print(f"fresh ids in this shard: {len(fids)}", file=log, flush=True)
 def next_task():
     global sweep, step
-    if fresh: k = fresh.pop(0); st, rd = plan[rng.randrange(len(plan))]; return k, st, rd
+    if fresh: k = fresh.pop(0); st, rd = fplan[rng.randrange(len(fplan))]; return k, st, rd
     if not sweep:
         sweep = ids[:]; rng.shuffle(sweep); step += 1
     st, rd = plan[(step - 1) % len(plan)]
