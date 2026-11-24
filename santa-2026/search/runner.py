@@ -23,6 +23,8 @@ ap.add_argument("--minutes", type=float, default=60); ap.add_argument("--jobs", 
 ap.add_argument("--archive", default="", help="jsonl of near-length programs to use as crossover tapes")
 ap.add_argument("--archive-out", default="", help="CSV (id,program; many rows per id) of new near-length programs")
 ap.add_argument("--seed", type=int, default=0)
+ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g. in the public frontier): searched first")
+ap.add_argument("--fresh-repeat", type=int, default=12)
 ap.add_argument("--plan", default="anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000")
 ap.add_argument("--log", default="")
 a = ap.parse_args()
@@ -70,6 +72,12 @@ def job(k, strat, rounds, seed):
 # (every puzzle in turn, cycling through the plan).
 deadline = time.time() + a.minutes * 60; t0 = time.time()
 fresh, sweep, step = [], [], 0
+# A program that just changed still has easy gains near it (goodpjw2008 measured ~12 instructions/hour on fresh
+# programs against ~2 on converged ones), so the puzzles that got shorter since the last cycle go first, many times.
+if a.fresh_ids and os.path.exists(a.fresh_ids):
+    fids = [l.strip() for l in open(a.fresh_ids) if l.strip() in best]
+    fresh = [k for _ in range(a.fresh_repeat) for k in fids]
+    print(f"fresh ids in this shard: {len(fids)}", file=log, flush=True)
 def next_task():
     global sweep, step
     if fresh: k = fresh.pop(0); st, rd = plan[rng.randrange(len(plan))]; return k, st, rd

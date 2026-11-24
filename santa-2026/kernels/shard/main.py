@@ -35,6 +35,8 @@ minutes = MINUTES - (time.time() - T0) / 60
 subprocess.run([sys.executable, runner, "--pool", pool, "--puzzles", puzzles, "--bin", work,
                 "--out", "/kaggle/working/improved.csv", "--archive", archive,
                 "--archive-out", "/kaggle/working/archive_new.csv", "--shard", SHARD,
-                "--minutes", str(minutes), "--jobs", str(os.cpu_count()), "--plan", PLAN], check=True)
+                "--minutes", str(minutes), "--jobs", str(os.cpu_count()), "--plan", PLAN]
+               + (["--fresh-ids", os.path.join(root, "fresh.txt")] if os.path.exists(os.path.join(root, "fresh.txt")) else []),
+               check=True)
 shutil.rmtree(work, ignore_errors=True)
 print("total", f"{(time.time() - T0) / 60:.1f} min", flush=True)
