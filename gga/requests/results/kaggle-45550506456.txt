@@ -1,0 +1,105 @@
+request: w2
+run: 45550506456  status: success  action: dataset  dir: gga/datasets/grpcwheels  submit: no
+kernel:   version: 
+memo: TPU の画像（protobuf 7.37・grpc 1.85.1）に足りない wheel を足す。提出なし
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Starting upload for file grpcio-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.67M [00:00<?, ?B/s]100%|██████████| 5.67M/5.67M [00:00<00:00, 17.1MB/s]
+Upload successful: grpcio-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file prepare.sh
+  0%|          | 0.00/1.48k [00:00<?, ?B/s]100%|██████████| 1.48k/1.48k [00:00<00:00, 5.25kB/s]
+Upload successful: prepare.sh (1KB)
+Starting upload for file grpcio-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.67M [00:00<?, ?B/s]100%|██████████| 5.67M/5.67M [00:00<00:00, 18.7MB/s]
+Upload successful: grpcio-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file opentelemetry_api-1.45.2-py3-none-any.whl
+  0%|          | 0.00/58.9k [00:00<?, ?B/s]100%|██████████| 58.9k/58.9k [00:00<00:00, 230kB/s]
+Upload successful: opentelemetry_api-1.45.2-py3-none-any.whl (59KB)
+Starting upload for file grpcio_tools-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 8.14MB/s]
+Upload successful: grpcio_tools-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file grpcio-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.29M [00:00<?, ?B/s]100%|██████████| 5.29M/5.29M [00:00<00:00, 18.1MB/s]
+Upload successful: grpcio-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/2.16M [00:00<?, ?B/s]100%|██████████| 2.16M/2.16M [00:00<00:00, 7.63MB/s]
+Upload successful: pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (2MB)
+Starting upload for file grpcio_tools-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 8.82MB/s]
+Upload successful: grpcio_tools-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file pyarrow-26.0.1-cp312-cp312-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/52.5M [00:00<?, ?B/s] 35%|███▍      | 18.2M/52.5M [00:00<00:00, 183MB/s] 68%|██████▊   | 35.6M/52.5M [00:00<00:00, 153MB/s] 96%|█████████▌| 50.5M/52.5M [00:00<00:00, 144MB/s]100%|██████████| 52.5M/52.5M [00:00<00:00, 70.1MB/s]
+Upload successful: pyarrow-26.0.1-cp312-cp312-manylinux_2_28_x86_64.whl (52MB)
+Starting upload for file grpcio-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.24M [00:00<?, ?B/s]100%|██████████| 5.24M/5.24M [00:00<00:00, 18.4MB/s]
+Upload successful: grpcio-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file grpcio_tools-1.85.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 8.83MB/s]
+Upload successful: grpcio_tools-1.85.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3MB)
+Starting upload for file polars-2.2.0-py3-none-any.whl
+  0%|          | 0.00/0.98M [00:00<?, ?B/s]100%|██████████| 0.98M/0.98M [00:00<00:00, 3.79MB/s]
+Upload successful: polars-2.2.0-py3-none-any.whl (1007KB)
+Starting upload for file grpcio_tools-1.85.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 8.52MB/s]
+Upload successful: grpcio_tools-1.85.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3MB)
+Starting upload for file pyarrow-26.0.1-cp313-cp313-manylinux_2_28_x86_64.whl
+  0%|          | 0.00/52.5M [00:00<?, ?B/s] 42%|████▏     | 21.8M/52.5M [00:00<00:00, 229MB/s] 83%|████████▎ | 43.7M/52.5M [00:00<00:00, 160MB/s]100%|██████████| 52.5M/52.5M [00:00<00:00, 73.3MB/s]
+Upload successful: pyarrow-26.0.1-cp313-cp313-manylinux_2_28_x86_64.whl (52MB)
+Starting upload for file typing_extensions-4.16.0-py3-none-any.whl
+  0%|          | 0.00/44.5k [00:00<?, ?B/s]100%|██████████| 44.5k/44.5k [00:00<00:00, 167kB/s]
+Upload successful: typing_extensions-4.16.0-py3-none-any.whl (45KB)
+Starting upload for file grpcio-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.64M [00:00<?, ?B/s] 90%|█████████ | 5.08M/5.64M [00:00<00:00, 53.1MB/s]100%|██████████| 5.64M/5.64M [00:00<00:00, 16.8MB/s]
+Upload successful: grpcio-1.71.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file grpcio-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.64M [00:00<?, ?B/s] 86%|████████▌ | 4.84M/5.64M [00:00<00:00, 48.9MB/s]100%|██████████| 5.64M/5.64M [00:00<00:00, 17.1MB/s]
+Upload successful: grpcio-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6MB)
+Starting upload for file pydantic-2.14.4-py3-none-any.whl
+  0%|          | 0.00/483k [00:00<?, ?B/s]100%|██████████| 483k/483k [00:00<00:00, 1.79MB/s]
+Upload successful: pydantic-2.14.4-py3-none-any.whl (483KB)
+Starting upload for file polars_runtime_32-2.2.0-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/49.7M [00:00<?, ?B/s] 33%|███▎      | 16.5M/49.7M [00:00<00:00, 157MB/s] 63%|██████▎   | 31.5M/49.7M [00:00<00:00, 149MB/s] 92%|█████████▏| 45.7M/49.7M [00:00<00:00, 103MB/s]100%|██████████| 49.7M/49.7M [00:00<00:00, 54.8MB/s]
+Upload successful: polars_runtime_32-2.2.0-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (50MB)
+Starting upload for file opentelemetry_semantic_conventions-0.66b2-py3-none-any.whl
+  0%|          | 0.00/201k [00:00<?, ?B/s]100%|██████████| 201k/201k [00:00<00:00, 725kB/s]
+Upload successful: opentelemetry_semantic_conventions-0.66b2-py3-none-any.whl (201KB)
+Starting upload for file annotated_types-0.8.0-py3-none-any.whl
+  0%|          | 0.00/13.1k [00:00<?, ?B/s]100%|██████████| 13.1k/13.1k [00:00<00:00, 45.1kB/s]
+Upload successful: annotated_types-0.8.0-py3-none-any.whl (13KB)
+Starting upload for file pydantic_core-2.50.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+  0%|          | 0.00/2.16M [00:00<?, ?B/s]100%|██████████| 2.16M/2.16M [00:00<00:00, 7.51MB/s]
+Upload successful: pydantic_core-2.50.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (2MB)
+Starting upload for file grpcio_tools-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 8.16MB/s]
+Upload successful: grpcio_tools-1.71.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file grpcio_tools-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 9.18MB/s]
+Upload successful: grpcio_tools-1.62.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file grpcio-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/5.29M [00:00<?, ?B/s]100%|██████████| 5.29M/5.29M [00:00<00:00, 17.7MB/s]
+Upload successful: grpcio-1.62.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (5MB)
+Starting upload for file grpcio_tools-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.68M [00:00<?, ?B/s]100%|██████████| 2.68M/2.68M [00:00<00:00, 8.81MB/s]
+Upload successful: grpcio_tools-1.62.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3MB)
+Starting upload for file .gitignore
+  0%|          | 0.00/6.00 [00:00<?, ?B/s]100%|██████████| 6.00/6.00 [00:00<00:00, 19.8B/s]
+Upload successful: .gitignore (6B)
+Starting upload for file typing_inspection-0.4.5-py3-none-any.whl
+  0%|          | 0.00/14.5k [00:00<?, ?B/s]100%|██████████| 14.5k/14.5k [00:00<00:00, 49.4kB/s]
+Upload successful: typing_inspection-0.4.5-py3-none-any.whl (15KB)
+Starting upload for file grpcio_tools-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 7.79MB/s]
+Upload successful: grpcio_tools-1.71.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Starting upload for file setuptools-84.2.1-py3-none-any.whl
+  0%|          | 0.00/856k [00:00<?, ?B/s]100%|██████████| 856k/856k [00:00<00:00, 3.01MB/s]
+Upload successful: setuptools-84.2.1-py3-none-any.whl (856KB)
+Starting upload for file opentelemetry_sdk-1.45.2-py3-none-any.whl
+  0%|          | 0.00/138k [00:00<?, ?B/s]100%|██████████| 138k/138k [00:00<00:00, 506kB/s]
+Upload successful: opentelemetry_sdk-1.45.2-py3-none-any.whl (138KB)
+Starting upload for file grpcio_tools-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  0%|          | 0.00/2.36M [00:00<?, ?B/s]100%|██████████| 2.36M/2.36M [00:00<00:00, 7.32MB/s]
+Upload successful: grpcio_tools-1.71.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2MB)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/gga-wheels
+
+output files:

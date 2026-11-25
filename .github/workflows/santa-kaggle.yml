@@ -17,7 +17,7 @@ name: Santa 2026 Kaggle
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 10,22 * * *'   # shards run 650 min; a cycle collects them and pushes new ones
+    - cron: '17 1,4,7,10,13,16,19,22 * * *'   # shards run 650 min; a cycle collects them and pushes new ones
   push:
     branches-ignore: [main]
     paths:
@@ -113,6 +113,8 @@ jobs:
             done
             echo "gha runs: $(wc -l < /tmp/gha_runs.txt), shard outputs decrypted: $n" | tee -a /tmp/out.txt
             cat $W/gha/*/search.log 2>/dev/null | grep -E "^done:" | python3 -c "import sys,re;L=[list(map(int,re.findall(r'\d+',l))) for l in sys.stdin];print(f'gha search: {len(L)} shards, jobs {sum(x[0] for x in L)}, improved {sum(x[1] for x in L)}, gain {sum(x[2] for x in L)}')" | tee -a /tmp/out.txt || true
+            cat $W/gha/*/search.log 2>/dev/null | python3 santa-2026/tools/strat_sum.py "gha " | tee -a /tmp/out.txt || true
+            echo "gha archive rows: $(cat $W/gha/*/archive_new.csv 2>/dev/null | grep -vc '^id,')" | tee -a /tmp/out.txt
             find $W/gha -name search.log -delete
           fi
           grep -v '^#' santa-2026/requests/public_sources.txt | while read kind ref; do

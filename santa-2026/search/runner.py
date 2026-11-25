@@ -25,7 +25,7 @@ ap.add_argument("--archive-out", default="", help="CSV (id,program; many rows pe
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g. in the public frontier): searched first")
 ap.add_argument("--fresh-repeat", type=int, default=12)
-ap.add_argument("--plan", default="anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000")
+ap.add_argument("--plan", default="anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000,anneal_seeded:100000,incremental_seeded:100000")
 ap.add_argument("--fresh-plan", default="frontier:0,frontier:1,frontier:2,closure:0,closure:1,closure:2,anneal_seeded:20000,incremental_seeded:20000",
                 help="strategies for fresh puzzles; frontier:i / closure:i are Atakan's optimizers with config i")
 ap.add_argument("--log", default="")
@@ -75,7 +75,11 @@ def atk_job(k, strat, cfg, seed):
     return k, out
 
 def job(k, strat, rounds, seed):
-    if strat in ATK: return atk_job(k, strat, rounds, seed)
+    t = time.time()
+    k, prog = (atk_job if strat in ATK else wj_job)(k, strat, rounds, seed)
+    return k, prog, f"{strat}:{rounds}", time.time() - t
+
+def wj_job(k, strat, rounds, seed):
     s, t, L = P[k]
     r2 = random.Random(seed)
     tapes = [best[k]] + r2.sample(arch[k], min(6, len(arch[k])))
@@ -114,6 +118,17 @@ def next_task():
     return sweep.pop(), st, rd
 
 done_jobs = 0
+# Per-strategy diagnostics (lengths only): jobs, failed (no valid program), delta = len(out) - len(best) buckets, seconds.
+ST = {}
+def stat(name, d, sec):
+    r = ST.setdefault(name, {"n": 0, "fail": 0, "lt0": 0, "eq0": 0, "p1_2": 0, "p3_10": 0, "gt10": 0, "sec": 0.0})
+    r["n"] += 1; r["sec"] += sec
+    if d is None: r["fail"] += 1
+    elif d < 0: r["lt0"] += 1
+    elif d == 0: r["eq0"] += 1
+    elif d <= 2: r["p1_2"] += 1
+    elif d <= 10: r["p3_10"] += 1
+    else: r["gt10"] += 1
 with ThreadPoolExecutor(a.jobs) as ex:
     running = set()
     while True:
@@ -125,7 +140,8 @@ with ThreadPoolExecutor(a.jobs) as ex:
         running = set(running)
         for f in fin:
             done_jobs += 1
-            k, prog = f.result()
+            k, prog, sname, sec = f.result()
+            stat(sname, None if prog is None else len(prog) - len(best[k]), sec)
             if prog is None: continue
             key = json.dumps(prog)
             if len(prog) < len(best[k]):
@@ -147,5 +163,8 @@ if a.archive_out:
     with open(a.archive_out, "w", newline="") as f:
         w = csv.writer(f); w.writerow(["id", "program"])
         for k, prog in new_arch: w.writerow([k, json.dumps(prog, separators=(",", ":"))])
+for name, r in sorted(ST.items()):
+    print(f"strat {name}: n={r['n']} fail={r['fail']} better={r['lt0']} same={r['eq0']} +1..2={r['p1_2']} "
+          f"+3..10={r['p3_10']} >10={r['gt10']} avg_sec={r['sec'] / max(1, r['n']):.0f}", file=log, flush=True)
 print(f"done: jobs {done_jobs}, improved {len(imp)} puzzles, gain {sum(start_len[k] - len(best[k]) for k in imp)}",
       file=log, flush=True)

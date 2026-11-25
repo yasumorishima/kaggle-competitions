@@ -32,7 +32,7 @@ except Exception:  # pragma: no cover
 STUCK_S = 2.5          # a screen this long unchanged is treated as a menu / game over
 DIFF_STILL = 1.2       # mean absolute grey difference (0-255) below which two frames count as the same
 RESTARTS = ("reload", "relaunch")
-SALIENT_P = 0.75       # share of clicks aimed at rare-coloured cells (objects) rather than uniform
+SALIENT_P = 0.0        # share of clicks aimed at rare-coloured cells; 0.75 (v4) scored 0.041 on the LB against 0.046 (v2), so off
 ACTIVE_RESET_S = 10.0  # a screen busy this long is a new phase (play): menu spots clicked before may be clicked again
 
 

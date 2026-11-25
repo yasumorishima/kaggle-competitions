@@ -67,8 +67,8 @@ jobs:
           memo = str(r.get("memo", "")).strip()
           assert memo, "memo is required"
           action = r.get("action")
-          assert action in ("kernel", "dataset"), "action must be kernel or dataset"
-          d = str(r.get("dir", ""))
+          assert action in ("kernel", "dataset", "status"), "action must be kernel, dataset or status"
+          d = str(r.get("dir", "")) if action != "status" else "."
           assert d and ".." not in d and not d.startswith("/"), "dir must be relative, without .."
           d = os.path.join("gga", d)
           assert os.path.isdir(d), f"not found: {d}"
@@ -96,6 +96,24 @@ jobs:
           else
             kaggle datasets create -p "$DIR" -r zip 2>&1 | tee /tmp/out.txt
           fi
+
+      - name: Status (submissions and kernel states)
+        if: env.ACTION == 'status' && env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          kaggle competitions submissions "$COMP" -v 2>&1 | head -15 | tee /tmp/out.txt
+          for k in gga-probe-tpu gga-sub-cpu gga-sub-tpu; do echo "$k: $(kaggle kernels status yasunorim/$k 2>&1 | tail -1)" | tee -a /tmp/out.txt; done
+          mkdir -p /tmp/pout && kaggle kernels output yasunorim/gga-probe-tpu -p /tmp/pout >/dev/null 2>&1 || true
+          ls /tmp/pout | tee -a /tmp/out.txt
+          python - <<'PY' | tee -a /tmp/out.txt
+          import glob, json
+          for f in glob.glob("/tmp/pout/*.log"):
+              try: L = json.load(open(f))
+              except Exception: print(open(f).read()[-4000:]); continue
+              txt = "".join(x.get("data", "") for x in L)
+              print(txt[:2500]); print("..."); print(txt[-2500:])
+          PY
 
       - name: Kernel push, wait, (submit)
         if: env.ACTION == 'kernel' && env.SKIP != 'yes'
