@@ -25,10 +25,10 @@ ap.add_argument("--archive-out", default="", help="CSV (id,program; many rows pe
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g. in the public frontier): searched first")
 ap.add_argument("--fresh-repeat", type=int, default=12)
-# triwalk first: goodpjw2008 measured ~48 instructions/hour (20 cores) with it on converged programs, against ~1.3 for the
-# 20k-round Wang Jakie sweep (their notebook, 11-25). One Wang Jakie pass in five keeps some diversity.
-ap.add_argument("--plan", default="triwalk:60,triwalk:30,triwalk:60,triwalk:120,anneal_seeded:20000")
-ap.add_argument("--fresh-plan", default="triwalk:40,triwalk:40,triwalk:40,triwalk:40,frontier:0,frontier:1,anneal_seeded:20000,incremental_seeded:20000",
+# triwalk only (11-25 GHA run 45599624803, 16 shards x 320 min): triwalk shortened 96 of 12,500 jobs (60 s: 51/5,960,
+# 40 s on fresh puzzles: 12/947, 120 s: 24/2,593, 30 s: 9/3,000), Wang Jakie / Atakan 0 of 3,159. Per second, 60 s and 40 s win.
+ap.add_argument("--plan", default="triwalk:60,triwalk:60,triwalk:60,triwalk:120")
+ap.add_argument("--fresh-plan", default="triwalk:40",
                 help="strategies for fresh puzzles; frontier:i / closure:i are Atakan's optimizers with config i")
 ap.add_argument("--log", default="")
 a = ap.parse_args()

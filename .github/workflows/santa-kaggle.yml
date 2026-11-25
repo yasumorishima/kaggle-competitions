@@ -69,7 +69,7 @@ jobs:
           memo = str(r.get("memo", "")).strip(); assert memo, "memo is required"
           shards = int(r.get("shards", 4)); assert 1 <= shards <= 10
           minutes = float(r.get("minutes", 650)); assert 10 <= minutes <= 690
-          plan = str(r.get("plan", "triwalk:60,triwalk:30,triwalk:60,triwalk:120,anneal_seeded:20000"))
+          plan = str(r.get("plan", "triwalk:60,triwalk:60,triwalk:60,triwalk:120"))
           assert all(c.isalnum() or c in "_:," for c in plan), "plan: letters, digits, _ : , only"
           msg = str(r.get("message", memo)).replace("\n", " ")
           with open(os.environ["GITHUB_ENV"], "a") as g:
