@@ -74,4 +74,6 @@
   - 手元で、同じ版の protobuf・grpc を入れた Python 3.12 の venv で試しました。`kaggle_evaluation` の import には polars・pyarrow・pydantic・opentelemetry が要ります。grpcio-tools は 1.85.1（grpc と同じ版）なら protobuf 7 で通ります。1.71 は protobuf 5 向けのコードを出すため、通らない見込みです。
     - wheel の dataset（`gga-wheels`、依頼 w2）にこれらを足しました。header は、import できないものだけを入れます。手元の venv で header を通し、harness の import が通ることを確かめました。
   - 05:20：v3（v2＋敗北のあとのやり直し、狙ったクリックなし）を **TPU の kernel** で出しました（依頼 v3tpu）。仮説は 2 つです。(1) TPU の提出が通るか。12 月の LLM の層を TPU の JAX で動かすための前提です。(2) v2・v4 と対にして、v4 の負の原因が狙ったクリックかどうかを分けます。効果量の見込みは ±0.005 で、主目的は (1) です。
+- 11-25 10:43：v3tpu は、TPU の kernel（gga-sub 版 2）が Kaggle で 05:12 から 5.5 時間 QUEUED のままで、ワークフローの 350 分で時間切れになりました（提出なし）。push し直すと列の後ろに回るので、依頼に `version` を足し、版 2 をそのまま待って終わったら提出するようにしました（依頼 v3tpu-w1）。
+  - 見立て：TPU の待ちは昨日も今日も数時間です。12 月の LLM の層を TPU で回すなら、提出のたびに半日待つ前提で段取りを組みます。11-25 の GGA の枠は、v3tpu-w1 が通るまで 0 本です。
 
