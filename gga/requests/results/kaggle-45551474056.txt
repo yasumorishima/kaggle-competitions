@@ -1,0 +1,9 @@
+request: v3tpu
+run: 45551474056  status: failure  action: kernel  dir: gga/kernels/sub  submit: yes
+kernel: yasunorim/gga-sub  version: 2
+memo: 確かめる仮説は 2 つ。(1) TPU の kernel の提出が通るか（12 月の LLM の層を TPU の JAX で動かす前提。11-25 の調査で TPU の画像は jax 0.11・protobuf 7.37・polars なしと分かったので、足りない wheel を header で入れる）。(2) 敗北のあとのやり直し（v3）の効き：v2 0.046・v4（やり直し＋狙ったクリック）0.041 と対にして、狙ったクリックが負の原因かを分ける。効果量の見込みは ±0.005（雑音の幅と同程度）で、主目的は (1)。
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-sub
+
+output files:
