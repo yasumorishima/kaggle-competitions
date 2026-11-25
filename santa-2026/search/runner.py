@@ -25,8 +25,10 @@ ap.add_argument("--archive-out", default="", help="CSV (id,program; many rows pe
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g. in the public frontier): searched first")
 ap.add_argument("--fresh-repeat", type=int, default=12)
-ap.add_argument("--plan", default="anneal_seeded:4000,incremental_seeded:4000,anneal_seeded:20000,incremental_seeded:20000,quartet:4000,anneal_seeded:100000,incremental_seeded:100000")
-ap.add_argument("--fresh-plan", default="frontier:0,frontier:1,frontier:2,closure:0,closure:1,closure:2,anneal_seeded:20000,incremental_seeded:20000",
+# triwalk first: goodpjw2008 measured ~48 instructions/hour (20 cores) with it on converged programs, against ~1.3 for the
+# 20k-round Wang Jakie sweep (their notebook, 11-25). One Wang Jakie pass in five keeps some diversity.
+ap.add_argument("--plan", default="triwalk:60,triwalk:30,triwalk:60,triwalk:120,anneal_seeded:20000")
+ap.add_argument("--fresh-plan", default="triwalk:40,triwalk:40,triwalk:40,triwalk:40,frontier:0,frontier:1,anneal_seeded:20000,incremental_seeded:20000",
                 help="strategies for fresh puzzles; frontier:i / closure:i are Atakan's optimizers with config i")
 ap.add_argument("--log", default="")
 a = ap.parse_args()
@@ -38,9 +40,15 @@ rng = random.Random(a.seed or (time.time_ns() ^ os.getpid()))
 plan = [(s.split(":")[0], int(s.split(":")[1])) for s in a.plan.split(",")]
 fplan = [(s.split(":")[0], int(s.split(":")[1])) for s in a.fresh_plan.split(",")]
 # Atakan Aldemir's optimizers (third_party/atakan, Apache-2.0): the argument sets goodpjw2008 used on changed puzzles.
+# goodpjw2008's triwalk (third_party/goodpjw2008, Apache-2.0): anneals the SET of values a program computes. The option
+# sets are the defaults of the author's tri_driver.py. "triwalk:S" runs one of them for S seconds.
+TW = ["--cap 1 --T 0.2 --rb 0.6 --deep 0.1", "--cap 1 --T 0.2 --rb 0.85 --deep 0.4", "--cap 2 --T 0.2 --rb 0.6 --deep 0.1",
+      "--cap 2 --T 0.2 --rb 0.85 --deep 0.4", "--cap 3 --T 0.2 --rb 0.85 --deep 0.2", "--cap 2 --T 0.2 --rb 0.85 --deep 0"]
 ATK = {"frontier": ["8 4200 9 10 9 {salt} 1500", "14 8000 12 13 9 {salt} 3000", "8 4200 9 10 13 {salt} 1500"],
        "closure": ["90 26 7 {salt} 4150", "92 32 4 {salt} 5250", "100 28 9 {salt} 4950"]}
-fplan = [x for x in fplan if x[0] not in ATK or os.path.exists(os.path.join(a.bin, x[0]))] or plan
+have = lambda st: os.path.exists(os.path.join(a.bin, st))
+plan = [x for x in plan if have(x[0])] or plan
+fplan = [x for x in fplan if have(x[0])] or plan
 best = {k: POOL[k] for k in ids}; start_len = {k: len(best[k]) for k in ids}
 arch = {k: [] for k in ids}; seen = {k: {json.dumps(best[k])} for k in ids}
 if a.archive and os.path.exists(a.archive):
@@ -74,8 +82,36 @@ def atk_job(k, strat, cfg, seed):
         return k, None
     return k, out
 
+def tw_job(k, secs, seed):
+    s, t, L = P[k]; tg = sorted(set(t)); r2 = random.Random(seed); cfg = r2.randrange(len(TW))
+    # Half the time start from an equal-length variant (a "V" end state of an earlier walk) so the walk keeps moving.
+    alts = [p for p in arch[k] if len(p) == len(best[k])]
+    prog = r2.choice(alts) if alts and r2.random() < 0.5 else best[k]
+    head = ["P", k, str(len(s))] + [str(x) for x in s] + [str(len(tg))] + [str(x) for x in tg] + [str(L), "48", str(len(prog))]
+    case = " ".join(head) + "\n" + "".join(f"{op} {x} {y} {d}\n" for op, x, y, d in prog)
+    argv = [os.path.join(a.bin, "triwalk"), "--time", str(secs), "--seed", str(seed)] + TW[cfg].split()
+    try:
+        r = subprocess.run(argv, input=case, capture_output=True, text=True, timeout=secs * 4 + 60)
+    except Exception:
+        return k, None, cfg
+    lines = r.stdout.splitlines()
+    for i, ln in enumerate(lines):
+        f = ln.split()
+        if len(f) == 4 and f[0] in ("R", "V") and f[1] == k:
+            n = int(f[3])
+            try:
+                out = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in (l.split() for l in lines[i + 1:i + 1 + n])]
+                replay(s, t, L, out)
+            except Exception:
+                return k, None, cfg
+            return k, out, cfg
+    return k, list(best[k]), cfg   # no shorter program and no new variant: same as the input
+
 def job(k, strat, rounds, seed):
     t = time.time()
+    if strat == "triwalk":
+        k, prog, cfg = tw_job(k, rounds, seed)
+        return k, prog, f"triwalk:{rounds}/c{cfg}", time.time() - t
     k, prog = (atk_job if strat in ATK else wj_job)(k, strat, rounds, seed)
     return k, prog, f"{strat}:{rounds}", time.time() - t
 

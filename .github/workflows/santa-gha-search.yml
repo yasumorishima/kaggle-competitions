@@ -73,6 +73,7 @@ jobs:
           done
           g++ -O3 -march=native -std=c++17 $T/atakan/elf_multiplier_frontier.cpp -o $B/frontier &
           g++ -O3 -march=native -std=c++17 $T/atakan/elf_interface_closure.cpp -o $B/closure &
+          g++ -O3 -march=native -std=c++17 $T/goodpjw2008/triwalk.cpp -o $B/triwalk &
           wait; ls $B
           FRESH=""; [ -f $W/work/fresh.txt ] && FRESH="--fresh-ids $W/work/fresh.txt"
           python santa-2026/search/runner.py --pool $W/work/pool.csv --puzzles $W/comp/puzzles.csv --bin $B \
