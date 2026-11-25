@@ -69,4 +69,9 @@
   - 見立て：規則だけでは Cavebots の生存は 100〜170 秒どまり（建てる手順を知らない）で、銅には LLM の層が要ります。GPU は今週 27.7／30 時間で、TPU は空き待ちが長いので、11-28 の GPU の戻りまでに TPU で LLM の層が動くかを確かめます。
 - **Kaggle のセッションの上限**：CPU は 5 本、TPU は 1 本です（11-24 に push のエラーで確認）。TPU の kernel は 1 本ずつ出し、待ち（queued）が長いことがあります。
 - 11-24 22:51：v2cpu の点は **0.046**（143 位 / 176 チーム）でした。銅の線（100〜249 チームなので上位 40%＝70 位）は 0.093、1 位は 0.314 です。v4cpu はまだ採点中です。手元では v4 は Cavebots で 97〜124 秒でした（v2 は 148 秒）。v4 が v2 を下回るなら、狙いを付けたクリックは外します。
+- 11-25 05:00：**v4cpu の点は 0.041** で、v2cpu の 0.046 を下回りました（04:54 の LB：223 チーム、自分は 180 位）。決めたとおり、狙いを付けたクリック（`SALIENT_P`）は 0 にして外しました。ただし、1 本ずつの点の差（0.005）は、非公開のゲームを含めた雑音の幅と区別できていません。
+  - TPU の調査 kernel は、11-24 の夜に TPU で動いていました（ERROR は最後の `torch_xla` の import の segfault によるもの）。分かったこと：Python 3.12、**jax 0.11.0 あり**、torch 2.8（CPU 版）、keras／keras_hub なし、grpc 1.85.1、protobuf 7.37、grpc_tools・polars なし。
+  - 手元で、同じ版の protobuf・grpc を入れた Python 3.12 の venv で試しました。`kaggle_evaluation` の import には polars・pyarrow・pydantic・opentelemetry が要ります。grpcio-tools は 1.85.1（grpc と同じ版）なら protobuf 7 で通ります。1.71 は protobuf 5 向けのコードを出すため、通らない見込みです。
+    - wheel の dataset（`gga-wheels`、依頼 w2）にこれらを足しました。header は、import できないものだけを入れます。手元の venv で header を通し、harness の import が通ることを確かめました。
+  - 05:20：v3（v2＋敗北のあとのやり直し、狙ったクリックなし）を **TPU の kernel** で出しました（依頼 v3tpu）。仮説は 2 つです。(1) TPU の提出が通るか。12 月の LLM の層を TPU の JAX で動かすための前提です。(2) v2・v4 と対にして、v4 の負の原因が狙ったクリックかどうかを分けます。効果量の見込みは ±0.005 で、主目的は (1) です。
 
