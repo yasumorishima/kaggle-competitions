@@ -167,6 +167,34 @@ gh workflow run "EXP to Kaggle Submit" \
 
 ## 🏆 Competition Results
 
+### Santa 2026 - The Elf Calculator (Active)
+
+**Competition:** [Santa 2026](https://www.kaggle.com/competitions/santa-2026) | **Deadline:** 2027-01-28 | **Prize:** $50,000 | **Metric:** total instruction count over 1,000 puzzles (lower is better)
+
+Each puzzle asks for the shortest program, on 48 registers with `+ - * /`, that produces every target number from the starting values. Scoring is exact, so one instruction saved is one point. Code is in [`santa-2026/`](santa-2026). The programs themselves live only in a private Kaggle dataset; this repository holds the search code and the scores.
+
+**How it runs.** A cycle in GitHub Actions (`santa-kaggle.yml`) does five things: it merges the previous pool with the outputs of the search shards and with the public program sets (each program is replayed by our own referee), updates the private dataset, submits when the pool beats the best submission (at most 5 a day), and pushes new shards. The search runs on 5 Kaggle CPU kernels and 16 public GitHub runners (`santa-gha-search.yml`). The runners' results come back encrypted with a key that only the private dataset holds. Our runner (`search/runner.py`) schedules the work: puzzles that just got shorter go first, and equal-length variants are kept as new starting points.
+
+**Where it stands (2026-11-25).**
+- Best submission **128,037**: **67 instructions below the merged public frontier** (128,104 at that time).
+- Merging the public sets alone only ever tied the frontier, and about 175 teams shared that tie.
+- Our runs of the public engines (Wang Jakie's graph search, Atakan Aldemir's optimizers; Apache-2.0) saved **0 instructions in about 900 core-hours**. The programs had already been polished by every team running the same engines.
+- What worked was **triwalk**, goodpjw2008's annealer over the *set of values* a program computes (Apache-2.0, vendored unchanged with its NOTICE). In one GitHub run (16 runners × 320 min) it shortened 96 of 12,500 jobs (85 puzzles, 104 instructions). The public engines shortened 0 of 3,159 jobs in the same run.
+- The search plan is now triwalk only: 60 s runs on settled puzzles, 40 s runs on puzzles that just changed.
+
+### Generalist Gaming Agent (Active)
+
+**Competition:** [Generalist Gaming Agent](https://www.kaggle.com/competitions/generalist-gaming-agent) | **Deadline:** 2027-03-01 | **Prize:** $50,000 | **Metric:** mean normalized score over unseen browser games
+
+A single agent plays games it has never seen, from JPEG frames only, with mouse and keyboard, while the game keeps running at 20 fps. Code is in [`gga/`](gga). Kernels are pushed and submitted from a request file (`gga/requests/kaggle.json` → `gga-kaggle.yml`).
+
+**Where it stands (2026-11-25).**
+- Best **0.046** (v2) from a rule-based agent with no model. It reads the game description, presses menu buttons, reopens a stalled screen and favours actions that change the screen.
+- v4 added clicks aimed at rare colours and scored **0.041**, so those clicks were removed.
+- The plan is to add a slow LLM layer (what to do) over a fast rule layer (how to react), run on the free Kaggle TPU with JAX.
+- The TPU image was probed: Python 3.12, jax 0.11, protobuf 7. Missing wheels (grpcio-tools 1.85.1, polars, pyarrow, pydantic, opentelemetry) are installed from a private dataset at kernel start.
+- The first TPU submission has been queued for more than 11 hours.
+
 ### enveda CASMI26 - Molecule Identification from MS/MS (Active)
 
 **Competition:** [enveda-CASMI26](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra) | **Deadline:** 2026-12-14 | **Prize:** $50,000 | **Metric:** MRR@25 on InChIKey (first 14 characters)
