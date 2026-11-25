@@ -1,0 +1,50 @@
+request: c7
+run: 45597976397  status: success  shards: 4  minutes: 650.0  submit: yes
+memo: g2（GHA 16 本・Atakan の最適化器を変わったばかりの 127 題に使う最初の回）と、09:45 に終わった Kaggle の shard 4 本の回収。新しい shard 4 本を投入する（診断入りの runner）。07:17・10:17 の cron が発火しなかったので手動。効果量の見込みは g2 で 0〜30 命令、public 側の更新で 0〜20。pool が best より良ければ提出（11-25 の 2 本目）。
+
+shard 0: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-0 has status "KernelWorkerStatus.COMPLETE"
+shard 1: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-1 has status "KernelWorkerStatus.COMPLETE"
+shard 2: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-2 has status "KernelWorkerStatus.COMPLETE"
+shard 3: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-3 has status "KernelWorkerStatus.COMPLETE"
+shard 4: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 5: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 6: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 7: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 8: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 9: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 0 log: fresh ids in this shard: 23
+shard 0 log: done: jobs 881, improved 0 puzzles, gain 0
+shard 1 log: fresh ids in this shard: 27
+shard 1 log: done: jobs 421, improved 0 puzzles, gain 0
+shard 2 log: fresh ids in this shard: 21
+shard 2 log: done: jobs 775, improved 0 puzzles, gain 0
+shard 3 log: fresh ids in this shard: 21
+shard 3 log: done: jobs 857, improved 0 puzzles, gain 0
+gha runs: 2, shard outputs decrypted: 32
+gha search: 32 shards, jobs 33547, improved 0, gain 0
+gha archive rows: 0
+puzzles by source: {'prev': 993, 'public': 7}
+fresh puzzles (shorter than the previous pool): 7, gain 7
+fresh puzzles for the shards (with carry-over): 131
+pool score: 128239 (previous pool 128246, public only 128239)
+  0%|          | 0.00/625 [00:00<?, ?B/s]100%|██████████| 625/625 [00:00<00:00, 1.75kB/s]
+Upload successful: gha_pub.pem (625B)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/santa26-work
+best submitted: 128246, pool: 128239
+submissions today (2026-11-25): 1 of 5
+  0%|          | 0.00/1.98M [00:00<?, ?B/s] 73%|███████▎  | 1.45M/1.98M [00:00<00:00, 13.9MB/s]100%|██████████| 1.98M/1.98M [00:00<00:00, 4.94MB/s]
+Successfully submitted to Santa 2026 - The Elf Calculator
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-0
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-1
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-2
+Kernel version 4 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/santa26-shard-3
