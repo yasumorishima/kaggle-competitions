@@ -1,0 +1,52 @@
+request: st2
+run: 45550093009  status: success  action: status  dir: gga/.  submit: no
+kernel:   version: 
+memo: TPU の調査 kernel が ERROR になった理由をログで見る（提出なし）
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-11-24 20:26:44.180000,"v4cpu v2 + retry after defeat + clicks aimed at rare-coloured objects (ours, no model, CPU kernel) [run 45480669813]",SubmissionStatus.COMPLETE,0.041,
+submission.parquet,2026-11-24 15:32:24.093000,"v2cpu rule explorer + menu button detection (ours, no model, CPU kernel) [run 45426442612]",SubmissionStatus.COMPLETE,0.046,
+gga-probe-tpu: yasunorim/gga-probe-tpu has status "KernelWorkerStatus.ERROR"
+gga-sub-cpu: yasunorim/gga-sub-cpu has status "KernelWorkerStatus.COMPLETE"
+gga-sub-tpu: 403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+gga-probe-tpu.log
+python 3.12.16 (main, Nov  5 2026, 09:38:44) [GCC 14.2.0]
+grpc 1.85.1
+grpc_tools MISSING ModuleNotFoundError
+google.protobuf 7.37.0rc3
+polars MISSING ModuleNotFoundError
+PIL 13.0.0
+/usr/local/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:88: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+jax 0.11.0
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1795576967.817055       7 cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+keras MISSING ImportError
+keras_hub MISSING ImportError
+torch 2.8.0+cpu
+Segmentation fault (core dumped)
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 276477 bytes to __results__.html
+
+...
+python 3.12.16 (main, Nov  5 2026, 09:38:44) [GCC 14.2.0]
+grpc 1.85.1
+grpc_tools MISSING ModuleNotFoundError
+google.protobuf 7.37.0rc3
+polars MISSING ModuleNotFoundError
+PIL 13.0.0
+/usr/local/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:88: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+jax 0.11.0
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1795576967.817055       7 cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+keras MISSING ImportError
+keras_hub MISSING ImportError
+torch 2.8.0+cpu
+Segmentation fault (core dumped)
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 276477 bytes to __results__.html
+
+
+output files:
