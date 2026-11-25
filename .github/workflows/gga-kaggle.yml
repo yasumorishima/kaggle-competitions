@@ -13,6 +13,8 @@ name: GGA Kaggle
 #   dir      a directory under gga/ holding kernel-metadata.json or dataset-metadata.json
 #   submit   kernel only: "submit" to send the finished kernel's submission.parquet to the competition
 #   wait     kernel only: "no" to return right after the push (long runs; read the log with the Kaggle API)
+#   version  kernel only: an already-pushed version number to wait for (and submit) instead of pushing again
+#            (a TPU kernel can sit in the queue longer than one 350-minute job)
 #   message  submission / dataset version message
 # Only the user's standing instruction allows a submit (see gga/CLAUDE.md and the root CLAUDE.md).
 
@@ -76,8 +78,10 @@ jobs:
           nowait = r.get("wait", "") == "no"
           assert not (submit and nowait), "submit needs the wait"
           msg = str(r.get("message", memo)).replace("\n", " ")
+          ver = str(r.get("version", "")).strip()
+          assert ver == "" or ver.isdigit(), "version must be a number"
           with open(os.environ["GITHUB_ENV"], "a") as f:
-              f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nNOWAIT={'yes' if nowait else 'no'}\nMSG={msg}\n")
+              f.write(f"RID={rid}\nACTION={action}\nDIR={d}\nSUBMIT={'yes' if submit else 'no'}\nNOWAIT={'yes' if nowait else 'no'}\nMSG={msg}\nPUSHV={ver}\n")
               f.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
           print(action, d, "submit" if submit else "no submit", "|", memo)
           PY
@@ -125,11 +129,15 @@ jobs:
           if [ -f "$DIR/build.sh" ]; then sh "$DIR/build.sh"; fi
           ID=$(python -c "import json;print(json.load(open('$DIR/kernel-metadata.json'))['id'])")
           echo "KERNEL=$ID" >> "$GITHUB_ENV"
-          OUT=$(kaggle kernels push -p "$DIR" 2>&1) || true
-          echo "$OUT" | tee /tmp/out.txt
-          # The CLI exits 0 on a push error, so success is read from its text.
-          echo "$OUT" | grep -q "successfully pushed" || { echo "::error::push not confirmed"; exit 1; }
-          VER=$(echo "$OUT" | grep -oE 'version [0-9]+' | head -1 | grep -oE '[0-9]+')
+          if [ -n "$PUSHV" ]; then
+            VER=$PUSHV; echo "not pushing: waiting for the existing version $VER" | tee /tmp/out.txt
+          else
+            OUT=$(kaggle kernels push -p "$DIR" 2>&1) || true
+            echo "$OUT" | tee /tmp/out.txt
+            # The CLI exits 0 on a push error, so success is read from its text.
+            echo "$OUT" | grep -q "successfully pushed" || { echo "::error::push not confirmed"; exit 1; }
+            VER=$(echo "$OUT" | grep -oE 'version [0-9]+' | head -1 | grep -oE '[0-9]+')
+          fi
           echo "VERSION=$VER" >> "$GITHUB_ENV"
           echo "pushed $ID version $VER"
           if [ "$NOWAIT" = "yes" ]; then echo "wait: no -> not waiting for the kernel"; exit 0; fi
