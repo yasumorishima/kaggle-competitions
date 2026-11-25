@@ -1,0 +1,8 @@
+request: v3tpu-w2
+run: 45652654869  status: failure  action: kernel  dir: gga/kernels/sub  submit: yes
+kernel: yasunorim/gga-sub  version: 2
+memo: v3tpu の続き（2 回目の待ち）。gga-sub 版 2 は 05:12 から 16:34 まで 11 時間以上 TPU の空き待ち（QUEUED）。CPU の枠は Santa の shard 5 本で埋まっているので、版 2 をもう 1 回待つ。仮説は v3tpu と同じ：(1) TPU の kernel の提出が通るか、(2) やり直しの効き（±0.005）。
+
+not pushing: waiting for the existing version 2
+
+output files:
