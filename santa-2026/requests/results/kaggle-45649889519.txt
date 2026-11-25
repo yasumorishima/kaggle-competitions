@@ -1,0 +1,43 @@
+request: c9
+run: 45649889519  status: success  shards: 5  minutes: 650.0  submit: yes
+memo: g3（GHA 16 本・WJ 版・診断入りの最初の回）の回収と、公開の更新の取り込み。g3 の strat 行で戦略ごとの fail/same/+1..2 を見て、公開のエンジンが効かない理由を数字で残す。shard 0〜3（WJ）と shard-4（triwalk）は実行中のはずで、押し直さない。効果量の見込み：g3 は 0〜3、公開の更新で 0〜10。pool が best より良ければ提出（11-25 の 3 本目）。
+
+shard 0: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-0 has status "KernelWorkerStatus.RUNNING"
+shard 1: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-1 has status "KernelWorkerStatus.RUNNING"
+shard 2: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-2 has status "KernelWorkerStatus.RUNNING"
+shard 3: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-3 has status "KernelWorkerStatus.RUNNING"
+shard 4: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-4 has status "KernelWorkerStatus.RUNNING"
+shard 5: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 6: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 7: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 8: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 9: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+gha runs: 4, shard outputs decrypted: 48
+gha search: 48 shards, jobs 50588, improved 0, gain 0
+gha archive rows: 0
+puzzles by source: {'public': 52, 'prev': 948}
+fresh puzzles (shorter than the previous pool): 52, gain 67
+fresh puzzles for the shards (with carry-over): 166
+pool score: 128172 (previous pool 128239, public only 128172)
+  0%|          | 0.00/625 [00:00<?, ?B/s]100%|██████████| 625/625 [00:00<00:00, 2.20kB/s]
+Upload successful: gha_pub.pem (625B)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/santa26-work
+best submitted: 128239, pool: 128172
+submissions today (2026-11-25): 2 of 5
+  0%|          | 0.00/1.98M [00:00<?, ?B/s]100%|██████████| 1.98M/1.98M [00:00<00:00, 6.94MB/s]
+Successfully submitted to Santa 2026 - The Elf Calculator
+shard 0: still running, not pushed
+shard 1: still running, not pushed
+shard 2: still running, not pushed
+shard 3: still running, not pushed
+shard 4: still running, not pushed
