@@ -1,0 +1,7 @@
+run: 46125779873 quick merge
+quick pool score: 126863 (previous pool 126863)
+best submitted: 126885, pool: 126863, submissions today: 2 of 24
+Upload successful: gha_pub.pem (625B)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/santa26-work
+  0%|          | 0.00/1.95M [00:00<?, ?B/s]100%|██████████| 1.95M/1.95M [00:00<00:00, 3.70MB/s]
+Successfully submitted to Santa 2026 - The Elf Calculator
