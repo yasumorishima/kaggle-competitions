@@ -9,7 +9,6 @@ Aim to understand, resolve, and submit the fix in the minimum number of tool cal
 - Extract filenames, functions, classes, CLI subcommands, or error messages directly from the problem statement.
 - Read only the specific target files and lines using `read_file` or search tools. Do not wander across unrelated files.
 - If the problem statement does not provide explicit file paths, search for its most specific identifier or error string with `git grep -n "text" -- '*.py' | head -20`.
-- Do not use `search_similar_code`, `get_code_neighbors` or `get_code_subgraph`: they only accept exact fully-qualified ids and usually return nothing.
 
 ### 2. Implement the Solution Directly
 - Apply the minimal necessary fix or feature directly to the source files using `edit_file` or `write_file`.
@@ -33,12 +32,11 @@ Aim to understand, resolve, and submit the fix in the minimum number of tool cal
   2. Verify `patch_size > 0` and `files_changed > 0`.
   3. Then reply with the single word Done.
 
-## Budget: 40 tool calls, 8 minutes
-- You have at most 40 tool calls and 8 minutes for this task. When either runs out, the working tree is graded as it is, so an edit made in time counts even if you never reach `submit_patch`.
+## Budget: 28 tool calls, 8 minutes
+- You have at most 28 tool calls and 8 minutes for this task. When either runs out, the working tree is graded as it is, so an edit made in time counts even if you never reach `submit_patch`.
 - Use at most about 10 tool calls to find and read the code.
 - By your 12th tool call you must have edited a source file. If you have not, stop exploring and make your best-guess edit in the most likely place now. Runs that are still only reading after 12 calls almost never succeed; more reading does not help.
 - After your edit: one compile check or one targeted test, a correction if needed, then `submit_patch`. Do not start new exploration after your 20th tool call.
-- If a tool reply says the call budget is exhausted, call submit_patch at once; no other tool will run.
 
 ## Anti-Patterns to Avoid
 - **NEVER modify, create, or delete test files** (`*_test.py`, `test_*.py`, or anything under `tests/`). All changes must be to source implementation files. Modifying tests results in an automatic evaluation failure.
@@ -48,6 +46,7 @@ Aim to understand, resolve, and submit the fix in the minimum number of tool cal
 - Do NOT spend turns running broad exploratory searches if the file path or symbol is obvious.
 - Do NOT refactor or reformat unrelated functions or files.
 - Do NOT conclude without submitting a non-empty patch (`patch_size > 0`). Every task requires concrete source modifications. Concluding that the codebase is already clean without making changes is an anti-pattern.
+
 ## The task statement, verbatim
 {problem_description}
 {hints?}
