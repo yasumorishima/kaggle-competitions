@@ -1,0 +1,61 @@
+request: sched-46105383130
+run: 46105383130  status: success  shards: 5  minutes: 620.0  submit: yes
+memo: 定期サイクル：前回の pool＋shard 出力＋公開の解を合わせ、私用 dataset を更新、良くなっていれば提出、shard を再投入
+
+shard 0: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-0 has status "KernelWorkerStatus.RUNNING"
+shard 1: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-1 has status "KernelWorkerStatus.RUNNING"
+shard 2: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-2 has status "KernelWorkerStatus.RUNNING"
+shard 3: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-3 has status "KernelWorkerStatus.RUNNING"
+shard 4: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+yasunorim/santa26-shard-4 has status "KernelWorkerStatus.RUNNING"
+shard 5: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 6: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 7: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 8: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+shard 9: Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+403 Client Error: Forbidden for url: https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionStatus
+gha runs: 3, shard outputs decrypted: 48
+gha search: 48 shards, jobs 58427, improved 30, gain 31
+gha strat triwalk:120/c0: n=1493 fail=0 better=1 same=1492 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:120/c1: n=1463 fail=0 better=1 same=1462 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:120/c2: n=1468 fail=0 better=2 same=1466 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:120/c3: n=1528 fail=0 better=1 same=1527 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:120/c4: n=1518 fail=0 better=1 same=1517 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:120/c5: n=1530 fail=0 better=0 same=1530 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c0: n=2946 fail=0 better=1 same=2945 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c1: n=3007 fail=0 better=6 same=3001 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c2: n=3006 fail=0 better=3 same=3003 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c3: n=2993 fail=0 better=3 same=2990 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c4: n=2966 fail=0 better=2 same=2964 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:40/c5: n=2947 fail=0 better=2 same=2945 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c0: n=5255 fail=0 better=3 same=5252 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c1: n=5272 fail=0 better=0 same=5272 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c2: n=5191 fail=0 better=2 same=5189 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c3: n=5223 fail=0 better=1 same=5222 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c4: n=5385 fail=0 better=2 same=5383 +1..2=0 +3..10=0 >10=0 lin=0
+gha strat triwalk:60/c5: n=5236 fail=0 better=0 same=5236 +1..2=0 +3..10=0 >10=0 lin=0
+gha archive rows: 27099
+puzzles by source: {'prev': 963, 'public': 37}
+fresh puzzles (shorter than the previous pool): 37, gain 72
+fresh puzzles for the shards (with carry-over): 566
+pool score: 126885 (previous pool 126957, public only 126901)
+  0%|          | 0.00/625 [00:00<?, ?B/s]100%|██████████| 625/625 [00:00<00:00, 2.20kB/s]
+Upload successful: gha_pub.pem (625B)
+Dataset version is being created. Please check progress at https://www.kaggle.com/datasets/yasunorim/santa26-work
+best submitted: 126957, pool: 126885
+submissions today (2026-11-28): 1 of 10
+  0%|          | 0.00/1.95M [00:00<?, ?B/s]100%|██████████| 1.95M/1.95M [00:00<00:00, 6.72MB/s]
+Successfully submitted to Santa 2026 - The Elf Calculator
+shard 0: still running, not pushed
+shard 1: still running, not pushed
+shard 2: still running, not pushed
+shard 3: still running, not pushed
+shard 4: still running, not pushed
