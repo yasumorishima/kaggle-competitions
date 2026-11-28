@@ -1,0 +1,20 @@
+{
+  "id": "yasunorim/gga-sub-gpu",
+  "title": "gga-sub-gpu",
+  "code_file": "main.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "machine_shape": "NvidiaRtxPro6000",
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435",
+  "enable_internet": false,
+  "dataset_sources": ["dfranzen/pennyroyal-v253"],
+  "competition_sources": ["generalist-gaming-agent"],
+  "kernel_sources": ["ozertuu/gga-sglang-cache-builder"],
+  "model_sources": [
+    "dfranzen/albucino-qwen3-8-flash-next-drafter/Transformers/default/1",
+    "dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/Transformers/default/1"
+  ]
+}
