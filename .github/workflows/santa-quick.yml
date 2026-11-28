@@ -82,7 +82,13 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -o pipefail
-          BEST=$(cut -d' ' -f1 santa-2026/requests/best_submitted.txt 2>/dev/null || echo 1000000000)
+          # the record on main is the one every run writes to (a branch checkout can be stale: 11-28 08:39 a branch run
+          # resubmitted the same 126,863); take the smaller of the checkout's and main's record, and main's daily count
+          git fetch -q origin main
+          for f in best_submitted.txt submits_day.txt; do git show origin/main:santa-2026/requests/$f > /tmp/main_$f 2>/dev/null || true; done
+          BEST=$(cat santa-2026/requests/best_submitted.txt /tmp/main_best_submitted.txt 2>/dev/null | cut -d' ' -f1 | grep -E '^[0-9]+$' | sort -n | head -1)
+          BEST=${BEST:-1000000000}
+          if [ -s /tmp/main_submits_day.txt ]; then cp /tmp/main_submits_day.txt santa-2026/requests/submits_day.txt; fi
           TODAY=$(date -u +%F); CNT=0
           if [ -f santa-2026/requests/submits_day.txt ] && [ "$(cut -d' ' -f1 santa-2026/requests/submits_day.txt)" = "$TODAY" ]; then
             CNT=$(cut -d' ' -f2 santa-2026/requests/submits_day.txt)
