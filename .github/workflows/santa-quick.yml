@@ -1,0 +1,121 @@
+name: Santa 2026 quick merge
+
+# Hourly light cycle (user, 2026-11-28: 「24本で、1時間ごとのサイクル」): merge our previous pool with the
+# public program sets only, and submit when it beats our best submitted score. No shard push, no GHA
+# artifacts, no search: the full cycle (santa-kaggle.yml) keeps doing those. The point is to take in public
+# updates within an hour, because tied scores are ordered by submission time.
+# The private dataset is versioned only when a pool is submitted (programs never enter this public repo).
+# Shares the daily count requests/submits_day.txt with santa-kaggle.yml (at most 24 a day, UTC).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 * * * *'
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'santa-2026/requests/quick.json'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: santa-quick
+  cancel-in-progress: false
+
+env:
+  COMP: santa-2026
+  OWNER: yasunorim
+  DAILY_MAX: 24
+
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Skip while a full cycle runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N=$(gh run list -R "$GITHUB_REPOSITORY" -w santa-kaggle.yml --status in_progress --json databaseId -q 'length' 2>/dev/null || echo 0)
+          echo "full cycles in progress: $N"
+          if [ "${N:-0}" != "0" ]; then echo "SKIP=yes" >> $GITHUB_ENV; fi
+
+      - name: Install kaggle CLI
+        if: env.SKIP != 'yes'
+        run: pip install -q six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+
+      - name: Merge the previous pool with the public sets
+        if: env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          W=/tmp/santa; mkdir -p $W/comp $W/prev $W/public $W/work
+          kaggle competitions download "$COMP" -p $W/comp >/dev/null && (cd $W/comp && unzip -q -o *.zip)
+          kaggle datasets download "$OWNER/santa26-work" -p $W/prev --unzip >/dev/null 2>&1
+          test -f $W/prev/pool.csv || { echo "no previous pool"; echo "SKIP=yes" >> $GITHUB_ENV; exit 0; }
+          grep -v '^#' santa-2026/requests/public_sources.txt | while read kind ref; do
+            [ -n "$kind" ] || continue
+            d=$W/public/$(echo "$ref" | tr / _)
+            if [ "$kind" = dataset ]; then kaggle datasets download "$ref" -p "$d" --unzip >/dev/null 2>&1 || echo "failed $ref"
+            else kaggle kernels output "$ref" -p "$d" >/dev/null 2>&1 || echo "failed $ref"; fi
+          done
+          python -I santa-2026/tools/merge.py --puzzles $W/comp/puzzles.csv --out $W/work/pool.csv $W/prev/pool.csv $W/public 2>&1 | tee /tmp/merge.txt | tail -3
+          python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/work/pool.csv
+          SCORE=$(grep -oE 'merged score [0-9]+' /tmp/merge.txt | grep -oE '[0-9]+')
+          PREV=$(python -I santa-2026/tools/validate.py $W/comp/puzzles.csv $W/prev/pool.csv | grep -oE 'score [0-9]+' | grep -oE '[0-9]+')
+          echo "quick pool score: $SCORE (previous pool $PREV)" | tee -a /tmp/out.txt
+          echo "SCORE=$SCORE" >> $GITHUB_ENV
+          echo "PREVSCORE=$PREV" >> $GITHUB_ENV
+
+      - name: Submit when it beats the best submitted
+        if: env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          BEST=$(cut -d' ' -f1 santa-2026/requests/best_submitted.txt 2>/dev/null || echo 1000000000)
+          TODAY=$(date -u +%F); CNT=0
+          if [ -f santa-2026/requests/submits_day.txt ] && [ "$(cut -d' ' -f1 santa-2026/requests/submits_day.txt)" = "$TODAY" ]; then
+            CNT=$(cut -d' ' -f2 santa-2026/requests/submits_day.txt)
+          fi
+          echo "best submitted: $BEST, pool: $SCORE, submissions today: $CNT of $DAILY_MAX" | tee -a /tmp/out.txt
+          if [ "$CNT" -ge "$DAILY_MAX" ] || [ "$SCORE" -ge "$BEST" ]; then
+            echo "not submitted" | tee -a /tmp/out.txt; exit 0
+          fi
+          # keep the private dataset in step with what we submit (the full cycle and the GHA search start from it)
+          W=/tmp/santa
+          cp $W/work/pool.csv $W/prev/pool.csv
+          printf '{"title": "santa26-work", "id": "%s/santa26-work", "licenses": [{"name": "CC0-1.0"}]}\n' "$OWNER" > $W/prev/dataset-metadata.json
+          kaggle datasets version -p $W/prev -m "quick pool $SCORE [run ${GITHUB_RUN_ID}]" -r zip 2>&1 | tail -2 | tee -a /tmp/out.txt
+          R=$(kaggle competitions submit "$COMP" -f $W/work/pool.csv -m "santa26 quick pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2)
+          echo "$R" | tee -a /tmp/out.txt
+          case "$R" in *Successfully*)
+            echo "$SCORE" > santa-2026/requests/best_submitted.txt
+            echo "$TODAY $((CNT + 1))" > santa-2026/requests/submits_day.txt
+            echo "SUBMITTED=yes" >> $GITHUB_ENV ;; esac
+
+      - name: Commit the outcome (only when submitted)
+        if: env.SKIP != 'yes' && env.SUBMITTED == 'yes'
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          out="santa-2026/requests/results/quick-${GITHUB_RUN_ID}.txt"
+          { echo "run: ${GITHUB_RUN_ID} quick merge"; cat /tmp/out.txt; } > "$out"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$out" santa-2026/requests/best_submitted.txt santa-2026/requests/submits_day.txt
+          git commit -q -m "santa-2026: quick merge ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase origin "$BRANCH" && git push -q origin "HEAD:$BRANCH" && exit 0
+            sleep $((i * 5))
+          done
+          echo "could not push the outcome"; exit 1

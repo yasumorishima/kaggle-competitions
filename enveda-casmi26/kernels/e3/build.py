@@ -1682,10 +1682,19 @@ except Exception as _e:
 """))
     _oc.append(code_cell("""# ==== ours (yasunorim): drop scratch trees from /kaggle/working (the output listing is paged at 500 files) ====
 import os as _os, shutil as _sh
-for _d in ('ice_site', 'gl_site', '__pycache__', 'ours_mods', 'ours_pop'):
+import glob as _gl
+# 11-28 (e3r511-1): the r511 base leaves the external spectral library arrays (external_reference_*/spec_*.npy), model
+# copies and caches in /kaggle/working; the output download in GHA stopped inside them and never reached submission.csv
+for _d in ['ice_site', 'gl_site', '__pycache__', 'ours_mods', 'ours_pop', 'numba_cache', 'ours_bundle', 'vt_channel', 'work',
+           'smoke_comp', 'v43_v4code', 'eng', 'gl_work', 'ice_work', 'n1_work', 'p2s_code'] + [_os.path.basename(_x) for _x in _gl.glob('/kaggle/working/external_reference_*')]:
     _p = _os.path.join('/kaggle/working', _d)
     if _os.path.isdir(_p):
         _sh.rmtree(_p, ignore_errors=True)
+for _x in _gl.glob('/kaggle/working/*.parquet') + _gl.glob('/kaggle/working/*.npy') + _gl.glob('/kaggle/working/*.pt'):
+    try:
+        if _os.path.getsize(_x) > 20_000_000: _os.remove(_x)
+    except OSError:
+        pass
 _n = sum(len(f) for _, _, f in _os.walk('/kaggle/working'))
 print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('/kaggle/working/submission.csv'), flush=True)
 """))

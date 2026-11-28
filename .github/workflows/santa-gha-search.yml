@@ -1,6 +1,6 @@
 name: Santa 2026 GHA search
 
-# More free search for Santa 2026: 18 standard public runners (4 cores each) run our search/runner.py
+# More free search for Santa 2026: 16 standard public runners (4 cores each) run our search/runner.py
 # for about 5.5 hours after each cycle of santa-kaggle.yml, alongside the Kaggle shard kernels.
 #
 # Programs never appear in this public repo or its logs:
@@ -31,7 +31,7 @@ concurrency:
 env:
   COMP: santa-2026
   OWNER: yasunorim
-  NSHARD: 18   # the free plan runs 20 jobs at once: leave room for a cycle and a GGA job
+  NSHARD: 16   # the free plan runs 20 jobs at once: leave 4 for the hourly quick merge, a cycle and the kernel-wait jobs
   MINUTES: 320
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     steps:
       - uses: actions/checkout@v4
         with:

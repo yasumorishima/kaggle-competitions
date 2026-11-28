@@ -1,0 +1,32 @@
+request: e3r511-1
+run: 46112519882  status: failure  action: kernel  dir: enveda-casmi26/kernels/e3  submit: yes
+kernel: yasunorim/casmi26-e3r511  version: 1
+memo: Base switch (the only part type with a positive coefficient in our 76-row regression, tools/stats/out_20261123.txt): koushikrudra '[LB 0.511+]CASMI v80' v1 = kozykappa's 0.505 stack (same frozen pipeline sha256 d1e757c2 as our k505/g505) + ishankarnick's virtual natural-product tier (casmi26-vt0/vtlp) with three neural scorers (bgunshui v2, ishankarnick x1full, popwenman v80) + ours: own COCONUT, lfrag, onp (coefficients ~0, kept as the bundle). Effect estimate vs our e3k505-1 (0.505): +0.006 (+0.8 public molecules, about 1.6 private molecules at 0.0037 each) from the base, our parts 0 +- 0.3 molecules; residual SD 0.0028 (0.36 mol). LB 11-28: ours 0.505 #1343, bronze #616 = 0.509, silver #308 = 0.510. Hypothesis: completes and LB >= 0.509 (inside bronze). build.py r511 base=p477 outer=r511 ownco=1 lfrag=1 onp=1, the base's own image fc720c15. Not run in the cloud (read only).
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/casmi26-e3r511
+
+output files:
+total 648
+drwxr-xr-x  4 runner runner   4096 Nov 28 08:06 .
+drwxrwxrwt 12 root   root     4096 Nov 28 08:06 ..
+-rw-r--r--  1 runner runner    134 Nov 28 08:06 apex_extlib_audit.json
+-rw-r--r--  1 runner runner    357 Nov 28 08:06 aprior_audit.json
+-rw-r--r--  1 runner runner  17309 Nov 28 08:06 baseline_submission.csv
+-rw-r--r--  1 runner runner     33 Nov 28 08:06 bootstrap.log
+-rw-r--r--  1 runner runner    547 Nov 28 08:06 candidate_audit.csv
+-rw-r--r--  1 runner runner   2578 Nov 28 08:06 candidate_audit.json
+-rw-r--r--  1 runner runner 193491 Nov 28 08:06 e004_candidate_inputs.json
+-rw-r--r--  1 runner runner   9848 Nov 28 08:06 e004_verification.json
+-rw-r--r--  1 runner runner    429 Nov 28 08:06 e180x_audit.json
+-rw-r--r--  1 runner runner 138382 Nov 28 08:06 effective_query_spectra.parquet
+drwxr-xr-x  3 runner runner   4096 Nov 28 08:06 eng
+-rw-r--r--  1 runner runner  29968 Nov 28 08:06 eng_lists.json
+-rw-r--r--  1 runner runner    229 Nov 28 08:06 execution_receipt.json
+-rw-r--r--  1 runner runner   9256 Nov 28 08:06 experiment_audit.csv
+-rw-r--r--  1 runner runner    298 Nov 28 08:06 experiment_audit.json
+-rw-r--r--  1 runner runner  28563 Nov 28 08:06 experiment_audit_factorial.csv
+-rw-r--r--  1 runner runner 164030 Nov 28 08:06 experiment_audit_factorial.json
+-rw-r--r--  1 runner runner   1640 Nov 28 08:06 experiment_verification.json
+drwxr-xr-x  2 runner runner   4096 Nov 28 08:06 external_reference_861ipkqs
+Official-metric RDKit: 2026.03.3
