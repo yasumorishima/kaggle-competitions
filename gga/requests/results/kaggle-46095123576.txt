@@ -1,0 +1,37 @@
+request: v3tpu-s
+run: 46095123576  status: failure  action: kernel  dir: gga/kernels/sub  submit: yes
+kernel: yasunorim/gga-sub  version: 2
+memo: v3tpu の提出。gga-sub 版 2（TPU）は 11-28 01:50 UTC に complete になっていた。仮説：(1) TPU の kernel の提出が通るか、(2) 負けた後のやり直しの効き（v2 の 0.046 と比べて ±0.005、雑音の幅の中なら効いたと書かない）。11-28 の GGA の 1 本目。
+
+not pushing: waiting for the existing version 2
+[{"stream_name":"stdout","time":2.322753858,"data":"harness /kaggle/input/competitions/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":3.289004505,"data":"installing ['--no-deps', 'grpcio-tools==1.85.1']\n"}
+,{"stream_name":"stderr","time":5.779491874,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":5.841111155,"data":"installing ['--no-deps', 'setuptools']\n"}
+,{"stream_name":"stderr","time":6.194776973,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":6.238451395,"data":"installing ['polars']\n"}
+,{"stream_name":"stderr","time":12.040146101,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":14.254041056,"data":"installing ['opentelemetry-sdk']\n"}
+,{"stream_name":"stderr","time":15.473178999,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":21.946968748,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":22.009623665,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":26.415419635,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":27.518851332,"data":"[NbConvertApp] Writing 366467 bytes to __results__.html\n"}
+]Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+400 Client Error: Bad Request for url: https://api.kaggle.com/v1/competitions.CompetitionApiService/CreateCodeSubmission
+
+output files:
+total 24
+drwxr-xr-x  3 runner runner 4096 Nov 28 01:51 .
+drwxrwxrwt 12 root   root   4096 Nov 28 01:51 ..
+drwxr-xr-x  2 runner runner 4096 Nov 28 01:51 __pycache__
+-rw-r--r--  1 runner runner   27 Nov 28 01:51 agent.py
+-rw-r--r--  1 runner runner 2761 Nov 28 01:51 gga-sub.log
+-rw-r--r--  1 runner runner  937 Nov 28 01:51 submission.parquet
+[{"stream_name":"stdout","time":2.322753858,"data":"harness /kaggle/input/competitions/generalist-gaming-agent\n"}
+,{"stream_name":"stdout","time":3.289004505,"data":"installing ['--no-deps', 'grpcio-tools==1.85.1']\n"}
+,{"stream_name":"stderr","time":5.779491874,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":5.841111155,"data":"installing ['--no-deps', 'setuptools']\n"}
+,{"stream_name":"stderr","time":6.194776973,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n"}
+,{"stream_name":"stdout","time":6.238451395,"data":"installing ['polars']\n"}
+,{"stream_name":"stderr","time":12.040146101,"data":"WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual enviro
