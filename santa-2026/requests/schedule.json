@@ -1,1 +1,1 @@
-{"id": "sched", "memo": "定期サイクル：前回の pool＋shard 出力＋公開の解を合わせ、私用 dataset を更新、良くなっていれば提出、shard を再投入", "action": "cycle", "shards": 4, "minutes": 620, "submit": "submit", "message": "santa26 cycle"}
+{"id": "sched", "memo": "定期サイクル：前回の pool＋shard 出力＋公開の解を合わせ、私用 dataset を更新、良くなっていれば提出、shard を再投入", "action": "cycle", "shards": 5, "minutes": 620, "submit": "submit", "message": "santa26 cycle"}

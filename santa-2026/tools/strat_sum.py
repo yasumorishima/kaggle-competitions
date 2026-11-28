@@ -8,4 +8,4 @@ for l in sys.stdin:
         if k != "avg_sec": A[m.group(1)][k] += int(v)
 for name, c in sorted(A.items()):
     print(f"{sys.argv[1] if len(sys.argv) > 1 else ''}strat {name}: " + " ".join(f"{k}={c[k]}" for k in
-          ["n", "fail", "better", "same", "+1..2", "+3..10", ">10"]))
+          ["n", "fail", "better", "same", "+1..2", "+3..10", ">10", "lin"]))
