@@ -65,7 +65,10 @@ def decode(S):
     return out
 
 lanes = []                                  # (tag, syndrome, {pos: val})
-for line in open(sys.argv[3]):
+if sys.argv[3].endswith('.json'):           # a list of explicit inputs (syndrome, positions, values), e.g. a public scan's output
+    for d in json.load(open(sys.argv[3])):
+        lanes.append((f"EXT{len(lanes)} w{d['weight']} {d['kind']}", np.array(d['syndrome'], np.int64), dict(zip(d['positions'], d['values']))))
+for line in (open(sys.argv[3]) if not sys.argv[3].endswith('.json') else []):
     d = json.loads(line)
     syn, _, _, _ = F.sample(spec, T, np.random.default_rng(d['seed']), 256, wp)
     lanes.append((f"FAIL{len(lanes)} w{d['weight']}", syn[d['shot']], dict(zip(d['pos'], d['vals']))))
@@ -131,6 +134,8 @@ path.append((n, read_S()))
 print('ops', n, 'snapshots', len(path), flush=True)
 if os.environ.get('PATHOUT'):
     import pickle; pickle.dump({'lanes': lanes, 'path': path}, open(os.environ['PATHOUT'], 'wb'))
+for l, (tag, sy, ev) in enumerate(lanes):
+    print(f'{tag} END syndrome words wrong {int((path[-1][1][l] != path[0][1][l]).sum())} of {spec.n}')
 for l, (tag, sy, ev) in enumerate(lanes):
     S0 = path[0][1][l]; first = None; prev = None
     for t, S in path:
