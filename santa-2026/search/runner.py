@@ -27,10 +27,14 @@ ap.add_argument("--fresh-ids", default="", help="ids that just got shorter (e.g.
 ap.add_argument("--fresh-repeat", type=int, default=12)
 # triwalk only (11-25 GHA run 45599624803, 16 shards x 320 min): triwalk shortened 96 of 12,500 jobs (60 s: 51/5,960,
 # 40 s on fresh puzzles: 12/947, 120 s: 24/2,593, 30 s: 9/3,000), Wang Jakie / Atakan 0 of 3,159. Per second, 60 s and 40 s win.
-ap.add_argument("--plan", default="triwalk:60,triwalk:60,triwalk:60,triwalk:120")
+# trilin:S (11-28): triwalk from another lineage (archive programs up to --lin-excess longer than best). goodpjw2008's
+# search_stats.csv (11-28): lineages 70 instructions in 7.3 h, best-polish 616 in 35.7 h; our best-polish gains are soon
+# matched by public files (our lead over public fell 67 -> 31 in two days), so half the sweeps go to other lineages.
+ap.add_argument("--plan", default="triwalk:60,trilin:30,triwalk:60,trilin:30,triwalk:120")
 ap.add_argument("--fresh-plan", default="triwalk:40",
                 help="strategies for fresh puzzles; frontier:i / closure:i are Atakan's optimizers with config i")
 ap.add_argument("--log", default="")
+ap.add_argument("--lin-excess", type=int, default=5, help="trilin: start from archive programs at most this much longer than best")
 a = ap.parse_args()
 
 P = load_puzzles(a.puzzles); POOL = load_sub(a.pool)
@@ -46,7 +50,7 @@ TW = ["--cap 1 --T 0.2 --rb 0.6 --deep 0.1", "--cap 1 --T 0.2 --rb 0.85 --deep 0
       "--cap 2 --T 0.2 --rb 0.85 --deep 0.4", "--cap 3 --T 0.2 --rb 0.85 --deep 0.2", "--cap 2 --T 0.2 --rb 0.85 --deep 0"]
 ATK = {"frontier": ["8 4200 9 10 9 {salt} 1500", "14 8000 12 13 9 {salt} 3000", "8 4200 9 10 13 {salt} 1500"],
        "closure": ["90 26 7 {salt} 4150", "92 32 4 {salt} 5250", "100 28 9 {salt} 4950"]}
-have = lambda st: os.path.exists(os.path.join(a.bin, st))
+have = lambda st: os.path.exists(os.path.join(a.bin, "triwalk" if st == "trilin" else st))
 plan = [x for x in plan if have(x[0])] or plan
 fplan = [x for x in fplan if have(x[0])] or plan
 best = {k: POOL[k] for k in ids}; start_len = {k: len(best[k]) for k in ids}
@@ -82,18 +86,27 @@ def atk_job(k, strat, cfg, seed):
         return k, None
     return k, out
 
-def tw_job(k, secs, seed):
-    s, t, L = P[k]; tg = sorted(set(t)); r2 = random.Random(seed); cfg = r2.randrange(len(TW))
-    # Half the time start from an equal-length variant (a "V" end state of an earlier walk) so the walk keeps moving.
-    alts = [p for p in arch[k] if len(p) == len(best[k])]
-    prog = r2.choice(alts) if alts and r2.random() < 0.5 else best[k]
+tries = {}   # (k, archive index) -> trilin walks started from that lineage in this run
+def tw_job(k, secs, seed, lineage=False):
+    s, t, L = P[k]; tg = sorted(set(t)); r2 = random.Random(seed); cfg = r2.randrange(len(TW)); idx = -1
+    # "trilin": start from another lineage, i.e. an archive program a little longer than best (from other public files
+    # or an earlier walk), fewest tries and smallest excess first. Public teams polish their best programs with the same
+    # engine, so gains on our best are soon matched; a different lineage can reach a length the best-polish does not.
+    lin = [i for i, p in enumerate(arch[k]) if len(best[k]) < len(p) <= len(best[k]) + a.lin_excess] if lineage else []
+    if lin:
+        idx = min(lin, key=lambda i: (tries.get((k, i), 0) + 1) * (1 + 0.5 * (len(arch[k][i]) - len(best[k]))) * (0.5 + r2.random()))
+        tries[(k, idx)] = tries.get((k, idx), 0) + 1; prog = arch[k][idx]
+    else:
+        # Half the time start from an equal-length variant (a "V" end state of an earlier walk) so the walk keeps moving.
+        alts = [p for p in arch[k] if len(p) == len(best[k])]
+        prog = r2.choice(alts) if alts and r2.random() < 0.5 else best[k]
     head = ["P", k, str(len(s))] + [str(x) for x in s] + [str(len(tg))] + [str(x) for x in tg] + [str(L), "48", str(len(prog))]
     case = " ".join(head) + "\n" + "".join(f"{op} {x} {y} {d}\n" for op, x, y, d in prog)
     argv = [os.path.join(a.bin, "triwalk"), "--time", str(secs), "--seed", str(seed)] + TW[cfg].split()
     try:
         r = subprocess.run(argv, input=case, capture_output=True, text=True, timeout=secs * 4 + 60)
     except Exception:
-        return k, None, cfg
+        return k, None, cfg, idx, prog
     lines = r.stdout.splitlines()
     for i, ln in enumerate(lines):
         f = ln.split()
@@ -103,17 +116,18 @@ def tw_job(k, secs, seed):
                 out = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in (l.split() for l in lines[i + 1:i + 1 + n])]
                 replay(s, t, L, out)
             except Exception:
-                return k, None, cfg
-            return k, out, cfg
-    return k, list(best[k]), cfg   # no shorter program and no new variant: same as the input
+                return k, None, cfg, idx, prog
+            return k, out, cfg, idx, prog
+    return k, list(prog), cfg, idx, prog   # no shorter program and no new variant: same as the input
 
 def job(k, strat, rounds, seed):
     t = time.time()
-    if strat == "triwalk":
-        k, prog, cfg = tw_job(k, rounds, seed)
-        return k, prog, f"triwalk:{rounds}/c{cfg}", time.time() - t
+    if strat in ("triwalk", "trilin"):
+        k, prog, cfg, idx, start = tw_job(k, rounds, seed, strat == "trilin")
+        name = f"trilin:{rounds}/nolin" if strat == "trilin" and idx < 0 else f"{strat}:{rounds}/c{cfg}"   # nolin: no lineage, walked best
+        return k, prog, name, time.time() - t, idx, start
     k, prog = (atk_job if strat in ATK else wj_job)(k, strat, rounds, seed)
-    return k, prog, f"{strat}:{rounds}", time.time() - t
+    return k, prog, f"{strat}:{rounds}", time.time() - t, -1, None
 
 def wj_job(k, strat, rounds, seed):
     s, t, L = P[k]
@@ -156,8 +170,9 @@ def next_task():
 done_jobs = 0
 # Per-strategy diagnostics (lengths only): jobs, failed (no valid program), delta = len(out) - len(best) buckets, seconds.
 ST = {}
-def stat(name, d, sec):
-    r = ST.setdefault(name, {"n": 0, "fail": 0, "lt0": 0, "eq0": 0, "p1_2": 0, "p3_10": 0, "gt10": 0, "sec": 0.0})
+def stat(name, d, sec, lin=0):
+    r = ST.setdefault(name, {"n": 0, "fail": 0, "lt0": 0, "eq0": 0, "p1_2": 0, "p3_10": 0, "gt10": 0, "lin": 0, "sec": 0.0})
+    r["lin"] += lin
     r["n"] += 1; r["sec"] += sec
     if d is None: r["fail"] += 1
     elif d < 0: r["lt0"] += 1
@@ -176,10 +191,16 @@ with ThreadPoolExecutor(a.jobs) as ex:
         running = set(running)
         for f in fin:
             done_jobs += 1
-            k, prog, sname, sec = f.result()
-            stat(sname, None if prog is None else len(prog) - len(best[k]), sec)
+            k, prog, sname, sec, idx, start = f.result()
+            lg = max(0, len(start) - len(prog)) if idx >= 0 and prog is not None else 0
+            stat(sname, None if prog is None else len(prog) - len(best[k]), sec, lg)
             if prog is None: continue
             key = json.dumps(prog)
+            if idx >= 0 and len(prog) >= len(best[k]):
+                # keep walking this lineage from its new state (shorter, or an equal-length move); saved for later cycles
+                if len(prog) <= len(arch[k][idx]) and key not in seen[k]:
+                    seen[k].add(key); arch[k][idx] = prog; new_arch.append((k, prog))
+                continue
             if len(prog) < len(best[k]):
                 print(f"[{time.time() - t0:7.0f}s] {k}: {len(best[k])} -> {len(prog)}", file=log, flush=True)
                 best[k] = prog; seen[k].add(key)
@@ -201,6 +222,6 @@ if a.archive_out:
         for k, prog in new_arch: w.writerow([k, json.dumps(prog, separators=(",", ":"))])
 for name, r in sorted(ST.items()):
     print(f"strat {name}: n={r['n']} fail={r['fail']} better={r['lt0']} same={r['eq0']} +1..2={r['p1_2']} "
-          f"+3..10={r['p3_10']} >10={r['gt10']} avg_sec={r['sec'] / max(1, r['n']):.0f}", file=log, flush=True)
+          f"+3..10={r['p3_10']} >10={r['gt10']} lin={r['lin']} avg_sec={r['sec'] / max(1, r['n']):.0f}", file=log, flush=True)
 print(f"done: jobs {done_jobs}, improved {len(imp)} puzzles, gain {sum(start_len[k] - len(best[k]) for k in imp)}",
       file=log, flush=True)
