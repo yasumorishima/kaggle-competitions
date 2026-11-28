@@ -18,7 +18,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write   # the relay step dispatches the next run (11-28: the hourly cron never fired on main)
 
 concurrency:
   group: santa-quick
@@ -32,8 +32,11 @@ env:
 jobs:
   quick:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 80
     steps:
+      - name: Note the start time
+        run: echo "T0=$(date +%s)" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -125,3 +128,18 @@ jobs:
             sleep $((i * 5))
           done
           echo "could not push the outcome"; exit 1
+
+      # 11-28: the '41 * * * *' cron did not fire once on main in 3 hours (santa-kaggle's 3-hourly cron fires
+      # about every 8 hours). So each run on main starts the next one about an hour after its own start.
+      # GITHUB_TOKEN may dispatch workflow_dispatch runs. The cron stays as the fallback that restarts the relay.
+      - name: Relay to the next hourly run
+        if: always() && github.ref_name == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OTHERS=$(gh run list -R "$GITHUB_REPOSITORY" -w santa-quick.yml --json databaseId,status \
+            -q "[.[] | select(.databaseId != ${GITHUB_RUN_ID}) | select(.status == \"queued\" or .status == \"in_progress\" or .status == \"pending\" or .status == \"waiting\")] | length" || echo 0)
+          if [ "${OTHERS:-0}" != "0" ]; then echo "another quick run is waiting; no relay"; exit 0; fi
+          WAIT=$(( T0 + 3300 - $(date +%s) ))
+          if [ "$WAIT" -gt 0 ]; then echo "sleep $WAIT s"; sleep "$WAIT"; fi
+          gh workflow run santa-quick.yml -R "$GITHUB_REPOSITORY" --ref main && echo "next run dispatched"
