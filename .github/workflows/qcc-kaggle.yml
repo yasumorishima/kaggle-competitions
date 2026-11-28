@@ -1,0 +1,128 @@
+name: QCC Kaggle
+
+# Google Quantum AI - Verifiable Quantum Circuit Compilation.
+# The way in for a cloud session (it may push, not dispatch): a push of qcc/requests/kaggle.json
+# on any branch but main runs this job; the outcome is committed back as qcc/requests/results/kaggle-<run id>.txt.
+#
+# request keys:
+#   id       new for every request (a request whose id already appears in requests/results/ is skipped)
+#   memo     why this run (required)
+#   recipe   a file under qcc/recipes/ (sources = public kernels whose outputs hold the files, members by sha256, edits)
+#   salts    salts for the official verifiers (default [""]); every task must PASS at every salt before a submit
+#   dqi_shots  DQI shots per salt (default 102400, the board's count)
+#   submit   "submit" to send submission.zip
+#   message  submission message
+# Public notebooks' code never runs here: only their output files (picked by sha256) and the hosts' verifiers.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'qcc/requests/kaggle.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qcc-kaggle
+  cancel-in-progress: false
+
+env:
+  COMP: google-verifiable-quantum-circuit-compilation
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'   # the hosts' kickmix.so is built for CPython 3.13
+
+      - name: Install
+        run: pip install -q numpy scipy six 'kaggle==2.0.0' 'kagglesdk==0.1.15'
+
+      - name: Read the request
+        run: |
+          python - <<'PY'
+          import json, os, glob
+          r = json.load(open("qcc/requests/kaggle.json", encoding="utf-8"))
+          rid = str(r.get("id", "")).strip(); assert rid, "id is required"
+          for f in glob.glob("qcc/requests/results/*.txt"):
+              if f"request: {rid}\n" in open(f, encoding="utf-8").read():
+                  print(f"request {rid} already ran ({f}); skipping")
+                  open(os.environ["GITHUB_ENV"], "a").write("SKIP=yes\n"); raise SystemExit(0)
+          memo = str(r.get("memo", "")).strip(); assert memo, "memo is required"
+          rec = os.path.join("qcc/recipes", r["recipe"]); assert ".." not in rec and os.path.isfile(rec), rec
+          salts = r.get("salts", [""]); assert isinstance(salts, list) and salts
+          shots = int(r.get("dqi_shots", 102400)); assert shots % 256 == 0
+          msg = str(r.get("message", memo)).replace("\n", " ")
+          with open(os.environ["GITHUB_ENV"], "a") as g:
+              g.write(f"RID={rid}\nRECIPE={rec}\nSALTS={'|'.join(salts)}\nDQI_SHOTS={shots}\n")
+              g.write(f"SUBMIT={'yes' if r.get('submit') == 'submit' else 'no'}\nMSG={msg}\n")
+              g.write("MEMO<<__EOF__\n" + memo + "\n__EOF__\n")
+          print(rid, rec, salts, shots, r.get("submit"), "|", memo)
+          PY
+
+      - name: Fetch the hosts' verifiers and the public outputs
+        if: env.SKIP != 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -e
+          H=/tmp/host; mkdir -p $H
+          for f in kickmix/kickmix.so verifiers/dfthcsos/__init__.py verifiers/dfthcsos/verify.py \
+                   verifiers/dfthcsos/FeMoCo76o113e.fcidump verifiers/dfthcsos/FeMoCo76o113e.fixed_shifts.npz \
+                   verifiers/dfthcsos/scoreinfra/__init__.py verifiers/dfthcsos/scoreinfra/circuits.py \
+                   verifiers/dfthcsos/scoreinfra/costs_prepare.py verifiers/dfthcsos/scoreinfra/dfthc_math.py \
+                   verifiers/dfthcsos/scoreinfra/reference.py verifiers/dqi/__init__.py \
+                   verifiers/dqi/dqi_reference_circuit.py verifiers/dqi/verify_submission_dqi.py \
+                   verifiers/invsqrt/__init__.py verifiers/invsqrt/nr_reference_circuit.py \
+                   verifiers/invsqrt/verify_submission_invsqrt.py; do
+            d=$H/$(dirname $f); mkdir -p $d
+            kaggle competitions download "$COMP" -f "$f" -p "$d" -q >/dev/null
+            b=$(basename $f); if [ -f "$d/$b.zip" ]; then (cd $d && unzip -o -q "$b.zip" && rm "$b.zip"); fi
+            test -s "$d/$b" || { echo "::error::missing $f"; exit 1; }
+          done
+          python - <<'PY' > /tmp/sources.txt
+          import json, os
+          for s in json.load(open(os.environ["RECIPE"]))["sources"]: print(s)
+          PY
+          while read s; do
+            d=/tmp/k/$(echo $s | tr '/' '_'); mkdir -p $d
+            kaggle kernels output "$s" -p "$d" -q >/dev/null 2>&1 || kaggle kernels output "$s" -p "$d"
+            echo "$s: $(ls $d | tr '\n' ' ')"
+          done < /tmp/sources.txt
+
+      - name: Build
+        if: env.SKIP != 'yes'
+        run: |
+          set -o pipefail
+          KICKMIX=/tmp/host/kickmix python qcc/tools/build.py "$RECIPE" /tmp/k /tmp/sub 2>&1 | tee /tmp/out.txt
+          rm -rf /tmp/k
+
+      - name: Verify (official verifiers, every salt)
+        if: env.SKIP != 'yes'
+        run: |
+          python qcc/tools/verify_all.py /tmp/host /tmp/sub "$SALTS" "$DQI_SHOTS" 2>&1 | tee -a /tmp/out.txt
+          grep -q "^ALL PASS" /tmp/out.txt && echo "VERIFIED=yes" >> $GITHUB_ENV || true
+
+      - name: Submit
+        if: env.SKIP != 'yes' && env.SUBMIT == 'yes' && env.VERIFIED == 'yes'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          kaggle competitions submit "$COMP" -f /tmp/sub/submission.zip -m "$MSG [run ${GITHUB_RUN_ID}]" 2>&1 | tail -3 | tee -a /tmp/out.txt
+
+      - name: Record
+        if: always() && env.SKIP != 'yes'
+        run: |
+          F=qcc/requests/results/kaggle-${GITHUB_RUN_ID}.txt
+          { echo "request: $RID"; echo "memo: $MEMO"; echo "recipe: $RECIPE  salts: $SALTS  submit: $SUBMIT  verified: ${VERIFIED:-no}";
+            echo "---"; tail -c 20000 /tmp/out.txt 2>/dev/null; } > $F
+          git config user.name "github-actions[bot]"; git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add $F && git commit -q -m "qcc: result of request $RID (run ${GITHUB_RUN_ID})"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*5)); done

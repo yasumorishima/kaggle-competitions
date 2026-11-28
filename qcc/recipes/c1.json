@@ -1,0 +1,50 @@
+{
+ "comment": "c1: public frontier files (goodpjw2008 'QCC | Shorter Chemistry Loaders' v33 output: chemistry 269378ca by goodpjw2008 after maoxin123; invsqrt b08370f2 by evgendvorkin after maoxin123; DQI b183c793 = tonylica 4b572141 + 13 rewrites) with our edit: the 4 DQI rewrites whose expected failures on a fresh salt cost more than their Toffolis (logiclab 17-bit zero test positions 13-15, evgendvorkin position-16 CCZ) are reverted.",
+ "sources": [
+  "goodpjw2008/qcc-shorter-chemistry-loaders-lb-33-29012"
+ ],
+ "members": {
+  "invsqrt.kmb": "b08370f271ba8f17457f4704cd46d8f9a71310a094af8bb0ee16a62b01f0e48b",
+  "dqi.kmb": "56277b194216e0e7b7ac0733ab6f87dc7c65426181ee671c89c4652308b4a85d",
+  "dfthcsos/angle_k_0.kmb": "f2004c1f1d12f4a0028252aa3febd713856d246ff21134ca91a92348c4bf2994",
+  "dfthcsos/angle_k_1.kmb": "1e2f38e4404337e150fab44dd1cc072b33bb2c3f38d15c361934d3ad1a6c2d89",
+  "dfthcsos/angle_k_2.kmb": "5481ec32533e7f35d40ee37db5afcf4b78a718b4eb05d2fe7800cdb01ca86615",
+  "dfthcsos/angle_k_3.kmb": "ab14b799f15e8be5229335e70ea934c829d54cc80fc3c0ae6ab884eb4da05ea0",
+  "dfthcsos/angle_k_4.kmb": "2a6374806f1e1420ee7ac2da27e43cbecc51d95e59c3c63cb21e2687f22f3eb4",
+  "dfthcsos/angle_k_5.kmb": "277eeaed809f5e55b9b7dcf71c546c0793f8573c16536184c68bd4ee2e83654d",
+  "dfthcsos/angle_k_6.kmb": "eb503d0a6f943cc2da3766d3737b2f6e723501c61cdf3b6cd9c653c030e1494c",
+  "dfthcsos/angle_k_7.kmb": "9a61ac9d6a59572ce49e9237311bffc8bf80b60f50d26fd1378d0b5eeca77a88",
+  "dfthcsos/angle_k_8.kmb": "d24ddafdf6ceacf743b3555eea02af6261bdb8e75edabd319bf4a42749c4412e",
+  "dfthcsos/angle_k_9.kmb": "3a7b088c843e3870c23badadb2ebe1da2d501acb718934a73ae3e9640a2454e1",
+  "dfthcsos/angle_k_10.kmb": "410872a4c1c1bd542601341aa6b333f5f079d854bf931cc6b2f3f7a2083928bb",
+  "dfthcsos/angle_k_11.kmb": "a6c3a2f804937e539088781fb0a3c11b4badad92a4714f0afd8d8553105fe885",
+  "dfthcsos/angle_k_12.kmb": "edf8ba4028da728179528ddac5c84823d223f7304069fdad6c07a8eef9138061",
+  "dfthcsos/angle_k_13.kmb": "7d66ccb79fae746629c432ba4de9bd54161ac68019f26717c2223cde97525aa9",
+  "dfthcsos/angle_k_14.kmb": "a3310559e88ed16e7a88fc7241b35342276b9603731d7ed2694034f58729b301",
+  "dfthcsos/submission.npz": "f2b6cc37ce87b0d83a35e924c098f740857b61f0f3d9dd60bf1b947fbbaa55bc"
+ },
+ "edits": {
+  "dqi.kmb": {
+   "base": "b183c793b6b7c7a2a246b7756958cbdad943abc3350dcf0ff61c8857bb441e3d",
+   "sha256": "56277b194216e0e7b7ac0733ab6f87dc7c65426181ee671c89c4652308b4a85d",
+   "replace": [
+    [
+     "X q163\nCZ q103 q54\nX q54",
+     "X q163\nCCZ q103 q54 q163\nX q54"
+    ],
+    [
+     "X q156\nCX q131 q103\nX q156",
+     "X q156\nCCX q131 q156 q103\nX q156"
+    ],
+    [
+     "X q276\nCX q103 q210\nX q276",
+     "X q276\nCCX q103 q276 q210\nX q276"
+    ],
+    [
+     "X q83\nCX q210 q103\nX q83",
+     "X q83\nCCX q210 q83 q103\nX q83"
+    ]
+   ]
+  }
+ }
+}
