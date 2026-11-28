@@ -213,14 +213,14 @@ jobs:
           PY
           )
           echo "best submitted: $BEST, pool: $SCORE" | tee -a /tmp/out.txt
-          # user rule (2026-11-24): at most 5 Santa submissions a day (UTC); counted in requests/submits_day.txt
+          # user rule (2026-11-28, was 5 from 11-24): at most 10 Santa submissions a day (UTC); counted in requests/submits_day.txt
           TODAY=$(date -u +%F); CNT=0
           if [ -f santa-2026/requests/submits_day.txt ] && [ "$(cut -d' ' -f1 santa-2026/requests/submits_day.txt)" = "$TODAY" ]; then
             CNT=$(cut -d' ' -f2 santa-2026/requests/submits_day.txt)
           fi
-          echo "submissions today ($TODAY): $CNT of 5" | tee -a /tmp/out.txt
-          if [ "$CNT" -ge 5 ]; then
-            echo "not submitted: the daily limit of 5 is used" | tee -a /tmp/out.txt
+          echo "submissions today ($TODAY): $CNT of 10" | tee -a /tmp/out.txt
+          if [ "$CNT" -ge 10 ]; then
+            echo "not submitted: the daily limit of 10 is used" | tee -a /tmp/out.txt
           elif [ "$SCORE" -lt "$BEST" ]; then
             R=$(kaggle competitions submit "$COMP" -f /tmp/santa/work/pool.csv -m "$MSG pool $SCORE [run ${GITHUB_RUN_ID}]" 2>&1 | tail -2)
             echo "$R" | tee -a /tmp/out.txt
