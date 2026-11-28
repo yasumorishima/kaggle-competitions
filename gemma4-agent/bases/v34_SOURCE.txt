@@ -1,0 +1,7 @@
+v34 (11-28) = our v31 (Budget-Fit v5 by verracodeguacas, Apache-2.0, + our partner-file table), 28 calls / 8 min kept, plus three parts:
+ - the six-tool agent (graph tools and the prompt line about them removed): dheerajpiduru "What moved the score and what didn't: E4B + 31B"
+   (v8 = Budget-Aware with six tools, 12 and 10 of 58 = mean 11 vs about 9.9 for Budget-Fit V5 over 16 scores)
+ - the task statement pinned at the end of the system prompt and the one-word finish after submit_patch:
+   bliverrigpdoge "LB 0.22 | 3 tweaks, 40 tool calls, no training" v3; its 40 calls are NOT taken (dheerajpiduru v10 with 40 calls hit the
+   12-hour limit and got no score; our v33 with 40 calls scored 0.15).
+Notebooks read as text, not executed.
