@@ -1,0 +1,163 @@
+request: v6gpu
+run: 46143830273  status: success  action: kernel  dir: gga/kernels/gpu  submit: yes
+kernel: yasunorim/gga-sub-gpu  version: 2
+memo: 部品 (b)「返答の遅れを縮める」の 1 つ目。土台は v5gpu（ozertuu/gga-agent-0-360 v10＋詰まったときの coach の ACT）。変えたのは actor に渡す画像の長辺だけ（1024→640、座標は 0-999 の正規化なので対応は変わらない。coach は 1024 のまま）。根拠：土台の作者の実測で、遅れ 0→0.4 秒で off_line が 0.825→0.259。仮説：画像の token が約 4 割になり、1 手の遅れが 0.1〜0.3 秒縮んで、実時間のゲームで手数が増える。効果量の見込み −0.01〜+0.02（同じコードの LB の読みの差は約 0.01 なので、+0.01 未満は効いたと書かない）。11-28 の GGA の 2 本目。
+
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/yasunorim/gga-sub-gpu
+==> /tmp/kout/gga-sub-gpu.log <==
+ame":"stdout","time":9.111914912,"data":"common setup done at 4s\n"}
+,{"stream_name":"stdout","time":9.319887026,"data":"server interpreter: /usr/bin/python3.12 (3, 12, True)\n"}
+,{"stream_name":"stdout","time":9.319906036,"data":"Precaching: Started...\n"}
+,{"stream_name":"stdout","time":12.371055266,"data":"Precaching: loaded 211 files (6.70 GB) in 2.89 seconds.\n"}
+,{"stream_name":"stdout","time":12.371071816,"data":"\n"}
+,{"stream_name":"stdout","time":12.965418492,"data":"=== extracting prebuilt SGLang + SM120 cache from /kaggle/input/notebooks/ozertuu/gga-sglang-cache-builder/sgl-intel-prebuilt.tar ===\n"}
+,{"stream_name":"stdout","time":44.663325732,"data":"=== extracted in 31.7s ===\n"}
+,{"stream_name":"stdout","time":44.663344972,"data":"Matching offline bundle already installed at /tmp/sgl-intel/venv\n"}
+,{"stream_name":"stdout","time":45.095799933,"data":"$ /tmp/sgl-intel/venv/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc --version\n"}
+,{"stream_name":"stdout","time":45.095810733,"data":"nvcc: NVIDIA (R) Cuda compiler driver\n"}
+,{"stream_name":"stdout","time":45.095812393,"data":"Copyright (c) 2005-2025 NVIDIA Corporation\n"}
+,{"stream_name":"stdout","time":45.095813593,"data":"Built on Wed_Aug_20_01:58:59_PM_PDT_2025\n"}
+,{"stream_name":"stdout","time":45.095814633,"data":"Cuda compilation tools, release 13.0, V13.0.88\n"}
+,{"stream_name":"stdout","time":45.095815603,"data":"Build cuda_13.0.r13.0/compiler.36424714_0\n"}
+,{"stream_name":"stdout","time":45.095816543,"data":"Host compiler: g++-13\n"}
+,{"stream_name":"stdout","time":45.095817683,"data":"$ /tmp/sgl-intel/venv/bin/python -c 'import sglang, torch; print('\"'\"'sglang'\"'\"', sglang.__version__, '\"'\"'| torch'\"'\"', torch.__version__); assert torch.cuda.is_available(), '\"'\"'CUDA unavailable'\"'\"'; print('\"'\"'GPU:'\"'\"', torch.cuda.get_device_name(0), '\"'\"'capability:'\"'\"', torch.cuda.get_device_capability(0))'\n"}
+,{"stream_name":"stdout","time":60.028754906,"data":"sglang 0.5.19+gd00d88efc8d6 | torch 2.13.0+cu130\n"}
+,{"stream_name":"stdout","time":60.028779976,"data":"GPU: NVIDIA RTX PRO 6000 Blackwell Server Edition capability: (12, 0)\n"}
+,{"stream_name":"stdout","time":60.281251939,"data":"Target: /kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1 | shards: 38 | PLE dtype: checkpoint default (typically BF16)\n"}
+,{"stream_name":"stdout","time":60.281262179,"data":"Draft source: /kaggle/input/models/dfranzen/albucino-qwen3-8-flash-next-drafter/transformers/default/1\n"}
+,{"stream_name":"stdout","time":60.281263799,"data":"SGLang draft view: /tmp/sgl-intel/draft-view-746747f37bf36968 (2 linked weight shards)\n"}
+,{"stream_name":"stdout","time":60.378715554,"data":"\n"}
+,{"stream_name":"stdout","time":60.378725614,"data":"/tmp/sgl-intel/venv/bin/sglang serve --model-path /kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1 --load-format safetensors --model-loader-extra-config '{\"enable_multithread_load\":false}' --served-model-name flashnext --host 127.0.0.1 --port 8001 --tensor-parallel-size 1 --dtype bfloat16 --quantization auto-round --kv-cache-dtype fp8_e4m3 --mem-fraction-static 0.94 --context-length 32768 --page-size 64 --max-running-requests 2 --chunked-prefill-size 8192 --max-prefill-tokens 16384 --cuda-graph-max-bs-decode 2 --cuda-graph-bs-decode 1 2 --mamba-ssm-dtype bfloat16 --max-mamba-cache-size 16 --mamba-radix-cache-strategy extra_buffer --mamba-track-interval 64 --mamba-backend flashinfer --linear-attn-decode-backend flashinfer --linear-attn-prefill-backend flashinfer --moe-runner-backend auto --ple-offload-embedding --trust-remote-code --mm-feature-transport cpu --image-processor-backend pil --reasoning-parser qwen3 --tool-call-parser qwen3_coder --default-chat-template-kwargs '{\"preserve_thinking\":true}' --watchdog-timeout 1800 --schedule-policy lpm --warmups structured_output --enable-cache-report --enable-metrics --enable-request-time-stats-logging --weight-loader-prefetch-checkpoints --weight-loader-drop-cache-after-load --chat-template /kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1/chat_template.jinja --gdn-mtp-cache-mode none --speculative-algorithm NEXTN --speculative-num-steps 3 --speculative-eagle-topk 1 --speculative-num-draft-tokens 4 --speculative-draft-model-path /tmp/sgl-intel/draft-view-746747f37bf36968 --speculative-draft-model-quantization compressed-tensors --speculative-moe-runner-backend auto --speculative-draft-kv-cache-dtype fp8_e4m3 --speculative-accept-threshold-single 1.0 --speculative-accept-threshold-acc 1.0 --speculative-token-map /kaggle/input/datasets/dfranzen/pennyroyal-v253/hot_tokens_64k.pt\n"}
+,{"stream_name":"stdout","time":60.378730634,"data":"Precaching: Started...\n"}
+,{"stream_name":"stdout","time":60.378731504,"data":"\n"}
+,{"stream_name":"stdout","time":60.378732234,"data":"SGLang pid 436 -\u003e /kaggle/working/serve.log (launched at 55s)\n"}
+,{"stream_name":"stdout","time":60.607909538,"data":"Writing /kaggle/working/o1/o1_perception.py\n"}
+,{"stream_name":"stdout","time":60.618612373,"data":"Writing /kaggle/working/o1/o1_actions.py\n"}
+,{"stream_name":"stdout","time":60.627841639,"data":"Writing /kaggle/working/o1/o1_pickers.py\n"}
+,{"stream_name":"stdout","time":60.638144224,"data":"Writing /kaggle/working/o1/o1_agent.py\n"}
+,{"stream_name":"stdout","time":60.676240157,"data":"Writing /kaggle/working/solvers/dispatch.py\n"}
+,{"stream_name":"stdout","time":60.686290722,"data":"Writing /kaggle/working/solvers/__init__.py\n"}
+,{"stream_name":"stdout","time":60.697151267,"data":"Writing /kaggle/working/solvers/asteroid_capitalist.py\n"}
+,{"stream_name":"stdout","time":60.707572812,"data":"Writing /kaggle/working/solvers/blarglike.py\n"}
+,{"stream_name":"stdout","time":60.718523077,"data":"Writing /kaggle/working/solvers/cavebots.py\n"}
+,{"stream_name":"stdout","time":60.726583414,"data":"Writing /kaggle/working/solvers/generic.py\n"}
+,{"stream_name":"stdout","time":60.737327329,"data":"Writing /kaggle/working/solvers/off_line.py\n"}
+,{"stream_name":"stdout","time":60.745485495,"data":"Writing /kaggle/working/scripted_agent.py\n"}
+,{"stream_name":"stdout","time":676.608927641,"data":"Precaching: loaded 62 files (185.40 GB) in 616.00 seconds.\n"}
+,{"stream_name":"stdout","time":676.614553448,"data":"\n"}
+,{"stream_name":"stdout","time":707.649384115,"data":"Flash-Next ready at notebook 701s\n"}
+,{"stream_name":"stdout","time":707.649402225,"data":"serving at 702s, model=ready\n"}
+,{"stream_name":"stdout","time":707.649403925,"data":"[GGA InferenceServer] Loaded agent: Agent\n"}
+,{"stream_name":"stdout","time":707.665766067,"data":"[GGA InferenceServer] Not a rerun; wrote placeholder /kaggle/working/submission.parquet so this notebook version can be submitted. The scored submission is written by the gateway during the competition rerun.\n"}
+,{"stream_name":"stderr","time":711.954626966,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":711.954648126,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":712.137845802,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":712.137860721,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":712.643371488,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":712.686389088,"data":"[NbConvertApp] Writing 280322 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":713.863870064,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":714.623883913,"data":"[NbConvertApp] Writing 1370778 bytes to __results__.html\n"}
+]
+==> /tmp/kout/serve.log <==
+ ?it/s]Capturing batches (bs=2 avail_mem=7.34 GB):   0%|          | 0/2 [00:00<?, ?it/s]                                                                                 Capturing batches (bs=2 avail_mem=7.34 GB):   0%|          | 0/2 [00:02<?, ?it/s][12:55:07] : Warning: Data race detected: `Logits(bx, position)`is written by multiple threads in loop (token,), Example:
+  batch = 1
+  bx = 0
+  by = 0
+  context_len = 1
+  group = 0
+  max_pages = 1
+  position = 0
+  token = 1
+  token_OTHER_ = 0
+  tx = 0
+If you believe this is a false positive, pass `PassKey.TL_DISABLE_DATA_RACE_CHECK` to pass key to disable this check.
+                                                                                 Capturing batches (bs=2 avail_mem=7.34 GB):   0%|          | 0/2 [00:07<?, ?it/s]2026-11-28 12:55:07  [TileLang:tilelang.jit.kernel:INFO] (kernel.py:129): TileLang begins to compile kernel `kernel` with `out_idx=None`
+2026-11-28 12:55:12  [TileLang:tilelang.jit.kernel:INFO] (kernel.py:137): TileLang completes to compile kernel `kernel`
+Capturing batches (bs=2 avail_mem=7.34 GB):  50%|█████     | 1/2 [00:08<00:08,  8.23s/it]Capturing batches (bs=1 avail_mem=7.10 GB):  50%|█████     | 1/2 [00:08<00:08,  8.23s/it]Capturing batches (bs=1 avail_mem=7.10 GB): 100%|██████████| 2/2 [00:08<00:00,  3.51s/it]Capturing batches (bs=1 avail_mem=7.10 GB): 100%|██████████| 2/2 [00:08<00:00,  4.22s/it]
+[2026-11-28 12:55:13] Capture target verify CUDA graph end. elapsed=9.27 s, mem usage=0.24 GB, avail mem=7.10 GB.
+[2026-11-28 12:55:15] [gdn_recovery] captured 2 recovery cuda graphs (buckets=[1, 2], boundary=True)
+[2026-11-28 12:55:15] Disable prefill CUDA graph because cuda_graph_config resolved prefill.backend='disabled' (e.g. via --cuda-graph-backend-prefill=disabled or auto-disable rules).
+[2026-11-28 12:55:15] Capture draft decode CUDA graph begin. backend=full, num_tokens_per_req=1, bs=[1, 2], avail mem=7.09 GB
+  0%|          | 0/2 [00:00<?, ?it/s]Capturing batches (bs=2 avail_mem=7.09 GB):   0%|          | 0/2 [00:00<?, ?it/s]Capturing batches (bs=2 avail_mem=7.09 GB):  50%|█████     | 1/2 [00:01<00:01,  1.83s/it]Capturing batches (bs=1 avail_mem=6.80 GB):  50%|█████     | 1/2 [00:01<00:01,  1.83s/it]Capturing batches (bs=1 avail_mem=6.80 GB): 100%|██████████| 2/2 [00:02<00:00,  1.13it/s]Capturing batches (bs=1 avail_mem=6.80 GB): 100%|██████████| 2/2 [00:02<00:00,  1.02s/it]
+[2026-11-28 12:55:18] Capture draft decode CUDA graph end. elapsed=2.89 s, mem usage=0.30 GB, avail mem=6.79 GB.
+[2026-11-28 12:55:18] Capture draft extend CUDA graph begin. backend=full, num_tokens_per_req=4, bs=[1, 2], avail mem=6.79 GB
+  0%|          | 0/2 [00:00<?, ?it/s]Capturing batches (bs=2 avail_mem=6.79 GB):   0%|          | 0/2 [00:00<?, ?it/s]Capturing batches (bs=1 avail_mem=6.61 GB):   0%|          | 0/2 [00:00<?, ?it/s]Capturing batches (bs=1 avail_mem=6.61 GB): 100%|██████████| 2/2 [00:00<00:00, 90.24it/s]
+[2026-11-28 12:55:19] Capture draft extend CUDA graph end. elapsed=0.87 s, mem usage=0.18 GB, avail mem=6.61 GB.
+[2026-11-28 12:55:19] max_total_num_tokens=1051072, chunked_prefill_size=8192, max_prefill_tokens=16384, max_running_requests=2, context_len=32768, available_gpu_mem=6.61 GB
+[2026-11-28 12:55:19] Mamba sparse-prefill v2: one cold-start branch plus final checkpoint
+[2026-11-28 12:55:19] Mamba LRU: refresh checkpoint before final device unlock
+[2026-11-28 12:55:19] Init Unified Radix Cache. Components: (<ComponentType.FULL: 0>, <ComponentType.MAMBA: 2>). Tree Core: UnifiedTreeCore
+[2026-11-28 12:55:19] Tree cache initialized: source=default impl=UnifiedRadixCache hybrid_swa=False hybrid_ssm=True hicache_attached=False streaming_wrapped=False
+[2026-11-28 12:55:19] Engine startup timings (s): load_weight=601.40, kv_cache_allocation=1.08, scheduler_e2e=622.66, cuda_graph={prefill=0.00, decode=0.00, target_verify=9.27, draft_prefill=0.00, draft_decode=2.89, draft_extend=0.87}, tokenizer_e2e=627.74
+[2026-11-28 12:55:19] INFO:     Started server process [436]
+[2026-11-28 12:55:19] INFO:     Waiting for application startup.
+[2026-11-28 12:55:19] Using default chat sampling params from model generation config: {'temperature': 1.0, 'top_k': 20, 'top_p': 0.95}
+[2026-11-28 12:55:20] Running warmup structured_output
+[2026-11-28 12:55:26] Prefill batch, #new-seq: 1, #new-token: 64, #cached-token: 0, full token usage: 0.00, mamba usage: 0.19, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 8.83
+[2026-11-28 12:55:26] ReqTimeStats(rid=410f062210ad46a1b2f1860e26cd1571, input_len=10, cached_input_len=0, output_len=34, attempts=0, type=unified): queue_duration=3.12ms, initial_prefill_elapsed=6589.16ms, post_prefill_elapsed=190.73ms, forward_duration=6779.89ms, entry_time=1795870520.070
+[2026-11-28 12:55:26] Structured-output warmup completed for the built-in JSON schema.
+[2026-11-28 12:55:26] Warmup ended
+[2026-11-28 12:55:26] INFO:     Application startup complete.
+[2026-11-28 12:55:26] INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+[2026-11-28 12:55:27] INFO:     127.0.0.1:55838 - "GET /model_info HTTP/1.1" 200 OK
+[2026-11-28 12:55:28] INFO:     127.0.0.1:55852 - "GET /health HTTP/1.1" 503 Service Unavailable
+/tmp/sgl-intel/venv/lib/python3.12/site-packages/flashinfer/api_logging.py:2333: RuntimeWarning: CP delta rule heuristic matched but CP dispatch is unavailable: CP delta rule does not support state checkpointing yet; falling back to non-CP delta rule.
+  return _inner(*args, **kwargs)
+[2026-11-28 12:55:31] Prefill batch, #new-seq: 1, #new-token: 128, #cached-token: 0, full token usage: 0.00, mamba usage: 0.25, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 27.01
+[2026-11-28 12:55:31] ReqTimeStats(rid=59acaa10823a4f38ae44e7eee458125a, input_len=122, cached_input_len=0, output_len=8, attempts=0, type=unified): queue_duration=0.49ms, initial_prefill_elapsed=3441.65ms, post_prefill_elapsed=46.53ms, forward_duration=3488.17ms, entry_time=1795870527.959
+[2026-11-28 12:55:31] INFO:     127.0.0.1:55842 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[2026-11-28 12:55:31] Freezing GC in Tokenizer Manager process. gen0: 473->0, gen1: 2323->0, gen2: 987493->0
+[2026-11-28 12:55:31] INFO:     127.0.0.1:55864 - "POST /freeze_gc HTTP/1.1" 200 OK
+[2026-11-28 12:55:31] The server is fired up and ready to roll!
+[2026-11-28 12:55:31] Freezing GC in Scheduler process. gen0: 3042->0, gen1: 2887->0, gen2: 1121623->0
+[2026-11-28 12:55:31] Freezing GC in Detokenizer Manager process. gen0: 451->0, gen1: 1121->0, gen2: 805749->0
+[2026-11-28 12:55:32] ReqTimeStats(rid=HEALTH_CHECK_4534701629174deda94e89df8e605e72, input_len=1, cached_input_len=0, output_len=1, attempts=0, type=unified): queue_duration=0.41ms, initial_prefill_elapsed=80.52ms, post_prefill_elapsed=0.18ms, forward_duration=80.70ms, entry_time=1795870532.033
+[2026-11-28 12:55:32] Prefill batch, #new-seq: 1, #new-token: 64, #cached-token: 0, full token usage: 0.00, mamba usage: 0.00, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 89.71
+[2026-11-28 12:55:33] INFO:     127.0.0.1:55876 - "GET /health HTTP/1.1" 200 OK
+[2026-11-28 12:55:33] Prefill batch, #new-seq: 1, #new-token: 256, #cached-token: 0, full token usage: 0.00, mamba usage: 0.25, #running-req: 0, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 223.38
+[2026-11-28 12:55:33] ReqTimeStats(rid=aacfc0968f454c38a9f97a22c4a6af9d, input_len=247, cached_input_len=0, output_len=5, attempts=0, type=unified): queue_duration=0.40ms, initial_prefill_elapsed=173.22ms, post_prefill_elapsed=16.02ms, forward_duration=189.24ms, entry_time=1795870533.087
+[2026-11-28 12:55:33] INFO:     127.0.0.1:55892 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.0.0), please consider upgrading to the latest version (2.2.5)
+fileName,date,description,status,publicScore,privateScore
+submission.parquet,2026-11-28 12:56:52.973000,v6gpu: v5gpu + the actor sees a 640 px picture (coach keeps 1024) for a shorter reply delay (ours) [run 46143830273],SubmissionStatus.PENDING,,
+submission.parquet,2026-11-28 05:36:25.127000,v5gpu: ozertuu 0.360 stack (credited) + coach ACT plays when the actor is stuck (ours) [run 46096145260],SubmissionStatus.COMPLETE,0.370,
+submission.parquet,2026-11-24 20:26:44.180000,"v4cpu v2 + retry after defeat + clicks aimed at rare-coloured objects (ours, no model, CPU kernel) [run 45480669813]",SubmissionStatus.COMPLETE,0.041,
+
+output files:
+total 80
+drwxr-xr-x  5 runner runner  4096 Nov 28 12:56 .
+drwxrwxrwt 13 root   root    4096 Nov 28 12:56 ..
+drwxr-xr-x  2 runner runner  4096 Nov 28 12:56 __pycache__
+-rw-r--r--  1 runner runner    27 Nov 28 12:56 agent.py
+-rw-r--r--  1 runner runner  9561 Nov 28 12:56 gga-sub-gpu.log
+drwxr-xr-x  3 runner runner  4096 Nov 28 12:56 o1
+-rw-r--r--  1 runner runner   245 Nov 28 12:56 scripted_agent.py
+-rw-r--r--  1 runner runner 36370 Nov 28 12:56 serve.log
+drwxr-xr-x  3 runner runner  4096 Nov 28 12:56 solvers
+-rw-r--r--  1 runner runner   853 Nov 28 12:56 submission.parquet
+==> /tmp/kout/gga-sub-gpu.log <==
+[{"stream_name":"stderr","time":4.56903636,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.5690659700000005,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.56906774,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.56906877,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":4.87167675,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":4.87170166,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":4.87170397,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":4.87170554,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":6.112824247,"data":"rerun=False\n"}
+,{"stream_name":"stdout","time":6.112839667,"data":"wheelhouse=/kaggle/input/datasets/dfranzen/pennyroyal-v253\n"}
+,{"stream_name":"stdout","time":6.112841167,"data":"flash=/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1\n"}
+,{"stream_name":"stdout","time":6.112842257,"data":"draft=/kaggle/input/models/dfranzen/albucino-qwen
+==> /tmp/kout/serve.log <==
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'mrope_interleaved'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'mrope_interleaved'}
+[2026-11-28 12:44:51] Breakable CUDA graph is incompatible with multimodal model; disabling prefill CUDA graph.
+[2026-11-28 12:44:51] Setting page size to 64 for compressed QSA (full//ratio compressed addressing).
+[2026-11-28 12:44:51] Attention backend not specified. Use flashinfer backend by default.
+[2026-11-28 12:44:51] Successfully imported FlashInfer mamba module
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'mrope_interleaved'}
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'mrope_interleaved'}
+[2026-11-28 12:44:51] DeepSeek MTP does not require setting speculative_draft_model_path.
+[2026-11-28 12:44:52] server_args={'model_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_path': '/kaggle/input/models/dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/transformers/default/1', 'tokenizer_mode': 'auto', 'tokenizer_backend': 'huggingface', 'tokenizer_worker_num': 1, 'detokenizer_worker_num': 1, 'skip_tokenizer_init': False, 'load_format': 'safetensors', 'model_loader_extra_config': '{"enable_multithread_load":false}', 'trust_remote_code': True, 'context_length': 32768, '
