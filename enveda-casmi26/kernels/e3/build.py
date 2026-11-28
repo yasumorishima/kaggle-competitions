@@ -131,7 +131,9 @@ outer = _arg("outer", "p477", str)   # ours (11-01), base p477 only: the outer n
 # 'g482' (11-07): popwenman "CASMI26 0482 Gold Apex V22" v2 = romanrozen "[0.482] CASMI: From Peaks to Structures" v17 with
 # popwenman's own v80 scorer (kernel output) in place of a deleted kernel; same frozen sha256 d1e757c2 as m480, + LOTUS
 # backfill, prior weights 0.10/0.10/0.12 gate 0.78, timsTOF mass prior on ranks 2-25 and the mass rank-1 rule (V8 = MASS)
-assert outer in ("p477", "m479", "m480", "g482", "a488", "k505", "g505"), outer
+assert outer in ("p477", "m479", "m480", "g482", "a488", "k505", "g505", "r511"), outer
+# 'r511' (11-28): koushikrudra "[LB 0.511+]CASMI v80" v1 = the k505 stack (same frozen sha256 d1e757c2) + ishankarnick's
+# virtual natural-product tier (casmi26-vt0/vtlp) with three neural scorers (bgunshui v2, ishankarnick x1full, popwenman v80)
 assert outer == "p477" or base == "p477", "outer replaces the p477 wrapper only"
 nb = json.load(open(os.path.join(HERE, f"base_{base}.ipynb"), encoding="utf-8"))
 cells = nb["cells"]
@@ -1327,7 +1329,7 @@ if base == "p477":
     _fz = json.dumps(nb, separators=(",", ":")).encode("utf-8")   # compact (11-07: notebook size)
     _outer = json.load(open(os.path.join(HERE, f"outer_{outer}.ipynb"), encoding="utf-8"))
     _oc = _outer["cells"]
-    if outer in ("g482", "a488", "k505", "g505"):   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
+    if outer in ("g482", "a488", "k505", "g505", "r511"):   # ours: 'smoke' commit (12 visible molecules through every stage and our cells) instead of 'fast' (dummy file)
         _ic = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "COMMIT_MODE = 'fast'" in "".join(c["source"])]
         assert len(_ic) == 1, _ic
         _oc[_ic[0]]["source"] = "".join(_oc[_ic[0]]["source"]).replace("COMMIT_MODE = 'fast'", "COMMIT_MODE = 'smoke'   # ours (was 'fast')", 1)
@@ -1344,7 +1346,7 @@ if base == "p477":
         # (the public pool only). 56k structures of our own COCONUT table are not in it, so they got NP 0 although they are
         # COCONUT natural products. Build an extended copy (their rows: np_coconut 1, pop 0 = unknown, no library flag) and
         # point the final layer at it; any failure keeps the original table.
-        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
+        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505", "r511") and ownco, "onp extends the m479 final layer's prior table with our own COCONUT structures"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def _load_pop_prior(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1382,7 +1384,7 @@ except Exception as _e:
         #          votes only past ARB_NL_TAU nats, i.e. when a diagnostic loss is seen
         # v0 leads when the summed vote is below 0 (lfrag against the move and nl not for it, or both against).
         # Any failure (or no move) leaves the 0.479 behaviour exactly.
-        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505"), "arb patches the m479 final layer (pxm_merge)"
+        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505", "r511"), "arb patches the m479 final layer (pxm_merge)"
         _i17 = [i for i, c in enumerate(_oc) if c["cell_type"] == "code" and "def pxm_merge(" in "".join(c["source"])]
         assert len(_i17) == 1, _i17
         _s17 = "".join(_oc[_i17[0]]["source"])
@@ -1538,7 +1540,7 @@ except Exception as _e:
     print('PCINS FAILED -> submission as is', repr(_e), flush=True)
 '''))
     if ae:
-        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505"), "ae runs after the m479/m480 final merge"
+        assert outer in ("m479", "m480", "g482", "a488", "k505", "g505", "r511"), "ae runs after the m479/m480 final merge"
         _ae_lib_src = open(os.path.join(HERE, "..", "..", "eval", "ae", "build_lib.py"), encoding="utf-8").read()
         _oc.append(code_cell("""# ==== ours (yasunorim; build.py ae=1 -- every outer cell above is unchanged): analog-edit structure at rank 2 ====
 # Idea credited to heliosli's r3p overlay (public notebook heliosli/casmi26-0-481, cell 24); our own code (ours_ae.py):
@@ -1715,6 +1717,10 @@ print('files left in /kaggle/working', _n, '| submission.csv', _os.path.isfile('
                    "by goodpjw2008, version 7 (kozykappa's 0.505 stack with E180X 1.1; alex chilton's 0.488, romanrozen's v17 and the "
                    "0.479 MIDX notebook underneath), commit mode set to smoke by us, "
                    if outer == "g505" else
+                   "[[LB 0.511+]CASMI v80](https://www.kaggle.com/code/koushikrudra/lb-0-511-casmi-v80) by Koushik Rudra, version 1 "
+                   "(kozykappa's 0.505 stack + ishankarnick's virtual natural-product tier with three neural scorers; alex chilton's "
+                   "0.488, romanrozen's v17 and the 0.479 MIDX notebook underneath), commit mode set to smoke by us, "
+                   if outer == "r511" else
                    "[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) "
                    "by alex chilton, version 8 (Baidalin Adilzhan's casmi26 midx exact dedup fill, run verbatim; built on Kunal Desale's MID "
                    "notebook and busyaprime's merge), ") + "and everything it credits (its cells below, unchanged). Ours: inside its embedded frozen pipeline (same as the f465 "
@@ -1758,7 +1764,7 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
                                "sanpier/catalogue-experiment-saner"] + (["yasunorim/casmi26-own-coconut-candidates"] if ownco else [])
     meta["kernel_sources"] = ["yasunorim/casmi26-e3rk0"] if c1r > 0 else []
     meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435"
-    if outer in ("m479", "m480", "g482", "a488", "k505", "g505"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
+    if outer in ("m479", "m480", "g482", "a488", "k505", "g505", "r511"):   # alexchilton v8/v9's image and its extra RDKit wheel (the runs that scored 0.479 / 0.480)
         meta["dataset_sources"].append("metric/rdkit-2026-3-3-wheel")
         if outer == "m480":   # alexchilton "LB 0.480 | Neural Ensemble" v9: bgunshui's longer-trained spectrum scorer (kernel output)
             meta["kernel_sources"] = meta["kernel_sources"] + ["bgunshui/casmi26-scorer-train-public"]
@@ -1770,6 +1776,12 @@ if base == "p477":   # busyaprime's inputs and image, + our own COCONUT table
         if outer == "a488":   # alexchilton v14's inputs and image (37c64f7d): v80 scorer, ozertuu's two external libraries
             meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
             meta["dataset_sources"] += ["samartalwar/casmi-2026-spectral-library-massbankharmonized", "takumuhata/casmi26-extlib"]
+        if outer == "r511":   # koushikrudra v1's inputs and image: k505's + bgunshui v2 scorer, ishankarnick x1full scorer, VT tier
+            meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
+            meta["dataset_sources"] += ["samartalwar/casmi-2026-spectral-library-massbankharmonized", "taeyangg4/casmi26-extlib-gnps-full",
+                                        "taeyangg4/casmi26-fr3to25-clean", "bgunshui/casmi26-scorer-v2-model", "ishankarnick/casmi-scorer-x1full",
+                                        "ishankarnick/casmi26-vt0", "ishankarnick/casmi26-vtlp"]
+            meta["docker_image"] = "gcr.io/kaggle-private-byod/python@sha256:fc720c15545eb096a510e1f085b17fc118387a007599424d953a4f327b71cacf"
         if outer in ("k505", "g505"):   # kozykappa v23 / goodpjw2008 v7 inputs (same 37c64f7d image): v80 scorer, MassBank, taeyangg4's GNPS extlib + FR 3-25
             meta["kernel_sources"] = [k for k in meta["kernel_sources"] if k != "bgunshui/casmi26-scorer-train-public"] + ["popwenman/casmi26-scorer-train-v80"]
             meta["dataset_sources"] += ["samartalwar/casmi-2026-spectral-library-massbankharmonized", "taeyangg4/casmi26-extlib-gnps-full",

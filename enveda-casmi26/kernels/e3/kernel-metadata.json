@@ -1,6 +1,6 @@
 {
-  "id": "yasunorim/casmi26-e3g505",
-  "title": "casmi26 e3g505",
+  "id": "yasunorim/casmi26-e3r511",
+  "title": "casmi26 e3r511",
   "code_file": "main.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -9,7 +9,7 @@
   "enable_tpu": "false",
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": "false",
-  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:fc720c15545eb096a510e1f085b17fc118387a007599424d953a4f327b71cacf",
   "dataset_sources": [
     "sanpier/casmi-spectrum-model-v1",
     "dmitriigluzdov/casmi26-fold-safe-fpnet",
@@ -22,7 +22,11 @@
     "metric/rdkit-2026-3-3-wheel",
     "samartalwar/casmi-2026-spectral-library-massbankharmonized",
     "taeyangg4/casmi26-extlib-gnps-full",
-    "taeyangg4/casmi26-fr3to25-clean"
+    "taeyangg4/casmi26-fr3to25-clean",
+    "bgunshui/casmi26-scorer-v2-model",
+    "ishankarnick/casmi-scorer-x1full",
+    "ishankarnick/casmi26-vt0",
+    "ishankarnick/casmi26-vtlp"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"
