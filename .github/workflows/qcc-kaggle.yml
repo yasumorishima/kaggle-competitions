@@ -120,7 +120,7 @@ jobs:
       - name: Record
         if: always() && env.SKIP != 'yes'
         run: |
-          F=qcc/requests/results/kaggle-${GITHUB_RUN_ID}.txt
+          mkdir -p qcc/requests/results; F=qcc/requests/results/kaggle-${GITHUB_RUN_ID}.txt
           { echo "request: $RID"; echo "memo: $MEMO"; echo "recipe: $RECIPE  salts: $SALTS  submit: $SUBMIT  verified: ${VERIFIED:-no}";
             echo "---"; tail -c 20000 /tmp/out.txt 2>/dev/null; } > $F
           git config user.name "github-actions[bot]"; git config user.email "github-actions[bot]@users.noreply.github.com"
