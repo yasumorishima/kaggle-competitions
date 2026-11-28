@@ -12,9 +12,12 @@ on:
   schedule:
     - cron: '41 * * * *'
   push:
-    branches-ignore: [main]
     paths:
       - 'santa-2026/requests/quick.json'
+      - '.github/workflows/santa-quick.yml'   # a change merged into main starts the relay at once
+  workflow_run:                              # each full cycle's end restarts the relay on main if it broke
+    workflows: ["Santa 2026 Kaggle"]
+    types: [completed]
 
 permissions:
   contents: write
